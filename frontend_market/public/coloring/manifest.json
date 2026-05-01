@@ -1,0 +1,524 @@
+{
+  "templates": [
+    {
+      "filename": "sports-car.svg",
+      "id": "sports-car",
+      "title": "Спортивная машина",
+      "subtitle": "Раскрась быструю машину!",
+      "emoji": "🏎️",
+      "category": "racing"
+    },
+    {
+      "filename": "fire-truck.svg",
+      "id": "fire-truck",
+      "title": "Пожарная машина",
+      "subtitle": "Помоги пожарным!",
+      "emoji": "🚒",
+      "category": "special"
+    },
+    {
+      "filename": "police-car.svg",
+      "id": "police-car",
+      "title": "Полицейская машина",
+      "subtitle": "Помоги полиции!",
+      "emoji": "🚓",
+      "category": "special"
+    },
+    {
+      "filename": "classic-car.svg",
+      "id": "classic-car",
+      "title": "Ретро машина",
+      "subtitle": "Классический автомобиль",
+      "emoji": "🚗",
+      "category": "cars"
+    },
+    {
+      "filename": "pickup-truck.svg",
+      "id": "pickup-truck",
+      "title": "Пикап",
+      "subtitle": "Для работы и отдыха!",
+      "emoji": "🛻",
+      "category": "trucks"
+    },
+    {
+      "filename": "jeep.svg",
+      "id": "jeep",
+      "title": "Джип",
+      "subtitle": "Для приключений!",
+      "emoji": "🚙",
+      "category": "trucks"
+    },
+    {
+      "filename": "convertible.svg",
+      "id": "convertible",
+      "title": "Кабриолет",
+      "subtitle": "Летняя поездка!",
+      "emoji": "🏎️",
+      "category": "racing"
+    },
+    {
+      "filename": "bus.svg",
+      "id": "bus",
+      "title": "Автобус",
+      "subtitle": "Поехали вместе!",
+      "emoji": "🚌",
+      "category": "cars"
+    },
+    {
+      "filename": "van.svg",
+      "id": "van",
+      "title": "Минивэн",
+      "subtitle": "Семейная поездка!",
+      "emoji": "🚐",
+      "category": "cars"
+    },
+    {
+      "filename": "Chevy El Camino.svg",
+      "id": "chevy-el-camino",
+      "title": "Chevy El Camino",
+      "subtitle": "Классический пикап!",
+      "emoji": "🛻",
+      "category": "trucks"
+    },
+    {
+      "filename": "Cyberpunk 2077.svg",
+      "id": "cyberpunk-2077",
+      "title": "Cyberpunk 2077",
+      "subtitle": "Будущее уже здесь!",
+      "emoji": "🚗",
+      "category": "racing"
+    },
+    {
+      "filename": "Cybertruck.svg",
+      "id": "cybertruck",
+      "title": "Cybertruck",
+      "subtitle": "Электрический пикап Tesla!",
+      "emoji": "🛻",
+      "category": "trucks"
+    },
+    {
+      "filename": "Defender.svg",
+      "id": "defender",
+      "title": "Land Rover Defender",
+      "subtitle": "Легенда бездорожья!",
+      "emoji": "🚙",
+      "category": "trucks"
+    },
+    {
+      "filename": "Dodge Challenger.svg",
+      "id": "dodge-challenger",
+      "title": "Dodge Challenger",
+      "subtitle": "Мощный мускул-кар!",
+      "emoji": "🏎️",
+      "category": "racing"
+    },
+    {
+      "filename": "Ford Crown Victoria.svg",
+      "id": "ford-crown-victoria",
+      "title": "Ford Crown Victoria",
+      "subtitle": "Классический седан!",
+      "emoji": "🚗",
+      "category": "cars"
+    },
+    {
+      "filename": "Jaguar E-Type.svg",
+      "id": "jaguar-e-type",
+      "title": "Jaguar E-Type",
+      "subtitle": "Британская классика!",
+      "emoji": "🏎️",
+      "category": "racing"
+    },
+    {
+      "filename": "Jeep Wrangler.svg",
+      "id": "jeep-wrangler",
+      "title": "Jeep Wrangler",
+      "subtitle": "Для настоящих приключений!",
+      "emoji": "🚙",
+      "category": "trucks"
+    },
+    {
+      "filename": "Lamba.svg",
+      "id": "lamba",
+      "title": "Lamborghini",
+      "subtitle": "Итальянский суперкар!",
+      "emoji": "🏎️",
+      "category": "racing"
+    },
+    {
+      "filename": "Lambo Countach.svg",
+      "id": "lambo-countach",
+      "title": "Lamborghini Countach",
+      "subtitle": "Легенда 80-х!",
+      "emoji": "🏎️",
+      "category": "racing"
+    },
+    {
+      "filename": "Lambo Miura.svg",
+      "id": "lambo-miura",
+      "title": "Lamborghini Miura",
+      "subtitle": "Первый суперкар!",
+      "emoji": "🏎️",
+      "category": "racing"
+    },
+    {
+      "filename": "Mini Cooper.svg",
+      "id": "mini-cooper",
+      "title": "Mini Cooper",
+      "subtitle": "Компактная классика!",
+      "emoji": "🚗",
+      "category": "cars"
+    },
+    {
+      "filename": "Nissan GTR.svg",
+      "id": "nissan-gtr",
+      "title": "Nissan GT-R",
+      "subtitle": "Японский суперкар!",
+      "emoji": "🏎️",
+      "category": "racing"
+    },
+    {
+      "filename": "Old.svg",
+      "id": "old",
+      "title": "Ретро автомобиль",
+      "subtitle": "Классика прошлого!",
+      "emoji": "🚗",
+      "category": "cars"
+    },
+    {
+      "filename": "Old2.svg",
+      "id": "old2",
+      "title": "Винтажный автомобиль",
+      "subtitle": "Раритетная модель!",
+      "emoji": "🚗",
+      "category": "cars"
+    },
+    {
+      "filename": "Old3.svg",
+      "id": "old3",
+      "title": "Антикварная машина",
+      "subtitle": "Историческая ценность!",
+      "emoji": "🚗",
+      "category": "cars"
+    },
+    {
+      "filename": "Subaru WRX STI.svg",
+      "id": "subaru-wrx-sti",
+      "title": "Subaru WRX STI",
+      "subtitle": "Раллийный чемпион!",
+      "emoji": "🏎️",
+      "category": "racing"
+    },
+    {
+      "filename": "Toyota Land Cruiser 70.svg",
+      "id": "toyota-land-cruiser-70",
+      "title": "Toyota Land Cruiser 70",
+      "subtitle": "Надёжный внедорожник!",
+      "emoji": "🚙",
+      "category": "trucks"
+    },
+    {
+      "filename": "VW Beetle.svg",
+      "id": "vw-beetle",
+      "title": "Volkswagen Beetle",
+      "subtitle": "Народный автомобиль!",
+      "emoji": "🚗",
+      "category": "cars"
+    },
+    {
+      "filename": "VW Type 2.svg",
+      "id": "vw-type-2",
+      "title": "Volkswagen Type 2",
+      "subtitle": "Легендарный хиппи-фургон!",
+      "emoji": "🚌",
+      "category": "cars"
+    },
+    {
+      "filename": "ferari.svg",
+      "id": "ferrari",
+      "title": "Ferrari",
+      "subtitle": "Итальянская страсть!",
+      "emoji": "🏎️",
+      "category": "racing"
+    },
+    {
+      "filename": "juk.svg",
+      "id": "juk",
+      "title": "Nissan Juke",
+      "subtitle": "Стильный кроссовер!",
+      "emoji": "🚗",
+      "category": "cars"
+    },
+    {
+      "filename": "mers.svg",
+      "id": "mers",
+      "title": "Mercedes-Benz",
+      "subtitle": "Немецкое качество!",
+      "emoji": "🚗",
+      "category": "cars"
+    },
+    {
+      "filename": "smart.svg",
+      "id": "smart",
+      "title": "Smart",
+      "subtitle": "Компактный городской!",
+      "emoji": "🚗",
+      "category": "cars"
+    },
+    {
+      "filename": "tagah.svg",
+      "id": "tagah",
+      "title": "Tesla",
+      "subtitle": "Электрическое будущее!",
+      "emoji": "🚗",
+      "category": "cars"
+    },
+    {
+      "filename": "1.svg",
+      "id": "cartoon-1",
+      "title": "Герой мультика 1",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "2.svg",
+      "id": "cartoon-2",
+      "title": "Герой мультика 2",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "3.svg",
+      "id": "cartoon-3",
+      "title": "Герой мультика 3",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "4.svg",
+      "id": "cartoon-4",
+      "title": "Герой мультика 4",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "5.svg",
+      "id": "cartoon-5",
+      "title": "Герой мультика 5",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "6.svg",
+      "id": "cartoon-6",
+      "title": "Герой мультика 6",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "7.svg",
+      "id": "cartoon-7",
+      "title": "Герой мультика 7",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "8.svg",
+      "id": "cartoon-8",
+      "title": "Герой мультика 8",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "9.svg",
+      "id": "cartoon-9",
+      "title": "Герой мультика 9",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "10.svg",
+      "id": "cartoon-10",
+      "title": "Герой мультика 10",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "11.svg",
+      "id": "cartoon-11",
+      "title": "Герой мультика 11",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "12.svg",
+      "id": "cartoon-12",
+      "title": "Герой мультика 12",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "13.svg",
+      "id": "cartoon-13",
+      "title": "Герой мультика 13",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "14.svg",
+      "id": "cartoon-14",
+      "title": "Герой мультика 14",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "15.svg",
+      "id": "cartoon-15",
+      "title": "Герой мультика 15",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "16.svg",
+      "id": "cartoon-16",
+      "title": "Герой мультика 16",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "17.svg",
+      "id": "cartoon-17",
+      "title": "Герой мультика 17",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "18.svg",
+      "id": "cartoon-18",
+      "title": "Герой мультика 18",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "19.svg",
+      "id": "cartoon-19",
+      "title": "Герой мультика 19",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "20.svg",
+      "id": "cartoon-20",
+      "title": "Герой мультика 20",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "21.svg",
+      "id": "cartoon-21",
+      "title": "Герой мультика 21",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "22.svg",
+      "id": "cartoon-22",
+      "title": "Герой мультика 22",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "23.svg",
+      "id": "cartoon-23",
+      "title": "Герой мультика 23",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "24.svg",
+      "id": "cartoon-24",
+      "title": "Герой мультика 24",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "25.svg",
+      "id": "cartoon-25",
+      "title": "Герой мультика 25",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "26.svg",
+      "id": "cartoon-26",
+      "title": "Герой мультика 26",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "27.svg",
+      "id": "cartoon-27",
+      "title": "Герой мультика 27",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "28.svg",
+      "id": "cartoon-28",
+      "title": "Герой мультика 28",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "29.svg",
+      "id": "cartoon-29",
+      "title": "Герой мультика 29",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "30.svg",
+      "id": "cartoon-30",
+      "title": "Герой мультика 30",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    },
+    {
+      "filename": "31.svg",
+      "id": "cartoon-31",
+      "title": "Герой мультика 31",
+      "subtitle": "Раскрась персонажа!",
+      "emoji": "🎬",
+      "category": "cartoons"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Minesweeper preview">
+  <defs>
+    <linearGradient id="mBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fee2e2" stop-opacity="0.55" />
+      <stop offset="1" stop-color="#fef3c7" stop-opacity="0.45" />
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="208" rx="28" fill="url(#mBg)" />
+  <g transform="translate(168 66)">
+    <rect x="0" y="0" width="176" height="124" rx="20" fill="#0f172a" opacity="0.08" />
+    <g fill="#0f172a" opacity="0.12">
+      <rect x="18" y="18" width="44" height="44" rx="12" />
+      <rect x="66" y="18" width="44" height="44" rx="12" />
+      <rect x="114" y="18" width="44" height="44" rx="12" />
+      <rect x="18" y="66" width="44" height="44" rx="12" />
+      <rect x="66" y="66" width="44" height="44" rx="12" />
+      <rect x="114" y="66" width="44" height="44" rx="12" />
+    </g>
+    <g transform="translate(84 44)">
+      <circle cx="0" cy="0" r="18" fill="#111827" />
+      <path d="M0-30v24M0 6v24M-30 0h24M6 0h24M-22-22l16 16M6 6l16 16M-22 22l16-16M6-6l16-16" stroke="#111827" stroke-width="8" stroke-linecap="round" />
+      <circle cx="0" cy="0" r="6" fill="#ef4444" />
+    </g>
+  </g>
+</svg>

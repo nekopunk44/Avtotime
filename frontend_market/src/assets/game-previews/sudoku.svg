@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Sudoku preview">
+  <defs>
+    <linearGradient id="suBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e0e7ff" stop-opacity="0.6" />
+      <stop offset="1" stop-color="#f1f5f9" stop-opacity="0.4" />
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="208" rx="28" fill="url(#suBg)" />
+  <g transform="translate(176 56)">
+    <rect x="0" y="0" width="160" height="160" rx="22" fill="#ffffff" opacity="0.95" />
+    <g stroke="#0f172a" stroke-width="4" opacity="0.35">
+      <path d="M54 10v140M106 10v140M10 54h140M10 106h140" />
+    </g>
+    <g stroke="#0f172a" stroke-width="6" opacity="0.55">
+      <rect x="10" y="10" width="140" height="140" rx="16" fill="none" />
+    </g>
+  </g>
+</svg>

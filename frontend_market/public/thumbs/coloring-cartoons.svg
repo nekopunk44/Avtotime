@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3e8ff"/>
+      <stop offset="1" stop-color="#e9d5ff"/>
+    </linearGradient>
+    <linearGradient id="slate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#0b1220"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a855f7"/>
+      <stop offset="1" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="640" height="300" rx="28" fill="url(#bg)"/>
+
+  <g transform="translate(130 62)">
+    <rect x="0" y="0" width="380" height="190" rx="24" fill="url(#slate)"/>
+    <rect x="0" y="0" width="380" height="70" rx="24" fill="#0f172a"/>
+    <path d="M0 54h380" stroke="#111827" stroke-width="10" opacity="0.8"/>
+
+    <g opacity="0.9">
+      <rect x="28" y="18" width="56" height="34" rx="10" fill="#e5e7eb"/>
+      <rect x="108" y="18" width="56" height="34" rx="10" fill="#e5e7eb"/>
+      <rect x="188" y="18" width="56" height="34" rx="10" fill="#e5e7eb"/>
+      <rect x="268" y="18" width="56" height="34" rx="10" fill="#e5e7eb"/>
+    </g>
+
+    <g transform="translate(48 98)" fill="url(#accent)">
+      <path d="M78 0l24 50 54 6-41 36 12 54-49-27-49 27 12-54-41-36 54-6 24-50Z"/>
+    </g>
+
+    <g transform="translate(240 96)" fill="#fbbf24" opacity="0.95">
+      <circle cx="36" cy="36" r="10"/>
+      <circle cx="70" cy="22" r="6"/>
+      <circle cx="18" cy="76" r="6"/>
+      <circle cx="78" cy="74" r="8"/>
+    </g>
+  </g>
+</svg>
+

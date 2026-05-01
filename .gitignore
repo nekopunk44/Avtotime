@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Python
+.venv/
+
+# IDE
+.vscode/
+
+# Local MongoDB data
+.mongo-data/
+.mongo-data*/
+
+# Parsed data files (local utility scripts)
+all_tickets_parsed.json
+new_tickets_raw.txt
+package-lock.json
+
+# Logs
+*.log

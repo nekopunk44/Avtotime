@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250">
+  <g fill="none" stroke="#111827" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.9">
+    <path d="M60 160 Q90 120 135 120 L165 95 H235 L270 120 Q330 125 350 160" />
+    <path d="M60 160 L60 185 H350 L350 160" opacity="0.7" />
+    <circle cx="130" cy="185" r="22" opacity="0.7" />
+    <circle cx="290" cy="185" r="22" opacity="0.7" />
+  </g>
+
+  <g fill="#111827" opacity="0.95">
+    <circle cx="60" cy="160" r="7"/>
+    <circle cx="85" cy="135" r="7"/>
+    <circle cx="110" cy="123" r="7"/>
+    <circle cx="135" cy="120" r="7"/>
+    <circle cx="165" cy="95" r="7"/>
+    <circle cx="205" cy="95" r="7"/>
+    <circle cx="235" cy="95" r="7"/>
+    <circle cx="270" cy="120" r="7"/>
+    <circle cx="310" cy="130" r="7"/>
+    <circle cx="350" cy="160" r="7"/>
+    <circle cx="335" cy="185" r="7"/>
+    <circle cx="290" cy="185" r="7"/>
+    <circle cx="245" cy="185" r="7"/>
+    <circle cx="200" cy="185" r="7"/>
+    <circle cx="155" cy="185" r="7"/>
+    <circle cx="130" cy="185" r="7"/>
+    <circle cx="95" cy="185" r="7"/>
+    <circle cx="60" cy="185" r="7"/>
+  </g>
+</svg>
+

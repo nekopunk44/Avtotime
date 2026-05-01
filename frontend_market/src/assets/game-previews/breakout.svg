@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Breakout preview">
+  <defs>
+    <linearGradient id="bBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ede9fe" stop-opacity="0.55" />
+      <stop offset="1" stop-color="#e0f2fe" stop-opacity="0.45" />
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="208" rx="28" fill="url(#bBg)" />
+  <g transform="translate(142 58)">
+    <g>
+      <rect x="0" y="0" width="60" height="26" rx="10" fill="#a78bfa" />
+      <rect x="66" y="0" width="60" height="26" rx="10" fill="#38bdf8" />
+      <rect x="132" y="0" width="60" height="26" rx="10" fill="#fb7185" />
+      <rect x="198" y="0" width="60" height="26" rx="10" fill="#fbbf24" />
+      <rect x="0" y="32" width="60" height="26" rx="10" fill="#38bdf8" />
+      <rect x="66" y="32" width="60" height="26" rx="10" fill="#fb7185" />
+      <rect x="132" y="32" width="60" height="26" rx="10" fill="#fbbf24" />
+      <rect x="198" y="32" width="60" height="26" rx="10" fill="#a78bfa" />
+    </g>
+    <rect x="76" y="144" width="112" height="18" rx="9" fill="#0f172a" opacity="0.75" />
+    <circle cx="222" cy="120" r="10" fill="#ef4444" opacity="0.9" />
+    <path d="M220 112c-34-30-62-38-96-22" fill="none" stroke="#0f172a" stroke-width="8" stroke-linecap="round" opacity="0.3" />
+  </g>
+</svg>

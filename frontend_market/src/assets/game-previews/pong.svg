@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Pong preview">
+  <defs>
+    <linearGradient id="pBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f1f5f9" stop-opacity="0.65" />
+      <stop offset="1" stop-color="#e0f2fe" stop-opacity="0.45" />
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="208" rx="28" fill="url(#pBg)" />
+  <rect x="120" y="72" width="18" height="112" rx="9" fill="#0f172a" opacity="0.75" />
+  <rect x="374" y="72" width="18" height="112" rx="9" fill="#0f172a" opacity="0.75" />
+  <g stroke="#0f172a" stroke-width="6" stroke-linecap="round" opacity="0.25">
+    <path d="M256 56v144" stroke-dasharray="10 12" />
+  </g>
+  <circle cx="256" cy="128" r="12" fill="#ef4444" opacity="0.9" />
+  <path d="M268 120c34-28 62-32 86-10" fill="none" stroke="#0f172a" stroke-width="8" stroke-linecap="round" opacity="0.35" />
+</svg>

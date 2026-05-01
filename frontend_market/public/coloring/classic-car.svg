@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 220" width="400" height="220">
+  <rect x="0" y="0" width="400" height="220" fill="#f8fafc"/>
+  
+  <path data-part-id="body" data-part-name="Кузов" 
+    d="M 40 140 Q 40 110 70 100 L 120 90 Q 150 70 200 70 Q 250 70 280 90 L 330 100 Q 360 110 360 140 L 360 160 Q 360 175 345 175 L 310 175 Q 300 155 270 155 Q 240 155 230 175 L 170 175 Q 160 155 130 155 Q 100 155 90 175 L 55 175 Q 40 175 40 160 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="roof" data-part-name="Крыша" 
+    d="M 130 90 Q 160 75 200 75 Q 240 75 270 90 L 260 105 Q 230 95 200 95 Q 170 95 140 105 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="window1" data-part-name="Переднее окно" 
+    d="M 145 100 Q 170 85 195 85 L 195 105 Q 170 100 150 108 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="window2" data-part-name="Заднее окно" 
+    d="M 205 85 Q 230 85 255 100 L 250 108 Q 230 100 205 105 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="wheel1" data-part-name="Переднее колесо" 
+    d="M 100 155 A 27 27 0 1 1 100 209 A 27 27 0 1 1 100 155 M 100 172 A 10 10 0 1 0 100 192 A 10 10 0 1 0 100 172" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="wheel2" data-part-name="Заднее колесо" 
+    d="M 270 155 A 27 27 0 1 1 270 209 A 27 27 0 1 1 270 155 M 270 172 A 10 10 0 1 0 270 192 A 10 10 0 1 0 270 172" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="headlight" data-part-name="Фара" 
+    d="M 355 125 Q 365 130 365 140 Q 365 150 355 155 L 345 150 L 345 130 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="grill" data-part-name="Решётка" 
+    d="M 42 125 L 55 125 L 55 155 L 42 150 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+</svg>

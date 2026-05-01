@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Solitaire preview">
+  <defs>
+    <linearGradient id="sBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dcfce7" stop-opacity="0.55" />
+      <stop offset="1" stop-color="#dbeafe" stop-opacity="0.45" />
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="208" rx="28" fill="url(#sBg)" />
+  <g transform="translate(176 58)">
+    <rect x="16" y="12" width="112" height="156" rx="22" fill="#ffffff" opacity="0.95" />
+    <rect x="0" y="28" width="112" height="156" rx="22" fill="#ffffff" opacity="0.9" />
+    <rect x="32" y="0" width="112" height="156" rx="22" fill="#ffffff" opacity="0.98" />
+    <path d="M88 48c14-18 36-18 50 0 14 18 0 40-25 54-25-14-39-36-25-54z" fill="#ef4444" opacity="0.9" />
+  </g>
+</svg>

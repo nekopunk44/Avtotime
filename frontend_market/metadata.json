@@ -1,0 +1,5 @@
+{
+  "name": "AVTOTIME - Car Marketplace",
+  "description": "A modern car marketplace for buying, selling, and renting vehicles with advanced search and subscription features.",
+  "requestFramePermissions": ["geolocation"]
+}

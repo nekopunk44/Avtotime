@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 220" width="400" height="220">
+  <rect x="0" y="0" width="400" height="220" fill="#f8fafc"/>
+  
+  <path data-part-id="body" data-part-name="Кузов" 
+    d="M 40 140 L 50 110 L 110 100 L 180 95 L 320 105 L 360 125 L 365 140 L 365 165 L 335 165 L 325 145 L 285 145 L 275 165 L 130 165 L 120 145 L 80 145 L 70 165 L 40 165 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="interior" data-part-name="Салон" 
+    d="M 120 100 L 180 95 L 280 102 L 270 115 L 130 112 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="seat1" data-part-name="Переднее сиденье" 
+    d="M 130 105 L 160 103 L 165 115 L 135 115 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="seat2" data-part-name="Заднее сиденье" 
+    d="M 200 105 L 240 107 L 235 115 L 205 114 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="wheel1" data-part-name="Переднее колесо" 
+    d="M 85 145 A 24 24 0 1 1 85 193 A 24 24 0 1 1 85 145 M 85 162 A 8 8 0 1 0 85 178 A 8 8 0 1 0 85 162" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="wheel2" data-part-name="Заднее колесо" 
+    d="M 285 145 A 24 24 0 1 1 285 193 A 24 24 0 1 1 285 145 M 285 162 A 8 8 0 1 0 285 178 A 8 8 0 1 0 285 162" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="door" data-part-name="Дверь" 
+    d="M 140 115 L 140 145 L 200 145 L 200 118 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="mirror" data-part-name="Зеркало" 
+    d="M 125 115 L 135 115 L 135 122 L 125 122 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+</svg>

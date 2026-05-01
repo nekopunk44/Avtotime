@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Road Fighter preview">
+  <defs>
+    <linearGradient id="rfBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fed7aa" stop-opacity="0.65" />
+      <stop offset="1" stop-color="#fecaca" stop-opacity="0.45" />
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="208" rx="28" fill="url(#rfBg)" />
+  <path d="M214 232l34-208h16l34 208" fill="#0b1220" opacity="0.9" />
+  <g stroke="#e5e7eb" stroke-width="8" stroke-linecap="round" opacity="0.9">
+    <path d="M256 56v22" />
+    <path d="M256 98v22" />
+    <path d="M256 140v22" />
+    <path d="M256 182v22" />
+  </g>
+  <g>
+    <rect x="164" y="128" width="40" height="64" rx="10" fill="#ef4444" opacity="0.95" />
+    <rect x="308" y="92" width="40" height="64" rx="10" fill="#22c55e" opacity="0.95" />
+    <rect x="173" y="140" width="22" height="10" rx="5" fill="#0f172a" opacity="0.35" />
+    <rect x="317" y="104" width="22" height="10" rx="5" fill="#0f172a" opacity="0.35" />
+    <circle cx="176" cy="194" r="8" fill="#0f172a" opacity="0.8" />
+    <circle cx="192" cy="194" r="8" fill="#0f172a" opacity="0.8" />
+    <circle cx="320" cy="158" r="8" fill="#0f172a" opacity="0.8" />
+    <circle cx="336" cy="158" r="8" fill="#0f172a" opacity="0.8" />
+  </g>
+</svg>

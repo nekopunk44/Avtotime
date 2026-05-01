@@ -1,0 +1,394 @@
+@import "tailwindcss";
+@source "../../../frontend_market/src";
+
+:root {
+    --auth-side-slide-duration: 1400ms;
+    --auth-shell-reveal-duration: 520ms;
+}
+
+* {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+html, body {
+    background: #000;
+}
+
+::-webkit-scrollbar {
+    display: none;
+}
+
+@keyframes heartPop {
+    0% {
+        transform: scale(0.5);
+        opacity: 0.4;
+    }
+    50%{
+        transform: scale(1.3);
+        opacity: 1;
+    }
+    100%{
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+.heart-animation{
+    animation: heartPop 1.5s ease-out forwards;
+}
+
+.page-transition {
+    animation: pageInUp 680ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: transform, opacity, filter;
+}
+
+@keyframes pageInUp {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 28px, 0) scale(0.95);
+        filter: blur(6px);
+    }
+    60% {
+        filter: blur(0px);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+        filter: blur(0px);
+    }
+}
+
+.page-transition[data-transition="social-to-market"] {
+    animation-name: pageInToMarket;
+    animation-duration: 750ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.page-transition[data-transition="market-to-social"] {
+    animation-name: pageInToSocial;
+    animation-duration: 750ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.page-transition[data-transition="logo-bridge"] {
+    animation: none;
+}
+
+.route-loader-bar {
+    animation: routeLoaderSlide 900ms ease-in-out infinite;
+    will-change: transform;
+}
+
+@keyframes pageInToMarket {
+    from {
+        opacity: 0;
+        transform: perspective(1000px) rotateY(-6deg) translate3d(80px, 0, 0) scale(0.94);
+        filter: blur(8px);
+    }
+    50% {
+        filter: blur(0px);
+    }
+    to {
+        opacity: 1;
+        transform: perspective(1000px) rotateY(0deg) translate3d(0, 0, 0) scale(1);
+        filter: blur(0px);
+    }
+}
+
+@keyframes pageInToSocial {
+    from {
+        opacity: 0;
+        transform: perspective(1000px) rotateY(6deg) translate3d(-80px, 0, 0) scale(0.94);
+        filter: blur(8px);
+    }
+    50% {
+        filter: blur(0px);
+    }
+    to {
+        opacity: 1;
+        transform: perspective(1000px) rotateY(0deg) translate3d(0, 0, 0) scale(1);
+        filter: blur(0px);
+    }
+}
+
+@keyframes routeLoaderSlide {
+    from {
+        transform: translateX(-140%);
+    }
+    to {
+        transform: translateX(420%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-transition {
+        animation: none;
+    }
+
+    .route-loader-bar {
+        animation: none;
+    }
+}
+
+
+.privacy-policy[data-modal="true"] .privacy-policy-nav {
+    display: none;
+}
+
+.pp-modal-overlay {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.pp-modal-overlay[data-state="open"] {
+    animation: ppOverlayIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.pp-modal-overlay[data-state="closing"] {
+    animation: ppOverlayOut 200ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.pp-modal-panel[data-state="open"] {
+    animation: ppPanelIn 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: transform, opacity;
+}
+
+.pp-modal-panel[data-state="closing"] {
+    animation: ppPanelOut 220ms cubic-bezier(0.4, 0, 1, 1) both;
+    will-change: transform, opacity;
+}
+
+@keyframes ppOverlayIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes ppOverlayOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes ppPanelIn {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 10px, 0) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+@keyframes ppPanelOut {
+    from {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translate3d(0, 8px, 0) scale(0.99);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pp-modal-overlay[data-state="open"],
+    .pp-modal-overlay[data-state="closing"],
+    .pp-modal-panel[data-state="open"],
+    .pp-modal-panel[data-state="closing"] {
+        animation: none;
+    }
+}
+
+/* Mobile Safari fix:
+   A transformed ancestor breaks `position: fixed` descendants (e.g. bottom tab bar).
+   On small screens we avoid transform-based page transitions so the tab bar stays fixed. */
+@media (max-width: 768px) {
+    .page-transition {
+        animation-name: pageFadeIn;
+        will-change: opacity;
+    }
+
+    .page-transition[data-transition="social-to-market"],
+    .page-transition[data-transition="market-to-social"] {
+        animation-name: pageFadeIn;
+    }
+}
+
+@keyframes pageFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .profile-topbar {
+        padding-top: calc(14px + env(safe-area-inset-top) + 12px) !important;
+    }
+}
+
+/* OperaGX/Chromium can visually autofill without exposing values to JS until user gesture.
+   This keeps "floating labels" in the correct state purely via CSS. */
+.auth-floating-label {
+    top: 10px;
+    font-size: 15px;
+    line-height: 1;
+    transition: top 200ms ease, font-size 200ms ease, color 200ms ease;
+}
+
+.auth-floating-field input::placeholder {
+    color: transparent;
+}
+
+.auth-floating-field input:focus + .auth-floating-label,
+.auth-floating-field input:not(:placeholder-shown) + .auth-floating-label,
+.auth-floating-field input:-webkit-autofill + .auth-floating-label,
+.auth-floating-field input:autofill + .auth-floating-label,
+.auth-floating-field input:-internal-autofill-selected + .auth-floating-label,
+.auth-floating-field input:-internal-autofill-previewed + .auth-floating-label {
+    top: -22px;
+    font-size: 12px;
+    z-index: 10;
+    background: #fff;
+}
+
+.auth-side-slide-in {
+    z-index: 1;
+    animation: authSideCenterToRight var(--auth-side-slide-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+    will-change: transform;
+}
+
+@keyframes authSideCenterToRight {
+    from {
+        transform: translate3d(-50%, 0, 0);
+    }
+    to {
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+.auth-main-fade-in {
+    opacity: 0;
+    animation: authMainFadeIn 420ms cubic-bezier(0.16, 1, 0.3, 1) 260ms both;
+    will-change: opacity;
+}
+
+@keyframes authMainFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@media (min-width: 1024px) {
+    .auth-shell-reveal {
+        position: relative;
+        isolation: isolate;
+        background-color: transparent;
+        border-color: transparent;
+        animation: authShellBorderFade 220ms ease calc(var(--auth-side-slide-duration) - 220ms) both;
+        will-change: border-color;
+    }
+
+    @keyframes authShellBorderFade {
+        from {
+            border-color: transparent;
+        }
+        to {
+            border-color: #1a1f23;
+        }
+    }
+
+    .auth-shell-reveal::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        border-radius: inherit;
+        box-sizing: border-box;
+        background: #fff;
+        animation: authShellCenterOut var(--auth-side-slide-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+        transform-origin: center;
+        transform: scaleX(0);
+        will-change: transform;
+        pointer-events: none;
+    }
+
+    @keyframes authShellCenterOut {
+        from {
+            transform: scaleX(0);
+        }
+        to {
+            transform: scaleX(1);
+        }
+    }
+
+    .auth-shell-reveal > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .auth-white-panel-reveal {
+        opacity: 0;
+        visibility: hidden;
+        animation: authWhitePanelReveal 680ms cubic-bezier(0.16, 1, 0.3, 1) 220ms both;
+        will-change: opacity, transform;
+        backface-visibility: hidden;
+    }
+
+    @keyframes authWhitePanelReveal {
+        0% {
+            opacity: 0;
+            visibility: hidden;
+            transform: translate3d(0, 10px, 0) scale(0.985);
+        }
+        1% {
+            visibility: visible;
+        }
+        100% {
+            opacity: 1;
+            visibility: visible;
+            transform: translate3d(0, 0, 0) scale(1);
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-side-slide-in {
+        animation: none;
+    }
+
+    .auth-main-fade-in {
+        animation: none;
+        opacity: 1;
+    }
+
+    .auth-shell-reveal {
+        animation: none;
+        background-color: #fff;
+        border-color: #1a1f23;
+    }
+
+    .auth-shell-reveal::before {
+        animation: none;
+        transform: none;
+    }
+
+    .auth-white-panel-reveal {
+        animation: none;
+        opacity: 1;
+        visibility: visible;
+    }
+}

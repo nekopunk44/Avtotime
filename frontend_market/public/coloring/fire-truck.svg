@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 280" width="400" height="280">
+  <rect x="0" y="0" width="400" height="280" fill="#f8fafc"/>
+  
+  <path data-part-id="body" data-part-name="Кузов" 
+    d="M 40 180 L 50 120 L 100 110 L 160 105 L 320 115 L 360 140 L 365 180 L 365 210 L 330 210 L 320 185 L 270 185 L 260 210 L 140 210 L 130 185 L 80 185 L 70 210 L 40 210 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="cabin" data-part-name="Кабина" 
+    d="M 50 120 L 60 80 L 140 75 L 155 110 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="window" data-part-name="Окно" 
+    d="M 65 90 L 130 88 L 140 105 L 60 108 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="ladder" data-part-name="Лестница" 
+    d="M 170 60 L 320 50 L 320 60 L 170 70 Z M 170 75 L 320 65 L 320 75 L 170 85 Z M 170 90 L 320 80 L 320 90 L 170 100 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="siren" data-part-name="Мигалка" 
+    d="M 70 75 L 80 60 L 100 60 L 110 73 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="wheel1" data-part-name="Переднее колесо" 
+    d="M 80 185 A 22 22 0 1 1 80 229 A 22 22 0 1 1 80 185 M 80 201 A 6 6 0 1 0 80 213 A 6 6 0 1 0 80 201" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="wheel2" data-part-name="Заднее колесо" 
+    d="M 270 185 A 22 22 0 1 1 270 229 A 22 22 0 1 1 270 185 M 270 201 A 6 6 0 1 0 270 213 A 6 6 0 1 0 270 201" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="stripe" data-part-name="Полоса" 
+    d="M 45 155 L 360 150 L 360 165 L 45 170 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+  
+  <path data-part-id="bumper" data-part-name="Бампер" 
+    d="M 40 195 L 60 195 L 60 205 L 40 205 Z M 345 195 L 365 195 L 365 205 L 345 205 Z" 
+    fill="white" stroke="#1f2937" stroke-width="2.5"/>
+</svg>

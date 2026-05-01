@@ -1,0 +1,59 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "set NODE_ENV=development&& nodemon index.js",
+    "dev:reset": "node scripts/kill_port.mjs 8000 && npm run dev",
+    "load:test": "node scripts/load/run_load_test.mjs",
+    "db:users": "node scripts/inspect_users.js",
+    "db:structure": "node scripts/inspect_db_structure.js",
+    "seed:dev-user": "node scripts/seed_dev_user.js",
+    "backfill:listing-plans": "node scripts/backfillListingPlans.js",
+    "smoke:market-filter": "node scripts/market_filter_smoke_test.mjs",
+    "smoke:market-create": "node scripts/market_create_and_filter_smoke_test.mjs",
+    "download:nsfw-model": "node scripts/download_nsfw_model.js",
+    "upload:questions": "node scripts/upload_driving_questions.js",
+    "upload:all-tickets": "node scripts/upload_all_tickets.js",
+    "import:tickets-docx": "node scripts/import_tickets_from_docx.js"
+  },
+  "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.8.0",
+    "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.3.2",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb-memory-server": "^11.0.1",
+    "mongoose": "^9.1.3",
+    "multer": "^2.0.2",
+    "nodemailer": "^8.0.4",
+    "nodemon": "^3.1.11",
+    "redis": "^5.8.2",
+    "socket.io": "^4.8.3",
+    "stripe": "^22.0.2"
+  },
+  "optionalDependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-node": "^0.1.11",
+    "nsfwjs": "^4.2.1",
+    "sharp": "^0.34.1"
+  },
+  "devDependencies": {
+    "autocannon": "^8.0.0"
+  }
+}

@@ -1,0 +1,63 @@
+import { AutoTuningListing } from '../types';
+
+export const AUTO_TUNING_TYPES = [
+  { id: 'ecu', label: 'ECU/Чип-тюнинг' },
+  { id: 'turbo', label: 'Турбо/Компрессор' },
+  { id: 'exhaust', label: 'Выхлопные системы' },
+  { id: 'suspension', label: 'Подвеска' },
+];
+
+export const INITIAL_AUTO_TUNING_LISTINGS: AutoTuningListing[] = [
+  {
+    id: 1,
+    title: 'PowerMax Chip Tuning',
+    socialNickname: '@powermax.chip',
+    category: 'ECU/Чип-тюнинг',
+    location: 'Москва, Марьино',
+    rating: 4.9,
+    reviews: 156,
+    price: 25000,
+    image: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&q=80&w=1200',
+    badge: '+30-50 л.с.',
+    tags: ['Stage 1', 'Stage 2', 'Stage 3', '+1'],
+  },
+  {
+    id: 2,
+    title: 'TurboForce Racing',
+    socialNickname: '@turboforce.racing',
+    category: 'Установка турбин',
+    location: 'Москва, Кунцево',
+    rating: 4.8,
+    reviews: 89,
+    price: 120000,
+    image: 'https://images.unsplash.com/photo-1611821064430-0d4022cb4fea?auto=format&fit=crop&q=80&w=1200',
+    badge: '+80-200 л.с.',
+    tags: ['Турбо-киты', 'Компрессоры', 'Интеркулеры', '+1'],
+  },
+  {
+    id: 3,
+    title: 'Stance Nation RU',
+    socialNickname: '@stance.nation.ru',
+    category: 'Тюнинг подвески',
+    location: 'Москва, Люблино',
+    rating: 4.7,
+    reviews: 234,
+    price: 45000,
+    image: 'https://images.unsplash.com/photo-1542282088-fe8426682b8f?auto=format&fit=crop&q=80&w=1200',
+    badge: 'Управляемость+',
+    tags: ['Койловеры', 'Пневмоподвеска', 'Развал', '+1'],
+  },
+  {
+    id: 4,
+    title: 'ExhaustPro Performance',
+    socialNickname: '@exhaustpro.performance',
+    category: 'Выхлопные системы',
+    location: 'Санкт-Петербург',
+    rating: 4.9,
+    reviews: 312,
+    price: 35000,
+    image: 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&q=80&w=1200',
+    badge: '+15-40 л.с.',
+    tags: ['Cat-back', 'Даунпайпы', 'Коллекторы', '+1'],
+  },
+];
