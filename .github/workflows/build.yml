@@ -25,6 +25,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install market dependencies
+        working-directory: frontend_market
+        run: npm install
+
       - name: Create .env.production
         run: |
           echo "VITE_API_URL=https://avtotime.org" > .env.production
