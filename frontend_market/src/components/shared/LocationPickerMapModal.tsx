@@ -8,10 +8,16 @@ interface PickedLocation {
   label: string;
 }
 
+export interface PickedLocationResult {
+  label: string;
+  lat: number;
+  lng: number;
+}
+
 interface LocationPickerMapModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (region: string) => void;
+  onSelect: (location: PickedLocationResult) => void;
   selectedRegion?: string;
   title?: string;
 }
@@ -40,20 +46,22 @@ const MAP_STYLE = {
   ],
 } as const;
 
-function extractRegionLabel(data: any, lat: number, lng: number) {
+function extractAddressLabel(data: any, lat: number, lng: number) {
   const address = data?.address ?? {};
+  const parts: string[] = [];
 
-  return (
-    address.city ||
-    address.town ||
-    address.village ||
-    address.municipality ||
-    address.county ||
-    address.state ||
-    data?.name ||
-    data?.display_name?.split(',')?.[0] ||
-    `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-  );
+  if (address.road) {
+    parts.push(address.road + (address.house_number ? ` ${address.house_number}` : ''));
+  } else if (address.pedestrian || address.path || address.footway) {
+    parts.push(address.pedestrian || address.path || address.footway);
+  }
+
+  const city = address.city || address.town || address.village || address.municipality || address.county;
+  if (city) parts.push(city);
+
+  if (parts.length > 0) return parts.join(', ');
+
+  return data?.display_name?.split(',')?.[0] || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 }
 
 async function reverseGeocode(lat: number, lng: number) {
@@ -66,7 +74,7 @@ async function reverseGeocode(lat: number, lng: number) {
   }
 
   const data = await response.json();
-  return extractRegionLabel(data, lat, lng);
+  return extractAddressLabel(data, lat, lng);
 }
 
 function createMarkerElement() {
@@ -270,14 +278,13 @@ export function LocationPickerMapModal({
 
   const handleConfirm = () => {
     if (pickedLocation?.label) {
-      onSelect(pickedLocation.label);
+      onSelect({ label: pickedLocation.label, lat: pickedLocation.lat, lng: pickedLocation.lng });
       onClose();
       return;
     }
 
     if (selectedRegion) {
-      onSelect(selectedRegion);
-      onClose();
+      setErrorMessage('Сначала выберите точку на карте.');
       return;
     }
 
@@ -335,7 +342,7 @@ export function LocationPickerMapModal({
 
           <div className="mt-4 flex items-start gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
             <Navigation className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
-            <p>Нажмите на карту, чтобы выбрать регион. При желании можно использовать геолокацию браузера.</p>
+            <p>Нажмите на карту, чтобы выбрать точное местоположение. Адрес определяется автоматически. Можно также использовать геолокацию браузера.</p>
           </div>
 
           {errorMessage && <p className="mt-3 text-sm font-medium text-red-600">{errorMessage}</p>}

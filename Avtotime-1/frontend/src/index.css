@@ -240,7 +240,8 @@ html, body {
 /* OperaGX/Chromium can visually autofill without exposing values to JS until user gesture.
    This keeps "floating labels" in the correct state purely via CSS. */
 .auth-floating-label {
-    top: 10px;
+    top: 50%;
+    transform: translateY(-50%);
     font-size: 15px;
     line-height: 1;
     transition: top 200ms ease, font-size 200ms ease, color 200ms ease;
@@ -256,7 +257,8 @@ html, body {
 .auth-floating-field input:autofill + .auth-floating-label,
 .auth-floating-field input:-internal-autofill-selected + .auth-floating-label,
 .auth-floating-field input:-internal-autofill-previewed + .auth-floating-label {
-    top: -22px;
+    top: 0;
+    transform: translateY(-50%);
     font-size: 12px;
     z-index: 10;
     background: #fff;

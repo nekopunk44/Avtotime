@@ -23,7 +23,6 @@ scripts/seed_dev_user.js
 scripts/kill_port.mjs
 
 # Large data files
-driving_questions_1-40.json
 questions_11-20.json
 
 # OS files

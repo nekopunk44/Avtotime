@@ -7,7 +7,7 @@ import axios from 'axios';
 import { serverURL } from '../../App';
 
 
-function StoryDp({ProfileImage, userName, story}) {
+function StoryDp({ProfileImage, userName, story, compact = false}) {
 
 const navigate = useNavigate()
 const {userData}=useSelector(state=>state.user)
@@ -52,27 +52,35 @@ const handleClick=()=>{
 
 
 
+    const outer = compact ? 'w-[58px] h-[58px]' : 'w-[80px] h-[80px]'
+    const inner = compact ? 'w-[50px] h-[50px]' : 'w-[70px] h-[70px]'
+    const plusIcon = compact
+        ? 'text-black absolute bottom-[4px] right-[6px] bg-white rounded-full w-[15px] h-[15px]'
+        : 'text-black absolute bottom-[8px] right-[10px] bg-white rounded-full w-[19px] h-[19px]'
+    const textSize = compact ? 'text-[11px]' : 'text-[14px]'
+    const wrapWidth = compact ? 'w-[58px]' : 'w-[80px]'
+
     return (
-    <div className='flex flex-col w-[80px] items-center'>
-        <div className={`w-[80px] h-[80px] rounded-full flex justify-center items-center relative ${
-            !story 
-            ? '' 
-            : viewed 
+    <div className={`flex flex-col ${wrapWidth} items-center`}>
+        <div className={`${outer} rounded-full flex justify-center items-center relative ${
+            !story
+            ? ''
+            : viewed
                 ? 'bg-gradient-to-b from-gray-500 to-black-800'
                 : 'bg-gradient-to-b from-blue-500 to-blue-800'
         }`}
              onClick={handleClick}>
-            
-            <div className='w-[70px] h-[70px] border-2 border-black rounded-full cursor-pointer overflow-hidden'>
+
+            <div className={`${inner} border-2 border-black rounded-full cursor-pointer overflow-hidden`}>
                 <img src={ProfileImage || profile} alt="" className='w-full h-full object-cover' />
-                
+
                 {!story && userName === 'Ваша история' && (
-                    <FiPlusCircle className='text-black absolute bottom-[8px] right-[10px] bg-white rounded-full w-[19px] h-[19px]' />
+                    <FiPlusCircle className={plusIcon} />
                 )}
             </div>
         </div>
 
-        <div className='text-[14px] text-center truncate w-full text-white mt-1'>{userName}</div>
+        <div className={`${textSize} text-center truncate w-full text-white mt-1`}>{userName}</div>
     </div>
 )
 }

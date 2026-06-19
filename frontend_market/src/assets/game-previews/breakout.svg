@@ -1,24 +1,192 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Breakout preview">
   <defs>
-    <linearGradient id="bBg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ede9fe" stop-opacity="0.55" />
-      <stop offset="1" stop-color="#e0f2fe" stop-opacity="0.45" />
+    <linearGradient id="brkBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#020617"/>
     </linearGradient>
+    <linearGradient id="brkPaddle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#7DD3FC"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+    <radialGradient id="brkBall" cx="35%" cy="35%" r="65%">
+      <stop offset="0%"   stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FACC15"/>
+    </radialGradient>
   </defs>
-  <rect x="24" y="24" width="464" height="208" rx="28" fill="url(#bBg)" />
-  <g transform="translate(142 58)">
-    <g>
-      <rect x="0" y="0" width="60" height="26" rx="10" fill="#a78bfa" />
-      <rect x="66" y="0" width="60" height="26" rx="10" fill="#38bdf8" />
-      <rect x="132" y="0" width="60" height="26" rx="10" fill="#fb7185" />
-      <rect x="198" y="0" width="60" height="26" rx="10" fill="#fbbf24" />
-      <rect x="0" y="32" width="60" height="26" rx="10" fill="#38bdf8" />
-      <rect x="66" y="32" width="60" height="26" rx="10" fill="#fb7185" />
-      <rect x="132" y="32" width="60" height="26" rx="10" fill="#fbbf24" />
-      <rect x="198" y="32" width="60" height="26" rx="10" fill="#a78bfa" />
-    </g>
-    <rect x="76" y="144" width="112" height="18" rx="9" fill="#0f172a" opacity="0.75" />
-    <circle cx="222" cy="120" r="10" fill="#ef4444" opacity="0.9" />
-    <path d="M220 112c-34-30-62-38-96-22" fill="none" stroke="#0f172a" stroke-width="8" stroke-linecap="round" opacity="0.3" />
+
+  <!-- Background (arcade screen) -->
+  <rect width="512" height="256" rx="28" fill="url(#brkBg)"/>
+
+  <!-- Side walls -->
+  <rect x="20" y="36" width="4" height="200" fill="#475569" opacity="0.5"/>
+  <rect x="488" y="36" width="4" height="200" fill="#475569" opacity="0.5"/>
+  <rect x="20" y="36" width="472" height="4" fill="#475569" opacity="0.5"/>
+
+  <!-- ============== BRICK WALL ============== -->
+  <!-- 14 cols × 6 rows. Brick 32×12, gap 1. Start x=28, y=52 -->
+  <!-- Row 0: RED (some broken) -->
+  <g stroke="#7F1D1D" stroke-width="0.5">
+    <rect x="28"  y="52" width="32" height="12" fill="#DC2626"/>
+    <rect x="61"  y="52" width="32" height="12" fill="#DC2626"/>
+    <!-- broken: x=94 -->
+    <rect x="127" y="52" width="32" height="12" fill="#DC2626"/>
+    <rect x="160" y="52" width="32" height="12" fill="#DC2626"/>
+    <rect x="193" y="52" width="32" height="12" fill="#DC2626"/>
+    <rect x="226" y="52" width="32" height="12" fill="#DC2626"/>
+    <rect x="259" y="52" width="32" height="12" fill="#DC2626"/>
+    <rect x="292" y="52" width="32" height="12" fill="#DC2626"/>
+    <rect x="325" y="52" width="32" height="12" fill="#DC2626"/>
+    <!-- broken: x=358 -->
+    <rect x="391" y="52" width="32" height="12" fill="#DC2626"/>
+    <rect x="424" y="52" width="32" height="12" fill="#DC2626"/>
+    <rect x="457" y="52" width="32" height="12" fill="#DC2626"/>
+  </g>
+  <!-- Row 1: ORANGE -->
+  <g stroke="#9A3412" stroke-width="0.5">
+    <rect x="28"  y="65" width="32" height="12" fill="#F97316"/>
+    <rect x="61"  y="65" width="32" height="12" fill="#F97316"/>
+    <rect x="94"  y="65" width="32" height="12" fill="#F97316"/>
+    <rect x="127" y="65" width="32" height="12" fill="#F97316"/>
+    <!-- broken: x=160 -->
+    <rect x="193" y="65" width="32" height="12" fill="#F97316"/>
+    <rect x="226" y="65" width="32" height="12" fill="#F97316"/>
+    <rect x="259" y="65" width="32" height="12" fill="#F97316"/>
+    <rect x="292" y="65" width="32" height="12" fill="#F97316"/>
+    <rect x="325" y="65" width="32" height="12" fill="#F97316"/>
+    <rect x="358" y="65" width="32" height="12" fill="#F97316"/>
+    <rect x="391" y="65" width="32" height="12" fill="#F97316"/>
+    <rect x="424" y="65" width="32" height="12" fill="#F97316"/>
+    <rect x="457" y="65" width="32" height="12" fill="#F97316"/>
+  </g>
+  <!-- Row 2: YELLOW -->
+  <g stroke="#854D0E" stroke-width="0.5">
+    <rect x="28"  y="78" width="32" height="12" fill="#FACC15"/>
+    <rect x="61"  y="78" width="32" height="12" fill="#FACC15"/>
+    <rect x="94"  y="78" width="32" height="12" fill="#FACC15"/>
+    <!-- broken: x=127 -->
+    <rect x="160" y="78" width="32" height="12" fill="#FACC15"/>
+    <rect x="193" y="78" width="32" height="12" fill="#FACC15"/>
+    <rect x="226" y="78" width="32" height="12" fill="#FACC15"/>
+    <!-- broken: x=259 (the ball just hit) -->
+    <rect x="292" y="78" width="32" height="12" fill="#FACC15"/>
+    <rect x="325" y="78" width="32" height="12" fill="#FACC15"/>
+    <rect x="358" y="78" width="32" height="12" fill="#FACC15"/>
+    <rect x="391" y="78" width="32" height="12" fill="#FACC15"/>
+    <rect x="424" y="78" width="32" height="12" fill="#FACC15"/>
+    <rect x="457" y="78" width="32" height="12" fill="#FACC15"/>
+  </g>
+  <!-- Row 3: GREEN -->
+  <g stroke="#14532D" stroke-width="0.5">
+    <rect x="28"  y="91" width="32" height="12" fill="#22C55E"/>
+    <rect x="61"  y="91" width="32" height="12" fill="#22C55E"/>
+    <rect x="94"  y="91" width="32" height="12" fill="#22C55E"/>
+    <rect x="127" y="91" width="32" height="12" fill="#22C55E"/>
+    <rect x="160" y="91" width="32" height="12" fill="#22C55E"/>
+    <rect x="193" y="91" width="32" height="12" fill="#22C55E"/>
+    <rect x="226" y="91" width="32" height="12" fill="#22C55E"/>
+    <rect x="259" y="91" width="32" height="12" fill="#22C55E"/>
+    <rect x="292" y="91" width="32" height="12" fill="#22C55E"/>
+    <rect x="325" y="91" width="32" height="12" fill="#22C55E"/>
+    <rect x="358" y="91" width="32" height="12" fill="#22C55E"/>
+    <rect x="391" y="91" width="32" height="12" fill="#22C55E"/>
+    <rect x="424" y="91" width="32" height="12" fill="#22C55E"/>
+    <rect x="457" y="91" width="32" height="12" fill="#22C55E"/>
+  </g>
+  <!-- Row 4: CYAN -->
+  <g stroke="#0E7490" stroke-width="0.5">
+    <rect x="28"  y="104" width="32" height="12" fill="#06B6D4"/>
+    <rect x="61"  y="104" width="32" height="12" fill="#06B6D4"/>
+    <rect x="94"  y="104" width="32" height="12" fill="#06B6D4"/>
+    <rect x="127" y="104" width="32" height="12" fill="#06B6D4"/>
+    <rect x="160" y="104" width="32" height="12" fill="#06B6D4"/>
+    <rect x="193" y="104" width="32" height="12" fill="#06B6D4"/>
+    <rect x="226" y="104" width="32" height="12" fill="#06B6D4"/>
+    <rect x="259" y="104" width="32" height="12" fill="#06B6D4"/>
+    <rect x="292" y="104" width="32" height="12" fill="#06B6D4"/>
+    <rect x="325" y="104" width="32" height="12" fill="#06B6D4"/>
+    <rect x="358" y="104" width="32" height="12" fill="#06B6D4"/>
+    <rect x="391" y="104" width="32" height="12" fill="#06B6D4"/>
+    <rect x="424" y="104" width="32" height="12" fill="#06B6D4"/>
+    <rect x="457" y="104" width="32" height="12" fill="#06B6D4"/>
+  </g>
+  <!-- Row 5: BLUE -->
+  <g stroke="#1E3A8A" stroke-width="0.5">
+    <rect x="28"  y="117" width="32" height="12" fill="#3B82F6"/>
+    <rect x="61"  y="117" width="32" height="12" fill="#3B82F6"/>
+    <rect x="94"  y="117" width="32" height="12" fill="#3B82F6"/>
+    <rect x="127" y="117" width="32" height="12" fill="#3B82F6"/>
+    <rect x="160" y="117" width="32" height="12" fill="#3B82F6"/>
+    <rect x="193" y="117" width="32" height="12" fill="#3B82F6"/>
+    <rect x="226" y="117" width="32" height="12" fill="#3B82F6"/>
+    <rect x="259" y="117" width="32" height="12" fill="#3B82F6"/>
+    <rect x="292" y="117" width="32" height="12" fill="#3B82F6"/>
+    <rect x="325" y="117" width="32" height="12" fill="#3B82F6"/>
+    <rect x="358" y="117" width="32" height="12" fill="#3B82F6"/>
+    <rect x="391" y="117" width="32" height="12" fill="#3B82F6"/>
+    <rect x="424" y="117" width="32" height="12" fill="#3B82F6"/>
+    <rect x="457" y="117" width="32" height="12" fill="#3B82F6"/>
+  </g>
+
+  <!-- Highlight strip across top of each brick row for sheen -->
+  <g fill="#FFFFFF" opacity="0.25">
+    <rect x="28"  y="52"  width="461" height="1.5"/>
+    <rect x="28"  y="65"  width="461" height="1.5"/>
+    <rect x="28"  y="78"  width="461" height="1.5"/>
+    <rect x="28"  y="91"  width="461" height="1.5"/>
+    <rect x="28"  y="104" width="461" height="1.5"/>
+    <rect x="28"  y="117" width="461" height="1.5"/>
+  </g>
+
+  <!-- Particles from just-broken brick (row 2, x=259) -->
+  <g fill="#FACC15">
+    <rect x="262" y="76" width="3" height="3" opacity="0.9" transform="rotate(20 264 78)"/>
+    <rect x="270" y="82" width="3" height="3" opacity="0.7" transform="rotate(-30 271 83)"/>
+    <rect x="256" y="86" width="3" height="3" opacity="0.6" transform="rotate(45 257 87)"/>
+    <rect x="278" y="74" width="3" height="3" opacity="0.5" transform="rotate(-15 279 75)"/>
+  </g>
+
+  <!-- ============== BALL + TRAIL ============== -->
+  <!-- Ball bouncing down-right after breaking yellow brick -->
+  <g>
+    <!-- Trail -->
+    <circle cx="190" cy="180" r="2.5" fill="#FACC15" opacity="0.15"/>
+    <circle cx="208" cy="166" r="3"   fill="#FACC15" opacity="0.25"/>
+    <circle cx="226" cy="152" r="3.5" fill="#FACC15" opacity="0.4"/>
+    <circle cx="244" cy="138" r="4"   fill="#FACC15" opacity="0.55"/>
+    <circle cx="260" cy="124" r="4.5" fill="#FACC15" opacity="0.75"/>
+    <!-- Ball -->
+    <circle cx="275" cy="110" r="6" fill="url(#brkBall)" stroke="#A16207" stroke-width="0.8"/>
+  </g>
+
+  <!-- ============== PADDLE ============== -->
+  <g>
+    <rect x="146" y="204" width="84" height="12" rx="6" fill="url(#brkPaddle)" stroke="#0C4A6E" stroke-width="1"/>
+    <rect x="150" y="206" width="76" height="3" rx="1.5" fill="#FFFFFF" opacity="0.5"/>
+  </g>
+
+  <!-- ============== HUD ============== -->
+  <!-- Score top-left -->
+  <g font-family="'Courier New', monospace" fill="#FFFFFF">
+    <text x="32" y="28" font-size="10" font-weight="bold" opacity="0.6">SCORE</text>
+    <text x="32" y="48" font-size="20" font-weight="900" fill="#FACC15">04 280</text>
+  </g>
+
+  <!-- Level top-center -->
+  <g font-family="'Courier New', monospace" fill="#FFFFFF" text-anchor="middle">
+    <text x="256" y="28" font-size="10" font-weight="bold" opacity="0.6">LEVEL</text>
+    <text x="256" y="48" font-size="20" font-weight="900" fill="#22C55E">03</text>
+  </g>
+
+  <!-- Lives top-right (3 mini balls) -->
+  <g font-family="'Courier New', monospace" fill="#FFFFFF">
+    <text x="480" y="28" text-anchor="end" font-size="10" font-weight="bold" opacity="0.6">LIVES</text>
+    <circle cx="448" cy="46" r="4" fill="url(#brkBall)" stroke="#A16207" stroke-width="0.6"/>
+    <circle cx="462" cy="46" r="4" fill="url(#brkBall)" stroke="#A16207" stroke-width="0.6"/>
+    <circle cx="476" cy="46" r="4" fill="url(#brkBall)" stroke="#A16207" stroke-width="0.6"/>
+  </g>
+
+  <!-- Bottom hint -->
+  <g font-family="'Courier New', monospace" fill="#FFFFFF" opacity="0.4" text-anchor="middle">
+    <text x="256" y="240" font-size="9" font-weight="bold">← MOVE →</text>
   </g>
 </svg>

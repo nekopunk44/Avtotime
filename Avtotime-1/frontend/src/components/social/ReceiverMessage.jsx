@@ -45,6 +45,9 @@ function ReceiverMessage({ message }) {
                         </div>
                     </a>
                 )}
+                {message.audioUrl && (
+                    <audio controls src={message.audioUrl} className='max-w-[260px] h-[36px]' />
+                )}
                 {message.message && (
                     <div className='px-2 text-[16px] text-white break-words'>{message.message}</div>
                 )}

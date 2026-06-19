@@ -158,20 +158,28 @@ export const AddCarServicePage: React.FC<AddCarServicePageProps> = ({ onBack, on
       <LocationPickerMapModal
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}
-        onSelect={(region) => updateField('location', region)}
+        onSelect={(picked) => updateField('location', picked.label)}
         selectedRegion={formData.location}
         title="Выберите регион для автосервиса"
       />
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-12">
-        <div className="relative flex items-center justify-center mb-12 w-full">
-          <button
-            onClick={handleBack}
-            className="absolute left-0 hover:bg-white/10 p-3 rounded-full transition-colors shrink-0"
-          >
-            <ChevronLeft className="w-12 h-12" />
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-12">
+        {/* Mobile header */}
+        <div className="flex sm:hidden items-center gap-3 mb-6">
+          <button onClick={handleBack} className="hover:bg-white/10 p-2 rounded-full transition-colors shrink-0">
+            <ChevronLeft className="w-6 h-6" />
           </button>
+          <div className="flex-1 text-center">
+            <h1 className="text-[17px] font-bold leading-tight">Создай объявление</h1>
+          </div>
+          <div className="w-10 shrink-0" />
+        </div>
 
+        {/* Desktop header */}
+        <div className="hidden sm:flex relative items-center justify-center mb-10 w-full">
+          <button onClick={handleBack} className="absolute left-0 hover:bg-white/10 p-3 rounded-full transition-colors shrink-0">
+            <ChevronLeft className="w-10 h-10" />
+          </button>
           <div className="w-full max-w-[820px] text-left">
             <h1 className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight leading-tight">
               Создайте объявление для автосервиса
@@ -180,16 +188,15 @@ export const AddCarServicePage: React.FC<AddCarServicePageProps> = ({ onBack, on
               Заполните карточку сервиса так, как она должна отображаться в каталоге автосервисов.
             </p>
           </div>
-
           <div className="absolute right-0 shrink-0">
             <img src="/logo2.png" alt="AVTOTIME" className="h-16 lg:h-20 object-contain" referrerPolicy="no-referrer" />
           </div>
         </div>
 
-        <div className="space-y-10 max-w-[820px] mx-auto">
+        <div className="space-y-5 sm:space-y-10 max-w-[820px] mx-auto">
           {step === 1 ? (
             <>
-              <section className="bg-[#1a1a1a] rounded-2xl p-6 sm:p-8 border border-white/20">
+              <section className="bg-[#1a1a1a] rounded-2xl p-4 sm:p-8 border border-white/20">
                 <h2 className="text-xl font-bold mb-2">Основные данные</h2>
                 <p className="text-gray-400 text-sm mb-6">Укажите информацию, которая попадет в карточку автосервиса.</p>
 
@@ -305,7 +312,7 @@ export const AddCarServicePage: React.FC<AddCarServicePageProps> = ({ onBack, on
                 </div>
               </section>
 
-              <section className="bg-[#1a1a1a] rounded-2xl p-6 sm:p-8 border border-white/20">
+              <section className="bg-[#1a1a1a] rounded-2xl p-4 sm:p-8 border border-white/20">
                 <h2 className="text-xl font-bold mb-2">Предпросмотр карточки</h2>
                 <p className="text-gray-400 text-sm mb-6">Показывает, как объявление будет выглядеть в каталоге.</p>
 
@@ -352,7 +359,7 @@ export const AddCarServicePage: React.FC<AddCarServicePageProps> = ({ onBack, on
                   type="button"
                   onClick={() => setStep(2)}
                   disabled={!canProceed}
-                  className="bg-transparent border border-white/20 text-white px-24 py-3.5 rounded-xl font-medium hover:bg-white/5 transition-colors flex items-center gap-2 text-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  className="bg-transparent border border-white/20 text-white w-full sm:w-auto px-8 sm:px-24 py-3.5 rounded-xl font-medium hover:bg-white/5 transition-colors flex items-center justify-center gap-2 text-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                 >
                   Далее
                   <ChevronRight className="w-5 h-5" />
@@ -361,7 +368,7 @@ export const AddCarServicePage: React.FC<AddCarServicePageProps> = ({ onBack, on
             </>
           ) : (
             <>
-              <section className="bg-[#1a1a1a] rounded-2xl p-6 sm:p-8 border border-white/20 shadow-xl">
+              <section className="bg-[#1a1a1a] rounded-2xl p-4 sm:p-8 border border-white/20 shadow-xl">
                 <h2 className="text-xl font-bold mb-2">Дополнительные показатели</h2>
                 <p className="text-gray-400 text-sm mb-6">При желании можно сразу задать качество обслуживания и количество отзывов.</p>
 
@@ -385,7 +392,7 @@ export const AddCarServicePage: React.FC<AddCarServicePageProps> = ({ onBack, on
                 </div>
               </section>
 
-              <section className="bg-[#1a1a1a] rounded-2xl p-6 sm:p-8 border border-white/20 shadow-xl">
+              <section className="bg-[#1a1a1a] rounded-2xl p-4 sm:p-8 border border-white/20 shadow-xl">
                 <h2 className="text-xl font-bold mb-2">Что будет опубликовано</h2>
                 <p className="text-gray-400 text-sm mb-6">Проверьте ключевые поля перед публикацией.</p>
 
@@ -403,9 +410,9 @@ export const AddCarServicePage: React.FC<AddCarServicePageProps> = ({ onBack, on
                   type="button"
                   onClick={handlePublish}
                   disabled={!canProceed}
-                  className="bg-[#e33232] text-white px-24 py-3.5 rounded-xl font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-3 w-full max-w-[420px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#e33232]"
+                  className="bg-[#e33232] text-white px-8 sm:px-16 py-3.5 rounded-xl font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-3 w-full sm:max-w-[420px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#e33232]"
                 >
-                  <Plus className="w-6 h-6 text-white" />
+                  <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   Опубликовать автосервис
                 </button>
               </div>

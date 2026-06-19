@@ -1,18 +1,167 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Tetris preview">
   <defs>
-    <linearGradient id="tBg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#bae6fd" stop-opacity="0.55" />
-      <stop offset="1" stop-color="#ddd6fe" stop-opacity="0.45" />
+    <linearGradient id="tBg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#1E1B4B"/>
+      <stop offset="100%" stop-color="#0F172A"/>
     </linearGradient>
+    <linearGradient id="tField2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+
+    <!-- Reusable beveled block: top-left light, bottom-right dark, center main -->
+    <symbol id="tBlk" viewBox="0 0 20 20">
+      <rect x="0" y="0" width="20" height="20" fill="currentColor"/>
+      <!-- light edge -->
+      <polygon points="0,0 20,0 16,4 4,4 4,16 0,20" fill="white" opacity="0.45"/>
+      <!-- dark edge -->
+      <polygon points="20,0 20,20 0,20 4,16 16,16 16,4" fill="black" opacity="0.35"/>
+      <!-- inner face -->
+      <rect x="4" y="4" width="12" height="12" fill="currentColor"/>
+      <!-- glossy highlight -->
+      <rect x="5" y="5" width="10" height="2" fill="white" opacity="0.35"/>
+    </symbol>
   </defs>
-  <rect x="24" y="24" width="464" height="208" rx="28" fill="url(#tBg)" />
-  <g transform="translate(166 64)">
-    <rect x="0" y="0" width="52" height="52" rx="10" fill="#0ea5e9" />
-    <rect x="56" y="0" width="52" height="52" rx="10" fill="#22c55e" />
-    <rect x="112" y="0" width="52" height="52" rx="10" fill="#f97316" />
-    <rect x="56" y="56" width="52" height="52" rx="10" fill="#a78bfa" />
-    <rect x="112" y="56" width="52" height="52" rx="10" fill="#ef4444" />
-    <rect x="0" y="112" width="52" height="52" rx="10" fill="#facc15" />
-    <rect x="56" y="112" width="52" height="52" rx="10" fill="#38bdf8" />
+
+  <!-- Background -->
+  <rect width="512" height="256" rx="28" fill="url(#tBg2)"/>
+
+  <!-- Decorative bg blocks (subtle) -->
+  <g opacity="0.06" fill="white">
+    <rect x="20" y="20" width="14" height="14" rx="2"/>
+    <rect x="50" y="50" width="14" height="14" rx="2"/>
+    <rect x="460" y="200" width="14" height="14" rx="2"/>
+    <rect x="430" y="40" width="14" height="14" rx="2"/>
+  </g>
+
+  <!-- ==== Playing field ==== -->
+  <!-- Field: 8 cols × 10 rows, block=20, x=176..336, y=24..224 -->
+  <rect x="172" y="20" width="168" height="208" rx="10" fill="#1E293B"/>
+  <rect x="176" y="24" width="160" height="200" rx="6" fill="url(#tField2)" stroke="#3730A3" stroke-width="1.5"/>
+
+  <!-- Subtle grid -->
+  <g stroke="#1E293B" stroke-width="0.5" opacity="0.9">
+    <line x1="196" y1="24" x2="196" y2="224"/>
+    <line x1="216" y1="24" x2="216" y2="224"/>
+    <line x1="236" y1="24" x2="236" y2="224"/>
+    <line x1="256" y1="24" x2="256" y2="224"/>
+    <line x1="276" y1="24" x2="276" y2="224"/>
+    <line x1="296" y1="24" x2="296" y2="224"/>
+    <line x1="316" y1="24" x2="316" y2="224"/>
+    <line x1="176" y1="44"  x2="336" y2="44"/>
+    <line x1="176" y1="64"  x2="336" y2="64"/>
+    <line x1="176" y1="84"  x2="336" y2="84"/>
+    <line x1="176" y1="104" x2="336" y2="104"/>
+    <line x1="176" y1="124" x2="336" y2="124"/>
+    <line x1="176" y1="144" x2="336" y2="144"/>
+    <line x1="176" y1="164" x2="336" y2="164"/>
+    <line x1="176" y1="184" x2="336" y2="184"/>
+    <line x1="176" y1="204" x2="336" y2="204"/>
+  </g>
+
+  <!-- === Falling T-piece (purple) === -->
+  <g color="#A855F7">
+    <use href="#tBlk" x="236" y="44" width="20" height="20"/>
+    <use href="#tBlk" x="256" y="44" width="20" height="20"/>
+    <use href="#tBlk" x="276" y="44" width="20" height="20"/>
+    <use href="#tBlk" x="256" y="64" width="20" height="20"/>
+  </g>
+
+  <!-- === Ghost piece (where T lands) === -->
+  <g fill="none" stroke="#A855F7" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.55">
+    <rect x="236" y="124" width="20" height="20" rx="1"/>
+    <rect x="256" y="124" width="20" height="20" rx="1"/>
+    <rect x="276" y="124" width="20" height="20" rx="1"/>
+    <rect x="256" y="144" width="20" height="20" rx="1"/>
+  </g>
+
+  <!-- === Stacked pieces === -->
+  <!-- Row 9 (y=204): full row but not cleared yet -->
+  <g color="#22D3EE">
+    <use href="#tBlk" x="176" y="204" width="20" height="20"/>
+    <use href="#tBlk" x="196" y="204" width="20" height="20"/>
+    <use href="#tBlk" x="216" y="204" width="20" height="20"/>
+    <use href="#tBlk" x="236" y="204" width="20" height="20"/>
+  </g>
+  <g color="#FACC15">
+    <use href="#tBlk" x="256" y="204" width="20" height="20"/>
+    <use href="#tBlk" x="276" y="204" width="20" height="20"/>
+  </g>
+  <g color="#FB923C">
+    <use href="#tBlk" x="296" y="204" width="20" height="20"/>
+    <use href="#tBlk" x="316" y="204" width="20" height="20"/>
+  </g>
+
+  <!-- Row 8 (y=184) -->
+  <g color="#FACC15">
+    <use href="#tBlk" x="256" y="184" width="20" height="20"/>
+    <use href="#tBlk" x="276" y="184" width="20" height="20"/>
+  </g>
+  <g color="#FB923C">
+    <use href="#tBlk" x="296" y="184" width="20" height="20"/>
+  </g>
+  <g color="#22C55E">
+    <use href="#tBlk" x="316" y="184" width="20" height="20"/>
+  </g>
+
+  <!-- Row 7 (y=164) -->
+  <g color="#3B82F6">
+    <use href="#tBlk" x="196" y="164" width="20" height="20"/>
+  </g>
+  <g color="#22C55E">
+    <use href="#tBlk" x="296" y="164" width="20" height="20"/>
+    <use href="#tBlk" x="316" y="164" width="20" height="20"/>
+  </g>
+
+  <!-- Row 6 (y=144) -->
+  <g color="#3B82F6">
+    <use href="#tBlk" x="196" y="144" width="20" height="20"/>
+    <use href="#tBlk" x="216" y="144" width="20" height="20"/>
+  </g>
+  <g color="#22C55E">
+    <use href="#tBlk" x="316" y="144" width="20" height="20"/>
+  </g>
+
+  <!-- ==== Left sidebar: HOLD + LEVEL ==== -->
+  <g transform="translate(20, 20)">
+    <!-- HOLD -->
+    <rect x="0" y="0" width="138" height="84" rx="10" fill="#1E293B" stroke="#3730A3" stroke-width="1.5"/>
+    <text x="69" y="20" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="11" fill="#94A3B8" letter-spacing="2">HOLD</text>
+    <!-- L-piece preview -->
+    <g color="#3B82F6">
+      <use href="#tBlk" x="32" y="36" width="20" height="20"/>
+      <use href="#tBlk" x="32" y="56" width="20" height="20"/>
+      <use href="#tBlk" x="52" y="56" width="20" height="20"/>
+      <use href="#tBlk" x="72" y="56" width="20" height="20"/>
+    </g>
+
+    <!-- LEVEL -->
+    <rect x="0" y="96" width="138" height="56" rx="10" fill="#1E293B" stroke="#3730A3" stroke-width="1.5"/>
+    <text x="69" y="116" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="11" fill="#94A3B8" letter-spacing="2">УРОВЕНЬ</text>
+    <text x="69" y="142" text-anchor="middle" font-family="'Courier New', monospace" font-weight="900" font-size="22" fill="#A855F7">07</text>
+  </g>
+
+  <!-- ==== Right sidebar: NEXT + SCORE + LINES ==== -->
+  <g transform="translate(354, 20)">
+    <!-- NEXT -->
+    <rect x="0" y="0" width="138" height="84" rx="10" fill="#1E293B" stroke="#3730A3" stroke-width="1.5"/>
+    <text x="69" y="20" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="11" fill="#94A3B8" letter-spacing="2">NEXT</text>
+    <!-- I-piece horizontal -->
+    <g color="#22D3EE">
+      <use href="#tBlk" x="22" y="46" width="20" height="20"/>
+      <use href="#tBlk" x="42" y="46" width="20" height="20"/>
+      <use href="#tBlk" x="62" y="46" width="20" height="20"/>
+      <use href="#tBlk" x="82" y="46" width="20" height="20"/>
+    </g>
+
+    <!-- SCORE -->
+    <rect x="0" y="96" width="138" height="56" rx="10" fill="#1E293B" stroke="#3730A3" stroke-width="1.5"/>
+    <text x="69" y="116" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="11" fill="#94A3B8" letter-spacing="2">СЧЁТ</text>
+    <text x="69" y="142" text-anchor="middle" font-family="'Courier New', monospace" font-weight="900" font-size="20" fill="#FACC15">12 400</text>
+
+    <!-- LINES -->
+    <rect x="0" y="160" width="138" height="56" rx="10" fill="#1E293B" stroke="#3730A3" stroke-width="1.5"/>
+    <text x="69" y="180" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="11" fill="#94A3B8" letter-spacing="2">ЛИНИИ</text>
+    <text x="69" y="206" text-anchor="middle" font-family="'Courier New', monospace" font-weight="900" font-size="22" fill="#22C55E">42</text>
   </g>
 </svg>

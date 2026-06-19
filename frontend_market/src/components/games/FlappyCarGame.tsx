@@ -413,15 +413,14 @@ export const FlappyCarGame: React.FC<FlappyCarGameProps & { onComplete?: () => v
         return;
       }
 
-      // Добавить препятствие
-      if (state.obstacles.length === 0 || state.obstacles[state.obstacles.length - 1].x < WORLD_WIDTH - 250) {
+      // Добавить препятствие (только здания — облака были визуально неоднозначными)
+      if (state.obstacles.length === 0 || state.obstacles[state.obstacles.length - 1].x < WORLD_WIDTH - 220) {
         const gapStart = Math.random() * (WORLD_HEIGHT - GAP_HEIGHT - 150) + 75;
-        const type = Math.random() > 0.6 ? 'cloud' : 'building';
         state.obstacles.push({
           x: WORLD_WIDTH,
           gap: gapStart,
           scored: false,
-          type
+          type: 'building'
         });
       }
 
@@ -496,13 +495,9 @@ export const FlappyCarGame: React.FC<FlappyCarGameProps & { onComplete?: () => v
 
       // Рисовать препятствия
       state.obstacles.forEach(obs => {
-        if (obs.type === 'building') {
-          const topHeight = obs.gap;
-          const bottomHeight = WORLD_HEIGHT - obs.gap - GAP_HEIGHT;
-          drawBuilding(ctx, obs.x, topHeight, bottomHeight);
-        } else {
-          drawCloud(ctx, obs.x, obs.gap - 30);
-        }
+        const topHeight = obs.gap;
+        const bottomHeight = WORLD_HEIGHT - obs.gap - GAP_HEIGHT;
+        drawBuilding(ctx, obs.x, topHeight, bottomHeight);
       });
 
       // HUD рисуется поверх canvas (в React), чтобы не было наслоений
@@ -525,7 +520,7 @@ export const FlappyCarGame: React.FC<FlappyCarGameProps & { onComplete?: () => v
 
   return (
     <div className="w-full h-full min-h-0 flex flex-col">
-      <div className="relative flex-1 min-h-0 w-full overflow-hidden rounded-3xl bg-white">
+      <div className="relative flex-1 min-h-0 w-full overflow-hidden bg-sky-300">
         <canvas
           ref={canvasRef}
           width={WORLD_WIDTH}
@@ -534,46 +529,55 @@ export const FlappyCarGame: React.FC<FlappyCarGameProps & { onComplete?: () => v
           className="absolute inset-0 w-full h-full cursor-pointer"
         />
 
-        {/* HUD */}
-        <div className="pointer-events-none absolute left-1/2 top-[calc(env(safe-area-inset-top)+5.25rem)] z-10 flex -translate-x-1/2 flex-wrap justify-center gap-2 px-4 sm:top-[calc(env(safe-area-inset-top)+5.75rem)]">
-          <div className="pointer-events-none flex items-center gap-2 bg-white/95 rounded-2xl px-4 py-2 shadow-md backdrop-blur-sm">
-            <span className="text-gray-700 font-bold">Очки:</span>
-            <span className="text-2xl font-bold text-red-600">{score}</span>
+        {/* HUD — aligned with the floating wrapper title pill */}
+        <div className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top)+4.25rem)] z-10 flex flex-wrap justify-center gap-2 px-4">
+          <div className="flex items-center gap-1.5 bg-slate-900/70 backdrop-blur-md rounded-2xl px-3 py-1.5 border border-white/15 shadow-md">
+            <span className="text-white/55 text-[10px] font-bold tracking-[0.15em]">ОЧКИ</span>
+            <span className="text-xl font-extrabold text-yellow-300 tabular-nums leading-none">{score}</span>
           </div>
-          <div className="pointer-events-none flex items-center gap-2 bg-white/95 rounded-2xl px-4 py-2 shadow-md backdrop-blur-sm">
-            <span className="text-gray-700 font-bold">Рекорд:</span>
-            <span className="text-2xl font-bold text-purple-600">{bestScore}</span>
+          <div className="flex items-center gap-1.5 bg-slate-900/70 backdrop-blur-md rounded-2xl px-3 py-1.5 border border-white/15 shadow-md">
+            <span className="text-white/55 text-[10px] font-bold tracking-[0.15em]">РЕКОРД</span>
+            <span className="text-xl font-extrabold text-cyan-300 tabular-nums leading-none">{bestScore}</span>
           </div>
         </div>
 
         {/* CTA / Status */}
         {!gameStarted && !gameOver ? (
-          <div className="absolute inset-0 z-10 flex items-end justify-center pb-6">
-            <button
-              type="button"
-              onClick={handleFlap}
-              className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transform hover:scale-105 transition shadow-md"
-            >
-              <Play className="w-5 h-5" />
-              Начать игру
-            </button>
+          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+            <div className="pointer-events-auto flex flex-col items-center gap-3 bg-black/45 backdrop-blur-sm rounded-3xl px-6 py-5 border border-white/15">
+              <div className="text-white text-lg font-extrabold tracking-wide">FLAPPY CAR</div>
+              <button
+                type="button"
+                onClick={handleFlap}
+                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-7 py-3 rounded-2xl font-extrabold hover:scale-[1.02] active:scale-95 transition shadow-lg shadow-emerald-900/40"
+              >
+                <Play className="w-5 h-5" fill="currentColor" />
+                Начать игру
+              </button>
+              <div className="text-white/70 text-xs">Тап или SPACE для взлёта</div>
+            </div>
           </div>
         ) : gameOver ? (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-black/10 backdrop-blur-[1px]">
-            <div className="text-center text-gray-900 font-extrabold text-xl">
-              Игра окончена!
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-3 bg-slate-900/80 rounded-3xl px-7 py-6 border border-white/15">
+              <div className="text-red-300 text-2xl font-extrabold">ИГРА ОКОНЧЕНА</div>
+              <div className="text-white text-base">
+                Очки: <span className="font-extrabold text-yellow-300">{score}</span>
+                <span className="text-white/40 mx-2">·</span>
+                Рекорд: <span className="font-extrabold text-cyan-300">{bestScore}</span>
+              </div>
+              <button
+                type="button"
+                onClick={resetGame}
+                className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-7 py-3 rounded-2xl font-extrabold hover:scale-[1.02] active:scale-95 transition shadow-lg shadow-orange-900/40"
+              >
+                <RotateCcw className="w-5 h-5" />
+                Заново
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={resetGame}
-              className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-600 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transform hover:scale-105 transition shadow-md"
-            >
-              <RotateCcw className="w-5 h-5" />
-              Заново
-            </button>
           </div>
         ) : (
-          <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 text-center text-white/95 font-extrabold text-sm md:text-base bg-black/35 px-4 py-2 rounded-xl backdrop-blur-sm">
+          <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-1/2 z-10 -translate-x-1/2 text-center text-white font-bold text-xs md:text-sm bg-black/45 px-3 py-1.5 rounded-xl backdrop-blur-sm border border-white/10">
             Тап или SPACE для взлёта
           </div>
         )}

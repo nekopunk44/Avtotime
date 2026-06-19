@@ -10,6 +10,20 @@ const sharedReactDomPath = path.resolve(projectRoot, "node_modules/react-dom");
 const workspaceRoot = path.resolve(projectRoot, "..", "..");
 const marketPublicDir = path.resolve(workspaceRoot, "frontend_market", "public");
 
+const copyDirSync = (src, dest) => {
+  if (!fs.existsSync(src)) return;
+  if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+  for (const item of fs.readdirSync(src)) {
+    const srcPath = path.join(src, item);
+    const destPath = path.join(dest, item);
+    if (fs.statSync(srcPath).isDirectory()) {
+      copyDirSync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+};
+
 // Plugin to serve frontend_market/public as static files
 const marketPublicPlugin = {
   name: "market-public-static",
@@ -43,6 +57,10 @@ const marketPublicPlugin = {
       }
       next();
     });
+  },
+  closeBundle() {
+    const outDir = path.resolve(projectRoot, "dist");
+    copyDirSync(marketPublicDir, outDir);
   },
 };
 

@@ -80,6 +80,15 @@ export function CarServicesPage({
   const stickyViewportHeight = 'calc(100vh - var(--market-header-height, 120px) - 16px)';
 
   useEffect(() => {
+    if (isMobileFiltersOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileFiltersOpen]);
+
+  useEffect(() => {
     if (!onLoadFiltered) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
@@ -168,7 +177,7 @@ export function CarServicesPage({
       <LocationPickerMapModal
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}
-        onSelect={setSelectedRegion}
+        onSelect={(picked) => setSelectedRegion(picked.label)}
         selectedRegion={selectedRegion}
       />
 
@@ -246,32 +255,43 @@ export function CarServicesPage({
 
         <div className="flex flex-col lg:flex-row items-start gap-8 lg:pb-4">
           <aside
-            className={`w-full pt-4 lg:pt-0 lg:w-80 flex-shrink-0 lg:self-start lg:sticky ${isMobileFiltersOpen ? 'block' : 'hidden lg:block'}`}
+            className={`fixed inset-0 z-[100] flex flex-col bg-white lg:relative lg:inset-auto lg:z-auto lg:w-80 lg:flex-shrink-0 lg:self-start lg:sticky lg:block transition-transform duration-300 ease-out ${isMobileFiltersOpen ? 'translate-y-0 visible' : 'translate-y-full invisible lg:translate-y-0 lg:visible pointer-events-none lg:pointer-events-auto'}`}
             style={{ top: stickyTopOffset }}
           >
+            {/* Заголовок — фиксированный на мобильном */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 lg:hidden shrink-0">
+              <h2 className="text-xl font-bold text-gray-900">Фильтры</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleReset}
+                  className="text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 text-sm font-medium"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Сбросить
+                </button>
+                <button
+                  onClick={() => setIsMobileFiltersOpen(false)}
+                  className="p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
             <div
-              className="bg-white rounded-[32px] p-5 lg:p-6 border border-gray-100 shadow-sm lg:overflow-y-auto"
+              className="bg-white lg:rounded-[32px] p-5 lg:p-6 lg:border lg:border-gray-100 lg:shadow-sm overflow-y-auto flex-1"
               style={{ maxHeight: stickyViewportHeight }}
             >
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">Фильтры</h2>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleReset}
-                    className="text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 text-sm font-medium"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Сбросить
-                  </button>
-                  <button
-                    onClick={() => setIsMobileFiltersOpen(false)}
-                    className="lg:hidden p-1 text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+              {/* Заголовок — только на десктопе */}
+              <div className="hidden lg:flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Фильтры</h2>
+                <button
+                  onClick={handleReset}
+                  className="text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 text-sm font-medium"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Сбросить
+                </button>
               </div>
 
               <div className="mb-6">
@@ -419,12 +439,8 @@ export function CarServicesPage({
               </div>
 
               <button
-                disabled={!isFilterActive}
-                className={`w-full py-3 rounded-xl font-bold transition-all shadow-lg ${
-                  isFilterActive
-                    ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-600/20'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
-                }`}
+                onClick={() => setIsMobileFiltersOpen(false)}
+                className="lg:hidden w-full py-3 rounded-xl font-bold transition-all shadow-lg bg-red-600 text-white hover:bg-red-700 shadow-red-600/20"
               >
                 Применить фильтры
               </button>
@@ -516,12 +532,6 @@ export function CarServicesPage({
         </div>
       </div>
 
-      <button
-        onClick={onAddListingClick}
-        className="lg:hidden fixed bottom-6 right-6 w-14 h-14 bg-red-600 text-white rounded-full flex items-center justify-center shadow-2xl z-50 hover:bg-red-700 transition-colors"
-      >
-        <Plus className="w-7 h-7" />
-      </button>
     </div>
   );
 }

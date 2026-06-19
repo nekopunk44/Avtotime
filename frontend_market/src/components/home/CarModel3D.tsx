@@ -31,9 +31,10 @@ function CarMesh({ path, rotationSpeed }: { path: string; rotationSpeed: number 
 
 interface CarModel3DProps {
   onCountryChange?: (country: string) => void;
+  compact?: boolean;
 }
 
-export const CarModel3D: React.FC<CarModel3DProps> = ({ onCountryChange }) => {
+export const CarModel3D: React.FC<CarModel3DProps> = ({ onCountryChange, compact = false }) => {
   const [index, setIndex] = useState(0);
   const [opacity, setOpacity] = useState(1);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -84,7 +85,7 @@ export const CarModel3D: React.FC<CarModel3DProps> = ({ onCountryChange }) => {
             environment={current.environment}
             intensity={current.intensity}
             shadows={false}
-            adjustCamera={current.adjustCamera}
+            adjustCamera={compact ? current.adjustCamera * 1.2 : current.adjustCamera}
           >
             <CarMesh path={current.path} rotationSpeed={current.rotationSpeed} />
           </Stage>

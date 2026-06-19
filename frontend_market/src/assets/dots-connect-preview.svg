@@ -1,30 +1,162 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250">
-  <g fill="none" stroke="#111827" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.9">
-    <path d="M60 160 Q90 120 135 120 L165 95 H235 L270 120 Q330 125 350 160" />
-    <path d="M60 160 L60 185 H350 L350 160" opacity="0.7" />
-    <circle cx="130" cy="185" r="22" opacity="0.7" />
-    <circle cx="290" cy="185" r="22" opacity="0.7" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260">
+  <!--
+    Connect-the-dots preview: a real, fully rendered car
+    (body, windows, headlights, wheels) with the numbered
+    dot-puzzle overlay along its perimeter. Solid blue
+    path threads dots 1-7 (front half "already traced");
+    dots 8-12 are dashed grey ("still to connect").
+  -->
+
+  <defs>
+    <linearGradient id="dcBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#F0F9FF"/>
+      <stop offset="100%" stop-color="#E0F2FE"/>
+    </linearGradient>
+    <linearGradient id="dcBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#F87171"/>
+      <stop offset="100%" stop-color="#DC2626"/>
+    </linearGradient>
+    <linearGradient id="dcWindow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#DBEAFE"/>
+      <stop offset="100%" stop-color="#93C5FD"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="400" height="260" fill="url(#dcBg)"/>
+
+  <!-- Ground line -->
+  <line x1="20" y1="232" x2="380" y2="232" stroke="#BFDBFE" stroke-width="2" stroke-dasharray="6,4" stroke-linecap="round"/>
+
+  <!-- Soft shadow under car -->
+  <ellipse cx="200" cy="232" rx="155" ry="5" fill="#0F172A" opacity="0.12"/>
+
+  <!-- === CAR === -->
+  <!-- Main body (sedan side profile) -->
+  <path d="
+    M 45,200
+    L 38,178
+    Q 36,164 50,158
+    L 85,148
+    L 135,142
+    L 162,138
+    L 182,100
+    Q 195,90 235,92
+    L 278,92
+    Q 295,93 300,128
+    L 345,140
+    Q 358,143 358,170
+    L 358,200
+    Z"
+    fill="url(#dcBody)" stroke="#7F1D1D" stroke-width="2" stroke-linejoin="round"/>
+
+  <!-- Body highlight (subtle gloss along the top) -->
+  <path d="
+    M 60,158
+    L 85,150
+    L 135,144
+    L 162,140
+    L 180,108
+    Q 196,100 235,102
+    L 278,102
+    Q 290,104 297,128"
+    fill="none" stroke="#FECACA" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Windshield -->
+  <path d="M 175,134 L 190,108 Q 200,101 232,103 L 247,103 L 247,134 Z" fill="url(#dcWindow)" stroke="#7F1D1D" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- Rear window -->
+  <path d="M 251,103 L 273,103 Q 286,104 291,134 L 251,134 Z" fill="url(#dcWindow)" stroke="#7F1D1D" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- B-pillar -->
+  <line x1="249" y1="103" x2="249" y2="134" stroke="#7F1D1D" stroke-width="2"/>
+
+  <!-- Door seam + handle -->
+  <line x1="222" y1="138" x2="222" y2="192" stroke="#7F1D1D" stroke-width="1.5"/>
+  <rect x="200" y="158" width="14" height="3" rx="1.5" fill="#FCA5A5"/>
+  <rect x="232" y="158" width="14" height="3" rx="1.5" fill="#FCA5A5"/>
+
+  <!-- Headlight -->
+  <ellipse cx="48" cy="172" rx="6" ry="7" fill="#FEF3C7" stroke="#7F1D1D" stroke-width="1.5"/>
+  <!-- Taillight -->
+  <rect x="346" y="168" width="9" height="14" rx="2" fill="#FEE2E2" stroke="#7F1D1D" stroke-width="1.5"/>
+
+  <!-- Grille hint -->
+  <line x1="42" y1="190" x2="58" y2="190" stroke="#7F1D1D" stroke-width="1.5"/>
+  <line x1="42" y1="195" x2="58" y2="195" stroke="#7F1D1D" stroke-width="1.5"/>
+
+  <!-- Wheels -->
+  <g>
+    <circle cx="128" cy="208" r="26" fill="#111827"/>
+    <circle cx="128" cy="208" r="18" fill="#374151"/>
+    <circle cx="128" cy="208" r="9"  fill="#9CA3AF"/>
+    <g stroke="#111827" stroke-width="2" stroke-linecap="round">
+      <line x1="128" y1="195" x2="128" y2="221"/>
+      <line x1="115" y1="208" x2="141" y2="208"/>
+      <line x1="119" y1="199" x2="137" y2="217"/>
+      <line x1="119" y1="217" x2="137" y2="199"/>
+    </g>
+  </g>
+  <g>
+    <circle cx="290" cy="208" r="26" fill="#111827"/>
+    <circle cx="290" cy="208" r="18" fill="#374151"/>
+    <circle cx="290" cy="208" r="9"  fill="#9CA3AF"/>
+    <g stroke="#111827" stroke-width="2" stroke-linecap="round">
+      <line x1="290" y1="195" x2="290" y2="221"/>
+      <line x1="277" y1="208" x2="303" y2="208"/>
+      <line x1="281" y1="199" x2="299" y2="217"/>
+      <line x1="281" y1="217" x2="299" y2="199"/>
+    </g>
   </g>
 
-  <g fill="#111827" opacity="0.95">
-    <circle cx="60" cy="160" r="7"/>
-    <circle cx="85" cy="135" r="7"/>
-    <circle cx="110" cy="123" r="7"/>
-    <circle cx="135" cy="120" r="7"/>
-    <circle cx="165" cy="95" r="7"/>
-    <circle cx="205" cy="95" r="7"/>
-    <circle cx="235" cy="95" r="7"/>
-    <circle cx="270" cy="120" r="7"/>
-    <circle cx="310" cy="130" r="7"/>
-    <circle cx="350" cy="160" r="7"/>
-    <circle cx="335" cy="185" r="7"/>
-    <circle cx="290" cy="185" r="7"/>
-    <circle cx="245" cy="185" r="7"/>
-    <circle cx="200" cy="185" r="7"/>
-    <circle cx="155" cy="185" r="7"/>
-    <circle cx="130" cy="185" r="7"/>
-    <circle cx="95" cy="185" r="7"/>
-    <circle cx="60" cy="185" r="7"/>
+  <!-- === CONNECT-THE-DOTS OVERLAY === -->
+  <!-- Already-traced path through dots 1..7 (blue) -->
+  <polyline
+    points="45,200 38,178 50,158 85,148 135,142 162,138 182,100"
+    fill="none" stroke="#1D4ED8" stroke-width="3"
+    stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- "still to trace" hint, dashed from dot 7 around to dot 12 -->
+  <polyline
+    points="182,100 235,92 278,92 300,128 345,140 358,200"
+    fill="none" stroke="#1D4ED8" stroke-width="2"
+    stroke-dasharray="5,5" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- Numbered dots: 1..7 active blue, 8..12 dashed grey -->
+  <g font-family="sans-serif" font-weight="bold">
+    <!-- 1 -->
+    <circle cx="45" cy="200" r="10" fill="white" stroke="#1D4ED8" stroke-width="2.5"/>
+    <text x="45" y="204" text-anchor="middle" font-size="10" fill="#1D4ED8">1</text>
+    <!-- 2 -->
+    <circle cx="38" cy="178" r="10" fill="white" stroke="#1D4ED8" stroke-width="2.5"/>
+    <text x="38" y="182" text-anchor="middle" font-size="10" fill="#1D4ED8">2</text>
+    <!-- 3 -->
+    <circle cx="50" cy="158" r="10" fill="white" stroke="#1D4ED8" stroke-width="2.5"/>
+    <text x="50" y="162" text-anchor="middle" font-size="10" fill="#1D4ED8">3</text>
+    <!-- 4 -->
+    <circle cx="85" cy="148" r="10" fill="white" stroke="#1D4ED8" stroke-width="2.5"/>
+    <text x="85" y="152" text-anchor="middle" font-size="10" fill="#1D4ED8">4</text>
+    <!-- 5 -->
+    <circle cx="135" cy="142" r="10" fill="white" stroke="#1D4ED8" stroke-width="2.5"/>
+    <text x="135" y="146" text-anchor="middle" font-size="10" fill="#1D4ED8">5</text>
+    <!-- 6 -->
+    <circle cx="162" cy="138" r="10" fill="white" stroke="#1D4ED8" stroke-width="2.5"/>
+    <text x="162" y="142" text-anchor="middle" font-size="10" fill="#1D4ED8">6</text>
+    <!-- 7 - active -->
+    <circle cx="182" cy="100" r="13" fill="#1D4ED8" stroke="white" stroke-width="3"/>
+    <text x="182" y="105" text-anchor="middle" font-size="11" fill="white">7</text>
+    <!-- 8 - dashed grey -->
+    <circle cx="235" cy="92" r="10" fill="white" stroke="#94A3B8" stroke-width="2" stroke-dasharray="3,2"/>
+    <text x="235" y="96" text-anchor="middle" font-size="10" fill="#64748B">8</text>
+    <!-- 9 -->
+    <circle cx="278" cy="92" r="10" fill="white" stroke="#94A3B8" stroke-width="2" stroke-dasharray="3,2"/>
+    <text x="278" y="96" text-anchor="middle" font-size="10" fill="#64748B">9</text>
+    <!-- 10 -->
+    <circle cx="300" cy="128" r="10" fill="white" stroke="#94A3B8" stroke-width="2" stroke-dasharray="3,2"/>
+    <text x="300" y="132" text-anchor="middle" font-size="9" fill="#64748B">10</text>
+    <!-- 11 -->
+    <circle cx="345" cy="140" r="10" fill="white" stroke="#94A3B8" stroke-width="2" stroke-dasharray="3,2"/>
+    <text x="345" y="144" text-anchor="middle" font-size="9" fill="#64748B">11</text>
+    <!-- 12 -->
+    <circle cx="358" cy="200" r="10" fill="white" stroke="#94A3B8" stroke-width="2" stroke-dasharray="3,2"/>
+    <text x="358" y="204" text-anchor="middle" font-size="9" fill="#64748B">12</text>
   </g>
 </svg>
-

@@ -1,57 +1,142 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Circuit Rush preview">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Circuit Rush 3D preview">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fde2e2" stop-opacity="0.55" />
-      <stop offset="0.6" stop-color="#dbeafe" stop-opacity="0.35" />
-      <stop offset="1" stop-color="#a7f3d0" stop-opacity="0.22" />
+    <linearGradient id="crSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#312E81"/>
+      <stop offset="55%"  stop-color="#DB2777"/>
+      <stop offset="100%" stop-color="#FCD34D"/>
     </linearGradient>
-    <linearGradient id="track" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0f172a" stop-opacity="0.92" />
-      <stop offset="1" stop-color="#111827" stop-opacity="0.92" />
+    <linearGradient id="crGround" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#020617"/>
     </linearGradient>
-    <linearGradient id="car" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fb7185" />
-      <stop offset="1" stop-color="#ef4444" />
+    <linearGradient id="crRoad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#475569"/>
+      <stop offset="100%" stop-color="#1F2937"/>
     </linearGradient>
-    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="b" />
-      <feOffset in="b" dy="6" result="o" />
-      <feColorMatrix in="o" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .20 0" result="s" />
-      <feMerge>
-        <feMergeNode in="s" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
+    <linearGradient id="crCar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#FB7185"/>
+      <stop offset="100%" stop-color="#B91C1C"/>
+    </linearGradient>
+    <clipPath id="crFrame">
+      <rect width="512" height="256" rx="28"/>
+    </clipPath>
   </defs>
 
-  <rect width="512" height="256" rx="28" fill="url(#bg)" />
+  <g clip-path="url(#crFrame)">
+    <!-- Sky -->
+    <rect width="512" height="135" fill="url(#crSky)"/>
 
-  <g opacity="0.55" fill="none" stroke="#0f172a" stroke-width="10" stroke-linecap="round">
-    <path d="M76 202c62-88 144-132 248-132 54 0 104 12 150 36" />
-    <path d="M94 214c64-94 150-142 262-142 56 0 106 12 150 36" opacity="0.7" />
-  </g>
-
-  <g filter="url(#soft)">
-    <path d="M72 216c70-98 156-148 260-148 60 0 114 14 160 42l-12 26c-44-26-92-38-148-38-88 0-162 44-222 132H72z" fill="url(#track)" opacity="0.9" />
-    <path d="M108 212c62-84 138-126 230-126 54 0 104 12 148 36l-8 16c-42-24-86-34-140-34-78 0-142 38-194 108H108z" fill="#1f2937" opacity="0.9" />
-    <g stroke="#e5e7eb" stroke-width="7" stroke-linecap="round" opacity="0.85">
-      <path d="M240 194v22" />
-      <path d="M240 146v22" />
-      <path d="M240 98v22" />
+    <!-- Sun on horizon -->
+    <ellipse cx="256" cy="135" rx="48" ry="26" fill="#FEF3C7" opacity="0.95"/>
+    <ellipse cx="256" cy="135" rx="36" ry="18" fill="#FFFBEB"/>
+    <!-- Horizontal sun bands (classic synth-wave look) -->
+    <g stroke="#312E81" stroke-width="2" opacity="0.9">
+      <line x1="220" y1="125" x2="292" y2="125"/>
+      <line x1="216" y1="118" x2="296" y2="118"/>
     </g>
-  </g>
 
-  <g filter="url(#soft)">
-    <path d="M238 150c8-18 26-30 46-30h50c22 0 40 12 48 30l10 0c10 0 18 8 18 18v10c0 10-8 18-18 18H244c-10 0-18-8-18-18v-4c0-8 4-18 12-24z" fill="url(#car)" />
-    <path d="M294 128h34c12 0 22 8 26 20h-70c4-12 12-20 10-20z" fill="#fff1f2" opacity="0.9" />
-    <circle cx="270" cy="196" r="18" fill="#0b1220" opacity="0.92" />
-    <circle cx="352" cy="196" r="18" fill="#0b1220" opacity="0.92" />
-    <circle cx="270" cy="196" r="8" fill="#e5e7eb" opacity="0.95" />
-    <circle cx="352" cy="196" r="8" fill="#e5e7eb" opacity="0.95" />
-  </g>
+    <!-- Mountain silhouettes -->
+    <path d="M 0,135 L 50,104 L 100,124 L 160,94 L 220,118 L 256,110 L 290,118 L 360,92 L 420,114 L 470,100 L 512,128 L 512,138 L 0,138 Z"
+          fill="#1E1B4B" opacity="0.85"/>
 
-  <g opacity="0.9">
-    <path d="M414 56l10 16-18 4 12 14-18-6-2 18-8-16-16 8 10-16-16-10 18-2-6-18 14 12z" fill="#22c55e" />
-    <path d="M440 42l8 12-14 3 10 10-14-5-2 14-6-12-12 6 8-12-12-8 14-2-5-14 10 10z" fill="#f59e0b" opacity="0.9" />
+    <!-- Ground -->
+    <rect x="0" y="135" width="512" height="121" fill="url(#crGround)"/>
+
+    <!-- Synth-wave grid on the ground (horizontal lines getting closer) -->
+    <g stroke="#7C3AED" stroke-width="1" opacity="0.45">
+      <line x1="0" y1="142" x2="512" y2="142"/>
+      <line x1="0" y1="152" x2="512" y2="152"/>
+      <line x1="0" y1="166" x2="512" y2="166"/>
+      <line x1="0" y1="186" x2="512" y2="186"/>
+      <line x1="0" y1="214" x2="512" y2="214"/>
+      <line x1="0" y1="248" x2="512" y2="248"/>
+    </g>
+    <!-- Vertical perspective lines (converging to horizon center) -->
+    <g stroke="#7C3AED" stroke-width="1" opacity="0.4">
+      <line x1="256" y1="135" x2="-40"  y2="256"/>
+      <line x1="256" y1="135" x2="80"   y2="256"/>
+      <line x1="256" y1="135" x2="180"  y2="256"/>
+      <line x1="256" y1="135" x2="332"  y2="256"/>
+      <line x1="256" y1="135" x2="432"  y2="256"/>
+      <line x1="256" y1="135" x2="552"  y2="256"/>
+    </g>
+
+    <!-- Road in perspective (trapezoid converging to horizon) -->
+    <polygon points="232,135 280,135 484,256 28,256" fill="url(#crRoad)"/>
+
+    <!-- Road edge — white base under red stripes -->
+    <polygon points="220,135 232,135 28,256 6,256"  fill="white"/>
+    <polygon points="280,135 292,135 506,256 484,256" fill="white"/>
+
+    <!-- Red curb stripes (alternating along edges) -->
+    <g fill="#EF4444">
+      <polygon points="220,138 229,138 226,148 217,148"/>
+      <polygon points="216,158 227,158 222,170 211,170"/>
+      <polygon points="210,180 224,180 217,196 203,196"/>
+      <polygon points="202,206 220,206 211,226 193,226"/>
+      <polygon points="190,234 216,234 204,256 178,256"/>
+
+      <polygon points="283,138 292,138 295,148 286,148"/>
+      <polygon points="285,158 296,158 301,170 290,170"/>
+      <polygon points="288,180 302,180 309,196 295,196"/>
+      <polygon points="292,206 310,206 321,226 303,226"/>
+      <polygon points="296,234 322,234 334,256 308,256"/>
+    </g>
+
+    <!-- Center lane dashes (perspective) -->
+    <g fill="#FACC15">
+      <polygon points="254,140 258,140 259,146 253,146"/>
+      <polygon points="252,156 260,156 262,166 250,166"/>
+      <polygon points="248,180 264,180 267,196 245,196"/>
+      <polygon points="242,210 270,210 275,232 237,232"/>
+    </g>
+
+    <!-- Car (rear 3/4 view in foreground) -->
+    <g transform="translate(216, 158)">
+      <!-- Shadow -->
+      <ellipse cx="40" cy="86" rx="46" ry="6" fill="black" opacity="0.55"/>
+      <!-- Body -->
+      <path d="M 4,82
+               L 0,52
+               Q 0,40 12,38
+               L 30,32
+               L 36,22
+               L 44,22
+               L 50,32
+               L 68,38
+               Q 80,40 80,52
+               L 76,82 Z"
+            fill="url(#crCar)" stroke="#7F1D1D" stroke-width="2" stroke-linejoin="round"/>
+      <!-- Rear window / roof -->
+      <path d="M 18,38 L 30,34 L 36,24 L 44,24 L 50,34 L 62,38 L 58,50 L 22,50 Z"
+            fill="#1E40AF" opacity="0.9"/>
+      <!-- Brake lights -->
+      <rect x="6"  y="58" width="14" height="6" rx="2" fill="#FCA5A5"/>
+      <rect x="60" y="58" width="14" height="6" rx="2" fill="#FCA5A5"/>
+      <!-- License plate -->
+      <rect x="30" y="68" width="20" height="6" rx="1" fill="#F9FAFB"/>
+      <!-- Wheels (rear, partly visible) -->
+      <ellipse cx="6"  cy="80" rx="9" ry="6" fill="#0F172A"/>
+      <ellipse cx="74" cy="80" rx="9" ry="6" fill="#0F172A"/>
+      <!-- Exhaust puffs -->
+      <circle cx="20" cy="86" r="6" fill="white" opacity="0.5"/>
+      <circle cx="60" cy="86" r="6" fill="white" opacity="0.5"/>
+    </g>
+
+    <!-- Speed lines on sides -->
+    <g stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.5">
+      <line x1="22"  y1="170" x2="60"  y2="174"/>
+      <line x1="16"  y1="198" x2="58"  y2="202"/>
+      <line x1="10"  y1="226" x2="54"  y2="232"/>
+      <line x1="490" y1="170" x2="452" y2="174"/>
+      <line x1="496" y1="198" x2="454" y2="202"/>
+      <line x1="502" y1="226" x2="458" y2="232"/>
+    </g>
+
+    <!-- 3D badge -->
+    <g transform="translate(442, 20)">
+      <rect x="0" y="0" width="48" height="28" rx="14" fill="#FBBF24" stroke="#92400E" stroke-width="2"/>
+      <text x="24" y="20" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="#7C2D12">3D</text>
+    </g>
   </g>
 </svg>

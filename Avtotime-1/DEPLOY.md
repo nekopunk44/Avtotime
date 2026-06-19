@@ -79,7 +79,24 @@ bash scripts/init-ssl.sh yourdomain.com your@email.com
 
 ```bash
 git pull
-docker compose up -d --build
+
+# Пересобрать фронтенд после изменений в frontend_market
+DOMAIN=yourdomain.com   # укажи свой домен
+
+FRONTEND_SRC=""
+[ -d "../frontend_market" ] && FRONTEND_SRC="../frontend_market"
+[ -d "../../frontend_market" ] && FRONTEND_SRC="../../frontend_market"
+
+docker build -t avtotime-frontend-builder \
+  --build-arg VITE_API_URL="https://$DOMAIN" \
+  "$FRONTEND_SRC"
+docker rm frontend-extract 2>/dev/null || true
+docker create --name frontend-extract avtotime-frontend-builder
+docker cp frontend-extract:/app/dist/. ./frontend/dist/
+docker rm frontend-extract
+
+# Перезапустить backend (если менялся backend/)
+docker compose up -d --build backend
 ```
 
 ---

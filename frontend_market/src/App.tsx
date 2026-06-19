@@ -99,6 +99,15 @@ const MarketAnalyticsPage = lazy(() =>
 const AdminPage = lazy(() =>
   import('./components/pages/AdminPage').then((module) => ({ default: module.AdminPage }))
 );
+const TermsOfServicePage = lazy(() =>
+  import('./components/pages/TermsOfServicePage').then((module) => ({ default: module.TermsOfServicePage }))
+);
+const PrivacyPolicyPage = lazy(() =>
+  import('./components/pages/PrivacyPolicyPage').then((module) => ({ default: module.PrivacyPolicyPage }))
+);
+const CookiePolicyPage = lazy(() =>
+  import('./components/pages/CookiePolicyPage').then((module) => ({ default: module.CookiePolicyPage }))
+);
 
 const preloadAllChunks = () => {
   import('./components/vehicle/VehicleDetailsPage');
@@ -239,11 +248,35 @@ export default function App({
   onResendVerification,
 }: AppProps) {
   const [userDataOverrides, setUserDataOverrides] = useState<Partial<MarketUserData>>({});
+  const [sessionUserData, setSessionUserData] = useState<MarketUserData | null>(null);
+  const sessionLoaded = useRef(false);
+
+  // Load session on mount (standalone mode — when no userData prop is provided)
+  useEffect(() => {
+    if (userData !== null && userData !== undefined) return; // parent manages auth
+    if (sessionLoaded.current) return;
+    sessionLoaded.current = true;
+    marketAPI.getSession().then((u) => { if (u) setSessionUserData(u as MarketUserData); }).catch(() => {});
+  }, [userData]);
+
+  const resolvedUserData = userData ?? sessionUserData;
 
   const effectiveUserData = React.useMemo(
-    () => (userData ? { ...userData, ...userDataOverrides } : null),
-    [userData, userDataOverrides]
+    () => (resolvedUserData ? { ...resolvedUserData, ...userDataOverrides } : null),
+    [resolvedUserData, userDataOverrides]
   );
+
+  const handleSignIn = React.useCallback((user: MarketUserData) => {
+    setSessionUserData(user);
+    setUserDataOverrides({});
+  }, []);
+
+  const handleSignOut = React.useCallback(async () => {
+    if (onSignOut) { await onSignOut(); return; }
+    try { await marketAPI.signOut(); } catch { /* ignore */ }
+    setSessionUserData(null);
+    setUserDataOverrides({});
+  }, [onSignOut]);
 
   const handleUserDataChange = React.useCallback((updates: Partial<MarketUserData>) => {
     setUserDataOverrides((prev) => ({ ...prev, ...updates }));
@@ -2244,8 +2277,20 @@ export default function App({
       );
     }
 
+    if (currentPage === 'terms') {
+      return <TermsOfServicePage onBack={() => setCurrentPage('home')} />;
+    }
+
+    if (currentPage === 'privacy') {
+      return <PrivacyPolicyPage onBack={() => setCurrentPage('home')} />;
+    }
+
+    if (currentPage === 'cookies') {
+      return <CookiePolicyPage onBack={() => setCurrentPage('home')} />;
+    }
+
     if (currentPage === 'compare') {
-      return <ComparePage setCurrentPage={setCurrentPage} compareList={compareList} toggleCompare={toggleCompare} />;
+      return <ComparePage setCurrentPage={setCurrentPage} compareList={compareList} toggleCompare={toggleCompare} allCars={[...carListings, ...partsListings]} allServices={homeTopServices} />;
     }
 
       const listingsForCatalog = selectedVehicleType === 'Автозапчасти' ? partsListings : carListings;
@@ -2297,7 +2342,8 @@ export default function App({
             onOpenTariffs?.();
           }}
           onOpenAdmin={onOpenAdmin}
-          onSignOut={onSignOut}
+          onSignIn={handleSignIn}
+          onSignOut={handleSignOut}
           isAdmin={isAdmin}
           onResendVerification={onResendVerification}
           onOpenKidsTab={(tab) => {
@@ -2391,7 +2437,7 @@ export default function App({
         )}
       </AnimatePresence>
 
-      {currentPage !== 'add-listing' && currentPage !== 'add-consultation' && currentPage !== 'add-car-service' && currentPage !== 'add-auto-tuning' && currentPage !== 'add-dry-cleaning' && <Footer />}
+      {currentPage !== 'add-listing' && currentPage !== 'add-consultation' && currentPage !== 'add-car-service' && currentPage !== 'add-auto-tuning' && currentPage !== 'add-dry-cleaning' && <Footer onNavigate={setCurrentPage} />}
     </div>
   );
 }

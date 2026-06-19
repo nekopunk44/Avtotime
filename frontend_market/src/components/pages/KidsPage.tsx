@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import dotsConnectPreviewUrl from '../../assets/dots-connect-preview.svg';
+import puzzlePreviewUrl from '../../assets/game-previews/puzzle.svg';
 import carJumpPreviewUrl from '../../assets/game-previews/car-jump.svg';
 import roadFighterPreviewUrl from '../../assets/game-previews/road-fighter.svg';
 import circuitRushPreviewUrl from '../../assets/game-previews/racing.svg';
@@ -164,9 +165,9 @@ const ACTIVITIES: Activity[] = [
     tab: 'Головоломки',
     kind: 'puzzle',
     gameId: 'svg-puzzle-gallery',
-    gradient: 'from-emerald-50 to-teal-100',
+    gradient: 'from-slate-100 to-gray-50',
     icon: Puzzle,
-    thumbnail: `${API_URL}/public/coloring/ferari.svg`,
+    thumbnail: puzzlePreviewUrl,
   },
   {
     id: 'dots-connect',
@@ -175,7 +176,7 @@ const ACTIVITIES: Activity[] = [
     tab: 'Головоломки',
     kind: 'puzzle',
     gameId: 'dots-connect',
-    gradient: 'from-indigo-50 to-sky-100',
+    gradient: 'from-blue-50 to-sky-50',
     icon: Puzzle,
     thumbnail: dotsConnectPreviewUrl,
   },
@@ -523,48 +524,50 @@ export const KidsPage: React.FC<{ initialTab?: TabId }> = ({ initialTab }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="bg-gray-50 pt-12 pb-14 text-center">
+      <div className="bg-gray-50 pt-6 sm:pt-12 pb-6 sm:pb-14 text-center">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-50 rounded-2xl mb-6">
-            <Gamepad2 className="w-8 h-8 text-red-600" />
+          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-red-50 rounded-2xl mb-4 sm:mb-6">
+            <Gamepad2 className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4 font-serif">Для детей</h1>
-          <p className="text-gray-500 text-lg">Раскраски, головоломки и игры. Выбирай карточку и играй прямо здесь.</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 font-serif">Для детей</h1>
+          <p className="text-gray-500 text-sm sm:text-lg">Раскраски, головоломки и игры. Выбирай карточку и играй прямо здесь.</p>
         </div>
       </div>
 
-      <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-        <div className="mb-8 flex justify-center">
-          <div className="flex flex-wrap gap-2 bg-gray-200/50 p-2 rounded-full w-fit">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`relative flex items-center gap-2.5 px-6 py-3 rounded-full text-[15px] font-bold transition-colors z-10 ${
-                  activeTab === tab.id ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {activeTab === tab.id ? (
-                  <motion.div
-                    layoutId="kidsActiveTab"
-                    className="absolute inset-0 bg-white rounded-full shadow-sm -z-10"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.7 }}
-                  />
-                ) : null}
-                <tab.icon className="w-4.5 h-4.5" />
-                {tab.label}
-              </button>
-            ))}
+      <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 mt-2 sm:mt-4">
+        <div className="mb-6 sm:mb-8">
+          <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex sm:justify-center">
+            <div className="flex gap-1.5 sm:gap-2 bg-gray-200/50 p-1.5 sm:p-2 rounded-full w-max">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative flex items-center gap-1.5 sm:gap-2.5 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-[13px] sm:text-[15px] font-bold transition-colors z-10 whitespace-nowrap ${
+                    activeTab === tab.id ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {activeTab === tab.id ? (
+                    <motion.div
+                      layoutId="kidsActiveTab"
+                      className="absolute inset-0 bg-white rounded-full shadow-sm -z-10"
+                      transition={{ type: 'spring', bounce: 0.2, duration: 0.7 }}
+                    />
+                  ) : null}
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <motion.div layout className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
           <AnimatePresence mode="popLayout">
             {filtered.map((a) => {
               const thumbnail = a.thumbnail || GAME_PREVIEW_BY_ID[a.gameId];
               const builtInPreview = !a.thumbnail && Boolean(GAME_PREVIEW_BY_ID[a.gameId]);
-              const useContainForBuiltInPreview = builtInPreview && ['chess', 'flappy-car'].includes(a.gameId);
+              const useContainForBuiltInPreview = builtInPreview && ['svg-puzzle-gallery', 'dots-connect'].includes(a.gameId);
               return (
                 <motion.button
                   key={a.id}
@@ -579,9 +582,9 @@ export const KidsPage: React.FC<{ initialTab?: TabId }> = ({ initialTab }) => {
                     setSelected(a);
                   }}
                   data-thumbnail={thumbnail || 'none'}
-                  className="text-left bg-white rounded-[32px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-shadow group flex flex-col h-full"
+                  className="text-left bg-white rounded-[20px] sm:rounded-[32px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-shadow group flex flex-col h-full"
                 >
-                  <div className={`relative aspect-[16/7.5] bg-gradient-to-br ${a.gradient} shrink-0`}>
+                  <div className={`relative aspect-[16/9] sm:aspect-[16/7.5] bg-gradient-to-br ${a.gradient} shrink-0`}>
                     <div className="absolute inset-0 flex items-center justify-center">
                       {thumbnail ? (
                         <ThumbnailImage
@@ -590,20 +593,20 @@ export const KidsPage: React.FC<{ initialTab?: TabId }> = ({ initialTab }) => {
                           imgClassName={
                             builtInPreview
                               ? useContainForBuiltInPreview
-                                ? 'w-full h-full object-contain p-6 select-none pointer-events-none'
+                                ? 'w-full h-full object-contain p-4 sm:p-6 select-none pointer-events-none'
                                 : 'w-full h-full object-cover select-none pointer-events-none'
-                              : 'w-full h-full object-contain p-4 select-none pointer-events-none'
+                              : 'w-full h-full object-contain p-3 sm:p-4 select-none pointer-events-none'
                           }
                         />
                       ) : (
-                        <div className="w-14 h-14 rounded-2xl bg-white/80 border border-white/60 shadow-sm flex items-center justify-center">
-                          <a.icon className="w-7 h-7 text-gray-900" />
+                        <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl bg-white/80 border border-white/60 shadow-sm flex items-center justify-center">
+                          <a.icon className="w-5 h-5 sm:w-7 sm:h-7 text-gray-900" />
                         </div>
                       )}
                     </div>
-                  <div className="absolute top-4 left-4">
+                  <div className="absolute top-2 left-2 sm:top-4 sm:left-4">
                     <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold ${
+                      className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-[12px] font-bold ${
                         a.kind === 'coloring'
                           ? 'bg-amber-50 text-amber-700'
                           : a.kind === 'puzzle'
@@ -613,16 +616,16 @@ export const KidsPage: React.FC<{ initialTab?: TabId }> = ({ initialTab }) => {
                               : 'bg-slate-50 text-slate-700'
                       }`}
                     >
-                      {a.kind === 'coloring' ? <><Palette className="w-3.5 h-3.5" /> Раскраска</> : null}
-                      {a.kind === 'puzzle' ? <><Puzzle className="w-3.5 h-3.5" /> Головоломка</> : null}
-                      {a.kind === 'kids_game' ? <><Gamepad2 className="w-3.5 h-3.5" /> Игра</> : null}
-                      {a.kind === 'classic' ? <><Sparkles className="w-3.5 h-3.5" /> Классика</> : null}
+                      {a.kind === 'coloring' ? <><Palette className="w-3 h-3 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline"> Раскраска</span><span className="sm:hidden">Раскраска</span></> : null}
+                      {a.kind === 'puzzle' ? <><Puzzle className="w-3 h-3 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline"> Головоломка</span><span className="sm:hidden">Головоломка</span></> : null}
+                      {a.kind === 'kids_game' ? <><Gamepad2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline"> Игра</span><span className="sm:hidden">Игра</span></> : null}
+                      {a.kind === 'classic' ? <><Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline"> Классика</span><span className="sm:hidden">Классика</span></> : null}
                     </span>
                   </div>
                 </div>
-                <div className="p-5 flex flex-col flex-1">
-                  <h3 className="text-[18px] font-bold text-gray-900 mb-1">{a.title}</h3>
-                  <p className="text-gray-500 text-[14px] mb-2 flex-1">{a.description}</p>
+                <div className="p-3 sm:p-5 flex flex-col flex-1">
+                  <h3 className="text-[14px] sm:text-[18px] font-bold text-gray-900 mb-0.5 sm:mb-1 leading-tight">{a.title}</h3>
+                  <p className="text-gray-500 text-[11px] sm:text-[14px] mb-1 sm:mb-2 flex-1 leading-snug hidden sm:block">{a.description}</p>
                 </div>
                 </motion.button>
               );
@@ -647,10 +650,14 @@ export const KidsPage: React.FC<{ initialTab?: TabId }> = ({ initialTab }) => {
           floatingHeader={selected.kind === 'classic' && selected.gameId !== 'snake'}
           scrollable={selected.gameId === 'svg-puzzle-gallery'}
           containerClassName={
-            selected.gameId === 'car-jump' ||
-            selected.gameId === 'road-fighter' ||
-            selected.kind === 'classic' ||
-            selected.gameId === 'snake'
+            selected.gameId === 'svg-puzzle-gallery'
+              ? 'w-[96vw] h-[90dvh] max-w-[560px] max-h-[90dvh]'
+              : selected.gameId === 'svg-puzzle' || selected.gameId === 'dots-connect'
+              ? 'w-[96vw] !h-auto max-w-[560px] max-h-[90dvh]'
+              : selected.gameId === 'car-jump' ||
+                selected.gameId === 'road-fighter' ||
+                selected.kind === 'classic' ||
+                selected.gameId === 'snake'
               ? selected.gameId === 'car-jump'
                 ? 'w-[88vw] h-[88vw] max-w-[70vh] max-h-[70vh]'
                 : 'w-[96vw] h-[86dvh] max-w-[560px] max-h-[86dvh]'

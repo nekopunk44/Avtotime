@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260">
+  <!--
+    A single landscape image cut into 4 interlocking jigsaw pieces.
+    Scene: sunset sky with sun + clouds, distant mountains, a red car
+    on a road with yellow dashes. The 4 pieces (TL/TR/BL/BR) clip the
+    same scene so each piece carries a real part of the picture.
+  -->
+
+  <defs>
+    <linearGradient id="puzzleSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#FED7AA"/>
+      <stop offset="60%"  stop-color="#FDBA74"/>
+      <stop offset="100%" stop-color="#FCA5A5"/>
+    </linearGradient>
+    <linearGradient id="puzzleGround" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#86EFAC"/>
+      <stop offset="100%" stop-color="#4ADE80"/>
+    </linearGradient>
+
+    <!-- 4 jigsaw piece shapes, used as clipPaths AND as stroke outlines -->
+    <clipPath id="puzzleClipTL">
+      <path d="M 50,40 L 190,40 L 190,77 A 13 13 0 0 1 190,103 L 190,140 L 133,140 A 13 13 0 0 1 107,140 L 50,140 Z"/>
+    </clipPath>
+    <clipPath id="puzzleClipTR">
+      <path d="M 190,40 L 330,40 L 330,140 L 273,140 A 13 13 0 0 1 247,140 L 190,140 L 190,103 A 13 13 0 0 0 190,77 L 190,40 Z"/>
+    </clipPath>
+    <clipPath id="puzzleClipBL">
+      <path d="M 50,140 L 107,140 A 13 13 0 0 0 133,140 L 190,140 L 190,177 A 13 13 0 0 1 190,203 L 190,240 L 50,240 Z"/>
+    </clipPath>
+    <clipPath id="puzzleClipBR">
+      <path d="M 190,140 L 247,140 A 13 13 0 0 0 273,140 L 330,140 L 330,240 L 190,240 L 190,203 A 13 13 0 0 0 190,177 L 190,140 Z"/>
+    </clipPath>
+
+    <!-- The full scene that will be clipped four times -->
+    <g id="puzzleScene">
+      <!-- Sky -->
+      <rect x="50" y="40" width="280" height="100" fill="url(#puzzleSky)"/>
+      <!-- Sun -->
+      <circle cx="248" cy="80" r="22" fill="#FBBF24"/>
+      <circle cx="248" cy="80" r="30" fill="#FBBF24" opacity="0.25"/>
+      <!-- Clouds -->
+      <ellipse cx="105" cy="72" rx="22" ry="7" fill="white" opacity="0.85"/>
+      <ellipse cx="138" cy="80" rx="16" ry="5.5" fill="white" opacity="0.75"/>
+      <ellipse cx="300" cy="58" rx="18" ry="6" fill="white" opacity="0.8"/>
+      <!-- Birds -->
+      <path d="M 75,58 q 4,-5 8,0 q 4,-5 8,0" fill="none" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M 175,52 q 3,-4 6,0 q 3,-4 6,0" fill="none" stroke="#1E293B" stroke-width="1.5" stroke-linecap="round"/>
+
+      <!-- Distant hills/mountains -->
+      <polygon points="50,140 100,108 150,140" fill="#7C3AED" opacity="0.45"/>
+      <polygon points="120,140 175,95 235,140" fill="#5B21B6" opacity="0.55"/>
+      <polygon points="210,140 270,115 330,140" fill="#7C3AED" opacity="0.45"/>
+
+      <!-- Ground -->
+      <rect x="50" y="140" width="280" height="100" fill="url(#puzzleGround)"/>
+      <!-- Grass tufts -->
+      <path d="M 70,180 q 2,-6 4,0 M 75,182 q 2,-7 4,0 M 305,182 q 2,-6 4,0 M 312,184 q 2,-7 4,0"
+            stroke="#15803D" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+      <!-- Road -->
+      <path d="M 50,210 L 330,210 L 330,235 L 50,235 Z" fill="#475569"/>
+      <line x1="60" y1="222" x2="320" y2="222" stroke="#FACC15" stroke-width="2.5" stroke-dasharray="16,12" stroke-linecap="round"/>
+
+      <!-- Car (straddles the central vertical cut at x=190, lives in BL+BR) -->
+      <g>
+        <!-- Shadow -->
+        <ellipse cx="200" cy="208" rx="55" ry="4" fill="#000" opacity="0.18"/>
+        <!-- Body -->
+        <path d="M 150,205
+                 L 150,185
+                 Q 150,178 158,178
+                 L 168,178
+                 L 178,165
+                 L 222,165
+                 L 232,178
+                 L 244,178
+                 Q 252,178 252,185
+                 L 252,205 Z"
+              fill="#EF4444" stroke="#991B1B" stroke-width="1.5" stroke-linejoin="round"/>
+        <!-- Window -->
+        <path d="M 180,178 L 188,168 L 215,168 L 222,178 Z" fill="#BFDBFE"/>
+        <line x1="201" y1="168" x2="201" y2="178" stroke="#1E40AF" stroke-width="1"/>
+        <!-- Headlight + taillight -->
+        <rect x="246" y="186" width="6" height="6" rx="1" fill="#FEF3C7"/>
+        <rect x="150" y="186" width="6" height="6" rx="1" fill="#FCA5A5"/>
+        <!-- Wheels -->
+        <circle cx="170" cy="205" r="8" fill="#1F2937"/>
+        <circle cx="170" cy="205" r="3" fill="#94A3B8"/>
+        <circle cx="232" cy="205" r="8" fill="#1F2937"/>
+        <circle cx="232" cy="205" r="3" fill="#94A3B8"/>
+      </g>
+    </g>
+  </defs>
+
+  <!-- Soft frame background to contrast white cuts -->
+  <rect x="0" y="0" width="400" height="260" fill="#F8FAFC"/>
+
+  <!-- Render the same scene four times, each clipped to its piece -->
+  <use href="#puzzleScene" clip-path="url(#puzzleClipTL)"/>
+  <use href="#puzzleScene" clip-path="url(#puzzleClipTR)"/>
+  <use href="#puzzleScene" clip-path="url(#puzzleClipBL)"/>
+  <use href="#puzzleScene" clip-path="url(#puzzleClipBR)"/>
+
+  <!-- White jigsaw cuts (piece outlines) -->
+  <g fill="none" stroke="white" stroke-width="3" stroke-linejoin="round">
+    <path d="M 50,40 L 190,40 L 190,77 A 13 13 0 0 1 190,103 L 190,140 L 133,140 A 13 13 0 0 1 107,140 L 50,140 Z"/>
+    <path d="M 190,40 L 330,40 L 330,140 L 273,140 A 13 13 0 0 1 247,140 L 190,140 L 190,103 A 13 13 0 0 0 190,77 L 190,40 Z"/>
+    <path d="M 50,140 L 107,140 A 13 13 0 0 0 133,140 L 190,140 L 190,177 A 13 13 0 0 1 190,203 L 190,240 L 50,240 Z"/>
+    <path d="M 190,140 L 247,140 A 13 13 0 0 0 273,140 L 330,140 L 330,240 L 190,240 L 190,203 A 13 13 0 0 0 190,177 L 190,140 Z"/>
+  </g>
+
+  <!-- Subtle outer shadow/border for the assembled puzzle -->
+  <rect x="50" y="40" width="280" height="200" fill="none" stroke="#CBD5E1" stroke-width="1" opacity="0.6"/>
+</svg>

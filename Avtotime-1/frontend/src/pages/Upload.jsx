@@ -41,22 +41,28 @@ const getPreviewSummary = (isImageSet, imageCount) => {
     return `Выбрано ${imageCount} фото`
 }
 
-const getImageGridClass = (imageCount) => {
-    if (imageCount === 1) return 'grid-cols-1'
-    if (imageCount === 2) return 'grid-cols-2'
-    return 'grid-cols-2 sm:grid-cols-3'
+const CollageTile = ({ item, index, imageCount, extraCount, onRemove }) => {
+    const showOverlay = index === COLLAGE_PREVIEW_LIMIT - 1 && extraCount > 0
+    return (
+        <div className='relative w-full h-full overflow-hidden rounded-2xl border border-white/10 bg-[#0e1316]'>
+            <img src={item.url} alt={item.name} className='w-full h-full object-cover' referrerPolicy='no-referrer' />
+            {showOverlay && (
+                <div className='absolute inset-0 flex items-center justify-center bg-black/55'>
+                    <span className='text-white text-[28px] font-bold'>+{extraCount}</span>
+                </div>
+            )}
+            <button
+                type='button'
+                className='absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white hover:bg-black/85'
+                onClick={() => onRemove(index)}
+            >
+                <FiX className='h-3.5 w-3.5' />
+            </button>
+        </div>
+    )
 }
 
-const getImageTileClass = (imageCount, index) => {
-    if (imageCount === 1) return 'h-[320px] sm:h-[420px]'
-    if (imageCount === 2) return 'aspect-[0.82]'
-    if ((imageCount === 3 || imageCount === 5) && index === 0) {
-        return 'sm:col-span-2 sm:row-span-2 sm:min-h-[268px] sm:aspect-auto aspect-square'
-    }
-    return 'aspect-square'
-}
-
-const COLLAGE_PREVIEW_LIMIT = 5
+const COLLAGE_PREVIEW_LIMIT = 4
 
 function Upload() {
     const navigate = useNavigate()
@@ -92,13 +98,29 @@ function Upload() {
         if (mediaInput.current) mediaInput.current.value = ''
     }
 
+    // Отзываем blob-URL только для удалённых элементов, а не для всех при каждом изменении
+    const prevMediaRef = useRef([])
+    useEffect(() => {
+        const prev = prevMediaRef.current
+        const currentIds = new Set(frontendMedia.map((item) => item.id))
+        prev.forEach((item) => {
+            if (!currentIds.has(item.id) && item?.url?.startsWith('blob:')) {
+                URL.revokeObjectURL(item.url)
+            }
+        })
+        prevMediaRef.current = frontendMedia
+    }, [frontendMedia])
+
+    // Финальная очистка при размонтировании
+    const frontendMediaRef = useRef(frontendMedia)
+    useEffect(() => { frontendMediaRef.current = frontendMedia }, [frontendMedia])
     useEffect(() => {
         return () => {
-            frontendMedia.forEach((item) => {
+            frontendMediaRef.current.forEach((item) => {
                 if (item?.url?.startsWith('blob:')) URL.revokeObjectURL(item.url)
             })
         }
-    }, [frontendMedia])
+    }, [])
 
     const handleMedia = (e) => {
         const files = Array.from(e.target.files || [])
@@ -336,103 +358,72 @@ function Upload() {
                 <div className='mt-10 flex w-full max-w-[540px] flex-col items-center gap-5'>
                     {isImageSet ? (
                         <div className='w-full'>
-                            {imageCount <= 4 ? (
-                                <div
-                                    className={[
-                                        'grid w-full gap-2',
-                                        getImageGridClass(imageCount),
-                                        imageCount >= 3 ? 'sm:auto-rows-[130px]' : '',
-                                    ].join(' ')}
-                                >
-                                    {collageItems.map((item, index) => (
-                                        <div
-                                            key={item.id}
-                                            className={[
-                                                'relative overflow-hidden rounded-2xl border border-white/10 bg-[#0e1316]',
-                                                getImageTileClass(imageCount, index),
-                                            ].join(' ')}
-                                        >
-                                            <img
-                                                src={item.url}
-                                                alt={item.name}
-                                                className='h-full w-full object-cover'
-                                                referrerPolicy='no-referrer'
-                                            />
-                                            {uploadType === 'post' && (
-                                                <button
-                                                    type='button'
-                                                    className='absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-black/80'
-                                                    onClick={() => removeSelectedMedia(index)}
-                                                >
-                                                    <FiX className='h-4 w-4' />
-                                                </button>
-                                            )}
-                                            {imageCount > 1 && (
-                                                <div className='absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-1 text-[11px] font-medium text-white'>
-                                                    {index + 1}/{imageCount}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                            {/* ── Коллаж ── */}
+                            {imageCount === 1 && (
+                                <div className='aspect-[4/3] w-full'>
+                                    <CollageTile item={collageItems[0]} index={0} imageCount={1} extraCount={0} onRemove={removeSelectedMedia} />
                                 </div>
-                            ) : (
-                                <div className='grid w-full grid-cols-12 gap-2 sm:auto-rows-[126px]'>
-                                    {collageItems.map((item, index) => (
-                                        <div
-                                            key={item.id}
-                                            className={[
-                                                'relative overflow-hidden rounded-2xl border border-white/10 bg-[#0e1316]',
-                                                index === 0
-                                                    ? 'col-span-7 row-span-2 min-h-[260px]'
-                                                    : 'col-span-5 min-h-[126px]',
-                                            ].join(' ')}
-                                        >
-                                            <img
-                                                src={item.url}
-                                                alt={item.name}
-                                                className='h-full w-full object-cover'
-                                                referrerPolicy='no-referrer'
-                                            />
-                                            {index === collageItems.length - 1 && hiddenItemsCount > 0 ? (
-                                                <div className='absolute inset-0 flex items-center justify-center bg-black/45'>
-                                                    <div className='rounded-full bg-black/60 px-4 py-2 text-sm font-bold text-white'>
-                                                        +{hiddenItemsCount} фото
-                                                    </div>
-                                                </div>
-                                            ) : null}
-                                            {uploadType === 'post' && (
-                                                <button
-                                                    type='button'
-                                                    className='absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-black/80'
-                                                    onClick={() => removeSelectedMedia(index)}
-                                                >
-                                                    <FiX className='h-4 w-4' />
-                                                </button>
-                                            )}
-                                            <div className='absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-1 text-[11px] font-medium text-white'>
-                                                {index + 1}/{imageCount}
-                                            </div>
+                            )}
+
+                            {imageCount === 2 && (
+                                <div
+                                    style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: '1fr 1fr',
+                                        gridTemplateRows: '280px',
+                                        gap: '4px',
+                                    }}
+                                >
+                                    {collageItems.map((item, i) => (
+                                        <div key={item.id}>
+                                            <CollageTile item={item} index={i} imageCount={2} extraCount={0} onRemove={removeSelectedMedia} />
                                         </div>
                                     ))}
                                 </div>
                             )}
 
-                            {imageCount > 1 ? (
+                            {imageCount === 3 && (
+                                <div
+                                    style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: '6fr 4fr',
+                                        gridTemplateRows: '150px 150px',
+                                        gap: '4px',
+                                    }}
+                                >
+                                    <div style={{ gridRow: '1 / 3' }}>
+                                        <CollageTile item={collageItems[0]} index={0} imageCount={3} extraCount={0} onRemove={removeSelectedMedia} />
+                                    </div>
+                                    {collageItems.slice(1).map((item, i) => (
+                                        <div key={item.id}>
+                                            <CollageTile item={item} index={i + 1} imageCount={3} extraCount={0} onRemove={removeSelectedMedia} />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {imageCount >= 4 && (
+                                <div className='grid grid-cols-2 gap-1'>
+                                    {collageItems.map((item, i) => (
+                                        <div key={item.id} className='aspect-square'>
+                                            <CollageTile item={item} index={i} imageCount={imageCount} extraCount={hiddenItemsCount} onRemove={removeSelectedMedia} />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* ── Тумбнейлы (только при 5+ фото) ── */}
+                            {imageCount > COLLAGE_PREVIEW_LIMIT && (
                                 <div className='mt-3 flex gap-2 overflow-x-auto pb-1'>
                                     {frontendMedia.map((item, index) => (
                                         <div
                                             key={`${item.id}-thumb`}
-                                            className='relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-[#0e1316]'
+                                            className='relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-[#0e1316]'
                                         >
-                                            <img
-                                                src={item.url}
-                                                alt={item.name}
-                                                className='h-full w-full object-cover'
-                                                referrerPolicy='no-referrer'
-                                            />
+                                            <img src={item.url} alt={item.name} className='h-full w-full object-cover' referrerPolicy='no-referrer' />
                                             <button
                                                 type='button'
-                                                className='absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-black/80'
+                                                className='absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black/90'
                                                 onClick={() => removeSelectedMedia(index)}
                                             >
                                                 <FiX className='h-3 w-3' />
@@ -443,7 +434,7 @@ function Upload() {
                                         </div>
                                     ))}
                                 </div>
-                            ) : null}
+                            )}
                         </div>
                     ) : (
                         <div

@@ -88,6 +88,7 @@ function App() {
   useNotifications();
 
   const { userData } = useSelector(state => state.user);
+  const { selectedUser } = useSelector(state => state.message);
   const socketRef = useRef(null);
   const dispatch = useDispatch();
 
@@ -177,13 +178,11 @@ function App() {
     dispatch(setOnlineUsers([]));
   }, [dispatch, userData]);
 
-  const showNav = userData && [
-    '/', '/upload', '/loops',
-  ].some(p => location.pathname === p) ||
-    (userData && (
-      location.pathname.startsWith('/profile/') ||
-      location.pathname.startsWith('/search/')
-    ))
+  const showNav = Boolean(userData) && !selectedUser && (
+    ['/', '/upload', '/loops'].includes(location.pathname) ||
+    location.pathname.startsWith('/profile/') ||
+    location.pathname.startsWith('/search/')
+  )
 
   return (
     <>

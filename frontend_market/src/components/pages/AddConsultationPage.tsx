@@ -177,13 +177,29 @@ export const AddConsultationPage: React.FC<AddConsultationPageProps> = ({ onBack
       <LocationPickerMapModal
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}
-        onSelect={(region) => updateField('location', region)}
+        onSelect={(picked) => updateField('location', picked.label)}
         selectedRegion={formData.location}
         title="Выберите регион для консультации"
       />
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-12">
-        <div className="relative flex items-center justify-center mb-12 w-full">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-12">
+        {/* Мобильный заголовок */}
+        <div className="sm:hidden flex items-center justify-between mb-5">
+          <button
+            onClick={handleBack}
+            className="hover:bg-white/10 p-2 rounded-full transition-colors shrink-0"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <div className="flex-1 text-center px-2">
+            <div className="text-base font-bold leading-tight">Создать объявление</div>
+            <div className="text-xs text-gray-400">Авто-консультация</div>
+          </div>
+          <img src="/logo2.png" alt="AVTOTIME" className="h-10 object-contain" referrerPolicy="no-referrer" />
+        </div>
+
+        {/* Десктопный заголовок */}
+        <div className="hidden sm:flex relative items-center justify-center mb-12 w-full">
           <button
             onClick={handleBack}
             className="absolute left-0 hover:bg-white/10 p-3 rounded-full transition-colors shrink-0"
@@ -205,7 +221,7 @@ export const AddConsultationPage: React.FC<AddConsultationPageProps> = ({ onBack
           </div>
         </div>
 
-        <div className="space-y-10 max-w-[820px] mx-auto">
+        <div className="space-y-5 sm:space-y-10 max-w-[820px] mx-auto">
           {step === 1 ? (
             <>
               <section className="bg-[#1a1a1a] rounded-2xl p-6 sm:p-8 border border-white/20">
@@ -353,7 +369,7 @@ export const AddConsultationPage: React.FC<AddConsultationPageProps> = ({ onBack
                         ))}
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-3 gap-3">
                         <PreviewStat value={formatExperienceYears(formData.experience)} label="Опыт" accent />
                         <PreviewStat value={`${formData.consultations || '0'}+`} label="Консультации" />
                         <PreviewStat value={formData.hourlyRate ? Number(formData.hourlyRate).toLocaleString('ru-RU') : '0'} label="RUB/час" accent />
@@ -384,7 +400,7 @@ export const AddConsultationPage: React.FC<AddConsultationPageProps> = ({ onBack
                   type="button"
                   onClick={() => setStep(2)}
                   disabled={!canProceed}
-                  className="bg-transparent border border-white/20 text-white px-24 py-3.5 rounded-xl font-medium hover:bg-white/5 transition-colors flex items-center gap-2 text-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  className="bg-transparent border border-white/20 text-white w-full sm:w-auto px-8 sm:px-24 py-3.5 rounded-xl font-medium hover:bg-white/5 transition-colors flex items-center justify-center gap-2 text-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                 >
                   Далее
                   <ChevronRight className="w-5 h-5" />
@@ -438,7 +454,7 @@ export const AddConsultationPage: React.FC<AddConsultationPageProps> = ({ onBack
                   type="button"
                   onClick={handlePublish}
                   disabled={!canPublish}
-                  className="bg-[#e33232] text-white px-24 py-3.5 rounded-xl font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-3 w-full max-w-[420px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#e33232]"
+                  className="bg-[#e33232] text-white px-8 sm:px-24 py-3.5 rounded-xl font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-3 w-full sm:max-w-[420px] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#e33232]"
                 >
                   <Plus className="w-6 h-6 text-white" />
                   Опубликовать консультацию
@@ -510,9 +526,9 @@ interface PreviewStatProps {
 }
 
 const PreviewStat: React.FC<PreviewStatProps> = ({ value, label, accent = false }) => (
-  <div className={`${accent ? 'bg-red-50' : 'bg-gray-50'} rounded-3xl p-6 text-center`}>
-    <div className={`text-[28px] font-bold mb-1 ${accent ? 'text-red-600' : 'text-gray-900'}`}>{value}</div>
-    <div className="text-[13px] text-gray-500 font-bold uppercase tracking-wider">{label}</div>
+  <div className={`${accent ? 'bg-red-50' : 'bg-gray-50'} rounded-2xl sm:rounded-3xl p-3 sm:p-6 text-center`}>
+    <div className={`text-lg sm:text-[28px] font-bold mb-0.5 sm:mb-1 ${accent ? 'text-red-600' : 'text-gray-900'}`}>{value}</div>
+    <div className="text-[10px] sm:text-[13px] text-gray-500 font-bold uppercase tracking-wider">{label}</div>
   </div>
 );
 

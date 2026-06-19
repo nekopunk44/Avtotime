@@ -9,6 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
+const MAX_AUTO_COLOR_CACHE = 500;
 const autoColorCache = new Map();
 
 const COLOR_PALETTE = [
@@ -302,6 +303,9 @@ export const autoColorSvg = async (req, res) => {
     const coloredMarkup = autoColorizeSvg(svgMarkup, templateId);
     const coloredDataUrl = asDataUrlSvg(coloredMarkup);
 
+    if (autoColorCache.size >= MAX_AUTO_COLOR_CACHE) {
+      autoColorCache.delete(autoColorCache.keys().next().value);
+    }
     autoColorCache.set(cacheKey, coloredDataUrl);
 
     return res.json({ success: true, coloredSvg: coloredDataUrl });

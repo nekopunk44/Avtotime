@@ -1,15 +1,220 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Solitaire preview">
   <defs>
-    <linearGradient id="sBg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#dcfce7" stop-opacity="0.55" />
-      <stop offset="1" stop-color="#dbeafe" stop-opacity="0.45" />
+    <linearGradient id="solFelt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#15803D"/>
+      <stop offset="100%" stop-color="#065F46"/>
     </linearGradient>
+    <pattern id="solBack" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="#1E3A8A"/>
+      <rect width="3" height="3" fill="#3B82F6"/>
+      <rect x="3" y="3" width="3" height="3" fill="#3B82F6"/>
+    </pattern>
   </defs>
-  <rect x="24" y="24" width="464" height="208" rx="28" fill="url(#sBg)" />
-  <g transform="translate(176 58)">
-    <rect x="16" y="12" width="112" height="156" rx="22" fill="#ffffff" opacity="0.95" />
-    <rect x="0" y="28" width="112" height="156" rx="22" fill="#ffffff" opacity="0.9" />
-    <rect x="32" y="0" width="112" height="156" rx="22" fill="#ffffff" opacity="0.98" />
-    <path d="M88 48c14-18 36-18 50 0 14 18 0 40-25 54-25-14-39-36-25-54z" fill="#ef4444" opacity="0.9" />
+
+  <!-- Felt -->
+  <rect width="512" height="256" rx="28" fill="url(#solFelt)"/>
+  <!-- Subtle felt grain -->
+  <rect width="512" height="256" rx="28" fill="#000" opacity="0.05"/>
+
+  <!-- ============== TOP ROW ============== -->
+  <!-- Stock (face-down deck, slight stack) -->
+  <g>
+    <rect x="22" y="20" width="40" height="56" rx="4" fill="#1E3A8A" opacity="0.5"/>
+    <rect x="20" y="18" width="40" height="56" rx="4" fill="#1E3A8A" opacity="0.75"/>
+    <rect x="18" y="16" width="40" height="56" rx="4" fill="white" stroke="#0F172A" stroke-width="1"/>
+    <rect x="21" y="19" width="34" height="50" rx="2" fill="url(#solBack)"/>
+    <rect x="21" y="19" width="34" height="50" rx="2" fill="none" stroke="#60A5FA" stroke-width="0.8"/>
+  </g>
+
+  <!-- Waste (top face-up = 5♦) -->
+  <g>
+    <rect x="68" y="16" width="40" height="56" rx="4" fill="white" stroke="#0F172A" stroke-width="1"/>
+    <text x="72" y="28" font-family="sans-serif" font-size="11" font-weight="bold" fill="#DC2626">5</text>
+    <text x="72" y="38" font-family="sans-serif" font-size="9" fill="#DC2626">♦</text>
+    <text x="88" y="52" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#DC2626">♦</text>
+  </g>
+
+  <!-- Foundations: ♠ (A), ♥ (A,2,3), ♦ (empty), ♣ (empty) -->
+  <!-- ♠ foundation - showing A♠ -->
+  <g>
+    <rect x="236" y="16" width="40" height="56" rx="4" fill="white" stroke="#0F172A" stroke-width="1"/>
+    <text x="240" y="28" font-family="sans-serif" font-size="11" font-weight="bold" fill="#0F172A">A</text>
+    <text x="240" y="38" font-family="sans-serif" font-size="9" fill="#0F172A">♠</text>
+    <text x="256" y="52" text-anchor="middle" font-family="sans-serif" font-size="22" fill="#0F172A">♠</text>
+  </g>
+  <!-- ♥ foundation - showing 3♥ (top of A,2,3) -->
+  <g>
+    <rect x="302" y="16" width="40" height="56" rx="4" fill="white" stroke="#0F172A" stroke-width="1"/>
+    <text x="306" y="28" font-family="sans-serif" font-size="11" font-weight="bold" fill="#DC2626">3</text>
+    <text x="306" y="38" font-family="sans-serif" font-size="9" fill="#DC2626">♥</text>
+    <g font-family="sans-serif" font-size="11" fill="#DC2626" text-anchor="middle">
+      <text x="322" y="38">♥</text>
+      <text x="322" y="50">♥</text>
+      <text x="322" y="62">♥</text>
+    </g>
+  </g>
+  <!-- ♦ foundation - empty -->
+  <g>
+    <rect x="368" y="16" width="40" height="56" rx="4" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.7"/>
+    <text x="388" y="50" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#FFFFFF" opacity="0.25">♦</text>
+  </g>
+  <!-- ♣ foundation - empty -->
+  <g>
+    <rect x="434" y="16" width="40" height="56" rx="4" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.7"/>
+    <text x="454" y="50" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#FFFFFF" opacity="0.25">♣</text>
+  </g>
+
+  <!-- ============== TABLEAU (7 columns) ============== -->
+  <!-- Helper: cards have 12px cascade offset, top-most is face-up -->
+
+  <!-- COL 0: 1 card, face-up K♠ -->
+  <g>
+    <rect x="38" y="92" width="40" height="56" rx="4" fill="white" stroke="#0F172A" stroke-width="1"/>
+    <text x="42" y="104" font-family="sans-serif" font-size="11" font-weight="bold" fill="#0F172A">K</text>
+    <text x="42" y="114" font-family="sans-serif" font-size="9" fill="#0F172A">♠</text>
+    <text x="58" y="132" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#0F172A">♠</text>
+  </g>
+
+  <!-- COL 1: 2 cards, 1 face-down + Q♥ -->
+  <g>
+    <rect x="104" y="92" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="107" y="95" width="34" height="50" rx="2" fill="url(#solBack)"/>
+    <rect x="107" y="95" width="34" height="50" rx="2" fill="none" stroke="#60A5FA" stroke-width="0.8"/>
+  </g>
+  <g>
+    <rect x="104" y="104" width="40" height="56" rx="4" fill="white" stroke="#0F172A" stroke-width="1"/>
+    <text x="108" y="116" font-family="sans-serif" font-size="11" font-weight="bold" fill="#DC2626">Q</text>
+    <text x="108" y="126" font-family="sans-serif" font-size="9" fill="#DC2626">♥</text>
+    <text x="124" y="144" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#DC2626">♥</text>
+  </g>
+
+  <!-- COL 2: 3 cards, 2 face-down + J♣ -->
+  <g>
+    <rect x="170" y="92" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="173" y="95" width="34" height="50" rx="2" fill="url(#solBack)"/>
+    <rect x="173" y="95" width="34" height="50" rx="2" fill="none" stroke="#60A5FA" stroke-width="0.8"/>
+  </g>
+  <g>
+    <rect x="170" y="104" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="173" y="107" width="34" height="50" rx="2" fill="url(#solBack)"/>
+    <rect x="173" y="107" width="34" height="50" rx="2" fill="none" stroke="#60A5FA" stroke-width="0.8"/>
+  </g>
+  <g>
+    <rect x="170" y="116" width="40" height="56" rx="4" fill="white" stroke="#0F172A" stroke-width="1"/>
+    <text x="174" y="128" font-family="sans-serif" font-size="11" font-weight="bold" fill="#0F172A">J</text>
+    <text x="174" y="138" font-family="sans-serif" font-size="9" fill="#0F172A">♣</text>
+    <text x="190" y="156" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#0F172A">♣</text>
+  </g>
+
+  <!-- COL 3: 4 cards, 3 face-down + 10♦ -->
+  <g>
+    <rect x="236" y="92" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="239" y="95" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="236" y="104" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="239" y="107" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="236" y="116" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="239" y="119" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="236" y="128" width="40" height="56" rx="4" fill="white" stroke="#0F172A" stroke-width="1"/>
+    <text x="240" y="140" font-family="sans-serif" font-size="10" font-weight="bold" fill="#DC2626">10</text>
+    <text x="240" y="150" font-family="sans-serif" font-size="9" fill="#DC2626">♦</text>
+    <text x="256" y="168" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#DC2626">♦</text>
+  </g>
+
+  <!-- COL 4: 5 cards, 4 face-down + 9♠ -->
+  <g>
+    <rect x="302" y="92" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="305" y="95" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="302" y="104" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="305" y="107" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="302" y="116" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="305" y="119" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="302" y="128" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="305" y="131" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="302" y="140" width="40" height="56" rx="4" fill="white" stroke="#0F172A" stroke-width="1"/>
+    <text x="306" y="152" font-family="sans-serif" font-size="11" font-weight="bold" fill="#0F172A">9</text>
+    <text x="306" y="162" font-family="sans-serif" font-size="9" fill="#0F172A">♠</text>
+    <text x="322" y="180" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#0F172A">♠</text>
+  </g>
+
+  <!-- COL 5: 6 cards, 5 face-down + 8♥ -->
+  <g>
+    <rect x="368" y="92" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="371" y="95" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="368" y="104" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="371" y="107" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="368" y="116" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="371" y="119" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="368" y="128" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="371" y="131" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="368" y="140" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="371" y="143" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="368" y="152" width="40" height="56" rx="4" fill="white" stroke="#0F172A" stroke-width="1"/>
+    <text x="372" y="164" font-family="sans-serif" font-size="11" font-weight="bold" fill="#DC2626">8</text>
+    <text x="372" y="174" font-family="sans-serif" font-size="9" fill="#DC2626">♥</text>
+    <text x="388" y="192" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#DC2626">♥</text>
+  </g>
+
+  <!-- COL 6: 7 cards, 6 face-down + 7♣ -->
+  <g>
+    <rect x="434" y="92" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="437" y="95" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="434" y="104" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="437" y="107" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="434" y="116" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="437" y="119" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="434" y="128" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="437" y="131" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="434" y="140" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="437" y="143" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="434" y="152" width="40" height="56" rx="4" fill="#1E3A8A" stroke="#0F172A" stroke-width="1"/>
+    <rect x="437" y="155" width="34" height="50" rx="2" fill="url(#solBack)"/>
+  </g>
+  <g>
+    <rect x="434" y="164" width="40" height="56" rx="4" fill="white" stroke="#0F172A" stroke-width="1"/>
+    <text x="438" y="176" font-family="sans-serif" font-size="11" font-weight="bold" fill="#0F172A">7</text>
+    <text x="438" y="186" font-family="sans-serif" font-size="9" fill="#0F172A">♣</text>
+    <text x="454" y="204" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#0F172A">♣</text>
+  </g>
+
+  <!-- Score badge bottom-left -->
+  <g transform="translate(18, 222)">
+    <rect x="0" y="0" width="120" height="22" rx="11" fill="white" opacity="0.95"/>
+    <text x="10" y="15" font-family="sans-serif" font-weight="bold" font-size="10" fill="#0F172A">ОЧКИ:</text>
+    <text x="60" y="15" font-family="sans-serif" font-weight="900" font-size="11" fill="#15803D">1 240</text>
+    <text x="92" y="15" font-family="sans-serif" font-weight="bold" font-size="10" fill="#0F172A">♣ 3</text>
   </g>
 </svg>

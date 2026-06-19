@@ -3,7 +3,7 @@ import { Search, MapPin, Map, ChevronRight, ChevronLeft, ChevronDown, ChevronUp,
 import { FilterSection } from './FilterSection';
 import { CarCard } from '../shared/CarCard';
 import { LocationPickerMapModal } from '../shared/LocationPickerMapModal';
-import { CARS, ALL_BRANDS, BRANDS_AND_MODELS, TRUCK_BRANDS, TRUCK_MODELS, MOTO_BRANDS, MOTO_MODELS, BUS_BRANDS, BUS_MODELS, BIKE_BRANDS, BIKE_MODELS, SORT_OPTIONS, getModels } from '../../constants/mockData';
+import { ALL_BRANDS, BRANDS_AND_MODELS, TRUCK_BRANDS, TRUCK_MODELS, MOTO_BRANDS, MOTO_MODELS, BUS_BRANDS, BUS_MODELS, BIKE_BRANDS, BIKE_MODELS, SORT_OPTIONS, getModels } from '../../constants/mockData';
 import { PARTS_CATEGORIES, makePartsCategoryKey } from '../../constants/partsCategories';
 import { Car } from '../../types';
 import { CarFilters, PartFilters } from '../../utils/marketAPI';
@@ -115,6 +115,11 @@ export const VehicleDetailsPage: React.FC<VehicleDetailsPageProps> = ({
   const stickyTopOffset = 'calc(var(--market-header-height, 120px) + 24px)';
   const stickyViewportHeight = 'calc(100vh - var(--market-header-height, 120px) - 16px)';
   const [appliedInitialSearchKey, setAppliedInitialSearchKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.body.style.overflow = isMobileFiltersOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileFiltersOpen]);
 
   useEffect(() => {
     // Reset to static fallbacks on category change; API data will be reloaded lazily.
@@ -264,7 +269,7 @@ export const VehicleDetailsPage: React.FC<VehicleDetailsPageProps> = ({
 
   const { brands: currentBrands, models: currentModels } = getBrandsAndModels();
 
-  const sourceCars = cars && cars.length > 0 ? cars : CARS;
+  const sourceCars = cars ?? [];
 
   const DEFAULT_VEHICLE_CATEGORY = 'Легковые автомобили';
   const extractVehicleCategory = (description: unknown) => {
@@ -736,21 +741,22 @@ export const VehicleDetailsPage: React.FC<VehicleDetailsPageProps> = ({
       <div className="flex flex-col md:flex-row items-start gap-8 md:pb-4">
         {/* Sidebar Filters */}
         <aside
-          className={`w-full pt-4 md:pt-0 md:w-72 lg:w-80 flex-shrink-0 md:self-start md:sticky ${isMobileFiltersOpen ? 'block' : 'hidden md:block'}`}
+          className={`fixed inset-0 z-[100] flex flex-col bg-white md:relative md:inset-auto md:z-auto md:w-72 lg:w-80 md:flex-shrink-0 md:self-start md:sticky md:block transition-transform duration-300 ease-out ${isMobileFiltersOpen ? 'translate-y-0 visible' : 'translate-y-full invisible md:translate-y-0 md:visible pointer-events-none md:pointer-events-auto'}`}
           style={{ top: stickyTopOffset }}
         >
+          <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 md:hidden shrink-0">
+            <h2 className="text-xl font-bold text-gray-900">Фильтры</h2>
+            <button onClick={() => setIsMobileFiltersOpen(false)} className="p-1 text-gray-400 hover:text-gray-600">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
           <div
-            className="bg-white rounded-3xl border border-gray-200 p-5 lg:p-6 md:overflow-y-auto scrollbar-hide"
+            className="bg-white p-5 lg:p-6 md:rounded-3xl md:border md:border-gray-200 md:overflow-y-auto scrollbar-hide overflow-y-auto flex-1"
             style={{ maxHeight: stickyViewportHeight }}
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="hidden md:flex items-center justify-between mb-2 pb-3">
               <h2 className="text-xl font-bold text-gray-900">Фильтры</h2>
-              <button 
-                onClick={() => setIsMobileFiltersOpen(false)}
-                className="md:hidden p-2 text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
             </div>
 
             <div className="space-y-0">

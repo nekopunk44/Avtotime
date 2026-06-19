@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY package*.json ./
 # Skip devDeps (autocannon) and optionalDeps (TensorFlow/sharp/nsfwjs)
-RUN npm ci --omit=dev --omit=optional
+RUN npm ci --omit=dev --omit=optional --legacy-peer-deps
 
 # ── runtime stage ──────────────────────────────────────────────────────────
 FROM node:20-alpine AS runtime

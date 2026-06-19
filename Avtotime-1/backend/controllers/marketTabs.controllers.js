@@ -327,11 +327,20 @@ export const getHelpRequests = async (req, res) => {
 
 export const createHelpRequest = async (req, res) => {
   try {
-    const { location, description } = req.body;
+    const { location, description, coordinates } = req.body;
 
     if (!location || !description) {
       return res.status(400).json({ message: "Missing required fields" });
     }
+
+    const coords =
+      coordinates &&
+      typeof coordinates.lat === "number" &&
+      typeof coordinates.lng === "number" &&
+      Number.isFinite(coordinates.lat) &&
+      Number.isFinite(coordinates.lng)
+        ? { lat: coordinates.lat, lng: coordinates.lng }
+        : { lat: null, lng: null };
 
     const userLabel = (await getCurrentUserName(req.userId)) || "Вы";
     const pendingModeration = isAiModerationEnabled();
@@ -342,6 +351,7 @@ export const createHelpRequest = async (req, res) => {
       user: userLabel,
       time: "только что",
       location: String(location).trim(),
+      coordinates: coords,
       description: String(description).trim(),
       status: "active",
       author: req.userId,
@@ -362,7 +372,7 @@ export const createHelpRequest = async (req, res) => {
 export const updateHelpRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { location, description, status } = req.body;
+    const { location, description, status, coordinates } = req.body;
 
     const request = await MarketHelpRequest.findOne({ _id: id, author: req.userId });
     if (!request) {
@@ -372,6 +382,17 @@ export const updateHelpRequest = async (req, res) => {
     let contentChanged = false;
     if (typeof location === "string" && location.trim() !== request.location) {
       request.location = location.trim();
+      if (
+        coordinates &&
+        typeof coordinates.lat === "number" &&
+        typeof coordinates.lng === "number" &&
+        Number.isFinite(coordinates.lat) &&
+        Number.isFinite(coordinates.lng)
+      ) {
+        request.coordinates = { lat: coordinates.lat, lng: coordinates.lng };
+      } else {
+        request.coordinates = { lat: null, lng: null };
+      }
       contentChanged = true;
     }
     if (typeof description === "string" && description.trim() !== request.description) {

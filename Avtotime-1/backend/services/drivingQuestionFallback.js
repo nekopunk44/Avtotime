@@ -33,6 +33,10 @@ const normalizeQuestion = (question) => ({
     `fallback-${Number(question.ticketNumber)}-${Number(question.questionNumber)}`,
 });
 
+const tryLoad = (fn) => {
+  try { return fn(); } catch { return []; }
+};
+
 const loadScriptQuestions = (relativePath, variableName) => {
   const source = fs.readFileSync(path.join(backendDir, relativePath), "utf8");
   return extractArrayLiteral(source, variableName).map(normalizeQuestion);
@@ -47,9 +51,10 @@ export const getFallbackDrivingQuestions = () => {
   if (fallbackQuestionsCache) return fallbackQuestionsCache;
 
   const merged = [
-    ...loadScriptQuestions("scripts/upload_driving_questions.js", "questionsData"),
-    ...loadScriptQuestions("scripts/upload_all_tickets.js", "ticketsData"),
-    ...loadJsonQuestions("questions_11-20.json"),
+    ...tryLoad(() => loadJsonQuestions("driving_questions_1-40.json")),
+    ...tryLoad(() => loadScriptQuestions("scripts/upload_driving_questions.js", "questionsData")),
+    ...tryLoad(() => loadScriptQuestions("scripts/upload_all_tickets.js", "ticketsData")),
+    ...tryLoad(() => loadJsonQuestions("questions_11-20.json")),
   ];
 
   const deduped = new Map();

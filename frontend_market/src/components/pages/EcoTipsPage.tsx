@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Leaf, Calendar, ArrowRight, Plus, X, Send, Loader2 } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
 
@@ -21,6 +21,8 @@ export const EcoTipsPage: React.FC = () => {
   const [moderationError, setModerationError] = useState('');
   const [tips, setTips] = useState<EcoTip[]>([]);
   const [isTipsLoading, setIsTipsLoading] = useState(true);
+  const [showFab, setShowFab] = useState(true);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const categories = ['Вождение', 'Обслуживание', 'Электромобили', 'Образ жизни', 'Другое'];
 
@@ -57,6 +59,17 @@ export const EcoTipsPage: React.FC = () => {
       cancelled = true;
     };
   }, []);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowFab(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
+
   // Отключаем прокрутку страницы при открытии модального окна
   useEffect(() => {
     if (isModalOpen) {
@@ -161,16 +174,7 @@ export const EcoTipsPage: React.FC = () => {
         <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-50 rounded-2xl mb-6">
           <Leaf className="w-8 h-8 text-orange-600" />
         </div>
-        <div className="relative flex items-center justify-center mb-4 min-h-[64px]">
-          <h1 className="text-[36px] sm:text-[48px] font-bold text-gray-900 font-serif px-16">Советы по экологии</h1>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="absolute right-0 w-14 h-14 sm:w-16 sm:h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-all hover:scale-105 shadow-sm"
-            title="Добавить совет"
-          >
-            <Plus className="w-8 h-8 sm:w-10 sm:h-10" />
-          </button>
-        </div>
+        <h1 className="text-[28px] sm:text-[48px] font-bold text-gray-900 font-serif mb-4">Советы по экологии</h1>
         <p className="text-[18px] text-gray-600 max-w-2xl mx-auto">
           Практические советы по экологичному вождению и обслуживанию автомобиля
         </p>
@@ -192,15 +196,15 @@ export const EcoTipsPage: React.FC = () => {
               </span>
             </div>
           </div>
-          <div className="lg:w-1/2 p-10 flex flex-col justify-center">
-            <span className="text-gray-400 text-[14px] font-bold uppercase tracking-widest mb-4">Электромобили</span>
-            <h2 className="text-[32px] font-bold text-gray-900 mb-6 leading-tight">
+          <div className="lg:w-1/2 p-6 sm:p-10 flex flex-col justify-center">
+            <span className="text-gray-400 text-[14px] font-bold uppercase tracking-widest mb-3 sm:mb-4">Электромобили</span>
+            <h2 className="text-[22px] sm:text-[32px] font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
               Полное руководство по владению электромобилем
             </h2>
-            <p className="text-[16px] text-gray-600 mb-8 leading-relaxed">
+            <p className="text-[15px] sm:text-[16px] text-gray-600 mb-5 sm:mb-8 leading-relaxed">
               Все, что вам нужно знать о переходе на электромобиль: от зарядной инфраструктуры до долгосрочной экономии и экологических преимуществ.
             </p>
-            <div className="flex items-center gap-6 text-gray-400 text-[14px] mb-8">
+            <div className="flex items-center gap-6 text-gray-400 text-[14px] mb-5 sm:mb-8">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 <span>15 января 2024</span>
@@ -239,11 +243,11 @@ export const EcoTipsPage: React.FC = () => {
                   </span>
                 </div>
               </div>
-              <div className="p-8">
-                <h3 className="text-[20px] font-bold text-gray-900 mb-4 leading-tight group-hover:text-orange-600 transition-colors">
+              <div className="p-5 sm:p-8">
+                <h3 className="text-[17px] sm:text-[20px] font-bold text-gray-900 mb-3 sm:mb-4 leading-tight group-hover:text-orange-600 transition-colors">
                   {tip.title}
                 </h3>
-                <p className="text-[15px] text-gray-600 mb-6 leading-relaxed">
+                <p className="text-[14px] sm:text-[15px] text-gray-600 mb-4 sm:mb-6 leading-relaxed">
                   {tip.description}
                 </p>
                 <div className="flex items-center justify-between pt-6 border-t border-gray-50">
@@ -261,6 +265,22 @@ export const EcoTipsPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Sentinel: FAB hides when this div enters viewport (user reached bottom/footer) */}
+      <div ref={sentinelRef} />
+
+      {/* Floating Add Button */}
+      <button
+        onClick={() => setIsModalOpen(true)}
+        className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-orange-600 text-white rounded-full flex items-center justify-center shadow-xl hover:bg-orange-700 hover:scale-105 active:scale-95 transition-all duration-300"
+        style={{
+          opacity: showFab && !isModalOpen ? 1 : 0,
+          pointerEvents: showFab && !isModalOpen ? 'auto' : 'none',
+        }}
+        title="Добавить совет"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
 
       {/* Add Tip Modal */}
       {isModalOpen && (

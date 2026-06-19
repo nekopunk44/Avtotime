@@ -12,6 +12,8 @@ import {
   ChevronDown,
   SlidersHorizontal,
   Plus,
+  X,
+  RotateCcw,
 } from 'lucide-react';
 import { LocationPickerMapModal } from '../shared/LocationPickerMapModal';
 import { SORT_OPTIONS as VEHICLE_SORT_OPTIONS } from '../../constants/mockData';
@@ -119,6 +121,15 @@ export const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
   const stickyViewportHeight = 'calc(100vh - var(--market-header-height, 120px) - 16px)';
 
   useEffect(() => {
+    if (isMobileFiltersOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileFiltersOpen]);
+
+  useEffect(() => {
     if (!onLoadFiltered) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
@@ -171,7 +182,7 @@ export const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
       <LocationPickerMapModal
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}
-        onSelect={setSelectedRegion}
+        onSelect={(picked) => setSelectedRegion(picked.label)}
         selectedRegion={selectedRegion}
       />
 
@@ -249,14 +260,23 @@ export const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
 
         <div className="flex flex-col lg:flex-row items-start gap-8 lg:pb-4">
           <aside
-            className={`w-full pt-4 lg:pt-0 lg:w-80 flex-shrink-0 lg:self-start lg:sticky ${isMobileFiltersOpen ? 'block' : 'hidden lg:block'}`}
+            className={`fixed inset-0 z-[100] flex flex-col bg-white lg:relative lg:inset-auto lg:z-auto lg:w-80 lg:flex-shrink-0 lg:self-start lg:sticky lg:block transition-transform duration-300 ease-out ${isMobileFiltersOpen ? 'translate-y-0 visible' : 'translate-y-full invisible lg:translate-y-0 lg:visible pointer-events-none lg:pointer-events-auto'}`}
             style={{ top: stickyTopOffset }}
           >
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 lg:hidden shrink-0">
+              <h2 className="text-xl font-bold text-gray-900">Фильтры</h2>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setIsMobileFiltersOpen(false)} className="p-1 text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
             <div
-              className="bg-white rounded-[32px] p-5 lg:p-6 shadow-sm border border-gray-100 lg:overflow-y-auto"
+              className="bg-white lg:rounded-[32px] p-5 lg:p-6 lg:shadow-sm lg:border lg:border-gray-100 lg:overflow-y-auto overflow-y-auto flex-1"
               style={{ maxHeight: stickyViewportHeight }}
             >
-              <div className="mb-6">
+              <div className="hidden lg:block mb-6">
                 <h2 className="text-[22px] font-bold text-gray-900">Фильтры</h2>
               </div>
 
@@ -361,7 +381,10 @@ export const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
                 </div>
               </div>
 
-              <button className="w-full bg-red-600 text-white py-3 rounded-2xl font-bold text-[16px] hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20">
+              <button
+                onClick={() => setIsMobileFiltersOpen(false)}
+                className="w-full bg-red-600 text-white py-3 rounded-2xl font-bold text-[16px] hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20"
+              >
                 Применить фильтры
               </button>
             </div>

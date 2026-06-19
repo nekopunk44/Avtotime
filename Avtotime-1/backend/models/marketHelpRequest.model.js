@@ -7,6 +7,10 @@ const marketHelpRequestSchema = new mongoose.Schema(
     user: { type: String, required: true, trim: true },
     time: { type: String, default: "только что" },
     location: { type: String, required: true, trim: true, set: encryptString, get: decryptString },
+    coordinates: {
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
+    },
     description: { type: String, required: true, trim: true, set: encryptString, get: decryptString },
     status: { type: String, enum: ["active", "resolved"], default: "active" },
     author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },

@@ -34,7 +34,7 @@ function SignUp() {
 
   const handleSignUp = async () => {
     if (!name || !userName || !email || !password) {
-      setError("Please fill in all fields");
+      setError("Заполните все поля");
       return;
     }
 
@@ -51,7 +51,7 @@ function SignUp() {
       dispatch(setUserData(result.data));
       navigate("/choose-app");
     } catch (error) {
-      setError(error.response?.data?.message || "Unable to sign up");
+      setError(error.response?.data?.message || "Не удалось зарегистрироваться");
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ function SignUp() {
         <div className="w-full lg:w-[50%] h-full bg-white flex items-center justify-center p-[10px] auth-white-panel-reveal">
           <div className="w-full h-full flex flex-col items-center gap-[20px] auth-main-fade-in">
           <div className="flex gap-[10px] items-center text-[20px] font-semibold mt-[40px]">
-            <span>Sign Up</span>
+            <span>Регистрация</span>
           </div>
 
           <div className="relative flex items-center justify-start w-[90%] h-[50px] rounded-2xl border-2 border-black mt-4">
@@ -74,7 +74,7 @@ function SignUp() {
                 isLabelFloating("name", name) ? "top-[-22px] text-[12px] z-10" : "top-[10px]"
               }`}
             >
-              Your name
+              Ваше имя
             </label>
             <input
               type="text"
@@ -94,7 +94,7 @@ function SignUp() {
                 isLabelFloating("userName", userName) ? "top-[-22px] text-[12px] z-10" : "top-[10px]"
               }`}
             >
-              Username
+              Имя пользователя
             </label>
             <input
               type="text"
@@ -134,7 +134,7 @@ function SignUp() {
                 isLabelFloating("password", password) ? "top-[-22px] text-[12px] z-10" : "top-[10px]"
               }`}
             >
-              Password
+              Пароль
             </label>
             <input
               type={showPassword ? "text" : "password"}
@@ -157,26 +157,26 @@ function SignUp() {
             onClick={handleSignUp}
             disabled={loading}
           >
-            {loading ? <ClipLoader size={25} color="white" /> : "Sign Up"}
+            {loading ? <ClipLoader size={25} color="white" /> : "Зарегистрироваться"}
           </button>
 
           <p className="text-gray-800 text-sm mt-2">
-            Already have an account?
+            Уже есть аккаунт?
             <span
               className="ml-1 border-b-2 border-b-black pb-[3px] text-black cursor-pointer font-bold"
               onClick={() => navigate("/signin")}
             >
-              Sign in
+              Войти
             </span>
           </p>
 
           <p className="text-gray-500 text-[12px] mt-2 text-center max-w-[90%]">
-            Нажимая <span className="font-bold text-gray-700">Sign Up</span>, вы соглашаетесь с{" "}
+            Нажимая <span className="font-bold text-gray-700">Зарегистрироваться</span>, вы соглашаетесь с{" "}
             <span
               className="font-bold text-black underline cursor-pointer"
               onClick={() => setPrivacyModalOpen(true)}
             >
-              Privacy Policy
+              Политикой конфиденциальности
             </span>
             .
           </p>

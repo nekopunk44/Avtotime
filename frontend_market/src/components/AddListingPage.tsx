@@ -4,9 +4,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Key,
   RefreshCw,
-  ShoppingCart,
   Upload,
   X,
 } from 'lucide-react';
@@ -59,10 +57,10 @@ const SEATS = ['2 места', '4 места', '5 мест', '6 мест', '7 м
 const CURRENCIES = ['$', '€'];
 
 const OFFER_TYPE_OPTIONS = [
-  { name: 'Продажа', icon: <ShoppingCart className="w-4 h-4" /> },
-  { name: 'Покупка', icon: <Car className="w-4 h-4" /> },
-  { name: 'Аренда', icon: <Key className="w-4 h-4" /> },
-  { name: 'Обмен', icon: <RefreshCw className="w-4 h-4" /> },
+  { name: 'Продажа', src: '/online-shoping.png', size: 'w-4 h-4' },
+  { name: 'Покупка', src: '/auto/transport.png', size: 'w-8 h-8' },
+  { name: 'Аренда', src: '/key.png', size: 'w-4 h-4' },
+  { name: 'Обмен', src: null, size: 'w-4 h-4' },
 ];
 
 const OFFER_TYPE_LABELS: Record<string, string> = {
@@ -338,21 +336,33 @@ export const AddListingPage = ({
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white pb-20">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-12">
-        <div className="relative flex items-center justify-center mb-12 w-full">
+        {/* Mobile header */}
+        <div className="sm:hidden flex items-center mb-12 w-full">
+          <button
+            onClick={handleBack}
+            className="hover:bg-white/10 p-2 rounded-full transition-colors shrink-0"
+          >
+            <ChevronLeft className="w-8 h-8" />
+          </button>
+          <div className="flex-1 text-center">
+            <h1 className="text-2xl font-bold tracking-tight leading-tight">Создай объявление</h1>
+            <p className="text-gray-400 text-sm mt-1">Заполните информацию ниже, чтобы разместить своё объявление на рынке</p>
+          </div>
+          <div className="w-12 shrink-0" />
+        </div>
+
+        {/* Desktop header */}
+        <div className="hidden sm:flex relative items-center justify-center mb-12 w-full">
           <button
             onClick={handleBack}
             className="absolute left-0 hover:bg-white/10 p-3 rounded-full transition-colors shrink-0"
           >
             <ChevronLeft className="w-12 h-12" />
           </button>
-
           <div className="w-full max-w-[760px] text-left">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight leading-tight">{getPageTitle()}</h1>
-            <p className="text-gray-400 text-sm">
-              Заполните информацию ниже, чтобы разместить своё объявление на рынке
-            </p>
+            <h1 className="text-3xl font-bold mb-2 tracking-tight leading-tight">{getPageTitle()}</h1>
+            <p className="text-gray-400 text-sm">Заполните информацию ниже, чтобы разместить своё объявление на рынке</p>
           </div>
-
           <div className="absolute right-0 shrink-0">
             <img src="/logo2.png" alt="AVTOTIME" className="h-16 lg:h-20 object-contain" referrerPolicy="no-referrer" />
           </div>
@@ -394,7 +404,10 @@ export const AddListingPage = ({
                         offerType === type.name ? 'bg-black text-white rounded-[12px]' : 'text-black hover:bg-gray-50'
                       }`}
                     >
-                      {type.icon}
+                      {type.src
+                        ? <img src={type.src} className={`${type.size} object-contain transition-all`} style={offerType === type.name ? { filter: 'brightness(0) invert(1)' } : {}} />
+                        : <RefreshCw className="w-4 h-4" />
+                      }
                       {type.name}
                     </button>
                   ))}

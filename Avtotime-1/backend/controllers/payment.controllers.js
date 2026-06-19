@@ -1,8 +1,19 @@
 import Stripe from 'stripe';
+import geoip from 'geoip-lite';
+import { Types } from 'mongoose';
 import User from '../models/user.model.js';
 import Payment from '../models/payment.model.js';
 import { getPlanLimits, serializePlanLimits, getEffectivePlan } from '../config/planLimits.js';
 import { applyUserPlanToListings } from '../services/applyUserPlanToListings.js';
+
+const CIS_COUNTRIES = new Set(['RU', 'BY', 'KZ', 'UZ', 'AZ', 'AM', 'GE', 'KG', 'MD', 'TJ', 'TM']);
+
+export const getGeo = (req, res) => {
+  const ip = req.ip || '';
+  const geo = geoip.lookup(ip);
+  const country = geo?.country || null;
+  return res.json({ country, isCis: CIS_COUNTRIES.has(country) });
+};
 
 const PLAN_PRICES = {
   pro:      { amount: 2900, label: 'Pro Seller' },
@@ -11,10 +22,16 @@ const PLAN_PRICES = {
 const CURRENCY = 'eur';
 const PLAN_DURATION_DAYS = 30;
 
+const STRIPE_TIMEOUT_MS = 10_000;
+
 const getStripe = () => {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error('STRIPE_SECRET_KEY не настроен');
-  return new Stripe(key, { apiVersion: '2024-06-20' });
+  return new Stripe(key, { apiVersion: '2024-06-20', timeout: STRIPE_TIMEOUT_MS });
+};
+
+const audit = (action, data) => {
+  console.log(JSON.stringify({ ts: new Date().toISOString(), action, ...data }));
 };
 
 export const createPaymentIntent = async (req, res) => {
@@ -60,8 +77,11 @@ export const createPaymentIntent = async (req, res) => {
       stripeCustomerId: customerId,
     });
 
+    audit('payment.intent_created', { userId: String(user._id), plan, amount, piId: paymentIntent.id });
+
     return res.status(200).json({
       clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
       publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
       amount,
       currency: CURRENCY,
@@ -83,7 +103,13 @@ export const confirmPayment = async (req, res) => {
     }
 
     const stripe = getStripe();
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    let paymentIntent;
+    try {
+      paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    } catch (stripeErr) {
+      const status = stripeErr?.statusCode === 404 ? 404 : 502;
+      return res.status(status).json({ message: stripeErr?.message || 'Ошибка Stripe' });
+    }
 
     if (paymentIntent.metadata?.userId !== String(req.userId)) {
       return res.status(403).json({ message: 'Access denied' });
@@ -112,6 +138,7 @@ export const confirmPayment = async (req, res) => {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + PLAN_DURATION_DAYS * 24 * 60 * 60 * 1000);
 
+    // Atomic update prevents double-activation on concurrent confirmPayment calls
     const updatedPayment = await Payment.findOneAndUpdate(
       { _id: payment._id, status: { $ne: 'succeeded' } },
       { status: 'succeeded', periodStart: now, periodEnd: expiresAt },
@@ -119,6 +146,7 @@ export const confirmPayment = async (req, res) => {
     );
 
     if (!updatedPayment) {
+      // Another concurrent request already activated — return current state
       const user = await User.findById(req.userId).select('plan planActivatedAt planExpiresAt').lean();
       const effectivePlan = getEffectivePlan(user?.plan, user?.planExpiresAt);
       const planLimits = serializePlanLimits(getPlanLimits(effectivePlan));
@@ -137,12 +165,16 @@ export const confirmPayment = async (req, res) => {
       { plan, planActivatedAt: now, planExpiresAt: expiresAt, planExpiryWarnedThreshold: null },
     );
 
+    audit('payment.confirmed', { userId: String(req.userId), plan, piId: paymentIntentId, expiresAt });
+
     const effectivePlan = getEffectivePlan(plan, expiresAt);
     const planLimits = serializePlanLimits(getPlanLimits(effectivePlan));
 
-    applyUserPlanToListings(req.userId, effectivePlan).catch((err) =>
-      console.error('Failed to apply plan to listings:', err)
-    );
+    try {
+      await applyUserPlanToListings(req.userId, effectivePlan);
+    } catch (err) {
+      console.error('[payment] applyUserPlanToListings failed for user %s: %s', req.userId, err?.message);
+    }
 
     return res.status(200).json({
       plan,
@@ -179,6 +211,8 @@ export const getPaymentStatus = async (req, res) => {
   }
 };
 
+// ─── Stripe webhook ───────────────────────────────────────────────────────────
+
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -201,9 +235,13 @@ export const stripeWebhook = async (req, res) => {
       const userId = pi.metadata?.userId;
       const plan = pi.metadata?.plan;
 
-      if (userId && plan && PLAN_PRICES[plan]) {
+      if (!userId || !Types.ObjectId.isValid(userId) || !plan || !PLAN_PRICES[plan]) {
+        console.error('[webhook] payment_intent.succeeded missing/invalid metadata: pi=%s userId=%s plan=%s', pi.id, userId, plan);
+      } else {
         const now = new Date();
         const expiresAt = new Date(now.getTime() + PLAN_DURATION_DAYS * 24 * 60 * 60 * 1000);
+
+        // findOneAndUpdate with $ne ensures idempotency on Stripe webhook retries
         const payment = await Payment.findOneAndUpdate(
           { stripePaymentIntentId: pi.id, status: { $ne: 'succeeded' } },
           { status: 'succeeded', periodStart: now, periodEnd: expiresAt },
@@ -211,26 +249,37 @@ export const stripeWebhook = async (req, res) => {
         );
 
         if (payment) {
-          await User.updateOne(
-            { _id: userId },
+          const result = await User.updateOne(
+            { _id: new Types.ObjectId(userId) },
             { plan, planActivatedAt: now, planExpiresAt: expiresAt, planExpiryWarnedThreshold: null },
           );
-          applyUserPlanToListings(userId, plan).catch((err) =>
-            console.error('Failed to apply plan to listings (webhook):', err)
-          );
+          if (result.matchedCount === 0) {
+            console.error('[webhook] user not found for userId=%s pi=%s', userId, pi.id);
+          } else {
+            audit('payment.webhook_activated', { userId, plan, piId: pi.id, expiresAt });
+            try {
+              await applyUserPlanToListings(userId, plan);
+            } catch (err) {
+              console.error('[webhook] applyUserPlanToListings failed for user %s: %s', userId, err?.message);
+            }
+          }
         }
       }
     }
 
     if (event.type === 'payment_intent.payment_failed') {
       const pi = event.data.object;
-      await Payment.findOneAndUpdate(
+      const updated = await Payment.findOneAndUpdate(
         { stripePaymentIntentId: pi.id },
         { status: 'failed' },
-      ).catch(() => {});
+        { new: true },
+      ).catch(() => null);
+      if (updated) {
+        audit('payment.failed', { userId: String(updated.user), plan: updated.plan, piId: pi.id });
+      }
     }
-  } catch {
-    // webhook processing errors should not fail the response
+  } catch (err) {
+    console.error('[webhook] processing error for event %s: %s', event.id, err?.message);
   }
 
   return res.status(200).json({ received: true });

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { RotateCcw, ChevronLeft } from 'lucide-react';
+import { API_URL } from '../../utils/config';
 
 type ColoringCategory =
   | 'cars'
@@ -37,20 +38,20 @@ const COLORING_CATEGORIES = [
       { name: 'Одежда', url: 'https://raw.githubusercontent.com/dylanh930/SVG-coloring-book/master/svgs/clothing.svg' },
     ]
   },
-  { 
-    id: 'special' as const, 
-    title: 'Спецтехника', 
-    emoji: '🚒', 
+  {
+    id: 'special' as const,
+    title: 'Спецтехника',
+    emoji: '🚒',
     color: 'from-red-50 to-red-100',
     images: [
       { name: 'Варежки', url: 'https://raw.githubusercontent.com/dylanh930/SVG-coloring-book/master/svgs/mittens.svg' },
       { name: 'Коньки', url: 'https://raw.githubusercontent.com/dylanh930/SVG-coloring-book/master/svgs/skates.svg' },
     ]
   },
-  { 
-    id: 'animals' as const, 
-    title: 'Животные', 
-    emoji: '😸', 
+  {
+    id: 'animals' as const,
+    title: 'Животные',
+    emoji: '😸',
     color: 'from-amber-50 to-amber-100',
     images: [
       { name: 'Динозавр', url: 'https://raw.githubusercontent.com/dylanh930/SVG-coloring-book/master/svgs/dino.svg' },
@@ -63,18 +64,18 @@ const COLORING_CATEGORIES = [
     emoji: '🎬', 
     color: 'from-purple-50 to-purple-100',
     images: [
-      { name: 'Молния МакКуин', url: 'http://localhost:8000/api/public/coloring_mult/Молния МакКуин и Док Хадсон.svg' },
-      { name: 'Мэтр', url: 'http://localhost:8000/api/public/coloring_mult/1.svg' },
-      { name: 'Маршал Щенячий патруль', url: 'http://localhost:8000/api/public/coloring_mult/2.svg' },
-      { name: 'Скай и Эверест', url: 'http://localhost:8000/api/public/coloring_mult/3.svg' },
-      { name: 'Щенки на базе', url: 'http://localhost:8000/api/public/coloring_mult/4.svg' },
-      { name: 'Тачки на гонке', url: 'http://localhost:8000/api/public/coloring_mult/5.svg' },
-      { name: 'Скай и вертолет', url: 'http://localhost:8000/api/public/coloring_mult/6.svg' },
-      { name: 'Крепыш и бульдозер', url: 'http://localhost:8000/api/public/coloring_mult/7.svg' },
-      { name: 'Рокки и мусоровоз', url: 'http://localhost:8000/api/public/coloring_mult/8.svg' },
-      { name: 'Райдер и щенки', url: 'http://localhost:8000/api/public/coloring_mult/9.svg' },
-      { name: 'Тачка в наушниках', url: 'http://localhost:8000/api/public/coloring_mult/10.svg' },
-      { name: 'МакКуин и друзья', url: 'http://localhost:8000/api/public/coloring_mult/11.svg' },
+      { name: 'Молния МакКуин', url: `${API_URL}/public/coloring_mult/Молния МакКуин и Dok Хадсон.svg` },
+      { name: 'Мэтр', url: `${API_URL}/public/coloring_mult/1.svg` },
+      { name: 'Маршал Щенячий патруль', url: `${API_URL}/public/coloring_mult/2.svg` },
+      { name: 'Скай и Эверест', url: `${API_URL}/public/coloring_mult/3.svg` },
+      { name: 'Щенки на базе', url: `${API_URL}/public/coloring_mult/4.svg` },
+      { name: 'Тачки на гонке', url: `${API_URL}/public/coloring_mult/5.svg` },
+      { name: 'Скай и вертолет', url: `${API_URL}/public/coloring_mult/6.svg` },
+      { name: 'Крепыш и бульдозер', url: `${API_URL}/public/coloring_mult/7.svg` },
+      { name: 'Рокки и мусоровоз', url: `${API_URL}/public/coloring_mult/8.svg` },
+      { name: 'Райдер и щенки', url: `${API_URL}/public/coloring_mult/9.svg` },
+      { name: 'Тачка в наушниках', url: `${API_URL}/public/coloring_mult/10.svg` },
+      { name: 'МакКуин и друзья', url: `${API_URL}/public/coloring_mult/11.svg` },
     ]
   },
 ];

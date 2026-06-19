@@ -7,6 +7,8 @@ import {
   Sparkles,
   Check,
   ChevronDown,
+  X,
+  RotateCcw,
 } from 'lucide-react';
 import { LocationPickerMapModal } from '../shared/LocationPickerMapModal';
 import { DRY_CLEANING_TYPES } from '../../constants/dryCleaning';
@@ -52,6 +54,15 @@ export const DryCleaningPage: React.FC<DryCleaningPageProps> = ({ listings, onAd
 
   const stickyTopOffset = 'calc(var(--market-header-height, 120px) + 24px)';
   const stickyViewportHeight = 'calc(100vh - var(--market-header-height, 120px) - 16px)';
+
+  useEffect(() => {
+    if (isMobileFiltersOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileFiltersOpen]);
 
   useEffect(() => {
     if (!onLoadFiltered) return;
@@ -126,7 +137,7 @@ export const DryCleaningPage: React.FC<DryCleaningPageProps> = ({ listings, onAd
       <LocationPickerMapModal
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}
-        onSelect={setSelectedRegion}
+        onSelect={(picked) => setSelectedRegion(picked.label)}
         selectedRegion={selectedRegion}
       />
 
@@ -200,16 +211,29 @@ export const DryCleaningPage: React.FC<DryCleaningPageProps> = ({ listings, onAd
           style={{ minHeight: 'calc(100vh - var(--market-header-height, 120px))' }}
         >
           <aside
-            className={`w-full pt-4 lg:pt-0 lg:w-80 flex-shrink-0 self-start sticky ${
-              isMobileFiltersOpen ? 'block' : 'hidden lg:block'
-            }`}
-            style={{ top: stickyTopOffset, position: 'sticky' }}
+            className={`fixed inset-0 z-[100] flex flex-col bg-white lg:relative lg:inset-auto lg:z-auto lg:w-80 lg:flex-shrink-0 lg:self-start lg:sticky lg:block transition-transform duration-300 ease-out ${isMobileFiltersOpen ? 'translate-y-0 visible' : 'translate-y-full invisible lg:translate-y-0 lg:visible pointer-events-none lg:pointer-events-auto'}`}
+            style={{ top: stickyTopOffset }}
           >
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 lg:hidden shrink-0">
+              <h2 className="text-xl font-bold text-gray-900">Фильтры</h2>
+              <div className="flex items-center gap-2">
+                {isFiltersActive && (
+                  <button onClick={resetFilters} className="text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 text-sm font-medium">
+                    <RotateCcw className="w-4 h-4" />
+                    Сбросить
+                  </button>
+                )}
+                <button onClick={() => setIsMobileFiltersOpen(false)} className="p-1 text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
             <div
-              className="bg-white rounded-[32px] p-5 lg:p-7 shadow-sm border border-gray-100 overflow-y-auto"
+              className="bg-white lg:rounded-[32px] p-5 lg:p-7 lg:shadow-sm lg:border lg:border-gray-100 lg:overflow-y-auto overflow-y-auto flex-1"
               style={{ maxHeight: stickyViewportHeight }}
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className="hidden lg:flex items-center justify-between mb-6">
                 <h2 className="text-[22px] font-bold text-gray-900">Фильтры</h2>
                 {isFiltersActive && (
                   <button onClick={resetFilters} className="text-[14px] font-bold text-red-600 hover:text-red-700 transition-colors">
@@ -305,6 +329,13 @@ export const DryCleaningPage: React.FC<DryCleaningPageProps> = ({ listings, onAd
                   ))}
                 </div>
               </div>
+
+              <button
+                onClick={() => setIsMobileFiltersOpen(false)}
+                className="lg:hidden w-full py-3 rounded-2xl font-bold text-[16px] bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-600/20"
+              >
+                Применить фильтры
+              </button>
             </div>
           </aside>
 

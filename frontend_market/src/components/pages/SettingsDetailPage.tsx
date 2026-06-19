@@ -428,23 +428,23 @@ export const SettingsDetailPage: React.FC<SettingsDetailPageProps> = ({ section,
   const Icon = content.icon;
 
   return (
-    <section className="bg-[#f6f6f6] py-10 sm:py-14">
+    <section className="bg-[#f6f6f6] py-6 sm:py-14">
       <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8">
-        <button onClick={onBack} className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-red-600 transition-colors">
+        <button onClick={onBack} className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-red-600 transition-colors mb-1">
           <ChevronLeft className="w-4 h-4" />
           Назад к настройкам
         </button>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-[32px] bg-white border border-zinc-200 p-7 shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
+        <div className="mt-4 sm:mt-6 grid gap-4 sm:gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-[24px] sm:rounded-[32px] bg-white border border-zinc-200 p-4 sm:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
             <div className="inline-flex rounded-2xl p-3 bg-red-50 text-red-600"><Icon className="w-5 h-5" /></div>
-            <h1 className="mt-4 text-3xl sm:text-4xl font-black tracking-tight text-gray-950">{content.title}</h1>
-            <p className="mt-3 text-base text-gray-600 max-w-2xl">{content.description}</p>
+            <h1 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-gray-950">{content.title}</h1>
+            <p className="mt-2 text-sm sm:text-base text-gray-600 max-w-2xl">{content.description}</p>
 
             {/* ── Основная информация ─────────────────────────────────── */}
             {section === 'settings-main-info' && (
               <div className="mt-8 space-y-6">
-                <div className="grid gap-6 md:grid-cols-[220px_1fr]">
+                <div className="grid gap-4 sm:gap-6 sm:grid-cols-[200px_1fr]">
                   <div className="rounded-[28px] border border-zinc-200 bg-zinc-50 p-6 flex flex-col items-center text-center">
                     {userData?.profileImage ? (
                       <img src={userData.profileImage} alt={mainInfo.userName} className="w-24 h-24 rounded-full object-cover border border-zinc-200" />
@@ -524,7 +524,7 @@ export const SettingsDetailPage: React.FC<SettingsDetailPageProps> = ({ section,
             {/* ── Безопасность ─────────────────────────────────────────── */}
             {section === 'settings-security' && (
               <div className="mt-8 space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {/* Пароль */}
                   <article className="rounded-[24px] border border-zinc-200 bg-zinc-50 p-5">
                     <div className="flex items-center gap-3">
@@ -561,7 +561,7 @@ export const SettingsDetailPage: React.FC<SettingsDetailPageProps> = ({ section,
                 </div>
 
                 {/* Сессии */}
-                <article className="rounded-[28px] border border-zinc-200 bg-white p-6">
+                <article className="rounded-[24px] sm:rounded-[28px] border border-zinc-200 bg-white p-4 sm:p-6">
                   <div className="flex items-center gap-3">
                     <Smartphone className="w-5 h-5 text-blue-600" />
                     <div>
@@ -582,12 +582,12 @@ export const SettingsDetailPage: React.FC<SettingsDetailPageProps> = ({ section,
 
             {/* ── Мои объявления ───────────────────────────────────────── */}
             {section === 'settings-listings' && (
-              <div className="mt-8 space-y-6">
+              <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
                 {myListingsError && <Alert type="error">{myListingsError}</Alert>}
 
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   <StatsCard title="Одобрено" value={String(myListings.filter((l) => l.status === 'approved').length)} icon={BadgeCheck} accent="text-emerald-700 bg-emerald-50" />
-                  <StatsCard title="На проверке" value={String(myListings.filter((l) => l.status === 'pending').length)} icon={Clock3} accent="text-amber-800 bg-amber-50" />
+                  <StatsCard title="Проверка" value={String(myListings.filter((l) => l.status === 'pending').length)} icon={Clock3} accent="text-amber-800 bg-amber-50" />
                   <StatsCard title="Отказано" value={String(myListings.filter((l) => l.status === 'rejected').length)} icon={FileClock} accent="text-rose-700 bg-rose-50" />
                 </div>
 
@@ -595,11 +595,22 @@ export const SettingsDetailPage: React.FC<SettingsDetailPageProps> = ({ section,
                   <article className="rounded-[28px] border border-zinc-200 bg-white p-6">
                     <div className="text-base font-bold text-gray-900">Загрузка объявлений…</div>
                   </article>
+                ) : myListings.length === 0 ? (
+                  <article className="rounded-[24px] sm:rounded-[28px] border border-zinc-200 bg-white p-8 text-center">
+                    <div className="text-lg font-black text-gray-950 mb-2">Объявлений пока нет</div>
+                    <div className="text-sm text-gray-500">Ваши объявления из всех категорий появятся здесь.</div>
+                  </article>
                 ) : (
                   <>
-                    <ListingsBlock title="На проверке" items={myListings.filter((l) => l.status === 'pending')} onEdit={beginEdit} onDelete={handleDelete} />
-                    <ListingsBlock title="Одобрено" items={myListings.filter((l) => l.status === 'approved')} onEdit={beginEdit} onDelete={handleDelete} />
-                    <ListingsBlock title="Отказано" items={myListings.filter((l) => l.status === 'rejected')} onEdit={beginEdit} onDelete={handleDelete} />
+                    {myListings.filter((l) => l.status === 'pending').length > 0 && (
+                      <ListingsBlock title="На проверке" items={myListings.filter((l) => l.status === 'pending')} onEdit={beginEdit} onDelete={handleDelete} />
+                    )}
+                    {myListings.filter((l) => l.status === 'approved').length > 0 && (
+                      <ListingsBlock title="Одобрено" items={myListings.filter((l) => l.status === 'approved')} onEdit={beginEdit} onDelete={handleDelete} />
+                    )}
+                    {myListings.filter((l) => l.status === 'rejected').length > 0 && (
+                      <ListingsBlock title="Отказано" items={myListings.filter((l) => l.status === 'rejected')} onEdit={beginEdit} onDelete={handleDelete} />
+                    )}
                   </>
                 )}
               </div>
@@ -607,7 +618,7 @@ export const SettingsDetailPage: React.FC<SettingsDetailPageProps> = ({ section,
           </div>
 
           {/* ── Правая колонка ──────────────────────────────────────────── */}
-          <div className="space-y-6">
+          <div className="hidden lg:block space-y-6">
             <div className="rounded-[32px] bg-black text-white p-7 shadow-[0_20px_60px_rgba(0,0,0,0.14)]">
               <div className="text-xs uppercase tracking-[0.22em] text-white/50 font-bold">Раздел настроек</div>
               <div className="mt-3 text-3xl font-black">{content.title}</div>
@@ -707,15 +718,15 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
 );
 
 const StatsCard: React.FC<{ title: string; value: string; icon: React.ComponentType<{ className?: string }>; accent: string }> = ({ title, value, icon: Icon, accent }) => (
-  <article className="rounded-[24px] border border-zinc-200 bg-white p-5">
-    <div className={`inline-flex rounded-2xl p-3 ${accent}`}><Icon className="w-5 h-5" /></div>
-    <div className="mt-4 text-sm font-semibold text-gray-500">{title}</div>
-    <div className="mt-1 text-3xl font-black text-gray-950">{value}</div>
+  <article className="rounded-[20px] sm:rounded-[24px] border border-zinc-200 bg-white p-3 sm:p-5">
+    <div className={`inline-flex rounded-xl sm:rounded-2xl p-2 sm:p-3 ${accent}`}><Icon className="w-4 h-4 sm:w-5 sm:h-5" /></div>
+    <div className="mt-2 sm:mt-4 text-xs sm:text-sm font-semibold text-gray-500 leading-tight">{title}</div>
+    <div className="mt-1 text-2xl sm:text-3xl font-black text-gray-950">{value}</div>
   </article>
 );
 
 const ListingsBlock: React.FC<{ title: string; items: MyMarketListingItem[]; onEdit: (item: MyMarketListingItem) => void; onDelete: (item: MyMarketListingItem) => void }> = ({ title, items, onEdit, onDelete }) => (
-  <article className="rounded-[28px] border border-zinc-200 bg-white p-6">
+  <article className="rounded-[24px] sm:rounded-[28px] border border-zinc-200 bg-white p-4 sm:p-6">
     <div className="text-xl font-black text-gray-950">{title}</div>
     <div className="mt-4 space-y-3">
       {items.length === 0 && <div className="text-sm text-gray-500">Нет объявлений.</div>}
@@ -741,8 +752,14 @@ const ListingsBlock: React.FC<{ title: string; items: MyMarketListingItem[]; onE
                 )}
               </div>
               <div className="flex flex-col gap-2 shrink-0">
-                <button onClick={() => onEdit(item)} className="rounded-full border border-zinc-300 bg-white px-4 py-2 text-xs font-bold text-gray-900 hover:bg-zinc-100 inline-flex items-center gap-2"><Pencil className="w-4 h-4" />Редактировать</button>
-                <button onClick={() => onDelete(item)} className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 inline-flex items-center gap-2"><Trash2 className="w-4 h-4" />Удалить</button>
+                <button onClick={() => onEdit(item)} className="rounded-full border border-zinc-300 bg-white p-2 sm:px-4 sm:py-2 text-xs font-bold text-gray-900 hover:bg-zinc-100 inline-flex items-center gap-2">
+                  <Pencil className="w-4 h-4" />
+                  <span className="hidden sm:inline">Редактировать</span>
+                </button>
+                <button onClick={() => onDelete(item)} className="rounded-full border border-rose-200 bg-rose-50 p-2 sm:px-4 sm:py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 inline-flex items-center gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Удалить</span>
+                </button>
               </div>
             </div>
           </div>

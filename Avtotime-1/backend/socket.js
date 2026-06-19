@@ -101,6 +101,23 @@ io.on("connection", (socket) => {
   });
 });
 
+// Periodically purge stale entries for connections that dropped without a clean disconnect
+const STALE_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+const staleCleanupTimer = setInterval(() => {
+  let changed = false;
+  for (const [uid, socketIds] of onlineSocketsByUser.entries()) {
+    for (const sid of socketIds) {
+      if (!io.sockets.sockets.has(sid)) {
+        socketIds.delete(sid);
+        changed = true;
+      }
+    }
+    if (socketIds.size === 0) onlineSocketsByUser.delete(uid);
+  }
+  if (changed) emitOnlineUsers();
+}, STALE_CLEANUP_INTERVAL_MS);
+staleCleanupTimer.unref();
+
 const initializeSocketInfrastructure = async () => {
   await initializeSocketRedisAdapter(io);
 };

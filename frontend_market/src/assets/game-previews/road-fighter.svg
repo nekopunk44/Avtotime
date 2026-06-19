@@ -1,26 +1,112 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Road Fighter preview">
   <defs>
-    <linearGradient id="rfBg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fed7aa" stop-opacity="0.65" />
-      <stop offset="1" stop-color="#fecaca" stop-opacity="0.45" />
+    <linearGradient id="rfGrass" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#86EFAC"/>
+      <stop offset="100%" stop-color="#4ADE80"/>
+    </linearGradient>
+    <linearGradient id="rfRoad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#374151"/>
+      <stop offset="50%"  stop-color="#1F2937"/>
+      <stop offset="100%" stop-color="#374151"/>
     </linearGradient>
   </defs>
-  <rect x="24" y="24" width="464" height="208" rx="28" fill="url(#rfBg)" />
-  <path d="M214 232l34-208h16l34 208" fill="#0b1220" opacity="0.9" />
-  <g stroke="#e5e7eb" stroke-width="8" stroke-linecap="round" opacity="0.9">
-    <path d="M256 56v22" />
-    <path d="M256 98v22" />
-    <path d="M256 140v22" />
-    <path d="M256 182v22" />
+
+  <!-- Grass background -->
+  <rect width="512" height="256" rx="28" fill="url(#rfGrass)"/>
+
+  <!-- Grass tufts/dots -->
+  <g fill="#15803D" opacity="0.45">
+    <circle cx="34"  cy="56"  r="2"/>
+    <circle cx="62"  cy="118" r="2"/>
+    <circle cx="28"  cy="178" r="2"/>
+    <circle cx="76"  cy="222" r="2"/>
+    <circle cx="50"  cy="36"  r="2"/>
+    <circle cx="92"  cy="92"  r="2"/>
+    <circle cx="446" cy="60"  r="2"/>
+    <circle cx="468" cy="130" r="2"/>
+    <circle cx="436" cy="188" r="2"/>
+    <circle cx="462" cy="222" r="2"/>
+    <circle cx="482" cy="84"  r="2"/>
+    <circle cx="420" cy="36"  r="2"/>
   </g>
-  <g>
-    <rect x="164" y="128" width="40" height="64" rx="10" fill="#ef4444" opacity="0.95" />
-    <rect x="308" y="92" width="40" height="64" rx="10" fill="#22c55e" opacity="0.95" />
-    <rect x="173" y="140" width="22" height="10" rx="5" fill="#0f172a" opacity="0.35" />
-    <rect x="317" y="104" width="22" height="10" rx="5" fill="#0f172a" opacity="0.35" />
-    <circle cx="176" cy="194" r="8" fill="#0f172a" opacity="0.8" />
-    <circle cx="192" cy="194" r="8" fill="#0f172a" opacity="0.8" />
-    <circle cx="320" cy="158" r="8" fill="#0f172a" opacity="0.8" />
-    <circle cx="336" cy="158" r="8" fill="#0f172a" opacity="0.8" />
+
+  <!-- Road surface -->
+  <rect x="108" y="8" width="296" height="240" fill="url(#rfRoad)"/>
+
+  <!-- Curbs (red/white) -->
+  <rect x="102" y="8" width="6" height="240" fill="white"/>
+  <rect x="404" y="8" width="6" height="240" fill="white"/>
+  <g fill="#EF4444">
+    <rect x="102" y="8"   width="6" height="18"/>
+    <rect x="102" y="44"  width="6" height="18"/>
+    <rect x="102" y="80"  width="6" height="18"/>
+    <rect x="102" y="116" width="6" height="18"/>
+    <rect x="102" y="152" width="6" height="18"/>
+    <rect x="102" y="188" width="6" height="18"/>
+    <rect x="102" y="224" width="6" height="18"/>
+
+    <rect x="404" y="26"  width="6" height="18"/>
+    <rect x="404" y="62"  width="6" height="18"/>
+    <rect x="404" y="98"  width="6" height="18"/>
+    <rect x="404" y="134" width="6" height="18"/>
+    <rect x="404" y="170" width="6" height="18"/>
+    <rect x="404" y="206" width="6" height="18"/>
+  </g>
+
+  <!-- Lane dividers (2 dashed lines for 3 lanes) -->
+  <g stroke="#FACC15" stroke-width="5" stroke-linecap="round" stroke-dasharray="22,18">
+    <line x1="207" y1="8" x2="207" y2="248"/>
+    <line x1="305" y1="8" x2="305" y2="248"/>
+  </g>
+
+  <!-- Enemy car 1 — yellow, upper-left lane -->
+  <g transform="translate(133, 24)">
+    <rect x="0" y="0" width="48" height="76" rx="9" fill="#FACC15" stroke="#A16207" stroke-width="2"/>
+    <path d="M 6,8 L 42,8 L 38,26 L 10,26 Z" fill="#1E3A8A" opacity="0.75"/>
+    <path d="M 10,50 L 38,50 L 42,68 L 6,68 Z" fill="#1E3A8A" opacity="0.75"/>
+    <rect x="-3" y="14" width="6" height="14" rx="2" fill="#0F172A"/>
+    <rect x="45" y="14" width="6" height="14" rx="2" fill="#0F172A"/>
+    <rect x="-3" y="48" width="6" height="14" rx="2" fill="#0F172A"/>
+    <rect x="45" y="48" width="6" height="14" rx="2" fill="#0F172A"/>
+  </g>
+
+  <!-- Enemy car 2 — green, right lane mid -->
+  <g transform="translate(330, 78)">
+    <rect x="0" y="0" width="48" height="76" rx="9" fill="#22C55E" stroke="#15803D" stroke-width="2"/>
+    <path d="M 6,8 L 42,8 L 38,26 L 10,26 Z" fill="#1E3A8A" opacity="0.75"/>
+    <path d="M 10,50 L 38,50 L 42,68 L 6,68 Z" fill="#1E3A8A" opacity="0.75"/>
+    <rect x="-3" y="14" width="6" height="14" rx="2" fill="#0F172A"/>
+    <rect x="45" y="14" width="6" height="14" rx="2" fill="#0F172A"/>
+    <rect x="-3" y="48" width="6" height="14" rx="2" fill="#0F172A"/>
+    <rect x="45" y="48" width="6" height="14" rx="2" fill="#0F172A"/>
+  </g>
+
+  <!-- Player car — red, bottom center lane, with speed trail -->
+  <g transform="translate(228, 152)">
+    <!-- Speed dust behind -->
+    <g fill="white" opacity="0.55">
+      <rect x="6"  y="88"  width="6" height="20" rx="3"/>
+      <rect x="20" y="94"  width="6" height="14" rx="3"/>
+      <rect x="38" y="94"  width="6" height="14" rx="3"/>
+      <rect x="52" y="88"  width="6" height="20" rx="3"/>
+    </g>
+    <rect x="0" y="0" width="60" height="86" rx="11" fill="#EF4444" stroke="#7F1D1D" stroke-width="2"/>
+    <!-- Front windshield -->
+    <path d="M 6,8 L 54,8 L 48,30 L 12,30 Z" fill="#1E3A8A" opacity="0.8"/>
+    <!-- Rear windshield -->
+    <path d="M 12,54 L 48,54 L 54,76 L 6,76 Z" fill="#1E3A8A" opacity="0.8"/>
+    <!-- Hood seam -->
+    <line x1="30" y1="34" x2="30" y2="50" stroke="#7F1D1D" stroke-width="1.5"/>
+    <!-- Wheels -->
+    <rect x="-3" y="16" width="6" height="16" rx="2" fill="#0F172A"/>
+    <rect x="57" y="16" width="6" height="16" rx="2" fill="#0F172A"/>
+    <rect x="-3" y="56" width="6" height="16" rx="2" fill="#0F172A"/>
+    <rect x="57" y="56" width="6" height="16" rx="2" fill="#0F172A"/>
+  </g>
+
+  <!-- Score badge on left grass -->
+  <g transform="translate(14, 18)">
+    <rect x="0" y="0" width="78" height="30" rx="15" fill="white" stroke="#EF4444" stroke-width="2"/>
+    <text x="39" y="20" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="14" fill="#EF4444">+150</text>
   </g>
 </svg>

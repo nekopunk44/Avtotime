@@ -273,7 +273,7 @@ function Profile() {
                 </div>
 
                 {displayedPosts.length > 0 ? (
-                    <div className='grid grid-cols-3 gap-[2px]'>
+                    <div className='grid grid-cols-3 gap-[2px] px-[16px] sm:px-0'>
                         {displayedPosts.map((post, i) => (
                             <GridThumb key={post?._id || i} post={post} onClick={() => setModalIndex(i)} />
                         ))}

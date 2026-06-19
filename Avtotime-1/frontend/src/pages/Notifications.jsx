@@ -6,7 +6,7 @@ import { serverURL } from "../App";
 import { markAllAsReadLocal, markAsReadLocal, setUnreadCount } from "../redux/notificationSlice";
 import { setUserData } from "../redux/userSlice";
 import profile from "../assets/profile.png";
-import { IoChevronBack } from "react-icons/io5";
+import { IoChevronBack, IoCheckmarkDoneOutline } from "react-icons/io5";
 
 const formatDate = (value) => {
   const date = value ? new Date(value) : null;
@@ -104,29 +104,38 @@ export default function Notifications() {
   return (
     <div className="w-full flex justify-center items-start">
       <div className="w-full max-w-[900px] px-[16px] py-[20px]">
-        <div className="flex items-center justify-between gap-[12px] mb-[16px]">
-          <div className="flex items-center gap-[12px]">
-            <button
-              onClick={() => navigate('/')}
-              className="flex items-center justify-center w-[36px] h-[36px] rounded-full text-white hover:bg-white/10 transition-colors"
-              aria-label="Назад"
-            >
-              <IoChevronBack className="w-[22px] h-[22px]" />
-            </button>
-            <div>
-              <div className="text-white text-[22px] font-semibold">Уведомления</div>
-              <div className="text-gray-400 text-[14px]">
-                Непрочитанные: <span className="text-white font-semibold">{unreadCount}</span>
-              </div>
+        <div className="relative flex items-center h-[52px] mb-[16px]">
+          {/* Назад */}
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center justify-center w-[36px] h-[36px] rounded-full text-white hover:bg-white/10 transition-colors shrink-0"
+            aria-label="Назад"
+          >
+            <IoChevronBack className="w-[22px] h-[22px]" />
+          </button>
+
+          {/* Заголовок по центру */}
+          <div className="absolute left-1/2 -translate-x-1/2 text-center">
+            <div className="text-white text-[20px] font-semibold leading-tight">Уведомления</div>
+            <div className="text-gray-500 text-[12px]">
+              Непрочитанных: <span className="text-white font-semibold">{unreadCount}</span>
             </div>
           </div>
 
+          {/* Кнопка: текст на десктопе, иконка на мобильном */}
           <button
             disabled={busy || unreadCount === 0}
             onClick={handleMarkAll}
-            className="px-[12px] py-[8px] rounded-[10px] bg-gray-900 text-white disabled:opacity-50"
+            className="ml-auto flex items-center justify-center shrink-0 disabled:opacity-40 transition-opacity"
+            aria-label="Отметить все как прочитанные"
+            title="Отметить все как прочитанные"
           >
-            Отметить все как прочитанные
+            <span className="hidden sm:block px-[12px] py-[8px] rounded-[10px] bg-gray-900 text-white text-[13px]">
+              Отметить все как прочитанные
+            </span>
+            <span className="sm:hidden flex items-center justify-center w-[36px] h-[36px] rounded-full bg-white/8 text-white">
+              <IoCheckmarkDoneOutline className="w-[20px] h-[20px]" />
+            </span>
           </button>
         </div>
 

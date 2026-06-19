@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, Component } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +7,23 @@ import { serverURL } from "../App";
 import { setUserData } from "../redux/userSlice";
 
 const MarketApp = lazy(() => import("../../../../frontend_market/src/App.tsx"));
+
+class MarketErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 32, fontFamily: 'monospace', background: '#fff', color: '#c00', minHeight: '100vh' }}>
+          <h2>Market Error</h2>
+          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{String(this.state.error?.message || this.state.error)}</pre>
+          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: '#666', marginTop: 12 }}>{this.state.error?.stack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const DEFAULT_PUBLIC_MARKET_LIMIT = 60;
 const DEFAULT_MINE_MARKET_LIMIT = 200;
@@ -298,6 +315,7 @@ export default function AutoMarketPage() {
   };
 
   return (
+    <MarketErrorBoundary>
     <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white text-sm uppercase tracking-[0.24em] text-white/70">Loading</div>}>
       <MarketApp
         userData={userData}
@@ -325,5 +343,6 @@ export default function AutoMarketPage() {
         onResendVerification={handleResendVerification}
       />
     </Suspense>
+    </MarketErrorBoundary>
   );
 }

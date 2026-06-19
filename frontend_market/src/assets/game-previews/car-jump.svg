@@ -1,52 +1,197 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Car Jump preview">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#60a5fa" stop-opacity="0.35" />
-      <stop offset="0.55" stop-color="#a7f3d0" stop-opacity="0.25" />
-      <stop offset="1" stop-color="#22c55e" stop-opacity="0.16" />
+    <linearGradient id="cjSky2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#1E3A8A"/>
+      <stop offset="50%"  stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#F472B6"/>
     </linearGradient>
-    <linearGradient id="platform" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#111827" stop-opacity="0.85" />
-      <stop offset="1" stop-color="#0f172a" stop-opacity="0.95" />
+    <linearGradient id="cjPlat2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#475569"/>
+      <stop offset="100%" stop-color="#0F172A"/>
     </linearGradient>
-    <linearGradient id="car" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0ea5e9" />
-      <stop offset="1" stop-color="#2563eb" />
+    <linearGradient id="cjPlatTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#B45309"/>
     </linearGradient>
-    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="b" />
-      <feOffset in="b" dy="6" result="o" />
-      <feColorMatrix in="o" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .22 0" result="s" />
-      <feMerge>
-        <feMergeNode in="s" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
+    <linearGradient id="cjCar2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <radialGradient id="cjStarGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#FEF08A" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#FACC15" stop-opacity="0"/>
+    </radialGradient>
   </defs>
 
-  <rect width="512" height="256" rx="28" fill="url(#bg)" />
+  <!-- Sunset sky -->
+  <rect width="512" height="256" rx="28" fill="url(#cjSky2)"/>
 
-  <g opacity="0.55" fill="#ffffff">
-    <path d="M86 74c0-14 12-26 28-26h44c12-12 26-18 44-18 30 0 54 18 64 44h18c16 0 28 12 28 28H86z" />
-    <path d="M290 96c0-12 10-22 22-22h26c10-10 22-15 38-15 26 0 46 14 56 36h10c14 0 24 10 24 24H290z" opacity="0.6" />
+  <!-- Stars -->
+  <g fill="white">
+    <circle cx="48"  cy="32" r="0.9"/>
+    <circle cx="92"  cy="20" r="1.2"/>
+    <circle cx="138" cy="36" r="0.8"/>
+    <circle cx="180" cy="24" r="1"/>
+    <circle cx="230" cy="40" r="0.9"/>
+    <circle cx="320" cy="22" r="1.2"/>
+    <circle cx="392" cy="36" r="0.8"/>
+    <circle cx="450" cy="18" r="1"/>
   </g>
 
-  <g filter="url(#soft)">
-    <path d="M40 192h168c10 0 18 8 18 18s-8 18-18 18H40c-10 0-18-8-18-18s8-18 18-18z" fill="url(#platform)" />
-    <path d="M306 176h166c10 0 18 8 18 18s-8 18-18 18H306c-10 0-18-8-18-18s8-18 18-18z" fill="url(#platform)" opacity="0.9" />
+  <!-- Moon -->
+  <circle cx="58" cy="58" r="20" fill="#FEF3C7" opacity="0.95"/>
+  <circle cx="65" cy="54" r="18" fill="#1E3A8A" opacity="0.65"/>
+
+  <!-- Distant city silhouette -->
+  <g fill="#0F172A" opacity="0.7">
+    <rect x="0"   y="200" width="40" height="32"/>
+    <rect x="44"  y="188" width="32" height="44"/>
+    <rect x="80"  y="196" width="22" height="36"/>
+    <rect x="104" y="178" width="38" height="54"/>
+    <rect x="146" y="194" width="26" height="38"/>
+    <rect x="176" y="202" width="40" height="30"/>
+    <!-- glow windows -->
+    <rect x="50"  y="200" width="3" height="4" fill="#FACC15" opacity="0.9"/>
+    <rect x="58"  y="210" width="3" height="4" fill="#FACC15" opacity="0.9"/>
+    <rect x="116" y="194" width="3" height="4" fill="#FACC15" opacity="0.9"/>
+    <rect x="124" y="208" width="3" height="4" fill="#FACC15" opacity="0.9"/>
+    <rect x="184" y="212" width="3" height="4" fill="#FACC15" opacity="0.9"/>
   </g>
 
-  <g fill="none" stroke="#0f172a" stroke-width="10" stroke-linecap="round" opacity="0.25">
-    <path d="M186 182c44-62 92-92 144-98" />
+  <!-- Synth grid horizon (subtle) -->
+  <g stroke="#F472B6" stroke-width="0.8" opacity="0.35">
+    <line x1="0"   y1="232" x2="512" y2="232"/>
+    <line x1="0"   y1="240" x2="512" y2="240"/>
+    <line x1="0"   y1="248" x2="512" y2="248"/>
   </g>
 
-  <g filter="url(#soft)">
-    <path d="M214 150c6-22 26-38 50-38h50c22 0 40 14 48 34l10 0c10 0 18 8 18 18v8c0 10-8 18-18 18H228c-10 0-18-8-18-18v-6c0-6 2-11 4-16z" fill="url(#car)" />
-    <path d="M258 122h60c14 0 26 10 30 24l-90 0c0-12 10-24 0-24z" fill="#0b1220" opacity="0.35" />
-    <path d="M274 122h40c10 0 18 7 20 16h-78c4-9 10-16 18-16z" fill="#e0f2fe" opacity="0.85" />
-    <circle cx="260" cy="182" r="18" fill="#0b1220" opacity="0.92" />
-    <circle cx="346" cy="182" r="18" fill="#0b1220" opacity="0.92" />
-    <circle cx="260" cy="182" r="8" fill="#e5e7eb" opacity="0.95" />
-    <circle cx="346" cy="182" r="8" fill="#e5e7eb" opacity="0.95" />
+  <!-- ==== Platforms (stair-stepped ascending) ==== -->
+  <!-- L1 bottom-left -->
+  <g>
+    <rect x="20"  y="216" width="158" height="22" rx="4" fill="url(#cjPlat2)"/>
+    <rect x="20"  y="216" width="158" height="5"  rx="2" fill="url(#cjPlatTop)"/>
+    <!-- side stripes -->
+    <g fill="#F59E0B" opacity="0.6">
+      <rect x="30"  y="226" width="3" height="8"/>
+      <rect x="60"  y="226" width="3" height="8"/>
+      <rect x="90"  y="226" width="3" height="8"/>
+      <rect x="120" y="226" width="3" height="8"/>
+      <rect x="150" y="226" width="3" height="8"/>
+    </g>
+  </g>
+
+  <!-- L2 middle -->
+  <g>
+    <rect x="200" y="164" width="140" height="22" rx="4" fill="url(#cjPlat2)"/>
+    <rect x="200" y="164" width="140" height="5"  rx="2" fill="url(#cjPlatTop)"/>
+    <g fill="#F59E0B" opacity="0.6">
+      <rect x="210" y="174" width="3" height="8"/>
+      <rect x="240" y="174" width="3" height="8"/>
+      <rect x="270" y="174" width="3" height="8"/>
+      <rect x="300" y="174" width="3" height="8"/>
+      <rect x="330" y="174" width="3" height="8"/>
+    </g>
+  </g>
+
+  <!-- L3 top-right -->
+  <g>
+    <rect x="362" y="112" width="128" height="22" rx="4" fill="url(#cjPlat2)"/>
+    <rect x="362" y="112" width="128" height="5"  rx="2" fill="url(#cjPlatTop)"/>
+    <g fill="#F59E0B" opacity="0.6">
+      <rect x="372" y="122" width="3" height="8"/>
+      <rect x="402" y="122" width="3" height="8"/>
+      <rect x="432" y="122" width="3" height="8"/>
+      <rect x="462" y="122" width="3" height="8"/>
+    </g>
+  </g>
+
+  <!-- Trajectory arc with stronger color -->
+  <path d="M 178,205 Q 220,90 270,150" fill="none" stroke="#FACC15"
+        stroke-width="2.5" stroke-dasharray="5,4" stroke-linecap="round" opacity="0.85"/>
+  <path d="M 340,162 Q 380,70 430,108" fill="none" stroke="#FACC15"
+        stroke-width="2.5" stroke-dasharray="5,4" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- Collectible coin (between L1 and L2) -->
+  <g transform="translate(220, 100)">
+    <circle r="11" fill="url(#cjStarGlow)"/>
+    <circle r="7" fill="#FACC15" stroke="#A16207" stroke-width="1.2"/>
+    <text x="0" y="3" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="9" fill="#7C2D12">$</text>
+  </g>
+
+  <!-- Goal star above top platform -->
+  <g transform="translate(420, 76)">
+    <circle r="22" fill="url(#cjStarGlow)"/>
+    <polygon points="0,-18 5,-5 19,-5 7,3 12,16 0,9 -12,16 -7,3 -19,-5 -5,-5"
+             fill="#FBBF24" stroke="#F59E0B" stroke-width="1.5" stroke-linejoin="round"/>
+    <polygon points="0,-12 3,-3 12,-3 4,2 7,11 0,6 -7,11 -4,2 -12,-3 -3,-3"
+             fill="#FEF3C7" opacity="0.7"/>
+  </g>
+
+  <!-- ==== Car mid-jump at apex of second arc ==== -->
+  <g transform="translate(382, 88) rotate(-14)">
+    <!-- Speed/motion trails -->
+    <g stroke="#38BDF8" stroke-width="3" stroke-linecap="round" opacity="0.55">
+      <line x1="-58" y1="-4" x2="-34" y2="-4"/>
+      <line x1="-66" y1="6"  x2="-32" y2="6"/>
+      <line x1="-58" y1="16" x2="-36" y2="16"/>
+    </g>
+    <!-- Exhaust particles -->
+    <g fill="#FFFFFF" opacity="0.7">
+      <circle cx="-44" cy="2"  r="2.5"/>
+      <circle cx="-50" cy="-3" r="2"/>
+      <circle cx="-52" cy="10" r="1.8"/>
+    </g>
+    <!-- Underglow -->
+    <ellipse cx="6" cy="26" rx="34" ry="5" fill="#38BDF8" opacity="0.4"/>
+    <ellipse cx="6" cy="26" rx="26" ry="3" fill="#FFFFFF" opacity="0.3"/>
+    <!-- Body -->
+    <path d="M -28,10
+             L -28,-2
+             Q -28,-12 -18,-14
+             L -6,-14
+             L 2,-22
+             L 22,-22
+             L 30,-14
+             L 38,-14
+             Q 44,-12 44,-2
+             L 44,10 Z"
+          fill="url(#cjCar2)" stroke="#1E3A8A" stroke-width="1.5" stroke-linejoin="round"/>
+    <!-- Window -->
+    <path d="M -2,-12 L 4,-20 L 20,-20 L 28,-12 Z" fill="#E0F2FE"/>
+    <line x1="14" y1="-20" x2="14" y2="-12" stroke="#1E40AF" stroke-width="0.8"/>
+    <!-- Body trim -->
+    <line x1="-26" y1="2" x2="42" y2="2" stroke="#FFFFFF" stroke-width="1" opacity="0.4"/>
+    <!-- Headlight -->
+    <rect x="40" y="-6" width="6" height="6" rx="2" fill="#FEF3C7"/>
+    <circle cx="48" cy="-3" r="3" fill="#FEF3C7" opacity="0.6"/>
+    <!-- Tail light -->
+    <rect x="-28" y="-6" width="3" height="6" rx="1" fill="#FCA5A5"/>
+    <!-- Wheels -->
+    <circle cx="-14" cy="12" r="7" fill="#0F172A"/>
+    <circle cx="-14" cy="12" r="3" fill="#94A3B8"/>
+    <circle cx="30"  cy="12" r="7" fill="#0F172A"/>
+    <circle cx="30"  cy="12" r="3" fill="#94A3B8"/>
+  </g>
+
+  <!-- ==== HUD: Height badge ==== -->
+  <g transform="translate(30, 18)">
+    <rect x="0" y="0" width="100" height="30" rx="15" fill="white" stroke="#1D4ED8" stroke-width="2"/>
+    <text x="14" y="20" font-family="sans-serif" font-weight="bold" font-size="13" fill="#1D4ED8">↑</text>
+    <text x="58" y="21" text-anchor="middle" font-family="'Courier New', monospace" font-weight="900" font-size="14" fill="#0F172A">250 м</text>
+  </g>
+
+  <!-- Combo badge -->
+  <g transform="translate(140, 18)">
+    <rect x="0" y="0" width="90" height="30" rx="15" fill="#F59E0B" stroke="#7C2D12" stroke-width="2"/>
+    <text x="45" y="20" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="13" fill="#7C2D12">×3 COMBO</text>
+  </g>
+
+  <!-- Lives badge (top right) -->
+  <g transform="translate(396, 18)">
+    <rect x="0" y="0" width="86" height="30" rx="15" fill="white" stroke="#DC2626" stroke-width="2"/>
+    <text x="14" y="22" font-family="sans-serif" font-size="14" fill="#DC2626">♥</text>
+    <text x="30" y="22" font-family="sans-serif" font-size="14" fill="#DC2626">♥</text>
+    <text x="46" y="22" font-family="sans-serif" font-size="14" fill="#DC2626">♥</text>
+    <text x="64" y="22" font-family="sans-serif" font-size="14" fill="#94A3B8">♡</text>
   </g>
 </svg>

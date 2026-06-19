@@ -135,6 +135,27 @@ const buildMarketListSuffix = (options?: { mine?: boolean; filters?: Record<stri
 };
 
 export const marketAPI = {
+  async getSession(): Promise<Record<string, unknown> | null> {
+    try {
+      const res = await fetch(`${API_URL}/auth/session`, {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  },
+
+  async signOut(): Promise<void> {
+    const res = await fetch(`${API_URL}/auth/signout`, {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    });
+    await ensureOk(res);
+  },
+
   async getAdminStatus(): Promise<{ ok: boolean; isAdmin: boolean; userId?: string; userName?: string }> {
     const res = await fetch(`${API_URL}/admin/status`, {
       credentials: 'include',
@@ -654,6 +675,7 @@ export const marketAPI = {
 
   async createPaymentIntent(plan: 'pro' | 'business'): Promise<{
     clientSecret: string;
+    paymentIntentId: string;
     publishableKey: string;
     amount: number;
     currency: string;
@@ -680,6 +702,13 @@ export const marketAPI = {
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ paymentIntentId }),
+    });
+    return ensureOkJson(res);
+  },
+
+  async getGeo(): Promise<{ country: string | null; isCis: boolean }> {
+    const res = await fetch(`${API_URL}/payment/geo`, {
+      headers: { Accept: 'application/json' },
     });
     return ensureOkJson(res);
   },

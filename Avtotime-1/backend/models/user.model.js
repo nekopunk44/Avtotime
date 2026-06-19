@@ -18,7 +18,14 @@ const usersSchema = new mongoose.Schema({
     },
     password:{
         type: String,
-        required:true,
+        required: false,
+        default: null,
+    },
+    googleId: {
+        type: String,
+        default: null,
+        sparse: true,
+        index: true,
     },
     profileImage: {
         type: String,
@@ -175,6 +182,9 @@ const usersSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    blockedUsers: [
+        { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    ],
 },{timestamps:true})
 
 usersSchema.methods.matchPassword = async function matchPassword(plainPassword) {

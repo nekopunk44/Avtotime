@@ -162,131 +162,99 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   }, []);
 
   return (
-    <section className="bg-[#f6f6f6] pb-10 pt-8 sm:pb-14 sm:pt-8">
-      <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
-          <div className="flex h-full flex-col rounded-[32px] border border-zinc-200 bg-white p-7 shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
+    <section className="bg-[#f6f6f6] pb-10 pt-6 sm:pb-14 sm:pt-8">
+      <div className="max-w-[1536px] mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
+
+          {/* Left: settings sections */}
+          <div className="flex h-full flex-col rounded-[24px] sm:rounded-[32px] border border-zinc-200 bg-white p-4 sm:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
             <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-red-100 bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-red-600 shadow-sm">
               <ShieldCheck className="w-4 h-4" />
               Настройки
             </div>
 
-            <h1 className="mt-4 text-center text-3xl font-black tracking-tight text-gray-950 sm:text-4xl">
-              Управление аккаунтом AVTOTIME
+            <h1 className="mt-3 text-center text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-gray-950">
+              Управление аккаунтом
             </h1>
 
-            <p className="mx-auto mt-3 max-w-2xl text-center text-base text-gray-600">
-              Здесь собраны все ключевые разделы аккаунта: от профиля и безопасности до управления объявлениями и тарифом.
+            <p className="mx-auto mt-2 max-w-2xl text-center text-sm sm:text-base text-gray-600">
+              Профиль, безопасность, объявления и тариф — всё в одном месте.
             </p>
 
-            <div className="hidden mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[24px] border border-zinc-200 bg-zinc-50 px-5 py-4">
-                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">Профиль</div>
-                <div className="mt-2 text-sm font-semibold text-gray-900">Аккаунт настроен</div>
-              </div>
-              <div className="rounded-[24px] border border-zinc-200 bg-zinc-50 px-5 py-4">
-                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">Тариф</div>
-                <div className="mt-2 text-sm font-semibold text-gray-900">{planLabel}</div>
-              </div>
-              <div className="rounded-[24px] border border-zinc-200 bg-zinc-50 px-5 py-4">
-                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">Объявления</div>
-                <div className="mt-2 text-sm font-semibold text-gray-900">{listingsLabel}</div>
-              </div>
-            </div>
-
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <div className="mt-5 sm:mt-8 grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
               {settingsSections.map((section) => (
                 <button
                   key={section.key}
                   onClick={() => onOpenSection(section.key)}
-                  className="group relative rounded-[24px] border border-zinc-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbfbfb_100%)] p-5 text-left transition-all hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-[0_16px_36px_rgba(15,23,42,0.06)]"
+                  className="group relative rounded-[20px] sm:rounded-[24px] border border-zinc-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbfbfb_100%)] p-4 sm:p-5 text-left transition-all hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-[0_16px_36px_rgba(15,23,42,0.06)]"
                 >
-                  <div className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-gray-400 transition-colors group-hover:text-gray-900">
-                    <ArrowRight className="w-4 h-4" />
+                  <div className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white text-gray-400 transition-colors group-hover:text-gray-900">
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </div>
-                  <div className={`inline-flex rounded-[18px] p-3 ${section.accent}`}>
+                  <div className={`inline-flex rounded-[16px] p-2.5 ${section.accent}`}>
                     <section.icon className="w-4 h-4" />
                   </div>
-                  <h2 className="mt-5 max-w-[18rem] text-[1.15rem] leading-[1.15] font-black text-gray-950">{section.title}</h2>
-                  <p className="mt-3 max-w-[24rem] text-sm leading-7 text-gray-600">{section.description}</p>
-                  <div className="mt-5 inline-flex items-center rounded-full bg-zinc-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500">
-                    Открыть раздел
+                  <h2 className="mt-3 text-[1.1rem] sm:text-[1.15rem] leading-snug font-black text-gray-950 pr-10">{section.title}</h2>
+                  <p className="mt-2 text-sm leading-6 text-gray-500 line-clamp-2">{section.description}</p>
+                  <div className="mt-3 inline-flex items-center rounded-full bg-zinc-100 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-gray-500">
+                    Открыть
                   </div>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="flex h-full flex-col gap-6">
-            <div className="overflow-hidden rounded-[28px] bg-[linear-gradient(180deg,#050505_0%,#111111_100%)] p-5 text-white shadow-[0_20px_60px_rgba(0,0,0,0.14)]">
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-4">
-                    {userData?.profileImage ? (
-                      <img
-                        src={userData.profileImage}
-                        alt={userData.userName || 'Профиль'}
-                        className="h-16 w-16 rounded-2xl border border-white/10 object-cover shadow-[0_12px_30px_rgba(0,0,0,0.28)]"
-                      />
-                    ) : (
-                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7B61FF] via-[#E9546B] to-[#FFB457] text-xl font-black uppercase text-white shadow-[0_12px_30px_rgba(0,0,0,0.28)]">
-                        {userData?.userName?.[0] || userData?.name?.[0] || 'U'}
-                      </div>
-                    )}
+          {/* Right: profile + tariffs */}
+          <div className="flex h-full flex-col gap-4 sm:gap-6">
 
-                    <div className="min-w-0">
-                      <div className="text-xs uppercase tracking-[0.22em] text-white/50 font-bold">Профиль</div>
-                      <div className="mt-2 pb-1 text-[1.65rem] leading-tight font-black truncate">
-                        {userData?.userName || userData?.name || 'Пользователь AVTOTIME'}
-                      </div>
-                      {userData?.name && <div className="mt-2 text-sm text-white/70 truncate">{userData.name}</div>}
-                    </div>
+            {/* Profile card */}
+            <div className="hidden sm:block overflow-hidden rounded-[24px] sm:rounded-[28px] bg-[linear-gradient(180deg,#050505_0%,#111111_100%)] px-4 py-5 sm:p-8 text-white shadow-[0_20px_60px_rgba(0,0,0,0.14)]">
+              <div className="flex items-center gap-4">
+                {userData?.profileImage ? (
+                  <img
+                    src={userData.profileImage}
+                    alt={userData.userName || 'Профиль'}
+                    className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl border border-white/10 object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7B61FF] via-[#E9546B] to-[#FFB457] text-xl font-black uppercase text-white">
+                    {userData?.userName?.[0] || userData?.name?.[0] || 'U'}
                   </div>
-
-                  <div className="hidden h-11 items-center rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">
-                    Активный профиль
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-white/50 font-bold">Профиль</div>
+                  <div className="mt-1 text-lg sm:text-2xl leading-tight font-black truncate">
+                    {userData?.userName || userData?.name || 'Пользователь AVTOTIME'}
                   </div>
+                  {userData?.name && <div className="mt-1 text-xs sm:text-sm text-white/60 truncate">{userData.name}</div>}
                 </div>
-
-                <div className="hidden mt-5 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/45 font-bold">Статус</div>
-                    <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-white">
-                      <BadgeCheck className="w-4 h-4 text-red-400" />
-                      Аккаунт активен
-                    </div>
-                  </div>
-                  <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/45 font-bold">План</div>
-                    <div className="mt-2 text-sm font-semibold text-white">{planLabel}</div>
-                  </div>
-                  <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/45 font-bold">Объявления</div>
-                    <div className="mt-2 text-sm font-semibold text-white">{listingsLabel}</div>
-                  </div>
+                <div className="shrink-0 flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-bold text-emerald-300">
+                  <BadgeCheck className="w-3 h-3" />
+                  <span className="hidden sm:inline">Активен</span>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-[32px] bg-white border border-zinc-200 p-7 shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="inline-flex rounded-2xl p-3 bg-red-50 text-red-600">
-                    <CreditCard className="w-5 h-5" />
+            {/* Tariffs card */}
+            <div className="rounded-[24px] sm:rounded-[32px] bg-white border border-zinc-200 p-4 sm:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex rounded-xl sm:rounded-2xl p-2.5 sm:p-3 bg-red-50 text-red-600 shrink-0">
+                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                  <h2 className="mt-4 text-2xl font-black text-gray-950">Тарифы</h2>
+                  <h2 className="text-xl sm:text-2xl font-black text-gray-950">Тарифы</h2>
                 </div>
-                <div className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-red-500">
-                  {isPaidPlan ? 'Активный план' : 'Базовый доступ'}
+                <div className="rounded-full border border-red-100 bg-red-50 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.15em] text-red-500 shrink-0">
+                  {isPaidPlan ? 'Активный' : 'Базовый'}
                 </div>
               </div>
 
-              <p className="mt-2 max-w-xl text-sm leading-6 text-gray-600">
-                Управляйте текущим планом, сравнивайте преимущества и при необходимости меняйте уровень подписки.
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Управляйте планом и при необходимости меняйте уровень подписки.
               </p>
 
               <div
-                className={`mt-5 rounded-[26px] border p-5 ${
+                className={`mt-4 rounded-[20px] sm:rounded-[26px] border p-4 sm:p-5 ${
                   expiry?.isExpired
                     ? 'border-rose-200 bg-rose-50'
                     : expiry?.isExpiringSoon
@@ -294,19 +262,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       : 'border-zinc-200 bg-[linear-gradient(180deg,#fcfcfc_0%,#f7f7f8_100%)]'
                 }`}
               >
-                <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-gray-400 font-bold">Текущий план</div>
-                    <div className="mt-2 text-2xl font-black text-gray-950">{planLabel}</div>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-gray-400 font-bold">Текущий план</div>
+                    <div className="mt-1.5 text-xl sm:text-2xl font-black text-gray-950">{planLabel}</div>
                   </div>
 
-                  <div className="grid min-w-[180px] gap-2 sm:grid-cols-2 sm:min-w-[260px]">
-                    <div className="rounded-2xl border border-white/70 bg-white/80 px-3 py-2">
-                      <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">Статус</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-xl border border-white/70 bg-white/80 px-2.5 py-2">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">Статус</div>
                       <div className="mt-1 text-sm font-semibold text-gray-900">{isPaidPlan ? 'Оплачен' : 'Доступен'}</div>
                     </div>
-                    <div className="rounded-2xl border border-white/70 bg-white/80 px-3 py-2">
-                      <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">Период</div>
+                    <div className="rounded-xl border border-white/70 bg-white/80 px-2.5 py-2">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">Период</div>
                       <div className="mt-1 text-sm font-semibold text-gray-900">{isPaidPlan ? '30 дней' : 'Без срока'}</div>
                     </div>
                   </div>
@@ -358,24 +326,24 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
               <button
                 onClick={onOpenTariffs}
-                className="mt-5 w-full rounded-full bg-black text-white px-5 py-3.5 text-sm font-bold hover:bg-zinc-800 transition-colors"
+                className="mt-4 w-full rounded-full bg-black text-white px-5 py-3 sm:py-3.5 text-sm font-bold hover:bg-zinc-800 transition-colors"
               >
                 {isPaidPlan && !expiry?.isExpired ? 'Изменить тариф' : 'Открыть тарифы'}
               </button>
 
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3">
                 {onOpenPaymentHistory && (
                   <button
                     onClick={onOpenPaymentHistory}
-                    className="rounded-[22px] border border-zinc-200 bg-white px-5 py-4 text-left text-sm font-bold text-gray-900 transition-colors hover:bg-zinc-50"
+                    className="rounded-[18px] sm:rounded-[22px] border border-zinc-200 bg-white px-3 sm:px-5 py-3 sm:py-4 text-left text-sm font-bold text-gray-900 transition-colors hover:bg-zinc-50"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 text-gray-700">
-                        <Receipt className="w-4 h-4" />
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="inline-flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-gray-700">
+                        <Receipt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </div>
                       <div>
-                        <div>История платежей</div>
-                        <div className="mt-1 text-xs font-medium text-gray-500">Все оплаты и статусы</div>
+                        <div className="text-xs sm:text-sm leading-tight">История платежей</div>
+                        <div className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-500">Оплаты и статусы</div>
                       </div>
                     </div>
                   </button>
@@ -384,15 +352,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 {onOpenAnalytics && isPaidPlan && !expiry?.isExpired && (
                   <button
                     onClick={onOpenAnalytics}
-                    className="rounded-[22px] border border-zinc-200 bg-white px-5 py-4 text-left text-sm font-bold text-gray-900 transition-colors hover:bg-zinc-50"
+                    className="rounded-[18px] sm:rounded-[22px] border border-zinc-200 bg-white px-3 sm:px-5 py-3 sm:py-4 text-left text-sm font-bold text-gray-900 transition-colors hover:bg-zinc-50"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 text-gray-700">
-                        <BarChart3 className="w-4 h-4" />
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="inline-flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-gray-700">
+                        <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </div>
                       <div>
-                        <div>Аналитика объявлений</div>
-                        <div className="mt-1 text-xs font-medium text-gray-500">Просмотры и отклики</div>
+                        <div className="text-xs sm:text-sm leading-tight">Аналитика</div>
+                        <div className="mt-0.5 text-[10px] sm:text-xs font-medium text-gray-500">Просмотры и отклики</div>
                       </div>
                     </div>
                   </button>
@@ -401,11 +369,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
               {isPaidPlan && !expiry?.isExpired && (
                 <button
-                  onClick={() => {
-                    setCancelError('');
-                    setCancelOpen(true);
-                  }}
-                  className="mt-4 w-full rounded-full border border-rose-200 bg-white text-rose-700 px-5 py-3.5 text-sm font-bold hover:bg-rose-50 transition-colors"
+                  onClick={() => { setCancelError(''); setCancelOpen(true); }}
+                  className="mt-3 w-full rounded-full border border-rose-200 bg-white text-rose-700 px-5 py-3 text-sm font-bold hover:bg-rose-50 transition-colors"
                 >
                   Отменить подписку
                 </button>

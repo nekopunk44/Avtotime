@@ -1,6 +1,6 @@
 import React from 'react';
 import { Scale, X } from 'lucide-react';
-import { CARS, SERVICES } from '../../constants/mockData';
+import { Car, Service } from '../../types';
 import { CarCard } from '../shared/CarCard';
 import { ServiceCard } from '../shared/ServiceCard';
 
@@ -8,12 +8,16 @@ interface ComparePageProps {
   setCurrentPage: (page: string) => void;
   compareList?: {id: number, type: string}[];
   toggleCompare?: (id: number, type: string) => void;
+  allCars?: Car[];
+  allServices?: Service[];
 }
 
-export const ComparePage: React.FC<ComparePageProps> = ({ 
-  setCurrentPage, 
-  compareList = [], 
-  toggleCompare 
+export const ComparePage: React.FC<ComparePageProps> = ({
+  setCurrentPage,
+  compareList = [],
+  toggleCompare,
+  allCars = [],
+  allServices = [],
 }) => {
   if (compareList.length === 0) {
     return (
@@ -22,7 +26,7 @@ export const ComparePage: React.FC<ComparePageProps> = ({
           <Scale className="w-12 h-12 text-gray-700" strokeWidth={1.5} />
         </div>
         
-        <h1 className="text-3xl font-serif font-bold text-gray-900 mb-4">
+        <h1 className="text-3xl font-serif font-bold text-gray-900 mb-4 text-center">
           Нет элементов для сравнения
         </h1>
         
@@ -58,7 +62,7 @@ export const ComparePage: React.FC<ComparePageProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {compareList.map((item) => {
           if (type === 'car') {
-            const car = CARS.find(c => c.id === item.id);
+            const car = allCars.find(c => c.id === item.id);
             if (!car) return null;
             return (
               <div key={`compare-${item.type}-${item.id}`} className="relative">
@@ -71,7 +75,7 @@ export const ComparePage: React.FC<ComparePageProps> = ({
             );
           }
           if (type === 'service') {
-            const service = SERVICES.find(s => s.id === item.id);
+            const service = allServices.find(s => s.id === item.id);
             if (!service) return null;
             return (
               <div key={`compare-${item.type}-${item.id}`} className="relative">

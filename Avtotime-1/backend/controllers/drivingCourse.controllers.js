@@ -254,11 +254,13 @@ export const getMarathonQuestions = async (req, res) => {
     // Перемешаем для марафона
     questions = questions.sort(() => Math.random() - 0.5);
 
+    const questionsWithImages = attachLocalImages(req, questions);
+
     return res.status(200).json({
       mode: "marathon",
       duration: 0,
       totalQuestions: 800,
-      questions,
+      questions: questionsWithImages,
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });

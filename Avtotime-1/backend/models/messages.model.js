@@ -30,7 +30,11 @@ const messageSchema = new mongoose.Schema({
     },
     fileSize: {
         type: Number
-    }
+    },
+    audioUrl: {
+        type: String,
+        default: null,
+    },
 
     }, {
         timestamps:true,

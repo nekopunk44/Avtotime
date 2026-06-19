@@ -15,7 +15,7 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { LocationPickerMapModal } from '../shared/LocationPickerMapModal';
+import { LocationPickerMapModal, type PickedLocationResult } from '../shared/LocationPickerMapModal';
 
 type HelpRequestStatus = 'active' | 'resolved';
 
@@ -27,6 +27,7 @@ interface HelpRequest {
   time?: string;
   createdAt?: string;
   location: string;
+  coordinates?: { lat: number; lng: number } | null;
   description: string;
   status: HelpRequestStatus;
 }
@@ -57,11 +58,13 @@ const apiFetchJson = async <T,>(url: string, init?: RequestInit): Promise<T> => 
   return (await res.json()) as T;
 };
 
-const buildRouteUrl = (location: string) => {
+const buildRouteUrl = (location: string, coordinates?: { lat: number; lng: number } | null) => {
+  if (coordinates?.lat && coordinates?.lng) {
+    return `https://www.google.com/maps/?q=${coordinates.lat},${coordinates.lng}`;
+  }
   const q = location.trim();
   if (!q) return '';
-  const encoded = encodeURIComponent(q);
-  return `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 };
 
 const ModalShell: React.FC<{
@@ -123,11 +126,13 @@ export const HelpOthersPage: React.FC = () => {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createLocation, setCreateLocation] = useState('');
+  const [createCoordinates, setCreateCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [createDescription, setCreateDescription] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState('');
 
   const [editingRequest, setEditingRequest] = useState<HelpRequest | null>(null);
+  const [editCoordinates, setEditCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [isMapOpen, setIsMapOpen] = useState(false);
@@ -165,6 +170,7 @@ export const HelpOthersPage: React.FC = () => {
   const openCreate = () => {
     setCreateError('');
     setCreateLocation('');
+    setCreateCoordinates(null);
     setCreateDescription('');
     setIsCreateOpen(true);
   };
@@ -188,7 +194,7 @@ export const HelpOthersPage: React.FC = () => {
       await apiFetchJson('/api/market/help-others/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ location, description }),
+        body: JSON.stringify({ location, description, coordinates: createCoordinates }),
       });
       setIsCreateOpen(false);
       setView('my-requests');
@@ -228,7 +234,7 @@ export const HelpOthersPage: React.FC = () => {
       await apiFetchJson(`/api/market/help-others/requests/${encodeURIComponent(id)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ location, description, status: editingRequest.status }),
+        body: JSON.stringify({ location, description, status: editingRequest.status, coordinates: editCoordinates ?? editingRequest.coordinates }),
       });
       setEditingRequest(null);
       await refresh();
@@ -249,8 +255,9 @@ export const HelpOthersPage: React.FC = () => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        setEditingRequest((prev) => (prev ? { ...prev, location: `${lat.toFixed(4)}, ${lon.toFixed(4)}` } : prev));
+        const lng = pos.coords.longitude;
+        setEditCoordinates({ lat, lng });
+        setEditingRequest((prev) => (prev ? { ...prev, location: `${lat.toFixed(5)}, ${lng.toFixed(5)}` } : prev));
       },
       () => setEditError('Не удалось получить геолокацию. Введи адрес вручную.'),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
@@ -346,6 +353,7 @@ export const HelpOthersPage: React.FC = () => {
                           <button
                             onClick={() => {
                               setEditError('');
+                              setEditCoordinates(request.coordinates ?? null);
                               setEditingRequest(request);
                             }}
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -425,12 +433,12 @@ export const HelpOthersPage: React.FC = () => {
                             Связаться
                           </button>
                           <a
-                            href={buildRouteUrl(request.location) || '#'}
-                            target={buildRouteUrl(request.location) ? '_blank' : undefined}
+                            href={buildRouteUrl(request.location, request.coordinates) || '#'}
+                            target={buildRouteUrl(request.location, request.coordinates) ? '_blank' : undefined}
                             rel="noreferrer"
                             className="flex-1 bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
                             onClick={(e) => {
-                              if (!buildRouteUrl(request.location)) e.preventDefault();
+                              if (!buildRouteUrl(request.location, request.coordinates)) e.preventDefault();
                             }}
                           >
                             <MapPin className="w-5 h-5" />
@@ -510,7 +518,7 @@ export const HelpOthersPage: React.FC = () => {
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   value={createLocation}
-                  onChange={(e) => setCreateLocation(e.target.value)}
+                  onChange={(e) => { setCreateLocation(e.target.value); setCreateCoordinates(null); }}
                   placeholder="Например: Кишинёв, Ботаника"
                   className="w-full pl-11 pr-12 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
                 />
@@ -571,7 +579,7 @@ export const HelpOthersPage: React.FC = () => {
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   value={editingRequest.location}
-                  onChange={(e) => setEditingRequest({ ...editingRequest, location: e.target.value })}
+                  onChange={(e) => { setEditCoordinates(null); setEditingRequest({ ...editingRequest, location: e.target.value }); }}
                   className="w-full pl-11 pr-[88px] py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -634,9 +642,14 @@ export const HelpOthersPage: React.FC = () => {
         onClose={() => setIsMapOpen(false)}
         selectedRegion={mapTarget === 'create' ? createLocation : editingRequest?.location || ''}
         title="Выберите местоположение на карте"
-        onSelect={(region) => {
-          if (mapTarget === 'create') setCreateLocation(region);
-          else setEditingRequest((prev) => (prev ? { ...prev, location: region } : prev));
+        onSelect={(picked: PickedLocationResult) => {
+          if (mapTarget === 'create') {
+            setCreateLocation(picked.label);
+            setCreateCoordinates({ lat: picked.lat, lng: picked.lng });
+          } else {
+            setEditCoordinates({ lat: picked.lat, lng: picked.lng });
+            setEditingRequest((prev) => (prev ? { ...prev, location: picked.label } : prev));
+          }
         }}
       />
     </div>

@@ -1,22 +1,156 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Chess preview">
-  <rect x="56" y="24" width="400" height="208" rx="36" fill="#0f172a" opacity="0.06" />
+  <defs>
+    <linearGradient id="chBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#FEF3C7" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#E0E7FF" stop-opacity="0.45"/>
+    </linearGradient>
+  </defs>
 
-  <g transform="translate(96 40)">
-    <rect x="0" y="0" width="264" height="176" rx="30" fill="#0f172a" opacity="0.08" />
-    <g fill="#0f172a" opacity="0.10">
-      <rect x="20" y="20" width="56" height="56" rx="16" />
-      <rect x="92" y="20" width="56" height="56" rx="16" />
-      <rect x="164" y="20" width="56" height="56" rx="16" />
-      <rect x="20" y="92" width="56" height="56" rx="16" />
-      <rect x="92" y="92" width="56" height="56" rx="16" />
-      <rect x="164" y="92" width="56" height="56" rx="16" />
+  <!-- Background -->
+  <rect width="512" height="256" rx="28" fill="url(#chBg)"/>
+
+  <!-- Board frame -->
+  <rect x="164" y="36" width="184" height="184" rx="6" fill="#78350F"/>
+  <rect x="168" y="40" width="176" height="176" fill="#F0D9B5"/>
+
+  <!-- Dark squares ((c+r) odd) -->
+  <g fill="#B58863">
+    <!-- row 0 -->
+    <rect x="190" y="40"  width="22" height="22"/>
+    <rect x="234" y="40"  width="22" height="22"/>
+    <rect x="278" y="40"  width="22" height="22"/>
+    <rect x="322" y="40"  width="22" height="22"/>
+    <!-- row 1 -->
+    <rect x="168" y="62"  width="22" height="22"/>
+    <rect x="212" y="62"  width="22" height="22"/>
+    <rect x="256" y="62"  width="22" height="22"/>
+    <rect x="300" y="62"  width="22" height="22"/>
+    <!-- row 2 -->
+    <rect x="190" y="84"  width="22" height="22"/>
+    <rect x="234" y="84"  width="22" height="22"/>
+    <rect x="278" y="84"  width="22" height="22"/>
+    <rect x="322" y="84"  width="22" height="22"/>
+    <!-- row 3 -->
+    <rect x="168" y="106" width="22" height="22"/>
+    <rect x="212" y="106" width="22" height="22"/>
+    <rect x="256" y="106" width="22" height="22"/>
+    <rect x="300" y="106" width="22" height="22"/>
+    <!-- row 4 -->
+    <rect x="190" y="128" width="22" height="22"/>
+    <rect x="234" y="128" width="22" height="22"/>
+    <rect x="278" y="128" width="22" height="22"/>
+    <rect x="322" y="128" width="22" height="22"/>
+    <!-- row 5 -->
+    <rect x="168" y="150" width="22" height="22"/>
+    <rect x="212" y="150" width="22" height="22"/>
+    <rect x="256" y="150" width="22" height="22"/>
+    <rect x="300" y="150" width="22" height="22"/>
+    <!-- row 6 -->
+    <rect x="190" y="172" width="22" height="22"/>
+    <rect x="234" y="172" width="22" height="22"/>
+    <rect x="278" y="172" width="22" height="22"/>
+    <rect x="322" y="172" width="22" height="22"/>
+    <!-- row 7 -->
+    <rect x="168" y="194" width="22" height="22"/>
+    <rect x="212" y="194" width="22" height="22"/>
+    <rect x="256" y="194" width="22" height="22"/>
+    <rect x="300" y="194" width="22" height="22"/>
+  </g>
+
+  <!-- Last move highlight (e2 → e4) -->
+  <rect x="256" y="172" width="22" height="22" fill="#FACC15" opacity="0.5"/>
+  <rect x="256" y="128" width="22" height="22" fill="#FACC15" opacity="0.5"/>
+
+  <!-- === Pieces (Italian Game: 1.e4 e5 2.Nf3 Nc6 3.Bc4 Bc5) === -->
+  <g font-family="'Segoe UI Symbol','DejaVu Sans','Arial Unicode MS',sans-serif"
+     font-size="22" text-anchor="middle" dominant-baseline="central">
+
+    <!-- Black pieces (filled, dark) -->
+    <g fill="#0F172A">
+      <!-- Row 0 (rank 8): r . b q k b n r -->
+      <text x="179" y="51">♜</text>
+      <text x="223" y="51">♝</text>
+      <text x="245" y="51">♛</text>
+      <text x="267" y="51">♚</text>
+      <text x="289" y="51">♝</text>
+      <text x="311" y="51">♞</text>
+      <text x="333" y="51">♜</text>
+      <!-- Row 1 (rank 7): pawns except e7 -->
+      <text x="179" y="73">♟</text>
+      <text x="201" y="73">♟</text>
+      <text x="223" y="73">♟</text>
+      <text x="245" y="73">♟</text>
+      <text x="289" y="73">♟</text>
+      <text x="311" y="73">♟</text>
+      <text x="333" y="73">♟</text>
+      <!-- Row 2: black knight at c6 -->
+      <text x="223" y="95">♞</text>
+      <!-- Row 3: black bishop at c5, pawn at e5 -->
+      <text x="223" y="117">♝</text>
+      <text x="267" y="117">♟</text>
+    </g>
+
+    <!-- White pieces (outlined / light) -->
+    <g fill="#FAFAFA" stroke="#1F2937" stroke-width="1.2" paint-order="stroke fill">
+      <!-- Row 4: white bishop at c4, white pawn at e4 -->
+      <text x="223" y="139">♝</text>
+      <text x="267" y="139">♟</text>
+      <!-- Row 5: white knight at f3 -->
+      <text x="289" y="161">♞</text>
+      <!-- Row 6 (rank 2): pawns except e2 -->
+      <text x="179" y="183">♟</text>
+      <text x="201" y="183">♟</text>
+      <text x="223" y="183">♟</text>
+      <text x="245" y="183">♟</text>
+      <text x="289" y="183">♟</text>
+      <text x="311" y="183">♟</text>
+      <text x="333" y="183">♟</text>
+      <!-- Row 7 (rank 1): R N B Q K . . R -->
+      <text x="179" y="205">♜</text>
+      <text x="201" y="205">♞</text>
+      <text x="223" y="205">♝</text>
+      <text x="245" y="205">♛</text>
+      <text x="267" y="205">♚</text>
+      <text x="333" y="205">♜</text>
     </g>
   </g>
 
-  <g transform="translate(332 184) scale(0.040) translate(-2048 -2048)" fill="#0f172a" opacity="0.90">
-    <path d="m2049.1 3846.5h-1186.5q-87.891-219.73-87.891-459.23 0-406.49 230.71-729.49 230.71-323 593.26-461.43-156.01-72.51-254.88-217.53-96.68-147.22-96.68-331.79 0-230.71 153.81-399.9 153.81-169.19 377.93-195.56-177.98-134.03-177.98-353.76 0-184.57 129.64-316.41 131.84-131.84 318.6-131.84 184.57 0 316.41 131.84 131.84 131.84 131.84 316.41 0 219.73-177.98 353.76 224.12 26.367 377.93 195.56 153.81 169.19 153.81 399.9 0 184.57-101.07 331.79-98.877 145.02-252.69 217.53 362.55 138.43 593.26 461.43 230.71 323 230.71 729.49 0 237.3-85.693 459.23z" />
+  <!-- Side panel: turn indicator + move list -->
+  <g transform="translate(364, 36)">
+    <!-- Turn -->
+    <rect x="0" y="0" width="120" height="34" rx="17" fill="white" stroke="#1F2937" stroke-width="2"/>
+    <circle cx="18" cy="17" r="9" fill="#FAFAFA" stroke="#1F2937" stroke-width="1.5"/>
+    <text x="68" y="22" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="13" fill="#1F2937">Ход белых</text>
+
+    <!-- Move list -->
+    <rect x="0" y="44" width="120" height="140" rx="10" fill="white" stroke="#CBD5E1" stroke-width="1.5"/>
+    <text x="10" y="62" font-family="sans-serif" font-weight="bold" font-size="11" fill="#64748B">ХОДЫ</text>
+    <g font-family="monospace" font-size="12" fill="#1E293B">
+      <text x="10" y="84">1.</text>
+      <text x="34" y="84">e4</text>
+      <text x="72" y="84">e5</text>
+      <text x="10" y="106">2.</text>
+      <text x="34" y="106">Nf3</text>
+      <text x="72" y="106">Nc6</text>
+      <text x="10" y="128">3.</text>
+      <text x="34" y="128">Bc4</text>
+      <text x="72" y="128">Bc5</text>
+      <text x="10" y="150">4.</text>
+      <text x="34" y="150" fill="#94A3B8">_</text>
+    </g>
   </g>
 
-  <circle cx="376" cy="76" r="18" fill="#38bdf8" opacity="0.26" />
-  <circle cx="392" cy="96" r="12" fill="#f59e0b" opacity="0.26" />
+  <!-- Side: captured pieces (small) -->
+  <g transform="translate(28, 36)">
+    <rect x="0" y="0" width="120" height="60" rx="10" fill="white" stroke="#CBD5E1" stroke-width="1.5"/>
+    <text x="10" y="18" font-family="sans-serif" font-weight="bold" font-size="10" fill="#64748B">ВЗЯТЫЕ</text>
+    <text x="60" y="44" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#94A3B8" font-style="italic">пока нет</text>
+
+    <!-- Timer-ish badge -->
+    <g transform="translate(0, 72)">
+      <rect x="0" y="0" width="120" height="44" rx="10" fill="#1F2937"/>
+      <text x="60" y="18" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="10" fill="#94A3B8">ВРЕМЯ</text>
+      <text x="60" y="38" text-anchor="middle" font-family="monospace" font-weight="900" font-size="16" fill="#FACC15">10:24</text>
+    </g>
+  </g>
 </svg>

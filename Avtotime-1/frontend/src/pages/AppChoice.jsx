@@ -23,7 +23,7 @@ function ChoiceCard({
       type="button"
       onClick={onClick}
       className={[
-        "group relative w-full overflow-hidden rounded-[30px] border p-6 text-center",
+        "group relative w-full overflow-hidden rounded-[20px] sm:rounded-[30px] border p-4 sm:p-6 text-center",
         "transition-[transform,box-shadow] duration-300 hover:-translate-y-1",
         "shadow-[0_20px_70px_rgba(0,0,0,0.10)] hover:shadow-[0_30px_90px_rgba(0,0,0,0.16)]",
         tones[tone],
@@ -45,20 +45,20 @@ function ChoiceCard({
       <div className="relative">
         <div
           className={[
-            "mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl sm:mb-8 sm:h-16 sm:w-16",
+            "mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl sm:mb-8 sm:h-16 sm:w-16 sm:rounded-2xl",
             "transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-[1.03]",
             tone === "dark" ? "bg-white/10" : "bg-black/10",
           ].join(" ")}
         >
           {icon}
         </div>
-        <h2 className="text-2xl font-semibold">{title}</h2>
-        <p className={`mx-auto mt-3 max-w-md text-sm leading-relaxed ${tone === "dark" ? "text-neutral-300" : "text-neutral-600"}`}>
+        <h2 className="text-lg sm:text-2xl font-semibold">{title}</h2>
+        <p className={`mx-auto mt-3 max-w-md text-sm leading-relaxed hidden sm:block ${tone === "dark" ? "text-neutral-300" : "text-neutral-600"}`}>
           {description}
         </p>
 
         {chips.length ? (
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <div className="mt-4 hidden sm:flex flex-wrap items-center justify-center gap-2">
             {chips.slice(0, 6).map((chip) => (
               <span
                 key={chip}
@@ -76,16 +76,16 @@ function ChoiceCard({
           </div>
         ) : null}
 
-        <div className="mt-8 flex items-center justify-center">
+        <div className="mt-4 sm:mt-8 flex items-center justify-center">
           <div
             className={[
-              "inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold sm:text-base",
+              "inline-flex items-center justify-center gap-1 sm:gap-2 rounded-full px-3 py-2 sm:px-5 sm:py-3 text-xs sm:text-base font-semibold",
               "transition-[transform,background-color] duration-300 group-hover:scale-[1.02]",
               tone === "dark" ? "bg-white text-black" : "bg-neutral-950 text-white",
             ].join(" ")}
           >
             <span>{actionLabel}</span>
-            <IoArrowForward className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
+            <IoArrowForward className="h-3 w-3 sm:h-5 sm:w-5 transition-transform duration-300 group-hover:translate-x-1" />
           </div>
         </div>
       </div>
@@ -133,12 +133,12 @@ export default function AppChoice() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6">
           <ChoiceCard
-            icon={<IoPeopleOutline className="h-7 w-7 sm:h-8 sm:w-8" />}
+            icon={<IoPeopleOutline className="h-6 w-6 sm:h-8 sm:w-8" />}
             title="Соцсеть"
             description="Лента и сторис, сообщения, друзья и профиль."
-            actionLabel="Перейти в соцсеть"
+            actionLabel="Перейти"
             onClick={() => navigate("/")}
             tone="dark"
             accent="from-fuchsia-500/35 via-violet-500/25 to-sky-500/25"
@@ -146,21 +146,15 @@ export default function AppChoice() {
           />
 
           <ChoiceCard
-            icon={<IoCarSportOutline className="h-7 w-7 sm:h-8 sm:w-8" />}
+            icon={<IoCarSportOutline className="h-6 w-6 sm:h-8 sm:w-8" />}
             title="Автомаркет"
             description="Объявления, услуги, подбор и сравнение."
-            actionLabel="Открыть автомаркет"
+            actionLabel="Открыть"
             onClick={() => navigate("/market")}
             tone="light"
             accent="from-emerald-500/25 via-sky-500/20 to-amber-500/20"
             chips={["Объявления", "Сервисы", "Подбор", "Сравнение", "Тарифы"]}
           />
-        </div>
-
-        <div className="mt-10 flex items-center justify-center">
-          <div className="rounded-full border border-black/10 bg-white/50 px-4 py-2 text-[12px] font-semibold text-neutral-700 backdrop-blur">
-            Совет: на компьютере можно держать сообщения справа во время просмотра ленты.
-          </div>
         </div>
       </div>
     </div>

@@ -16,19 +16,26 @@ EMAIL=${2:?Usage: $0 <domain> <email>}
 echo "→ Setting domain to $DOMAIN in nginx/nginx.conf"
 sed -i "s/YOUR_DOMAIN/$DOMAIN/g" nginx/nginx.conf
 
-# ── 1.5. Build frontend ────────────────────────────────────────────────────
-echo "→ Copying ticket images to frontend/public"
-mkdir -p ./frontend/public/tickets
-if [ -d "../../frontend_market/public/tickets" ]; then
-  cp -r ../../frontend_market/public/tickets/. ./frontend/public/tickets/
-elif [ -d "../frontend_market/public/tickets" ]; then
-  cp -r ../frontend_market/public/tickets/. ./frontend/public/tickets/
+# ── 1.5. Build frontend (frontend_market) ─────────────────────────────────
+# Determine path to frontend_market (works whether Avtotime-1 is a subfolder
+# of the repo root or cloned directly).
+if [ -d "../frontend_market" ]; then
+  FRONTEND_SRC="../frontend_market"
+elif [ -d "../../frontend_market" ]; then
+  FRONTEND_SRC="../../frontend_market"
+else
+  echo "ERROR: cannot find frontend_market directory" >&2
+  exit 1
 fi
 
-echo "→ Building frontend"
+echo "→ Building frontend from $FRONTEND_SRC"
 docker build -t avtotime-frontend-builder \
   --build-arg VITE_API_URL="https://$DOMAIN" \
-  ./frontend
+  "$FRONTEND_SRC"
+
+# Clean up any stale extract container
+docker rm frontend-extract 2>/dev/null || true
+
 docker create --name frontend-extract avtotime-frontend-builder
 mkdir -p ./frontend/dist
 docker cp frontend-extract:/app/dist/. ./frontend/dist/

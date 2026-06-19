@@ -18,3 +18,10 @@ package-lock.json
 
 # Logs
 *.log
+
+# Local infrastructure notes
+INFRASTRUCTURE.md
+
+# Temporary deployment scratch directories
+backend-temp/
+frontend-temp/

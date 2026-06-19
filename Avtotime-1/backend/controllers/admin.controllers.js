@@ -8,6 +8,7 @@ import MarketDryCleaningListing from "../models/marketDryCleaningListing.model.j
 import MarketConsultationExpert from "../models/marketConsultationExpert.model.js";
 import { checkIsAdminByUser } from "../config/admin.js";
 import { createNotification } from "./notification.controllers.js";
+import { invalidateAuthSession } from "../services/authSessionCache.js";
 
 const getModelByKind = (kind) => {
   switch (String(kind || "").toLowerCase()) {
@@ -518,6 +519,7 @@ export const banUser = async (req, res) => {
       { new: true }
     ).select("_id userName name email isBanned banReason bannedAt").lean();
     if (!user) return res.status(404).json({ message: "User not found" });
+    await invalidateAuthSession(String(id)).catch(() => {});
     return res.status(200).json({ ok: true, user });
   } catch (error) {
     return res.status(500).json({ message: error?.message || "Failed to ban user" });
@@ -533,6 +535,7 @@ export const unbanUser = async (req, res) => {
       { new: true }
     ).select("_id userName name email isBanned").lean();
     if (!user) return res.status(404).json({ message: "User not found" });
+    await invalidateAuthSession(String(id)).catch(() => {});
     return res.status(200).json({ ok: true, user });
   } catch (error) {
     return res.status(500).json({ message: error?.message || "Failed to unban user" });

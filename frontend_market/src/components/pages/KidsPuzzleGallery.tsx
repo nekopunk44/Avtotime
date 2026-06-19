@@ -104,17 +104,17 @@ export const KidsPuzzleGallery: React.FC<KidsPuzzleGalleryProps> = ({ onSelect }
       ) : null}
 
       {loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="rounded-2xl border border-gray-100 bg-gray-50 p-4 animate-pulse">
-              <div className="aspect-[16/9] rounded-xl bg-white/70" />
-              <div className="h-4 mt-3 w-2/3 bg-white/70 rounded" />
-              <div className="h-3 mt-2 w-1/2 bg-white/70 rounded" />
+            <div key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-2.5 animate-pulse">
+              <div className="aspect-square rounded-lg bg-white/70" />
+              <div className="h-3.5 mt-2.5 w-2/3 bg-white/70 rounded" />
+              <div className="h-3 mt-1.5 w-1/2 bg-white/70 rounded" />
             </div>
           ))}
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map((it) => {
             const thumb = coloredThumbs[it.id] || it.svgUrl;
             return (
@@ -122,25 +122,25 @@ export const KidsPuzzleGallery: React.FC<KidsPuzzleGalleryProps> = ({ onSelect }
                 key={it.id}
                 type="button"
                 onClick={() => onSelect(it.svgUrl, it.title || 'Пазлы')}
-                className="rounded-2xl border border-gray-100 bg-white p-4 text-left hover:shadow-sm transition-shadow"
+                className="rounded-xl border border-gray-100 bg-white p-2.5 text-left hover:shadow-md transition-shadow active:scale-[0.97]"
               >
-                <div className="aspect-[16/9] rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-100">
+                <div className="aspect-square rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-100">
                   <img
                     src={thumb}
                     alt={it.title}
-                    className="w-full h-full object-contain p-3"
+                    className="w-full h-full object-contain p-2"
                     loading="lazy"
                   />
                 </div>
-                <div className="mt-3 flex items-start justify-between gap-3">
+                <div className="mt-2 flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="font-bold text-gray-900 truncate">{it.title}</div>
-                    <div className="text-sm text-gray-500 truncate">
+                    <div className="font-semibold text-sm text-gray-900 truncate leading-tight">{it.title}</div>
+                    <div className="text-xs text-gray-400 mt-0.5 truncate">
                       {it.collection === 'coloring_mult' ? 'Мультфильмы' : 'Раскраски'}
                     </div>
                   </div>
-                  <div className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0">
-                    <Wand2 className="w-5 h-5 text-gray-700" />
+                  <div className="w-7 h-7 rounded-xl bg-gray-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <Wand2 className="w-3.5 h-3.5 text-gray-600" />
                   </div>
                 </div>
               </button>

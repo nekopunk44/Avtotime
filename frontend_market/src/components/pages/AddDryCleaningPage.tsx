@@ -155,7 +155,7 @@ export const AddDryCleaningPage: React.FC<AddDryCleaningPageProps> = ({ onBack, 
       <LocationPickerMapModal
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}
-        onSelect={(region) => updateField('location', region)}
+        onSelect={(picked) => updateField('location', picked.label)}
         selectedRegion={formData.location}
         title="Выберите регион для химчистки"
       />

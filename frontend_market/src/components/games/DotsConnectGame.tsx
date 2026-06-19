@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { RotateCcw, Shuffle } from 'lucide-react';
-import { DOT_TEMPLATES } from '../../constants/dotsTemplates';
+import { RotateCcw, Shuffle, Trophy } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { DOT_TEMPLATES, VIRTUAL_W, VIRTUAL_H } from '../../constants/dotsTemplates';
 
 interface DotsGameProps {
   onScore?: (score: number) => void;
@@ -17,14 +18,12 @@ type GameState = {
 
 type GameAction = { type: 'reset' } | { type: 'hit'; index: number; dotCount: number };
 
-const CANVAS_WIDTH = 400;
-const CANVAS_HEIGHT = 250;
-const HIT_RADIUS = 16;
-const DOT_RADIUS = 6;
-const DOT_COLOR = '#111827'; // gray-900
-const DOT_DONE_COLOR = '#10b981'; // emerald-500
-const DOT_NEXT_COLOR = '#111827';
-const SILHOUETTE_COLOR = 'rgba(17, 24, 39, 0.10)';
+const HIT_RADIUS = 18; // in virtual coords
+const DOT_RADIUS = 7;
+const DOT_COLOR = '#1F2937';
+const DOT_DONE_COLOR = '#10B981';
+const DOT_NEXT_COLOR = '#2563EB';
+const SILHOUETTE_COLOR = 'rgba(37, 99, 235, 0.18)';
 
 const drawSmoothPolyline = (ctx: CanvasRenderingContext2D, points: Dot[]) => {
   if (points.length < 2) return;
@@ -33,7 +32,6 @@ const drawSmoothPolyline = (ctx: CanvasRenderingContext2D, points: Dot[]) => {
     ctx.lineTo(points[1].x, points[1].y);
     return;
   }
-
   ctx.moveTo(points[0].x, points[0].y);
   for (let i = 1; i < points.length - 1; i++) {
     const prev = points[i];
@@ -52,23 +50,16 @@ const reducer = (state: GameState, action: GameAction): GameState => {
       return { connected: [], score: 0, completed: false };
     case 'hit': {
       if (state.completed) return state;
-
       const connected = state.connected;
       const last = connected.length > 0 ? connected[connected.length - 1] : null;
-
-      // Next expected dot
       if (connected.length === action.index) {
-        const nextConnected = [...connected, action.index];
-        const nextScore = nextConnected.length;
-        return { connected: nextConnected, score: nextScore, completed: nextScore === action.dotCount };
+        const next = [...connected, action.index];
+        return { connected: next, score: next.length, completed: next.length === action.dotCount };
       }
-
-      // Tap last dot to undo
       if (last === action.index) {
-        const nextConnected = connected.slice(0, -1);
-        return { connected: nextConnected, score: nextConnected.length, completed: false };
+        const next = connected.slice(0, -1);
+        return { connected: next, score: next.length, completed: false };
       }
-
       return state;
     }
     default:
@@ -78,6 +69,7 @@ const reducer = (state: GameState, action: GameAction): GameState => {
 
 export const DotsConnectGame: React.FC<DotsGameProps> = ({ onScore, onComplete }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const completedNotifiedRef = useRef(false);
 
   const templates = DOT_TEMPLATES;
@@ -85,9 +77,11 @@ export const DotsConnectGame: React.FC<DotsGameProps> = ({ onScore, onComplete }
   const [isPointerDown, setIsPointerDown] = useState(false);
   const [state, dispatch] = useReducer(reducer, { connected: [], score: 0, completed: false });
 
+  // Display scale: virtual coord -> CSS pixel
+  const [scale, setScale] = useState(1);
+
   const template = templates[templateIndex % templates.length];
   const dots = template.dots;
-
   const progressTotal = dots.length;
 
   useEffect(() => {
@@ -106,6 +100,36 @@ export const DotsConnectGame: React.FC<DotsGameProps> = ({ onScore, onComplete }
     dispatch({ type: 'reset' });
   }, [template.id]);
 
+  // Responsive canvas: keep aspect ratio, scale internal resolution with DPR.
+  useEffect(() => {
+    const el = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!el || !canvas) return;
+
+    const update = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const cssW = el.clientWidth;
+      if (cssW <= 0) return;
+      const cssH = Math.round(cssW * (VIRTUAL_H / VIRTUAL_W));
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
+      canvas.style.width = `${cssW}px`;
+      canvas.style.height = `${cssH}px`;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Combine DPR scale with virtual-coord scale so drawing code can use raw virtual coords.
+        const s = cssW / VIRTUAL_W;
+        ctx.setTransform(dpr * s, 0, 0, dpr * s, 0, 0);
+      }
+      setScale(cssW / VIRTUAL_W);
+    };
+
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // Draw
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -113,35 +137,56 @@ export const DotsConnectGame: React.FC<DotsGameProps> = ({ onScore, onComplete }
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = '#f3f4f6';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Clear in virtual coords (transform already applied)
+    ctx.clearRect(0, 0, VIRTUAL_W, VIRTUAL_H);
+
+    // Background
+    ctx.fillStyle = '#F8FAFC';
+    ctx.fillRect(0, 0, VIRTUAL_W, VIRTUAL_H);
 
     if (dots.length === 0) return;
 
-    // Connected line
-    if (state.connected.length > 1) {
-      ctx.strokeStyle = state.completed ? '#10b981' : '#3b82f6';
-      ctx.lineWidth = state.completed ? 3 : 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      ctx.beginPath();
-      const connectedPoints = state.connected.map((idx) => dots[idx]).filter(Boolean);
-      drawSmoothPolyline(ctx, connectedPoints);
-      ctx.stroke();
-    }
-
-    // Faint silhouette of the full car outline
+    // Faint silhouette of full outline
     if (!state.completed && dots.length > 2) {
       ctx.save();
       ctx.strokeStyle = SILHOUETTE_COLOR;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.setLineDash([6, 6]);
+      ctx.setLineDash([4, 5]);
       ctx.beginPath();
       drawSmoothPolyline(ctx, dots);
-      // close back to start to make the silhouette continuous
+      ctx.lineTo(dots[0].x, dots[0].y);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Connected line
+    if (state.connected.length > 1) {
+      ctx.save();
+      ctx.strokeStyle = state.completed ? '#10B981' : '#2563EB';
+      ctx.lineWidth = state.completed ? 3.5 : 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = state.completed ? 'rgba(16,185,129,0.4)' : 'rgba(37,99,235,0.35)';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      const pts = state.connected.map((i) => dots[i]).filter(Boolean);
+      drawSmoothPolyline(ctx, pts);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Close the loop with a soft line if completed
+    if (state.completed && state.connected.length === dots.length) {
+      ctx.save();
+      ctx.strokeStyle = '#10B981';
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = 'rgba(16,185,129,0.4)';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.moveTo(dots[dots.length - 1].x, dots[dots.length - 1].y);
       ctx.lineTo(dots[0].x, dots[0].y);
       ctx.stroke();
       ctx.restore();
@@ -155,57 +200,60 @@ export const DotsConnectGame: React.FC<DotsGameProps> = ({ onScore, onComplete }
       const isConnected = state.connected.includes(idx);
       const isNext = !state.completed && idx === state.connected.length;
 
+      // Halo for "next" dot
+      if (isNext) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(37,99,235,0.16)';
+        ctx.beginPath();
+        ctx.arc(dot.x, dot.y, DOT_RADIUS + 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
       ctx.fillStyle = isConnected ? DOT_DONE_COLOR : isNext ? DOT_NEXT_COLOR : DOT_COLOR;
       ctx.beginPath();
       ctx.arc(dot.x, dot.y, DOT_RADIUS, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 8px Arial';
-      ctx.fillText((idx + 1).toString(), dot.x, dot.y);
+      // Label
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `bold ${dots.length > 30 ? 8 : 9}px system-ui, -apple-system, sans-serif`;
+      ctx.fillText(String(idx + 1), dot.x, dot.y + 0.5);
     });
-  }, [dots, state.connected, state.completed]);
+  }, [dots, state.connected, state.completed, scale]);
 
-  const mapEventToCanvasPoint = (e: { clientX: number; clientY: number }) => {
+  const mapEventToVirtual = (e: { clientX: number; clientY: number }) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
     return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
+      x: ((e.clientX - rect.left) / rect.width) * VIRTUAL_W,
+      y: ((e.clientY - rect.top) / rect.height) * VIRTUAL_H,
     };
   };
 
   const hitTestDotIndex = (x: number, y: number) => {
     if (dots.length === 0) return null;
-
     const nextIndex = state.connected.length;
     const lastIndex = state.connected.length > 0 ? state.connected[state.connected.length - 1] : null;
 
-    // Prefer "next" dot when multiple dots are close to each other.
     if (nextIndex >= 0 && nextIndex < dots.length) {
-      const nextDot = dots[nextIndex];
-      if (Math.hypot(x - nextDot.x, y - nextDot.y) < HIT_RADIUS) return nextIndex;
+      const d = dots[nextIndex];
+      if (Math.hypot(x - d.x, y - d.y) < HIT_RADIUS) return nextIndex;
     }
-
-    // Then allow undo by tapping the last connected dot.
     if (lastIndex !== null && lastIndex >= 0 && lastIndex < dots.length) {
-      const lastDot = dots[lastIndex];
-      if (Math.hypot(x - lastDot.x, y - lastDot.y) < HIT_RADIUS) return lastIndex;
+      const d = dots[lastIndex];
+      if (Math.hypot(x - d.x, y - d.y) < HIT_RADIUS) return lastIndex;
     }
-
-    // Otherwise ignore taps near "wrong" dots (prevents accidental jumps).
     return null;
   };
 
   const hitAtEvent = (e: { clientX: number; clientY: number }) => {
-    const point = mapEventToCanvasPoint(e);
-    if (!point) return;
-    const index = hitTestDotIndex(point.x, point.y);
-    if (index === null) return;
-    dispatch({ type: 'hit', index, dotCount: dots.length });
+    const p = mapEventToVirtual(e);
+    if (!p) return;
+    const idx = hitTestDotIndex(p.x, p.y);
+    if (idx === null) return;
+    dispatch({ type: 'hit', index: idx, dotCount: dots.length });
   };
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -225,9 +273,7 @@ export const DotsConnectGame: React.FC<DotsGameProps> = ({ onScore, onComplete }
     hitAtEvent(e);
   };
 
-  const handlePointerUp = () => {
-    setIsPointerDown(false);
-  };
+  const handlePointerUp = () => setIsPointerDown(false);
 
   const resetGame = () => {
     completedNotifiedRef.current = false;
@@ -240,77 +286,101 @@ export const DotsConnectGame: React.FC<DotsGameProps> = ({ onScore, onComplete }
     setTemplateIndex(next === templateIndex ? (next + 1) % templates.length : next);
   };
 
-  const hintText = useMemo(() => {
-    if (state.completed) return null;
-    return '👆 Нажимай (или веди пальцем) по точкам по порядку: 1, 2, 3…';
-  }, [state.completed]);
+  const progressPct = useMemo(
+    () => Math.round((state.score / Math.max(1, progressTotal)) * 100),
+    [state.score, progressTotal]
+  );
 
   return (
-    <div className="w-full h-full flex flex-col p-4 md:p-6 text-center">
-      <div className="flex items-center justify-between gap-3 mb-2 flex-shrink-0">
-        <div className="text-left min-w-0">
-          <p className="text-sm text-gray-500">
-            Картинка: <span className="font-semibold text-gray-700">{template.title}</span>
-          </p>
+    <div className="flex flex-col bg-white p-3 sm:p-4">
+      {/* Compact header */}
+      <div className="flex items-center gap-2 flex-shrink-0 mb-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-[11px] text-gray-500 font-medium">Картинка:</span>
+            <span className="text-sm font-bold text-gray-900 truncate">{template.title}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-300 ${
+                  state.completed ? 'bg-emerald-500' : 'bg-blue-500'
+                }`}
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <span className="text-[11px] font-bold text-gray-600 tabular-nums flex-shrink-0">
+              {state.score}/{progressTotal}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={nextTemplate}
-            className="p-2 hover:bg-gray-100 rounded-xl transition text-gray-600 disabled:opacity-40"
-            title="Другая картинка"
-            aria-label="Другая картинка"
-            disabled={templates.length <= 1}
-          >
-            <Shuffle className="w-5 h-5" />
-          </button>
-          <button
-            type="button"
-            onClick={resetGame}
-            className="p-2 hover:bg-gray-100 rounded-xl transition text-gray-600"
-            title="Заново"
-            aria-label="Заново"
-          >
-            <RotateCcw className="w-5 h-5" />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={nextTemplate}
+          className="p-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition text-gray-600 flex-shrink-0"
+          title="Другая картинка"
+          aria-label="Другая картинка"
+          disabled={templates.length <= 1}
+        >
+          <Shuffle className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={resetGame}
+          className="p-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition text-gray-600 flex-shrink-0"
+          title="Заново"
+          aria-label="Заново"
+        >
+          <RotateCcw className="w-4 h-4" />
+        </button>
       </div>
 
-      <div className="flex flex-col min-h-0 flex-1">
-        <div className="w-full flex-shrink-0 mb-4">
-          <div className="text-sm font-bold text-gray-900 mb-1">
-            Прогресс: <span className="text-blue-600">{state.score}/{progressTotal}</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div
-              className="bg-blue-600 h-2.5 rounded-full transition-all"
-              style={{ width: `${(state.score / Math.max(1, progressTotal)) * 100}%` }}
-            />
-          </div>
-        </div>
+      {/* Canvas container — width-driven aspect ratio = no leftover space */}
+      <div
+        ref={containerRef}
+        className="relative w-full border border-gray-200 rounded-2xl overflow-hidden bg-slate-50 flex-shrink-0"
+        style={{ aspectRatio: `${VIRTUAL_W} / ${VIRTUAL_H}` }}
+      >
+        <canvas
+          ref={canvasRef}
+          onClick={handleCanvasClick}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className="block touch-none cursor-pointer w-full h-full"
+        />
 
-        <div className="flex-1 flex flex-col items-center justify-end pb-4 min-h-0">
-          <div className="w-full max-w-[720px] border-2 border-gray-300 rounded-2xl overflow-hidden bg-gray-50">
-            <canvas
-              ref={canvasRef}
-              width={CANVAS_WIDTH}
-              height={CANVAS_HEIGHT}
-              onClick={handleCanvasClick}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
-              className="w-full h-auto cursor-crosshair touch-none"
-            />
-          </div>
+        <AnimatePresence>
+          {state.completed && (
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px]" />
+              <motion.div
+                className="relative rounded-2xl bg-white shadow-xl border border-emerald-100 px-5 py-4 flex items-center gap-3"
+                initial={{ scale: 0.85, y: 10 }}
+                animate={{ scale: 1, y: 0 }}
+                transition={{ type: 'spring', bounce: 0.3, duration: 0.5 }}
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                  <Trophy className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <div className="text-base font-bold text-gray-900">Готово!</div>
+                  <div className="text-xs text-gray-500">Картинка собрана</div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-          {state.completed ? (
-            <div className="text-center mt-4">
-              <div className="text-5xl mb-2">🎉</div>
-              <p className="text-xl font-bold text-green-600">Отлично!</p>
-            </div>
-          ) : null}
-        </div>
+      <div className="mt-2 text-center text-[10px] text-gray-400 flex-shrink-0">
+        Нажимай точки по порядку: 1 → 2 → 3 …
       </div>
     </div>
   );

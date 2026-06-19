@@ -11,6 +11,8 @@ import {
   Activity,
   ChevronDown,
   SlidersHorizontal,
+  X,
+  RotateCcw,
 } from 'lucide-react';
 import { LocationPickerMapModal } from '../shared/LocationPickerMapModal';
 import { AUTO_TUNING_TYPES } from '../../constants/autoTuning';
@@ -91,6 +93,15 @@ export const AutoTuningPage: React.FC<AutoTuningPageProps> = ({
   const stickyViewportHeight = 'calc(100vh - var(--market-header-height, 120px) - 16px)';
 
   useEffect(() => {
+    if (isMobileFiltersOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileFiltersOpen]);
+
+  useEffect(() => {
     if (!onLoadFiltered) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
@@ -162,7 +173,7 @@ export const AutoTuningPage: React.FC<AutoTuningPageProps> = ({
       <LocationPickerMapModal
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}
-        onSelect={setSelectedRegion}
+        onSelect={(picked) => setSelectedRegion(picked.label)}
         selectedRegion={selectedRegion}
       />
 
@@ -240,17 +251,30 @@ export const AutoTuningPage: React.FC<AutoTuningPageProps> = ({
 
         <div className="flex flex-col lg:flex-row items-start gap-8 lg:pb-4">
           <aside
-            className={`w-full pt-4 lg:pt-0 lg:w-80 flex-shrink-0 lg:self-start lg:sticky ${isMobileFiltersOpen ? 'block' : 'hidden lg:block'}`}
+            className={`fixed inset-0 z-[100] flex flex-col bg-white lg:relative lg:inset-auto lg:z-auto lg:w-80 lg:flex-shrink-0 lg:self-start lg:sticky lg:block transition-transform duration-300 ease-out ${isMobileFiltersOpen ? 'translate-y-0 visible' : 'translate-y-full invisible lg:translate-y-0 lg:visible pointer-events-none lg:pointer-events-auto'}`}
             style={{ top: stickyTopOffset }}
           >
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 lg:hidden shrink-0">
+              <h2 className="text-xl font-bold text-gray-900">Фильтры</h2>
+              <div className="flex items-center gap-2">
+                {isFiltersActive && (
+                  <button onClick={resetFilters} className="text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 text-sm font-medium">
+                    <RotateCcw className="w-4 h-4" />
+                    Сбросить
+                  </button>
+                )}
+                <button onClick={() => setIsMobileFiltersOpen(false)} className="p-1 text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
             <div
-              className="bg-white rounded-[32px] p-5 lg:p-7 shadow-sm border border-gray-100 lg:overflow-y-auto"
+              className="bg-white lg:rounded-[32px] p-5 lg:p-7 lg:shadow-sm lg:border lg:border-gray-100 lg:overflow-y-auto overflow-y-auto flex-1"
               style={{ maxHeight: stickyViewportHeight }}
             >
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-[22px] font-bold text-gray-900">Фильтры</h2>
-                </div>
+              <div className="hidden lg:flex items-center justify-between mb-6">
+                <h2 className="text-[22px] font-bold text-gray-900">Фильтры</h2>
                 {isFiltersActive && (
                   <button onClick={resetFilters} className="text-[14px] font-bold text-red-600 hover:text-red-700 transition-colors">
                     Сбросить
@@ -365,6 +389,7 @@ export const AutoTuningPage: React.FC<AutoTuningPageProps> = ({
 
               <button
                 disabled={!isFiltersActive}
+                onClick={() => setIsMobileFiltersOpen(false)}
                 className={`w-full py-3 rounded-2xl font-bold text-[16px] transition-all ${
                   isFiltersActive
                     ? 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/20'

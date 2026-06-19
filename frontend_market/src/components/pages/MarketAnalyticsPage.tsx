@@ -126,32 +126,33 @@ export const MarketAnalyticsPage: React.FC<MarketAnalyticsPageProps> = ({
   const planLabel = data?.effectivePlan ? PLAN_LABEL[data.effectivePlan] || data.effectivePlan : '';
 
   return (
-    <section className="min-h-screen bg-[#f6f6f6] py-10 sm:py-14">
+    <section className="min-h-screen bg-[#f6f6f6] py-6 sm:py-14">
       <div className="mx-auto max-w-[1536px] px-4 sm:px-6 lg:px-8">
-        <div className="grid items-start gap-6 lg:grid-cols-[220px_minmax(0,1fr)_220px]">
+        <div className="flex items-center gap-3 mb-5 sm:mb-0">
           <button
             onClick={onBack}
             aria-label="Назад в настройки"
-            className="sticky z-40 inline-flex h-14 w-14 items-center justify-center self-start rounded-2xl border border-red-200 bg-white text-red-600 shadow-[0_14px_32px_rgba(225,29,72,0.18)] transition-all hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
-            style={{ top: stickyTopOffset }}
+            className="inline-flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl border border-red-200 bg-white text-red-600 shadow-[0_8px_20px_rgba(225,29,72,0.14)] transition-all hover:bg-red-50"
           >
-            <ChevronLeft className="h-6 w-6 stroke-[2.8]" />
+            <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.8]" />
           </button>
-
-          <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-red-100 bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-red-600 shadow-sm">
-              <BarChart3 className="h-4 w-4" />
-              Аналитика
-            </div>
-            <h1 className="mt-5 max-w-3xl text-3xl font-black tracking-tight text-gray-950 sm:text-4xl lg:text-5xl">
-              Статистика объявлений
-            </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-gray-600 sm:text-lg">
-              Просмотры и контакты по вашим объявлениям за последние 7 дней.
-            </p>
+          <div className="sm:hidden">
+            <div className="text-lg font-black text-gray-950">Аналитика</div>
+            <div className="text-xs text-gray-500">Просмотры и контакты за 7 дней</div>
           </div>
+        </div>
 
-          <div className="hidden lg:block" />
+        <div className="hidden sm:flex flex-col items-center text-center mb-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-red-100 bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-red-600 shadow-sm">
+            <BarChart3 className="h-4 w-4" />
+            Аналитика
+          </div>
+          <h1 className="mt-5 max-w-3xl text-3xl font-black tracking-tight text-gray-950 sm:text-4xl lg:text-5xl">
+            Статистика объявлений
+          </h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-gray-600 sm:text-lg">
+            Просмотры и контакты по вашим объявлениям за последние 7 дней.
+          </p>
         </div>
 
         {loading ? (
@@ -181,7 +182,7 @@ export const MarketAnalyticsPage: React.FC<MarketAnalyticsPageProps> = ({
           </div>
         ) : data ? (
           <>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-4 sm:mt-8 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
               <Tile
                 label="Всего просмотров"
                 value={data.totals.viewsTotal}
@@ -208,8 +209,8 @@ export const MarketAnalyticsPage: React.FC<MarketAnalyticsPageProps> = ({
               />
             </div>
 
-            <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.95fr)]">
-              <div className="rounded-[32px] border border-zinc-200 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.06)] sm:p-7">
+            <div className="mt-4 sm:mt-8 grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.95fr)]">
+              <div className="rounded-[24px] sm:rounded-[32px] border border-zinc-200 bg-white p-4 sm:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-500">
@@ -231,7 +232,7 @@ export const MarketAnalyticsPage: React.FC<MarketAnalyticsPageProps> = ({
                 <SimpleBars data={data.dailyTotals} />
               </div>
 
-              <div className="rounded-[32px] bg-black p-7 text-white shadow-[0_20px_60px_rgba(0,0,0,0.14)]">
+              <div className="rounded-[24px] sm:rounded-[32px] bg-black p-4 sm:p-7 text-white shadow-[0_20px_60px_rgba(0,0,0,0.14)]">
                 <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/50">
                   Тариф
                 </div>
@@ -257,7 +258,7 @@ export const MarketAnalyticsPage: React.FC<MarketAnalyticsPageProps> = ({
               </div>
             </div>
 
-            <div className="mt-8 rounded-[32px] border border-zinc-200 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.06)] sm:p-7">
+            <div className="mt-4 sm:mt-8 rounded-[24px] sm:rounded-[32px] border border-zinc-200 bg-white p-4 sm:p-7 shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
               <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-500">
                 По объявлениям
               </div>
@@ -336,13 +337,13 @@ const Tile: React.FC<{
   accent: string;
   icon: React.ReactNode;
 }> = ({ label, value, accent, icon }) => (
-  <div className="rounded-2xl border border-zinc-200 bg-white px-5 py-4 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
-    <div className="flex items-center justify-between gap-3">
-      <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-gray-500">
+  <div className="rounded-xl sm:rounded-2xl border border-zinc-200 bg-white px-3 py-3 sm:px-5 sm:py-4 shadow-[0_8px_28px_rgba(0,0,0,0.04)]">
+    <div className="flex items-center justify-between gap-2">
+      <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500 leading-tight">
         {label}
       </div>
-      <div className={accent}>{icon}</div>
+      <div className={`${accent} shrink-0`}>{icon}</div>
     </div>
-    <div className="mt-3 text-3xl font-black text-gray-950">{value}</div>
+    <div className="mt-2 sm:mt-3 text-2xl sm:text-3xl font-black text-gray-950">{value}</div>
   </div>
 );

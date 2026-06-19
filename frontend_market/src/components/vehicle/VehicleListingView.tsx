@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Gauge, Fuel, Settings2, Calendar, MapPin, MessageCircle, Sparkles, Scale } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Gauge, Fuel, Settings2, Calendar, MapPin, MessageCircle, Scale } from 'lucide-react';
 import { Car } from '../../types';
-import { SectionHeader } from '../shared/SectionHeader';
-import { CarCard } from '../shared/CarCard';
-import { ServiceCard } from '../shared/ServiceCard';
-import { CARS, SERVICES } from '../../constants/mockData';
 import { formatAvtotimeNickname, openAvtotimeProfile } from '../../utils/avtotime';
 import { marketAPI } from '../../utils/marketAPI';
 
@@ -242,59 +238,6 @@ export const VehicleListingView: React.FC<VehicleListingViewProps> = ({
           </button>
         </div>
 
-        {/* Recommendations Section */}
-        <section className="pb-16">
-          <SectionHeader 
-            title={<span className="flex items-center gap-2"><Sparkles className="w-6 h-6 text-gray-900" /> Рекомендации для тебя</span>}
-            subtitle="НА ОСНОВЕ ВАШИХ ПРЕДПОЧТЕНИЙ И ИСТОРИИ ПРОСМОТРОВ" 
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {[...CARS, ...CARS].map((recCar, index) => (
-              <CarCard 
-                key={`rec-${recCar.id}-${index}`} 
-                car={recCar} 
-                isCompared={compareList.some(i => i.id === recCar.id && i.type === 'car')} 
-                onToggleCompare={() => toggleCompare(recCar.id, 'car')} 
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* Top Services Section */}
-        <section className="pb-4 overflow-hidden">
-          <SectionHeader 
-            title="Топ услуги" 
-            subtitle="ПРОФЕССИОНАЛЬНЫЕ АВТОМОБИЛЬНЫЕ УСЛУГИ ДЛЯ ВАС" 
-            showArrows={false}
-          />
-          
-          <div className="relative group/slider">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 pr-0 md:pr-20 xl:pr-24">
-              {SERVICES.map((service, index) => (
-                <div key={service.id} className={
-                  index >= 4 ? 'hidden' : 
-                  index === 3 ? 'hidden xl:block' : 
-                  ''
-                }>
-                  <ServiceCard 
-                    service={service} 
-                    isCompared={compareList.some(i => i.id === service.id && i.type === 'service')}
-                    onToggleCompare={() => toggleCompare(service.id, 'service')}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 items-center -space-x-2 md:w-20 xl:w-24 justify-center">
-              <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                <ChevronLeft className="w-10 h-10 stroke-[1]" />
-              </button>
-              <button className="text-red-600 hover:text-red-700 transition-colors">
-                <ChevronRight className="w-10 h-10 stroke-[1]" />
-              </button>
-            </div>
-          </div>
-        </section>
       </div>
     </div>
   );

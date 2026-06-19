@@ -1,29 +1,122 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Flappy car preview">
-  <rect x="48" y="24" width="416" height="208" rx="36" fill="#0f172a" opacity="0.06" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 256" role="img" aria-label="Flappy Car preview">
+  <defs>
+    <linearGradient id="fcSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#7DD3FC"/>
+      <stop offset="100%" stop-color="#BAE6FD"/>
+    </linearGradient>
+    <linearGradient id="fcPipe" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#15803D"/>
+      <stop offset="35%" stop-color="#4ADE80"/>
+      <stop offset="60%" stop-color="#22C55E"/>
+      <stop offset="100%" stop-color="#15803D"/>
+    </linearGradient>
+    <linearGradient id="fcCar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#F87171"/>
+      <stop offset="100%" stop-color="#DC2626"/>
+    </linearGradient>
+    <clipPath id="fcFrame">
+      <rect width="512" height="256" rx="28"/>
+    </clipPath>
+  </defs>
 
-  <g opacity="0.9">
-    <rect x="376" y="46" width="46" height="84" rx="16" fill="#0f172a" opacity="0.14" />
-    <rect x="376" y="142" width="46" height="84" rx="16" fill="#0f172a" opacity="0.14" />
-    <rect x="436" y="34" width="46" height="98" rx="16" fill="#0f172a" opacity="0.10" />
-    <rect x="436" y="130" width="46" height="98" rx="16" fill="#0f172a" opacity="0.10" />
-  </g>
+  <g clip-path="url(#fcFrame)">
+    <!-- Sky -->
+    <rect width="512" height="256" fill="url(#fcSky)"/>
 
-  <g transform="translate(86 62) scale(0.62)" opacity="0.92">
-    <g transform="translate(2.441785,-204.56609)" style="fill:#0f172a;fill-opacity:1;stroke:none">
-      <path
-        d="M -53.582954,-415.35856 C -67.309015,-415.84417 -79.137232,-411.40275 -86.431515,-395.45159 L -112.76807,-329.50717 C -131.95714,-324.21675 -140.31066,-310.27864 -140.75323,-298.84302 L -140.75323,-212.49705 L -115.44706,-212.49705 L -115.44706,-183.44029 C -116.67339,-155.74786 -71.290042,-154.67757 -70.275134,-183.7288 L -69.739335,-212.24976 L 94.421043,-212.24976 L 94.956841,-183.7288 C 95.971739,-154.67759 141.39631,-155.74786 140.16998,-183.44029 L 140.16998,-212.49705 L 165.43493,-212.49705 L 165.43493,-298.84302 C 164.99236,-310.27864 156.63886,-324.21677 137.44977,-329.50717 L 111.11322,-395.45159 C 103.81894,-411.40272 91.990714,-415.84414 78.264661,-415.35856 L -53.582954,-415.35856 z M -50.57424,-392.48409 C -49.426163,-392.49037 -48.215854,-392.45144 -46.988512,-392.40166 L 72.082372,-392.03072 C 82.980293,-392.28497 87.602258,-392.03039 92.236634,-381.7269 L 111.19565,-330.61998 L -86.30787,-330.86727 L -67.554927,-380.61409 C -64.630656,-390.57231 -58.610776,-392.44013 -50.57424,-392.48409 z M -92.036791,-305.02531 C -80.233147,-305.02529 -70.646071,-295.47944 -70.646071,-283.6758 C -70.646071,-271.87217 -80.233147,-262.28508 -92.036791,-262.28508 C -103.84043,-262.28508 -113.42751,-271.87216 -113.42751,-283.6758 C -113.42751,-295.47946 -103.84043,-305.02531 -92.036791,-305.02531 z M 117.91374,-305.02531 C 129.71738,-305.02533 139.26324,-295.47944 139.26324,-283.6758 C 139.26324,-271.87216 129.71738,-262.28508 117.91374,-262.28508 C 106.1101,-262.28507 96.523021,-271.87216 96.523021,-283.6758 C 96.523021,-295.47944 106.1101,-305.02531 117.91374,-305.02531 z M 103.2216,-333.14394 L 103.2216,-333.14394 z M 103.2216,-333.14394 C 103.11577,-333.93673 102.96963,-334.55679 102.80176,-335.21316 C 101.69663,-339.53416 100.2179,-342.16153 97.043938,-345.3793 C 93.958208,-348.50762 90.488134,-350.42644 86.42796,-351.28706 C 82.4419,-352.13197 45.472822,-352.13422 41.474993,-351.28706 C 33.885682,-349.67886 27.380491,-343.34759 25.371094,-335.633 C 25.286417,-335.3079 25.200722,-334.40363 25.131185,-333.2339 L 103.2216,-333.14394 z M 64.176391,-389.01277 C 58.091423,-389.00227 52.013792,-385.83757 48.882186,-379.47638 C 47.628229,-376.92924 47.532697,-376.52293 47.532697,-372.24912 C 47.532697,-368.02543 47.619523,-367.53023 48.822209,-364.99187 C 50.995125,-360.40581 54.081354,-357.67937 59.048334,-355.90531 C 60.598733,-355.35157 62.040853,-355.17797 64.86613,-355.27555 C 68.233081,-355.39187 68.925861,-355.58211 71.703539,-356.95492 C 75.281118,-358.72306 77.90719,-361.35074 79.680517,-364.96188 C 80.736152,-367.11156 80.820083,-367.68829 80.820085,-372.0392 C 80.820081,-376.56329 80.765213,-376.87662 79.470596,-379.50637 C 76.3443,-385.85678 70.261355,-389.02327 64.176391,-389.01277 z"
-        transform="matrix(0.9797897,0,0,0.9877946,140.46678,619.88975)"
-      />
+    <!-- Sun -->
+    <circle cx="438" cy="38" r="22" fill="#FACC15"/>
+    <circle cx="438" cy="38" r="32" fill="#FACC15" opacity="0.3"/>
+
+    <!-- Clouds -->
+    <g fill="white" opacity="0.9">
+      <ellipse cx="70"  cy="44" rx="28" ry="8"/>
+      <ellipse cx="95"  cy="38" rx="18" ry="6"/>
+      <ellipse cx="360" cy="60" rx="22" ry="7"/>
+    </g>
+
+    <!-- Distant hills -->
+    <path d="M 0,220 Q 100,200 200,212 T 400,206 T 512,214 L 512,256 L 0,256 Z" fill="#22C55E" opacity="0.4"/>
+
+    <!-- Ground -->
+    <rect x="0" y="232" width="512" height="24" fill="#4ADE80"/>
+    <rect x="0" y="232" width="512" height="4" fill="#15803D"/>
+    <!-- Ground stripes -->
+    <g fill="#15803D" opacity="0.55">
+      <rect x="0"   y="240" width="40" height="6" rx="2"/>
+      <rect x="60"  y="246" width="40" height="6" rx="2"/>
+      <rect x="120" y="240" width="40" height="6" rx="2"/>
+      <rect x="180" y="246" width="40" height="6" rx="2"/>
+      <rect x="240" y="240" width="40" height="6" rx="2"/>
+      <rect x="300" y="246" width="40" height="6" rx="2"/>
+      <rect x="360" y="240" width="40" height="6" rx="2"/>
+      <rect x="420" y="246" width="40" height="6" rx="2"/>
+      <rect x="480" y="240" width="40" height="6" rx="2"/>
+    </g>
+
+    <!-- === Pipe 1 (passed, behind car) === -->
+    <g stroke="#14532D" stroke-width="2">
+      <!-- Top pipe -->
+      <rect x="138" y="0"   width="44" height="100" fill="url(#fcPipe)"/>
+      <rect x="130" y="92"  width="60" height="18" fill="url(#fcPipe)" rx="2"/>
+      <!-- Bottom pipe -->
+      <rect x="130" y="178" width="60" height="18" fill="url(#fcPipe)" rx="2"/>
+      <rect x="138" y="196" width="44" height="36" fill="url(#fcPipe)"/>
+    </g>
+
+    <!-- === Pipe 2 (ahead) === -->
+    <g stroke="#14532D" stroke-width="2">
+      <rect x="328" y="0"   width="44" height="80" fill="url(#fcPipe)"/>
+      <rect x="320" y="72"  width="60" height="18" fill="url(#fcPipe)" rx="2"/>
+      <rect x="320" y="158" width="60" height="18" fill="url(#fcPipe)" rx="2"/>
+      <rect x="328" y="176" width="44" height="56" fill="url(#fcPipe)"/>
+    </g>
+
+    <!-- === Pipe 3 (far ahead) === -->
+    <g stroke="#14532D" stroke-width="2">
+      <rect x="478" y="0"   width="44" height="60" fill="url(#fcPipe)"/>
+      <rect x="470" y="52"  width="60" height="18" fill="url(#fcPipe)" rx="2"/>
+      <rect x="470" y="138" width="60" height="18" fill="url(#fcPipe)" rx="2"/>
+      <rect x="478" y="156" width="44" height="76" fill="url(#fcPipe)"/>
+    </g>
+
+    <!-- === Car (flying through the gap) === -->
+    <g transform="translate(220, 116) rotate(-6)">
+      <!-- Speed lines behind -->
+      <g stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.7">
+        <line x1="-44" y1="-2" x2="-22" y2="-2"/>
+        <line x1="-50" y1="8"  x2="-22" y2="8"/>
+        <line x1="-44" y1="18" x2="-22" y2="18"/>
+      </g>
+      <!-- Little wings flapping -->
+      <path d="M -8,4 L -20,-10 L -14,4 Z" fill="#FACC15" stroke="#A16207" stroke-width="1.5"/>
+      <path d="M 38,4 L 50,-10 L 44,4 Z" fill="#FACC15" stroke="#A16207" stroke-width="1.5"/>
+      <!-- Car body -->
+      <path d="M 0,22
+               L -2,8
+               Q -2,0 6,-2
+               L 14,-2
+               L 18,-10
+               L 30,-10
+               L 34,-2
+               L 42,-2
+               Q 50,0 50,8
+               L 48,22 Z"
+            fill="url(#fcCar)" stroke="#7F1D1D" stroke-width="1.5" stroke-linejoin="round"/>
+      <!-- Windshield -->
+      <path d="M 16,-2 L 20,-8 L 30,-8 L 34,-2 Z" fill="#BFDBFE"/>
+      <!-- Headlight -->
+      <rect x="44" y="6" width="5" height="5" rx="1.5" fill="#FEF3C7"/>
+      <!-- Wheels (spinning - blurred ovals) -->
+      <ellipse cx="6"  cy="22" rx="6" ry="5" fill="#0F172A"/>
+      <ellipse cx="40" cy="22" rx="6" ry="5" fill="#0F172A"/>
+      <circle cx="6"  cy="22" r="2" fill="#9CA3AF"/>
+      <circle cx="40" cy="22" r="2" fill="#9CA3AF"/>
+    </g>
+
+    <!-- Score badge top-center -->
+    <g transform="translate(232, 18)">
+      <rect x="0" y="0" width="60" height="36" rx="18" fill="white" stroke="#1F2937" stroke-width="2.5"/>
+      <text x="30" y="26" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="20" fill="#1F2937">23</text>
     </g>
   </g>
-
-  <path
-    d="M120 90c34-28 78-28 112 0"
-    fill="none"
-    stroke="#38bdf8"
-    stroke-width="10"
-    stroke-linecap="round"
-    opacity="0.85"
-  />
-  <path d="M260 82l18 9-18 9z" fill="#f59e0b" opacity="0.9" />
 </svg>

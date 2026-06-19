@@ -184,7 +184,7 @@ export const GameWrapper: React.FC<GameWrapperProps> = ({
             showLeaderboard
               ? 'grid md:grid-cols-3 gap-6 p-6 overflow-hidden'
               : scrollable
-                ? 'overflow-y-auto p-6'
+                ? 'overflow-y-auto p-3 sm:p-5'
                 : 'overflow-hidden p-0'
           }`}
         >

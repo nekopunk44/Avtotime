@@ -32,6 +32,8 @@ interface HeaderProps {
   onOpenProfile?: () => void;
   onOpenTariffs?: () => void;
   onSignOut?: () => void | Promise<void>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onSignIn?: (userData: any) => void;
   isAdmin?: boolean;
   onOpenAdmin?: () => void;
   onOpenKidsTab?: (tab: string) => void;
@@ -104,6 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenProfile,
   onOpenTariffs,
   onSignOut,
+  onSignIn,
   isAdmin = false,
   onOpenAdmin,
   onResendVerification,
@@ -520,103 +523,87 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Mobile Menu Overlay */}
-        {isMobileMenuOpen && (
-          <div className="lg:hidden absolute right-4 top-[calc(100%+8px)] w-[280px] bg-white z-40 overflow-y-auto border border-gray-100 animate-in slide-in-from-right duration-300 shadow-2xl max-h-[80vh] rounded-[32px]">
-            <div className="flex flex-col p-5 gap-1">
-              
-              {/* Top Links in Mobile Menu */}
-              <div className="flex flex-col">
-                <div className="flex flex-col text-[15px] font-semibold text-gray-900 divide-y divide-gray-50">
-                  <a href="#" onClick={(e) => { e.preventDefault(); setCurrentPage('kids'); setIsMobileMenuOpen(false); }} className="flex items-center justify-between py-3 hover:text-red-600 transition-colors group">
-                    <span>Детям</span>
-                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-red-600 transition-colors" />
-                  </a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); onOpenFeed?.(); setIsMobileMenuOpen(false); }} className="flex items-center justify-between py-3 hover:text-red-600 transition-colors group">
-                    <span>Лента</span>
-                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-red-600 transition-colors" />
-                  </a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); setCurrentPage('driving-courses'); setIsMobileMenuOpen(false); }} className="flex items-center justify-between py-3 hover:text-red-600 transition-colors group">
-                    <span>Авто-курсы</span>
-                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-red-600 transition-colors" />
-                  </a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); setCurrentPage('eco-tips'); setIsMobileMenuOpen(false); }} className="flex items-center justify-between py-3 hover:text-red-600 transition-colors group">
-                    <span>Советы по экологии</span>
-                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-red-600 transition-colors" />
-                  </a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); setCurrentPage('help-others'); setIsMobileMenuOpen(false); }} className="flex items-center justify-between py-3 hover:text-red-600 transition-colors group">
-                    <span>Помощь другим</span>
-                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-red-600 transition-colors" />
-                  </a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); setCurrentPage('kids'); setIsMobileMenuOpen(false); }} className="flex items-center justify-between py-3 hover:text-red-600 transition-colors group">
-                    <span>Игры</span>
-                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-red-600 transition-colors" />
-                  </a>
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="lg:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+                className="lg:hidden fixed top-0 right-0 h-full w-[300px] bg-[#111] text-white z-50 flex flex-col overflow-y-auto"
+              >
+                <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/10">
+                  <span className="text-[17px] font-bold">Меню</span>
+                  <button onClick={() => setIsMobileMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-              </div>
 
-              {/* Auth */}
-              <div className="flex flex-col pt-1">
-                {userData ? (
-                  <div className="rounded-[28px] bg-black text-white overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => setIsMobileAccountMenuOpen((prev) => !prev)}
-                      className="w-full flex items-center gap-3 px-4 py-4 border-b border-white/10"
-                      aria-expanded={isMobileAccountMenuOpen}
-                    >
+                <div className="px-4 py-4 border-b border-white/10">
+                  {userData ? (
+                    <div className="flex items-center gap-3">
                       {renderUserAvatar('w-12 h-12')}
-                      <div className="min-w-0 flex-1 text-left">
-                        <div className="truncate text-[14px] font-semibold">{userData.userName || userData.name}</div>
-                        {userData.name && (
-                          <div className="truncate text-[12px] text-white/60">{userData.name}</div>
-                        )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-[14px] truncate">{userData.userName || userData.name}</div>
+                        {userData.name && <div className="text-[12px] text-white/50 truncate">{userData.name}</div>}
                       </div>
-                      <ChevronDown
-                        className={`w-5 h-5 text-white/60 transition-transform ${isMobileAccountMenuOpen ? 'rotate-180' : ''}`}
-                      />
+                    </div>
+                  ) : (
+                    <button onClick={() => { setIsLoginModalOpen(true); setIsMobileMenuOpen(false); }} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-[14px] py-3 rounded-2xl transition-colors">
+                      Войти в аккаунт
                     </button>
+                  )}
+                </div>
 
-                    {isMobileAccountMenuOpen && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={handleProfileClick}
-                          className="w-full px-4 py-4 text-left text-[14px] font-medium hover:bg-white/5 transition-colors"
-                        >
-                          {'\u041c\u043e\u044f \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0430'}
-                        </button>
-                        <div className="h-px bg-white/10" />
-                        <button
-                          type="button"
-                          onClick={handleSettingsClick}
-                          className="w-full px-4 py-4 text-left text-[14px] font-medium hover:bg-white/5 transition-colors"
-                        >
-                          {'\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438'}
-                        </button>
-                        <div className="h-px bg-white/10" />
-                        <button
-                          type="button"
-                          onClick={handleSignOutClick}
-                          className="w-full px-4 py-4 text-left text-[14px] font-medium text-[#FF6250] hover:bg-white/5 transition-colors"
-                        >
-                          {'\u0412\u044b\u0445\u043e\u0434 \u0438\u0437 \u0430\u043a\u043a\u0430\u0443\u043d\u0442\u0430'}
-                        </button>
-                      </>
-                    )}
+                <div className="flex flex-col px-3 py-3 gap-1 flex-1">
+                  {[
+                    { label: 'Детям',              icon: <Gamepad2 className="w-5 h-5" />,   action: () => setCurrentPage('kids') },
+                    { label: 'Лента',              icon: <Bell className="w-5 h-5" />,        action: () => onOpenFeed?.() },
+                    { label: 'Авто-курсы',         icon: <Tv className="w-5 h-5" />,          action: () => setCurrentPage('driving-courses') },
+                    { label: 'Советы по экологии', icon: <Sparkles className="w-5 h-5" />,    action: () => setCurrentPage('eco-tips') },
+                    { label: 'Помощь другим',      icon: <Mail className="w-5 h-5" />,        action: () => setCurrentPage('help-others') },
+                    { label: 'Игры',               icon: <Puzzle className="w-5 h-5" />,      action: () => setCurrentPage('kids') },
+                  ].map((item) => (
+                    <a
+                      key={item.label}
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); item.action(); setIsMobileMenuOpen(false); }}
+                      className="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/8 transition-colors"
+                    >
+                      <span className="w-8 flex justify-center text-white/60">{item.icon}</span>
+                      <span className="text-[15px] font-semibold">{item.label}</span>
+                      <ChevronRight className="w-4 h-4 text-white/30 ml-auto" />
+                    </a>
+                  ))}
+                </div>
+
+                {userData && (
+                  <div className="px-3 pb-6 flex flex-col gap-1 border-t border-white/10 pt-3">
+                    <button onClick={() => { handleProfileClick(); setIsMobileMenuOpen(false); }} className="flex items-center px-4 py-3 rounded-2xl hover:bg-white/8 transition-colors text-[14px] font-medium text-left w-full">
+                      Моя страница
+                    </button>
+                    <button onClick={() => { handleSettingsClick(); setIsMobileMenuOpen(false); }} className="flex items-center px-4 py-3 rounded-2xl hover:bg-white/8 transition-colors text-[14px] font-medium text-left w-full">
+                      Настройки
+                    </button>
+                    <button onClick={() => { handleSignOutClick(); setIsMobileMenuOpen(false); }} className="flex items-center px-4 py-3 rounded-2xl hover:bg-white/8 transition-colors text-[14px] font-medium text-left text-red-400 w-full">
+                      Выйти из аккаунта
+                    </button>
                   </div>
-                ) : (
-                  <a 
-                    href="#" 
-                    onClick={(e) => { e.preventDefault(); setIsLoginModalOpen(true); setIsMobileMenuOpen(false); }}
-                    className="flex items-center justify-center bg-red-600 text-white px-4 py-3.5 rounded-full hover:bg-red-700 transition-colors font-bold text-[14px] shadow-md shadow-red-600/20"
-                  >
-                    Войти в аккаунт
-                  </a>
                 )}
-              </div>
-            </div>
-          </div>
-        )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
 
         {/* Main Nav (Desktop & Mobile Horizontal Scroll) */}
         <nav className={`flex items-center justify-between gap-6 lg:gap-0 w-full pt-1 pb-1 lg:pt-0 lg:pb-0 min-h-[40px] scrollbar-hide relative ${(isAutoDropdownOpen || isPartsMenuOpen) ? 'overflow-visible' : 'overflow-x-auto lg:overflow-visible'}`}>
@@ -629,54 +616,44 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
             
             {/* Dropdown Menu */}
-            {isAutoDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 w-[280px] bg-black text-white rounded-2xl p-1 shadow-2xl z-[60] animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex flex-col gap-0.5">
-                  <a href="#" onClick={(e) => { e.preventDefault(); handleVehicleTypeClick('Легковые автомобили'); }} className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-xl transition-colors group">
-                    <div className="w-10 flex justify-center">
-                      <img src="/auto/transport.png" alt="Легковые автомобили" className="w-8 h-8 object-contain opacity-70 group-hover:opacity-100" style={{ filter: 'brightness(0) invert(1)' }} referrerPolicy="no-referrer" />
-                    </div>
-                    <span className="text-[15px] font-semibold">Легковые автомобили</span>
-                  </a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); handleVehicleTypeClick('Перевозки'); }} className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-xl transition-colors group">
-                    <div className="w-10 flex justify-center">
-                      <img src="/auto/truck.png" alt="Перевозки" className="w-6 h-6 object-contain opacity-70 group-hover:opacity-100" style={{ filter: 'brightness(0) invert(1)' }} referrerPolicy="no-referrer" />
-                    </div>
-                    <span className="text-[15px] font-semibold">Перевозки</span>
-                  </a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); handleVehicleTypeClick('Прицепы'); }} className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-xl transition-colors group">
-                    <div className="w-10 flex justify-center">
-                      <img src="/auto/semi-trailer.png" alt="Прицепы" className="w-6 h-6 object-contain opacity-70 group-hover:opacity-100" style={{ filter: 'brightness(0) invert(1)' }} referrerPolicy="no-referrer" />
-                    </div>
-                    <span className="text-[15px] font-semibold">Прицепы</span>
-                  </a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); handleVehicleTypeClick('Мото'); }} className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-xl transition-colors group">
-                    <div className="w-10 flex justify-center">
-                      <img src="/auto/motobike.png" alt="Мото" className="w-6 h-6 object-contain opacity-70 group-hover:opacity-100" style={{ filter: 'brightness(0) invert(1)' }} referrerPolicy="no-referrer" />
-                    </div>
-                    <span className="text-[15px] font-semibold">Мото</span>
-                  </a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); handleVehicleTypeClick('Грузовые автомобили'); }} className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-xl transition-colors group">
-                    <div className="w-10 flex justify-center">
-                      <img src="/auto/truk2.png" alt="Грузовые автомобили" className="w-6 h-6 object-contain opacity-70 group-hover:opacity-100" style={{ filter: 'brightness(0) invert(1)' }} referrerPolicy="no-referrer" />
-                    </div>
-                    <span className="text-[15px] font-semibold">Грузовые автомобили</span>
-                  </a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); handleVehicleTypeClick('Велосипеды'); }} className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-xl transition-colors group">
-                    <div className="w-10 flex justify-center">
-                      <img src="/auto/bycle.png" alt="Велосипеды" className="w-6 h-6 object-contain opacity-70 group-hover:opacity-100" style={{ filter: 'brightness(0) invert(1)' }} referrerPolicy="no-referrer" />
-                    </div>
-                    <span className="text-[15px] font-semibold">Велосипеды</span>
-                  </a>
-                  <a href="#" onClick={(e) => { e.preventDefault(); handleVehicleTypeClick('Микроавтобусы'); }} className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-xl transition-colors group">
-                    <div className="w-10 flex justify-center">
-                      <img src="/bus.png" alt="Микроавтобусы" className="w-6 h-6 object-contain opacity-70 group-hover:opacity-100" style={{ filter: 'brightness(0) invert(1)' }} referrerPolicy="no-referrer" />
-                    </div>
-                    <span className="text-[15px] font-semibold">Микроавтобусы</span>
-                  </a>
-                </div>
-              </div>
-            )}
+            <AnimatePresence>
+              {isAutoDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="absolute top-full left-0 mt-1 w-[280px] bg-black text-white rounded-2xl p-1 shadow-2xl z-[60]"
+                >
+                  <div className="flex flex-col gap-0.5">
+                    {[
+                      { label: 'Легковые автомобили', src: '/auto/transport.png', size: 'w-8 h-8' },
+                      { label: 'Перевозки',           src: '/auto/truck.png',      size: 'w-6 h-6' },
+                      { label: 'Прицепы',             src: '/auto/semi-trailer.png', size: 'w-6 h-6' },
+                      { label: 'Мото',                src: '/auto/motobike.png',   size: 'w-6 h-6' },
+                      { label: 'Грузовые автомобили', src: '/auto/truk2.png',      size: 'w-6 h-6' },
+                      { label: 'Велосипеды',          src: '/auto/bycle.png',      size: 'w-6 h-6' },
+                      { label: 'Микроавтобусы',       src: '/bus.png',             size: 'w-6 h-6' },
+                    ].map((item, i) => (
+                      <motion.a
+                        key={item.label}
+                        href="#"
+                        onClick={(e) => { e.preventDefault(); handleVehicleTypeClick(item.label); }}
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-xl transition-colors group"
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.15, delay: i * 0.04, ease: 'easeOut' }}
+                      >
+                        <div className="w-10 flex justify-center">
+                          <img src={item.src} alt={item.label} className={`${item.size} object-contain opacity-70 group-hover:opacity-100`} style={{ filter: 'brightness(0) invert(1)' }} referrerPolicy="no-referrer" />
+                        </div>
+                        <span className="text-[15px] font-semibold">{item.label}</span>
+                      </motion.a>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <button
@@ -967,7 +944,11 @@ export const Header: React.FC<HeaderProps> = ({
       </AnimatePresence>
     </div>
 
-    <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+    <LoginModal
+      isOpen={isLoginModalOpen}
+      onClose={() => setIsLoginModalOpen(false)}
+      onSuccess={(user) => { setIsLoginModalOpen(false); onSignIn?.(user); }}
+    />
   </header>
 );
 };

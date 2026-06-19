@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { getAuthCookieName } from '../config/authCookie.js'
 import { getPlanLimits, serializePlanLimits, getEffectivePlan } from '../config/planLimits.js'
+import { invalidateAuthSession } from '../services/authSessionCache.js'
 
 const generateVerifyToken = () => {
     const token = randomBytes(32).toString('hex')
@@ -161,6 +162,7 @@ export const signOut = async (req, res) => {
                 sameSite,
             })
         }
+        if (req.userId) await invalidateAuthSession(req.userId).catch(() => {})
         return res.status(200).json({ message: 'Вы вышли' })
     } catch (error) {
         return res.status(500).json({ message: `Ошибка выхода: ${error}` })
@@ -248,6 +250,7 @@ export const resetPassword = async (req, res) => {
         user.isOtpVerified = false
         user.tokenVersion = (user.tokenVersion || 0) + 1
         await user.save()
+        await invalidateAuthSession(String(user._id)).catch(() => {})
 
         return res.status(200).json({ message: 'Пароль успешно изменён' })
     } catch (error) {
@@ -285,6 +288,77 @@ export const verifyEmail = async (req, res) => {
         return res.status(200).json({ message: 'Email успешно подтверждён' })
     } catch (error) {
         return res.status(500).json({ message: `Ошибка подтверждения: ${error}` })
+    }
+}
+
+export const signInWithGoogle = async (req, res) => {
+    try {
+        const { credential } = req.body
+        if (!credential) return res.status(400).json({ message: 'Google credential не указан' })
+
+        const clientId = process.env.GOOGLE_CLIENT_ID
+        if (!clientId) return res.status(503).json({ message: 'Google OAuth не настроен на сервере' })
+
+        const tokenInfoRes = await fetch(
+            `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`,
+            { signal: AbortSignal.timeout(10_000) }
+        )
+        if (!tokenInfoRes.ok) {
+            return res.status(401).json({ message: 'Недействительный Google токен' })
+        }
+        const tokenInfo = await tokenInfoRes.json()
+
+        if (tokenInfo.aud !== clientId) {
+            return res.status(401).json({ message: 'Недействительный Google токен' })
+        }
+        if (tokenInfo.error) {
+            return res.status(401).json({ message: 'Google токен отклонён' })
+        }
+
+        const { sub: googleId, email, name, picture } = tokenInfo
+        if (!googleId || !email) {
+            return res.status(400).json({ message: 'Не удалось получить данные из Google аккаунта' })
+        }
+
+        let user = await User.findOne({ $or: [{ googleId }, { email: email.toLowerCase() }] })
+
+        if (!user) {
+            // Генерируем уникальный username из email
+            let base = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '').toLowerCase()
+            if (base.length < 3) base = `user${Date.now().toString().slice(-6)}`
+            let userName = base
+            let counter = 0
+            while (await User.exists({ userName })) {
+                counter++
+                userName = `${base}${counter}`
+            }
+
+            user = await User.create({
+                name: name || base,
+                userName,
+                email: email.toLowerCase(),
+                googleId,
+                profileImage: picture || undefined,
+                isEmailVerified: true,
+            })
+        } else {
+            let changed = false
+            if (!user.googleId) { user.googleId = googleId; changed = true }
+            if (!user.isEmailVerified) { user.isEmailVerified = true; changed = true }
+            if (!user.profileImage && picture) { user.profileImage = picture; changed = true }
+            if (changed) await user.save()
+        }
+
+        if (user.isBanned) {
+            const reason = user.banReason ? ` Причина: ${user.banReason}` : ''
+            return res.status(403).json({ message: `Ваш аккаунт заблокирован.${reason}` })
+        }
+
+        const token = genToken(user._id, user.tokenVersion ?? 0)
+        setAuthCookie(res, token)
+        return res.status(200).json(toSafeUser(user))
+    } catch (error) {
+        return res.status(500).json({ message: `Ошибка Google-аутентификации: ${error?.message || error}` })
     }
 }
 

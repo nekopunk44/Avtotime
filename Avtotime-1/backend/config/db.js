@@ -155,7 +155,15 @@ const connectDb = async () => {
       process.env.MONGODB_FALLBACK_URL ||
       "mongodb://127.0.0.1:27017/avtotime";
 
-    await mongoose.connect(mongoUrl, { serverSelectionTimeoutMS: 5000 });
+    await mongoose.connect(mongoUrl, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 30000,
+      maxPoolSize: Number(process.env.MONGO_MAX_POOL_SIZE || 50),
+      minPoolSize: Number(process.env.MONGO_MIN_POOL_SIZE || 10),
+      maxIdleTimeMS: 60000,
+      family: 4,
+    });
     process.env.MONGO_IN_MEMORY = "false";
 
     console.log(`Connected to local MongoDB: ${mongoUrl}`);

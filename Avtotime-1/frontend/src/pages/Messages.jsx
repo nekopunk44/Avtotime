@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { IoChevronBack } from "react-icons/io5";
 import { FiEdit3, FiSearch } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
@@ -23,7 +23,13 @@ function Messages({ mode = 'page' }) {
     const [query, setQuery] = useState('');
     const [filter, setFilter] = useState('all'); // all | unread | online
     const filterRef = useRef(null);
-    const [activeFilterRect, setActiveFilterRect] = useState({ left: 0, width: 0 });
+
+    const FILTERS = [
+        { key: 'all', label: 'Все' },
+        { key: 'unread', label: 'Непрочитанные' },
+        { key: 'online', label: 'Онлайн' },
+    ];
+
     const [isComposerOpen, setIsComposerOpen] = useState(false);
     const [composerQuery, setComposerQuery] = useState('');
     const [composerLoading, setComposerLoading] = useState(false);
@@ -117,20 +123,6 @@ function Messages({ mode = 'page' }) {
         handleCloseComposer();
     };
 
-    useLayoutEffect(() => {
-        const update = () => {
-            const root = filterRef.current;
-            if (!root) return;
-            const active = root.querySelector(`[data-filter="${filter}"]`);
-            if (!active) return;
-            const next = { left: active.offsetLeft, width: active.offsetWidth };
-            setActiveFilterRect((prev) => (prev.left === next.left && prev.width === next.width ? prev : next));
-        };
-
-        update();
-        window.addEventListener('resize', update);
-        return () => window.removeEventListener('resize', update);
-    }, [filter]);
 
     const onlineSet = useMemo(() => new Set(Array.isArray(onlineUsers) ? onlineUsers : []), [onlineUsers]);
     const normalizedQuery = useMemo(() => String(query || '').trim().toLowerCase(), [query]);
@@ -216,31 +208,20 @@ function Messages({ mode = 'page' }) {
                         ) : null}
                     </div>
 
-                    {/* Filters switcher */}
-                    <div
-                        ref={filterRef}
-                        className='relative mt-[10px] w-full max-w-[520px] rounded-full bg-[#0e1316] border-gray-800 border-2 p-[4px] flex items-center gap-[6px]'
-                    >
-                        <div
-                            className='absolute top-[4px] bottom-[4px] rounded-full bg-white shadow-2xl shadow-black/30 transition-[left,width] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]'
-                            style={{ left: `${activeFilterRect.left}px`, width: `${activeFilterRect.width}px` }}
-                        />
-                        {[
-                            { key: 'all', label: 'Все' },
-                            { key: 'unread', label: 'Непрочитанные' },
-                            { key: 'online', label: 'Онлайн' },
-                        ].map(({ key, label }) => (
+                    {/* Filters */}
+                    <div ref={filterRef} className='mt-[16px] flex items-center justify-center gap-[8px]'>
+                        {FILTERS.map(({ key, label }) => (
                             <button
                                 key={key}
                                 type='button'
                                 data-filter={key}
-                                className={[
-                                    'relative z-10 h-[40px] rounded-full flex items-center justify-center font-semibold transition-colors whitespace-nowrap px-[10px]',
-                                    key === 'unread' ? 'flex-[1.55]' : 'flex-1',
-                                    'text-[12px] sm:text-[13px]',
-                                    filter === key ? 'text-black' : 'text-gray-300 hover:text-white',
-                                ].join(' ')}
                                 onClick={() => setFilter(key)}
+                                className={[
+                                    'h-[36px] px-[16px] rounded-full font-semibold text-[13px] whitespace-nowrap transition-all duration-200',
+                                    filter === key
+                                        ? 'bg-white text-black'
+                                        : 'bg-white/8 text-gray-400 hover:bg-white/12 hover:text-white',
+                                ].join(' ')}
                             >
                                 {label}
                             </button>

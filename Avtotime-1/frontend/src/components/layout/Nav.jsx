@@ -4,13 +4,14 @@ import { FiSearch } from "react-icons/fi";
 import { RxVideo } from "react-icons/rx";
 import { FiPlusSquare } from "react-icons/fi";
 import profile from '../../assets/profile.png'
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
-
+const NAV_HIDDEN_PATHS = ['/messages', '/messagesArea', '/notifications', '/editprofile'];
 
 function Nav() {
     const navigate = useNavigate()
+    const location = useLocation()
     const { userData } = useSelector(state => state.user)
     const { modalOpen } = useSelector(state => state.ui)
     const prefersReducedMotion = useMemo(() => (
@@ -39,7 +40,8 @@ function Nav() {
         })
     }, [isAnimatedIn])
 
-    if (modalOpen) return null
+    const isHiddenRoute = NAV_HIDDEN_PATHS.some(p => location.pathname === p || location.pathname.startsWith(p + '/'))
+    if (modalOpen || isHiddenRoute) return null
 
     return (
         /* Контейнер навигации */

@@ -16,6 +16,7 @@ import MarketDryCleaningListing from '../models/marketDryCleaningListing.model.j
 import MarketConsultationExpert from '../models/marketConsultationExpert.model.js'
 import { getAuthCookieName } from '../config/authCookie.js'
 import genToken from '../config/token.js'
+import { invalidateAuthSession } from '../services/authSessionCache.js'
 import bcrypt from 'bcryptjs'
 import fs from "fs";
 import path from "path";
@@ -437,6 +438,7 @@ export const changePassword = async (req, res) => {
         user.password = await bcrypt.hash(newPassword, 10)
         user.tokenVersion = (user.tokenVersion || 0) + 1
         await user.save()
+        await invalidateAuthSession(String(user._id)).catch(() => {})
 
         const nextToken = genToken(user._id, user.tokenVersion)
         res.cookie(getAuthCookieName(), nextToken, {
@@ -463,6 +465,7 @@ export const logoutAll = async (req, res) => {
 
         user.tokenVersion = (user.tokenVersion || 0) + 1
         await user.save()
+        await invalidateAuthSession(String(user._id)).catch(() => {})
 
         // Issue a fresh token for the current session so the user stays logged in
         const newToken = genToken(user._id, user.tokenVersion)
