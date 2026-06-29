@@ -84,7 +84,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
 
       <View style={styles.info}>
         <Text style={styles.name}>{user.name}</Text>
-        <Text style={styles.username}>@{user.username}</Text>
+        <Text style={styles.username}>@{user.userName}</Text>
         {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
       </View>
 
@@ -104,7 +104,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.msgBtn}
-            onPress={() => navigation.navigate('Chat', { userId, name: user.name, username: user.username ?? '' })}
+            onPress={() => navigation.navigate('Chat', { userId, name: user.name, userName: user.userName ?? '' })}
           >
             <Ionicons name="chatbubble-outline" size={18} color="#111" />
             <Text style={styles.msgBtnText}>Сообщение</Text>

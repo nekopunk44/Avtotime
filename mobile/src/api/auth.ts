@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 export interface User {
   _id: string;
-  username: string;
+  userName: string;
   name: string;
   profileImage: string;
   bio?: string;
@@ -21,7 +21,7 @@ export async function signIn(identifier: string, password: string): Promise<User
 
 export async function signUp(payload: {
   name: string;
-  username: string;
+  userName: string;
   email: string;
   password: string;
 }): Promise<User> {

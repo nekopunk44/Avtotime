@@ -30,7 +30,7 @@ export default function MessagesScreen({ navigation }: Props) {
   const renderItem = ({ item }: { item: Conversation }) => (
     <TouchableOpacity
       style={styles.row}
-      onPress={() => navigation.navigate('Chat', { userId: item._id, name: item.name, username: item.username })}
+      onPress={() => navigation.navigate('Chat', { userId: item._id, name: item.name, userName: item.userName })}
     >
       <Image
         source={item.profileImage ? { uri: item.profileImage } : require('../../assets/icon.png')}

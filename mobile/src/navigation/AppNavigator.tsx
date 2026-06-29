@@ -14,7 +14,7 @@ import CreatePostScreen from '../screens/CreatePostScreen';
 
 export type AppStackParamList = {
   Tabs: undefined;
-  Chat: { userId: string; name: string; username: string };
+  Chat: { userId: string; name: string; userName: string };
   UserProfile: { userId: string };
   CreatePost: undefined;
 };

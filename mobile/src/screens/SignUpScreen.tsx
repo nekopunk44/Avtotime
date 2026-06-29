@@ -26,7 +26,7 @@ export default function SignUpScreen({ navigation }: Props) {
     }
     setLoading(true);
     try {
-      const user = await signUp({ name: name.trim(), username: username.trim(), email: email.trim(), password });
+      const user = await signUp({ name: name.trim(), userName: username.trim(), email: email.trim(), password });
       setUser(user);
     } catch (e: any) {
       Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось зарегистрироваться');

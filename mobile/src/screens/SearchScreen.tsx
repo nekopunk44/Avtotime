@@ -46,7 +46,7 @@ export default function SearchScreen({ navigation }: Props) {
       />
       <View style={styles.userInfo}>
         <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.username}>@{item.username}</Text>
+        <Text style={styles.username}>@{item.userName}</Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color="#ccc" />
     </TouchableOpacity>

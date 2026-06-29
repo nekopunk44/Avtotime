@@ -6,7 +6,7 @@ export interface Notification {
   message: string;
   isRead: boolean;
   createdAt: string;
-  sender?: { _id: string; username: string; name: string; profileImage: string };
+  sender?: { _id: string; userName: string; name: string; profileImage: string };
 }
 
 export async function getNotifications(): Promise<Notification[]> {
