@@ -5,7 +5,11 @@ import { getCachedAuthSession, setCachedAuthSession } from '../services/authSess
 
 const isAuth = async (req, res, next) => {
     try {
-        const token = req.cookies?.[getAuthCookieName()]
+        // Support Bearer token for mobile clients
+        let token = req.cookies?.[getAuthCookieName()]
+        if (!token && req.headers.authorization?.startsWith('Bearer ')) {
+            token = req.headers.authorization.slice(7)
+        }
         if (!token) {
             return res.status(401).json({ message: 'token is not found' })
         }

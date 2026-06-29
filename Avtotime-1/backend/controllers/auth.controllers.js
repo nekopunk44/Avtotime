@@ -142,7 +142,7 @@ export const signIn = async (req, res) => {
         const token = genToken(user._id, user.tokenVersion ?? 0)
         setAuthCookie(res, token)
 
-        return res.status(200).json(toSafeUser(user))
+        return res.status(200).json({ ...toSafeUser(user), token })
     } catch (error) {
         return res.status(500).json({ message: `Ошибка входа: ${error}` })
     }
