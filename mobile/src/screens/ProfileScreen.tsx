@@ -4,25 +4,22 @@ import {
   FlatList, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import client from '../api/client';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { getUserPosts, Post } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
+import { AppStackParamList } from '../navigation/AppNavigator';
 
-interface Post {
-  _id: string;
-  imageUrl?: string;
-  caption: string;
-  likes: string[];
-}
+type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }: Props) {
   const { user, logout } = useAuthStore();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    client.get(`/posts/user/${user._id}`)
-      .then(({ data }) => setPosts(Array.isArray(data) ? data : data.posts ?? []))
+    getUserPosts(user._id)
+      .then(setPosts)
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [user]);
@@ -56,10 +53,18 @@ export default function ProfileScreen() {
         {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
       </View>
 
-      <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-        <Ionicons name="log-out-outline" size={18} color="#e53935" />
-        <Text style={styles.logoutText}>Выйти</Text>
-      </TouchableOpacity>
+      <View style={styles.btnRow}>
+        <TouchableOpacity
+          style={styles.newPostBtn}
+          onPress={() => navigation.navigate('CreatePost')}
+        >
+          <Ionicons name="add" size={18} color="#fff" />
+          <Text style={styles.newPostText}>Новая публикация</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+          <Ionicons name="log-out-outline" size={18} color="#e53935" />
+        </TouchableOpacity>
+      </View>
 
       {loading
         ? <ActivityIndicator style={{ marginTop: 40 }} color="#111" />
@@ -71,8 +76,8 @@ export default function ProfileScreen() {
             scrollEnabled={false}
             renderItem={({ item }) => (
               <View style={styles.gridItem}>
-                {item.imageUrl
-                  ? <Image source={{ uri: item.imageUrl }} style={styles.gridImage} />
+                {item.mediaList?.[0]
+                  ? <Image source={{ uri: item.mediaList[0] }} style={styles.gridImage} />
                   : <View style={[styles.gridImage, styles.gridNoImage]}>
                       <Ionicons name="text-outline" size={20} color="#ccc" />
                     </View>
@@ -97,12 +102,17 @@ const styles = StyleSheet.create({
   info: { paddingHorizontal: 16, paddingBottom: 12 },
   name: { fontWeight: '700', fontSize: 16, color: '#111' },
   bio: { fontSize: 14, color: '#444', marginTop: 4, lineHeight: 20 },
-  logoutBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginHorizontal: 16, marginBottom: 16, padding: 12,
-    borderWidth: 1, borderColor: '#fce4e4', borderRadius: 12, backgroundColor: '#fff5f5',
+  btnRow: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 16, gap: 10 },
+  newPostBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, height: 38, backgroundColor: '#111', borderRadius: 10,
   },
-  logoutText: { color: '#e53935', fontWeight: '600', fontSize: 14 },
+  newPostText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  logoutBtn: {
+    width: 38, height: 38, backgroundColor: '#fff5f5',
+    borderRadius: 10, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: '#fce4e4',
+  },
   gridItem: { flex: 1/3 },
   gridImage: { width: '100%', aspectRatio: 1, backgroundColor: '#eee' },
   gridNoImage: { justifyContent: 'center', alignItems: 'center' },

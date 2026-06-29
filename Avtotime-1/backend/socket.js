@@ -65,7 +65,13 @@ const emitOnlineUsers = () => {
 io.use((socket, next) => {
   try {
     const cookies = parseCookies(socket.request.headers.cookie);
-    const token = cookies[getAuthCookieName()];
+    let token = cookies[getAuthCookieName()];
+    // Support Bearer token for mobile clients
+    if (!token) {
+      const auth = socket.handshake.auth?.token || socket.handshake.headers?.authorization;
+      if (auth?.startsWith("Bearer ")) token = auth.slice(7);
+      else if (auth) token = auth;
+    }
     if (!token) return next(new Error("unauthorized"));
 
     const payload = jwt.verify(token, process.env.JWT_SECRET);

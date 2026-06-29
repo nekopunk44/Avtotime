@@ -4,21 +4,14 @@ import {
   TouchableOpacity, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import client, { API_URL } from '../api/client';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { getFeed, toggleLike, Post } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
+import { AppStackParamList } from '../navigation/AppNavigator';
 
-interface Post {
-  _id: string;
-  userId: { _id: string; username: string; name: string; profileImage: string };
-  caption: string;
-  imageUrl?: string;
-  videoUrl?: string;
-  likes: string[];
-  comments: any[];
-  createdAt: string;
-}
+type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
-export default function FeedScreen() {
+export default function FeedScreen({ navigation }: Props) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -26,8 +19,8 @@ export default function FeedScreen() {
 
   const loadPosts = useCallback(async () => {
     try {
-      const { data } = await client.get('/posts/feed');
-      setPosts(Array.isArray(data) ? data : data.posts ?? []);
+      const data = await getFeed();
+      setPosts(data);
     } catch (e) {
       console.error('Feed error', e);
     } finally {
@@ -38,9 +31,9 @@ export default function FeedScreen() {
 
   useEffect(() => { loadPosts(); }, []);
 
-  const toggleLike = async (postId: string) => {
+  const handleLike = async (postId: string) => {
     try {
-      await client.post(`/posts/${postId}/like`);
+      await toggleLike(postId);
       setPosts((prev) => prev.map((p) => {
         if (p._id !== postId) return p;
         const liked = p.likes.includes(user!._id);
@@ -54,34 +47,37 @@ export default function FeedScreen() {
 
   const renderPost = ({ item }: { item: Post }) => {
     const liked = user ? item.likes.includes(user._id) : false;
-    const avatar = item.userId?.profileImage
-      ? { uri: item.userId.profileImage }
+    const avatar = item.author?.profileImage
+      ? { uri: item.author.profileImage }
       : require('../../assets/icon.png');
 
     return (
       <View style={styles.card}>
-        <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.cardHeader}
+          onPress={() => navigation.navigate('UserProfile', { userId: item.author._id })}
+        >
           <Image source={avatar} style={styles.avatar} />
           <View>
-            <Text style={styles.name}>{item.userId?.name}</Text>
-            <Text style={styles.username}>@{item.userId?.username}</Text>
+            <Text style={styles.name}>{item.author?.name}</Text>
+            <Text style={styles.username}>@{item.author?.userName}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
-        {item.imageUrl && (
-          <Image source={{ uri: item.imageUrl }} style={styles.postImage} resizeMode="cover" />
+        {item.mediaList?.[0] && (
+          <Image source={{ uri: item.mediaList[0] }} style={styles.postImage} resizeMode="cover" />
         )}
 
         {item.caption ? <Text style={styles.caption}>{item.caption}</Text> : null}
 
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => toggleLike(item._id)}>
+          <TouchableOpacity style={styles.actionBtn} onPress={() => handleLike(item._id)}>
             <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? '#e53935' : '#555'} />
             <Text style={styles.actionCount}>{item.likes.length}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn}>
             <Ionicons name="chatbubble-outline" size={20} color="#555" />
-            <Text style={styles.actionCount}>{item.comments.length}</Text>
+            <Text style={styles.actionCount}>{item.commentsCount ?? item.comments.length}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -109,7 +105,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 },
   empty: { color: '#999', fontSize: 16 },
   card: { backgroundColor: '#fff', marginBottom: 8, paddingBottom: 8 },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee' },
   name: { fontWeight: '700', fontSize: 14, color: '#111' },
   username: { fontSize: 12, color: '#888' },
