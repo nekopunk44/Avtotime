@@ -3,11 +3,13 @@ import { View, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import AuthNavigator from './AuthNavigator';
 import AppNavigator from './AppNavigator';
+import { usePushNotifications } from '../notifications/push';
 
 export default function RootNavigator() {
   const { user, loading, initialize } = useAuthStore();
 
   useEffect(() => { initialize(); }, []);
+  usePushNotifications(Boolean(user));
 
   if (loading) {
     return (

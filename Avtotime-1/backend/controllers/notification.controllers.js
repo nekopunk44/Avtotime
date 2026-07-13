@@ -1,6 +1,7 @@
 import Notification from "../models/notification.model.js";
 import User from "../models/user.model.js";
 import { io } from "../socket.js";
+import { sendExpoPushToUser, isExpoPushToken } from "../services/expoPush.js";
 import nodemailer from "nodemailer";
 import {
   getCachedResponse,
@@ -154,6 +155,19 @@ export const createNotification = async ({
     notification.sendRetries = socketSent ? 0 : 3;
     notification.sentAt = new Date();
 
+    // Send mobile push (fire-and-forget; errors are handled inside)
+    sendExpoPushToUser(recipient, {
+      title: title || "Avtotime",
+      body: description || "",
+      data: {
+        type,
+        relatedId: relatedId ? String(relatedId) : undefined,
+        relatedType,
+        link,
+        actorId: String(actor),
+      },
+    });
+
     // Send email if digest is instant
     if (recipientUser.notificationPreferences?.digestFrequency === 'instant') {
       const emailSent = await sendEmailNotification(recipientUser, notification, actor);
@@ -301,6 +315,42 @@ export const getNotificationPreferences = async (req, res) => {
   try {
     const user = await User.findById(req.userId).select("notificationPreferences");
     return res.status(200).json(user?.notificationPreferences);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+export const registerPushToken = async (req, res) => {
+  try {
+    const token = typeof req.body.token === "string" ? req.body.token.trim() : "";
+    if (!isExpoPushToken(token)) {
+      return res.status(400).json({ message: "Некорректный push-токен" });
+    }
+
+    await User.updateOne(
+      { _id: req.userId },
+      { $addToSet: { expoPushTokens: token } }
+    );
+
+    return res.status(200).json({ message: "Push-токен зарегистрирован" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+export const unregisterPushToken = async (req, res) => {
+  try {
+    const token = typeof req.body.token === "string" ? req.body.token.trim() : "";
+    if (!token) {
+      return res.status(400).json({ message: "Не указан push-токен" });
+    }
+
+    await User.updateOne(
+      { _id: req.userId },
+      { $pull: { expoPushTokens: token } }
+    );
+
+    return res.status(200).json({ message: "Push-токен удалён" });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

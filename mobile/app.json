@@ -27,7 +27,8 @@
       "expo-web-browser",
       "expo-font",
       "expo-video",
-      "expo-audio"
+      "expo-audio",
+      "expo-notifications"
     ],
     "extra": {
       "googleWebClientId": "602150943944-45oom92dmun40ae6qhk1iepc05la8ahd.apps.googleusercontent.com"

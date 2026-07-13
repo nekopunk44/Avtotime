@@ -75,6 +75,14 @@ export async function clearAllNotifications(): Promise<void> {
   await client.delete('/notifications');
 }
 
+export async function registerPushToken(token: string): Promise<void> {
+  await client.post('/notifications/push-token', { token });
+}
+
+export async function unregisterPushToken(token: string): Promise<void> {
+  await client.delete('/notifications/push-token', { data: { token } });
+}
+
 export async function getNotificationPreferences(): Promise<NotificationPreferences> {
   const { data } = await client.get('/notifications/preferences');
   return normalizePreferences(data);

@@ -4,6 +4,7 @@ import Conversation from '../models/conversation.model.js';
 import Message from '../models/messages.model.js';
 import User from '../models/user.model.js';
 import { io } from '../socket.js';
+import { sendExpoPushToUser } from '../services/expoPush.js';
 
 const DEFAULT_MESSAGES_PAGE_SIZE = 50;
 const MAX_MESSAGES_PAGE_SIZE = 100;
@@ -15,7 +16,7 @@ export const sendMessage = async (req, res) => {
         const { message } = req.body;
 
         // Check if receiver has blocked the sender
-        const receiver = await User.findById(receiverId).select('blockedUsers').lean();
+        const receiver = await User.findById(receiverId).select('blockedUsers notificationPreferences').lean();
         if (receiver?.blockedUsers?.some(id => id.toString() === senderId)) {
             return res.status(403).json({ message: 'Вы не можете отправить сообщение этому пользователю' });
         }
@@ -78,6 +79,24 @@ export const sendMessage = async (req, res) => {
         const payload = newMessage.toObject({ getters: true });
         io.to(String(senderId)).emit('newMessage', payload);
         io.to(String(receiverId)).emit('newMessage', payload);
+
+        if (receiver?.notificationPreferences?.message !== false) {
+            const sender = await User.findById(senderId).select('name userName').lean();
+            const pushBody = message
+                || (imageUrl ? 'Фото' : '')
+                || (fileUrl ? 'Файл' : '')
+                || (audioUrl ? 'Голосовое сообщение' : 'Новое сообщение');
+            sendExpoPushToUser(receiverId, {
+                title: sender?.name || sender?.userName || 'Новое сообщение',
+                body: pushBody,
+                data: {
+                    relatedType: 'message',
+                    actorId: String(senderId),
+                    actorName: sender?.name || '',
+                    actorUserName: sender?.userName || '',
+                },
+            });
+        }
 
         return res.status(200).json(payload);
     } catch (error) {

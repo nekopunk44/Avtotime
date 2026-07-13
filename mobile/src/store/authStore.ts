@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { getMe, signOut, User } from '../api/auth';
 import { disconnectSocket } from '../hooks/useSocket';
+import { unregisterPushNotifications } from '../notifications/push';
 
 interface AuthState {
   user: User | null;
@@ -18,6 +19,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   setUser: (user) => set({ user }),
 
   logout: async () => {
+    // Снимаем пуш-токен, пока auth-токен ещё действует
+    await unregisterPushNotifications();
     await signOut();
     disconnectSocket();
     set({ user: null });

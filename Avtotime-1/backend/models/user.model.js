@@ -114,6 +114,10 @@ const usersSchema = new mongoose.Schema({
         type: Date,
         default: () => new Date()
     },
+    expoPushTokens: {
+        type: [String],
+        default: [],
+    },
     lastSeenAt: {
         type: Date,
         default: null,
