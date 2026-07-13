@@ -134,8 +134,20 @@ export const signIn = async (req, res) => {
             ]
         })
 
-        const isMatch = user ? await bcrypt.compare(password, user.password) : false
-        if (!user || !isMatch) {
+        if (!user) {
+            return res.status(400).json({ message: 'Неверный логин или пароль' })
+        }
+
+        if (typeof user.password !== 'string' || !user.password) {
+            return res.status(400).json({
+                message: user.googleId
+                    ? 'Этот аккаунт создан через Google. В Expo Go Google-вход недоступен; задайте пароль через восстановление пароля.'
+                    : 'Для этого аккаунта пароль не задан. Восстановите пароль по email.'
+            })
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password)
+        if (!isMatch) {
             return res.status(400).json({ message: 'Неверный логин или пароль' })
         }
 
@@ -186,6 +198,10 @@ export const getSession = async (req, res) => {
 export const sendOtp = async (req, res) => {
     try {
         const email = req.body.email?.trim().toLowerCase()
+        if (!email) {
+            return res.status(400).json({ message: 'Введите email' })
+        }
+
         const user = await User.findOne({ email })
         if (!user) {
             return res.status(400).json({ message: 'Пользователь не найден' })
@@ -197,7 +213,18 @@ export const sendOtp = async (req, res) => {
         user.isOtpVerified = false
 
         await user.save()
-        await sendMail(email, otp)
+        try {
+            await sendMail(email, otp)
+        } catch (mailError) {
+            console.error('Password reset email failed:', mailError)
+            user.resetOtp = undefined
+            user.otpExpires = undefined
+            user.isOtpVerified = false
+            await user.save().catch(() => {})
+            return res.status(503).json({
+                message: 'Не удалось отправить код: почтовый сервер сейчас недоступен. Попробуйте позже.'
+            })
+        }
 
         return res.status(200).json({ message: 'Код отправлен на email' })
     } catch (error) {
@@ -356,7 +383,7 @@ export const signInWithGoogle = async (req, res) => {
 
         const token = genToken(user._id, user.tokenVersion ?? 0)
         setAuthCookie(res, token)
-        return res.status(200).json(toSafeUser(user))
+        return res.status(200).json({ ...toSafeUser(user), token })
     } catch (error) {
         return res.status(500).json({ message: `Ошибка Google-аутентификации: ${error?.message || error}` })
     }

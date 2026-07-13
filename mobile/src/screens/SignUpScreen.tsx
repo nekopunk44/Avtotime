@@ -70,6 +70,14 @@ export default function SignUpScreen({ navigation }: Props) {
           }
         </TouchableOpacity>
 
+        <Text style={styles.privacyText}>
+          Создавая аккаунт, вы соглашаетесь с{' '}
+          <Text style={styles.privacyLink} onPress={() => navigation.navigate('PrivacyPolicy')}>
+            политикой конфиденциальности
+          </Text>
+          .
+        </Text>
+
         <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
           <Text style={styles.link}>
             Уже есть аккаунт? <Text style={styles.linkBold}>Войти</Text>
@@ -95,6 +103,8 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  privacyText: { width: '100%', color: '#777', fontSize: 12, lineHeight: 17, textAlign: 'center', marginBottom: 18 },
+  privacyLink: { color: '#111', fontWeight: '800', textDecorationLine: 'underline' },
   link: { color: '#555', fontSize: 14 },
   linkBold: { color: '#111', fontWeight: '700', textDecorationLine: 'underline' },
 });

@@ -1,0 +1,230 @@
+import React, { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { getReviews, ReviewItem, ReviewStats } from '../api/reviews';
+import { useAuthStore } from '../store/authStore';
+
+const emptyStats: ReviewStats = {
+  totalReviews: 0,
+  avgRating: 0,
+  ratingBreakdown: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
+};
+
+const formatDate = (value?: string) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const reviewerName = (review: ReviewItem) =>
+  review.reviewer?.name || review.reviewer?.userName || 'Пользователь';
+
+const listingTypeLabel = (type?: string) => {
+  if (type === 'car') return 'Авто';
+  if (type === 'car-service') return 'Сервис';
+  if (type === 'auto-tuning') return 'Тюнинг';
+  if (type === 'consultation') return 'Консультация';
+  if (type === 'dry-cleaning') return 'Химчистка';
+  return 'Отзыв';
+};
+
+function Stars({ value, size = 17 }: { value: number; size?: number }) {
+  return (
+    <View style={styles.stars}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Ionicons
+          key={star}
+          name={star <= value ? 'star' : 'star-outline'}
+          size={size}
+          color={star <= value ? '#f5a400' : '#ccc'}
+        />
+      ))}
+    </View>
+  );
+}
+
+export default function MyReviewsScreen() {
+  const user = useAuthStore((s) => s.user);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [stats, setStats] = useState<ReviewStats>(emptyStats);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async (silent = false) => {
+    if (!user?._id) {
+      setLoading(false);
+      return;
+    }
+
+    if (!silent) setLoading(true);
+    setError('');
+    try {
+      const response = await getReviews({ targetUserId: user._id });
+      setReviews(response.reviews);
+      setStats(response.stats);
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Не удалось загрузить отзывы');
+      setReviews([]);
+      setStats(emptyStats);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user?._id]);
+
+  useFocusEffect(useCallback(() => {
+    load();
+  }, [load]));
+
+  const refresh = () => {
+    setRefreshing(true);
+    load(true);
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#111" />
+      </View>
+    );
+  }
+
+  const avg = Number(stats.avgRating || 0);
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+    >
+      <View style={styles.hero}>
+        <View style={styles.heroIcon}>
+          <Ionicons name="star-outline" size={28} color="#111" />
+        </View>
+        <Text style={styles.title}>Отзывы обо мне</Text>
+        <Text style={styles.subtitle}>Оценки покупателей и клиентов из маркета Avtotime</Text>
+      </View>
+
+      <View style={styles.summary}>
+        <View style={styles.scoreBox}>
+          <Text style={styles.score}>{avg.toFixed(1)}</Text>
+          <Stars value={Math.round(avg)} />
+          <Text style={styles.scoreMeta}>{stats.totalReviews} отзывов</Text>
+        </View>
+        <View style={styles.breakdown}>
+          {[5, 4, 3, 2, 1].map((item) => {
+            const count = stats.ratingBreakdown[String(item) as '1' | '2' | '3' | '4' | '5'] || 0;
+            const width = stats.totalReviews ? `${Math.max(8, (count / stats.totalReviews) * 100)}%` : '0%';
+            return (
+              <View key={item} style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>{item}</Text>
+                <View style={styles.breakdownTrack}>
+                  <View style={[styles.breakdownFill, { width: width as any }]} />
+                </View>
+                <Text style={styles.breakdownCount}>{count}</Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
+      {error ? (
+        <View style={styles.errorBox}>
+          <Ionicons name="alert-circle-outline" size={21} color="#d92323" />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : null}
+
+      {reviews.length ? reviews.map((review) => (
+        <View key={review._id} style={styles.card}>
+          <View style={styles.cardTop}>
+            {review.reviewer?.profileImage ? (
+              <Image source={{ uri: review.reviewer.profileImage }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarFallback]}>
+                <Text style={styles.avatarText}>{reviewerName(review).slice(0, 1).toUpperCase()}</Text>
+              </View>
+            )}
+            <View style={styles.authorBlock}>
+              <Text style={styles.authorName}>{reviewerName(review)}</Text>
+              <Text style={styles.dateText}>{formatDate(review.createdAt)}</Text>
+            </View>
+            <Stars value={review.rating} />
+          </View>
+
+          <View style={styles.metaRow}>
+            <Text style={styles.typePill}>{listingTypeLabel(review.listingType)}</Text>
+            {review.isVerifiedPurchase ? <Text style={styles.verifiedPill}>Проверенная сделка</Text> : null}
+          </View>
+
+          {review.title ? <Text style={styles.reviewTitle}>{review.title}</Text> : null}
+          {review.comment ? <Text style={styles.comment}>{review.comment}</Text> : null}
+          {review.pros?.length ? (
+            <Text style={styles.listText}><Text style={styles.listStrong}>Плюсы: </Text>{review.pros.join(', ')}</Text>
+          ) : null}
+          {review.cons?.length ? (
+            <Text style={styles.listText}><Text style={styles.listStrong}>Минусы: </Text>{review.cons.join(', ')}</Text>
+          ) : null}
+        </View>
+      )) : (
+        <View style={styles.empty}>
+          <Ionicons name="star-outline" size={42} color="#bbb" />
+          <Text style={styles.emptyTitle}>Отзывов пока нет</Text>
+          <Text style={styles.emptyText}>Когда пользователи оставят отзывы по вашим объявлениям, они появятся здесь.</Text>
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f4f5f7' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  content: { padding: 12, paddingBottom: 30, gap: 10 },
+  hero: { alignItems: 'center', paddingVertical: 14 },
+  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  title: { color: '#111', fontSize: 30, fontWeight: '900', textAlign: 'center' },
+  subtitle: { marginTop: 5, color: '#666', fontSize: 14, lineHeight: 20, textAlign: 'center', fontWeight: '700' },
+  summary: { flexDirection: 'row', gap: 12, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12 },
+  scoreBox: { width: 108, alignItems: 'center', justifyContent: 'center' },
+  score: { color: '#111', fontSize: 34, fontWeight: '900' },
+  stars: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  scoreMeta: { marginTop: 5, color: '#777', fontSize: 12, fontWeight: '800' },
+  breakdown: { flex: 1, gap: 6, justifyContent: 'center' },
+  breakdownRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  breakdownLabel: { width: 12, color: '#555', fontSize: 12, fontWeight: '900' },
+  breakdownTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: '#eee', overflow: 'hidden' },
+  breakdownFill: { height: '100%', borderRadius: 4, backgroundColor: '#f5a400' },
+  breakdownCount: { width: 24, color: '#777', fontSize: 12, fontWeight: '800', textAlign: 'right' },
+  errorBox: { borderRadius: 8, backgroundColor: '#fff0f0', borderWidth: 1, borderColor: '#ffd3d3', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  errorText: { flex: 1, color: '#a51010', fontSize: 13, lineHeight: 18, fontWeight: '800' },
+  card: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee' },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#111', fontSize: 15, fontWeight: '900' },
+  authorBlock: { flex: 1 },
+  authorName: { color: '#111', fontSize: 14, fontWeight: '900' },
+  dateText: { marginTop: 2, color: '#999', fontSize: 11, fontWeight: '700' },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
+  typePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: '#f2f2f2', color: '#111', fontSize: 11, fontWeight: '900' },
+  verifiedPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: '#effaf2', color: '#14843b', fontSize: 11, fontWeight: '900' },
+  reviewTitle: { marginTop: 10, color: '#111', fontSize: 15, fontWeight: '900' },
+  comment: { marginTop: 5, color: '#333', fontSize: 14, lineHeight: 20 },
+  listText: { marginTop: 6, color: '#444', fontSize: 13, lineHeight: 18 },
+  listStrong: { color: '#111', fontWeight: '900' },
+  empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 42, paddingHorizontal: 20 },
+  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 5, color: '#777', fontSize: 13, lineHeight: 19, textAlign: 'center' },
+});

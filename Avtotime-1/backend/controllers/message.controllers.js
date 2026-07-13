@@ -3,6 +3,7 @@ import { buildPublicFileUrl } from '../config/publicFiles.js';
 import Conversation from '../models/conversation.model.js';
 import Message from '../models/messages.model.js';
 import User from '../models/user.model.js';
+import { io } from '../socket.js';
 
 const DEFAULT_MESSAGES_PAGE_SIZE = 50;
 const MAX_MESSAGES_PAGE_SIZE = 100;
@@ -74,7 +75,11 @@ export const sendMessage = async (req, res) => {
             conversation.messages.push(newMessage._id);
             await conversation.save();
         }
-        return res.status(200).json(newMessage);
+        const payload = newMessage.toObject({ getters: true });
+        io.to(String(senderId)).emit('newMessage', payload);
+        io.to(String(receiverId)).emit('newMessage', payload);
+
+        return res.status(200).json(payload);
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: `Ошибка отправки: ${error.message}` });
@@ -115,23 +120,36 @@ export const getPrevUserChats = async (req, res) => {
         const conversations = await Conversation.find({
             participants: currentUserId
         })
-        .select('participants updatedAt')
+        .select('participants messages updatedAt')
         .populate('participants', 'name userName profileImage')
+        .populate({
+            path: 'messages',
+            options: { sort: { createdAt: -1 } },
+            perDocumentLimit: 1,
+        })
         .sort({ updatedAt: -1 })
         .limit(limit)
-        .lean();
+        .lean({ getters: true });
 
-        const userMap = {};
+        const previousUsers = conversations
+            .map(conv => {
+                const user = conv.participants.find(user => user._id.toString() !== currentUserId.toString());
+                if (!user) return null;
 
-        conversations.forEach(conv => {
-            conv.participants.forEach(user => {
-                if (user._id.toString() !== currentUserId.toString()) {
-                    userMap[user._id] = user;
-                }
-            });
-        });
+                const last = Array.isArray(conv.messages) ? conv.messages[0] : null;
+                const lastMessage = last?.message
+                    || (last?.image ? 'Фото' : '')
+                    || (last?.file ? 'Файл' : '')
+                    || (last?.audioUrl ? 'Голосовое сообщение' : '');
 
-        const previousUsers = Object.values(userMap);
+                return {
+                    ...user,
+                    lastMessage,
+                    lastMessageAt: last?.createdAt || conv.updatedAt,
+                };
+            })
+            .filter(Boolean);
+
         return res.status(200).json(previousUsers);
 
     } catch (error) {

@@ -1,0 +1,188 @@
+import React, { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { getSavedPosts, Post, toggleLike, toggleSavePost } from '../api/posts';
+import { useAuthStore } from '../store/authStore';
+import { AppStackParamList } from '../navigation/AppNavigator';
+
+type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'SavedPosts'> };
+
+export default function SavedPostsScreen({ navigation }: Props) {
+  const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [busyId, setBusyId] = useState('');
+
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const data = await getSavedPosts();
+      setPosts(data);
+    } catch (e: any) {
+      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить сохранённые публикации');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    load();
+  }, [load]));
+
+  const refresh = () => {
+    setRefreshing(true);
+    load(true);
+  };
+
+  const handleLike = async (postId: string) => {
+    try {
+      const updated = await toggleLike(postId);
+      setPosts((prev) => prev.map((post) => (post._id === postId ? { ...post, ...updated } : post)));
+    } catch {}
+  };
+
+  const removeSaved = async (postId: string) => {
+    setBusyId(postId);
+    try {
+      const nextUser = await toggleSavePost(postId);
+      if (user) setUser({ ...user, saved: nextUser.saved ?? [] });
+      setPosts((prev) => prev.filter((post) => post._id !== postId));
+    } catch (e: any) {
+      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось убрать публикацию');
+    } finally {
+      setBusyId('');
+    }
+  };
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View style={styles.heroIcon}>
+        <Ionicons name="bookmark-outline" size={27} color="#111" />
+      </View>
+      <View style={styles.heroText}>
+        <Text style={styles.title}>Сохранённые</Text>
+        <Text style={styles.subtitle}>{posts.length ? `${posts.length} публикаций` : 'Пока пусто'}</Text>
+      </View>
+    </View>
+  );
+
+  const renderPost = ({ item }: { item: Post }) => {
+    const image = item.mediaList?.[0] || item.media;
+    const liked = user ? item.likes?.includes(user._id) : false;
+    const busy = busyId === item._id;
+
+    return (
+      <View style={styles.card}>
+        <TouchableOpacity
+          style={styles.authorRow}
+          onPress={() => navigation.navigate('UserProfile', { userId: item.author._id })}
+          activeOpacity={0.85}
+        >
+          <Image
+            source={item.author?.profileImage ? { uri: item.author.profileImage } : require('../../assets/icon.png')}
+            style={styles.avatar}
+          />
+          <View style={styles.authorText}>
+            <Text style={styles.name}>{item.author?.name || 'Пользователь'}</Text>
+            <Text style={styles.username}>@{item.author?.userName || 'avtotime'}</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.navigate('PostComments', { postId: item._id })} activeOpacity={0.9}>
+          {image ? (
+            <Image source={{ uri: image }} style={styles.postImage} />
+          ) : (
+            <View style={[styles.postImage, styles.noImage]}>
+              <Ionicons name="text-outline" size={30} color="#aaa" />
+            </View>
+          )}
+          {item.caption ? <Text style={styles.caption} numberOfLines={4}>{item.caption}</Text> : null}
+        </TouchableOpacity>
+
+        <View style={styles.actions}>
+          <TouchableOpacity style={styles.actionBtn} onPress={() => handleLike(item._id)}>
+            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={21} color={liked ? '#e53935' : '#555'} />
+            <Text style={styles.actionText}>{item.likes?.length ?? 0}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('PostComments', { postId: item._id })}>
+            <Ionicons name="chatbubble-outline" size={20} color="#555" />
+            <Text style={styles.actionText}>{item.commentsCount ?? item.comments?.length ?? 0}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.removeBtn} onPress={() => removeSaved(item._id)} disabled={busy}>
+            {busy ? <ActivityIndicator color="#111" /> : <Ionicons name="bookmark" size={21} color="#111" />}
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#111" />
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      style={styles.container}
+      data={posts}
+      keyExtractor={(item) => item._id}
+      renderItem={renderPost}
+      ListHeaderComponent={renderHeader}
+      contentContainerStyle={posts.length ? styles.list : styles.emptyList}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      ListEmptyComponent={
+        <View style={styles.emptyState}>
+          <Ionicons name="bookmark-outline" size={44} color="#bbb" />
+          <Text style={styles.emptyTitle}>Сохранённых постов нет</Text>
+          <Text style={styles.emptyText}>Нажмите значок закладки в ленте, чтобы сохранить публикацию.</Text>
+        </View>
+      }
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f4f5f7' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  list: { padding: 12, paddingBottom: 28, gap: 10 },
+  emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', alignItems: 'center', justifyContent: 'center' },
+  heroText: { flex: 1 },
+  title: { color: '#111', fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 2, color: '#666', fontSize: 13, fontWeight: '800' },
+  card: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', overflow: 'hidden' },
+  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee' },
+  authorText: { flex: 1 },
+  name: { color: '#111', fontSize: 14, fontWeight: '900' },
+  username: { color: '#777', fontSize: 12, fontWeight: '800', marginTop: 1 },
+  postImage: { width: '100%', aspectRatio: 1, backgroundColor: '#eee' },
+  noImage: { alignItems: 'center', justifyContent: 'center' },
+  caption: { paddingHorizontal: 12, paddingTop: 10, color: '#222', fontSize: 14, lineHeight: 20 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 12, paddingVertical: 11 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  actionText: { color: '#555', fontSize: 13, fontWeight: '800' },
+  removeBtn: { marginLeft: 'auto', width: 34, height: 34, borderRadius: 17, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 5, color: '#777', fontSize: 13, textAlign: 'center', lineHeight: 19 },
+});

@@ -32,15 +32,17 @@ export function useSocketEvent<T = any>(
   useEffect(() => {
     let socket: Socket;
     let mounted = true;
+    const fn = (data: T) => handlerRef.current(data);
 
     getSocket().then((s) => {
       if (!mounted) return;
       socket = s;
-      const fn = (data: T) => handlerRef.current(data);
       socket.on(event, fn);
-      return () => { socket?.off(event, fn); };
     });
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+      socket?.off(event, fn);
+    };
   }, deps);
 }

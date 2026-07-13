@@ -1,116 +1,362 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, TextInput, FlatList, Image,
-  TouchableOpacity, StyleSheet, ActivityIndicator,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { searchUsers, getSuggestedUsers } from '../api/users';
+import { useFocusEffect } from '@react-navigation/native';
+import { getSuggestedUsers, searchUsers } from '../api/users';
 import { User } from '../api/auth';
+import { getFeed, Post, searchPosts, toggleLike } from '../api/posts';
+import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
+type SearchTab = 'users' | 'posts';
+
+const fallbackAvatar = require('../../assets/icon.png');
+
+const formatCount = (value: number) => {
+  if (value > 999) return `${(value / 1000).toFixed(1)}k`;
+  return String(value);
+};
 
 export default function SearchScreen({ navigation }: Props) {
+  const user = useAuthStore((s) => s.user);
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<User[]>([]);
-  const [suggested, setSuggested] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<SearchTab>('users');
+  const [userResults, setUserResults] = useState<User[]>([]);
+  const [postResults, setPostResults] = useState<Post[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
+  const [suggestedPosts, setSuggestedPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    getSuggestedUsers().then(setSuggested).catch(() => {});
+  const trimmedQuery = query.trim();
+  const hasQuery = trimmedQuery.length >= 2;
+
+  const users = hasQuery ? userResults : suggestedUsers;
+  const posts = hasQuery ? postResults : suggestedPosts;
+  const currentData = activeTab === 'users' ? users : posts;
+
+  const loadDiscover = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const [usersData, feedData] = await Promise.all([
+        getSuggestedUsers().catch(() => []),
+        getFeed().catch(() => []),
+      ]);
+      setSuggestedUsers(usersData);
+      setSuggestedPosts(feedData.slice(0, 20));
+    } catch (e: any) {
+      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить рекомендации');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
+  useFocusEffect(useCallback(() => {
+    loadDiscover();
+  }, [loadDiscover]));
+
   useEffect(() => {
-    if (!query.trim()) { setResults([]); return; }
-    const t = setTimeout(async () => {
-      setLoading(true);
+    if (!trimmedQuery) {
+      setUserResults([]);
+      setPostResults([]);
+      setSearching(false);
+      return;
+    }
+
+    if (trimmedQuery.length < 2) {
+      setUserResults([]);
+      setPostResults([]);
+      setSearching(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearching(true);
       try {
-        const data = await searchUsers(query.trim());
-        setResults(data);
+        const [foundUsers, foundPosts] = await Promise.all([
+          searchUsers(trimmedQuery).catch(() => []),
+          searchPosts(trimmedQuery).catch(() => []),
+        ]);
+        setUserResults(foundUsers);
+        setPostResults(foundPosts);
       } finally {
-        setLoading(false);
+        setSearching(false);
       }
-    }, 400);
-    return () => clearTimeout(t);
-  }, [query]);
+    }, 350);
 
-  const renderUser = ({ item }: { item: User }) => (
-    <TouchableOpacity
-      style={styles.userRow}
-      onPress={() => navigation.navigate('UserProfile', { userId: item._id })}
-    >
-      <Image
-        source={item.profileImage ? { uri: item.profileImage } : require('../../assets/icon.png')}
-        style={styles.avatar}
-      />
-      <View style={styles.userInfo}>
-        <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.username}>@{item.userName}</Text>
+    return () => clearTimeout(timer);
+  }, [trimmedQuery]);
+
+  const refresh = () => {
+    setRefreshing(true);
+    if (hasQuery) {
+      Promise.all([
+        searchUsers(trimmedQuery).catch(() => []),
+        searchPosts(trimmedQuery).catch(() => []),
+      ]).then(([foundUsers, foundPosts]) => {
+        setUserResults(foundUsers);
+        setPostResults(foundPosts);
+      }).finally(() => setRefreshing(false));
+      return;
+    }
+
+    loadDiscover(true);
+  };
+
+  const handleLike = async (postId: string) => {
+    try {
+      const updated = await toggleLike(postId);
+      setSuggestedPosts((prev) => prev.map((post) => (post._id === postId ? { ...post, ...updated } : post)));
+      setPostResults((prev) => prev.map((post) => (post._id === postId ? { ...post, ...updated } : post)));
+    } catch (e: any) {
+      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось обновить лайк');
+    }
+  };
+
+  const counts = useMemo(() => ({
+    users: users.length,
+    posts: posts.length,
+  }), [posts.length, users.length]);
+
+  const openChat = (item: User) => {
+    navigation.navigate('Chat', {
+      userId: item._id,
+      name: item.name,
+      userName: item.userName,
+    });
+  };
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View style={styles.hero}>
+        <View style={styles.heroIcon}>
+          <Ionicons name="search-outline" size={27} color="#111" />
+        </View>
+        <View style={styles.heroText}>
+          <Text style={styles.title}>Поиск</Text>
+          <Text style={styles.subtitle}>{hasQuery ? `Результаты для “${trimmedQuery}”` : 'Люди и публикации Avtotime'}</Text>
+        </View>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#ccc" />
-    </TouchableOpacity>
-  );
 
-  const data = query.trim() ? results : suggested;
-
-  return (
-    <View style={styles.container}>
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={18} color="#aaa" />
+        <Ionicons name="search" size={18} color="#777" />
         <TextInput
           style={styles.input}
-          placeholder="Поиск пользователей"
-          placeholderTextColor="#aaa"
+          placeholder="Пользователь или текст публикации"
+          placeholderTextColor="#999"
           value={query}
           onChangeText={setQuery}
           autoCorrect={false}
           autoCapitalize="none"
+          returnKeyType="search"
         />
         {query ? (
           <TouchableOpacity onPress={() => setQuery('')}>
-            <Ionicons name="close-circle" size={18} color="#aaa" />
+            <Ionicons name="close-circle" size={18} color="#999" />
           </TouchableOpacity>
         ) : null}
       </View>
 
-      {loading && <ActivityIndicator style={{ marginTop: 20 }} color="#111" />}
+      <View style={styles.segment}>
+        <TouchableOpacity
+          style={[styles.segmentBtn, activeTab === 'users' && styles.segmentBtnActive]}
+          onPress={() => setActiveTab('users')}
+        >
+          <Ionicons name="people-outline" size={17} color={activeTab === 'users' ? '#fff' : '#555'} />
+          <Text style={[styles.segmentText, activeTab === 'users' && styles.segmentTextActive]}>Люди · {counts.users}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.segmentBtn, activeTab === 'posts' && styles.segmentBtnActive]}
+          onPress={() => setActiveTab('posts')}
+        >
+          <Ionicons name="images-outline" size={17} color={activeTab === 'posts' ? '#fff' : '#555'} />
+          <Text style={[styles.segmentText, activeTab === 'posts' && styles.segmentTextActive]}>Посты · {counts.posts}</Text>
+        </TouchableOpacity>
+      </View>
 
-      <FlatList
-        data={data}
-        keyExtractor={(u) => u._id}
-        renderItem={renderUser}
-        ListHeaderComponent={
-          !query.trim() && suggested.length > 0
-            ? <Text style={styles.section}>Рекомендации</Text>
-            : null
-        }
-        ListEmptyComponent={
-          !loading && query.trim()
-            ? <Text style={styles.empty}>Ничего не найдено</Text>
-            : null
-        }
-      />
+      {trimmedQuery && trimmedQuery.length < 2 ? (
+        <View style={styles.hint}>
+          <Ionicons name="information-circle-outline" size={18} color="#777" />
+          <Text style={styles.hintText}>Введите минимум 2 символа для поиска.</Text>
+        </View>
+      ) : null}
+
+      {searching ? (
+        <View style={styles.searchingRow}>
+          <ActivityIndicator color="#111" />
+          <Text style={styles.searchingText}>Ищем...</Text>
+        </View>
+      ) : null}
     </View>
+  );
+
+  const renderUser = ({ item }: { item: User }) => (
+    <View style={styles.userCard}>
+      <TouchableOpacity
+        style={styles.userMain}
+        onPress={() => navigation.navigate('UserProfile', { userId: item._id })}
+        activeOpacity={0.86}
+      >
+        <Image source={item.profileImage ? { uri: item.profileImage } : fallbackAvatar} style={styles.avatar} />
+        <View style={styles.userInfo}>
+          <Text style={styles.name} numberOfLines={1}>{item.name || 'Пользователь'}</Text>
+          <Text style={styles.username} numberOfLines={1}>@{item.userName || 'avtotime'}</Text>
+          {item.bio || item.profession || item.location ? (
+            <Text style={styles.userMeta} numberOfLines={1}>{item.bio || item.profession || item.location}</Text>
+          ) : null}
+        </View>
+        <Ionicons name="chevron-forward" size={18} color="#aaa" />
+      </TouchableOpacity>
+      {item._id !== user?._id ? (
+        <View style={styles.userActions}>
+          <TouchableOpacity style={styles.userActionBtn} onPress={() => openChat(item)}>
+            <Ionicons name="chatbubble-outline" size={17} color="#111" />
+            <Text style={styles.userActionText}>Сообщение</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.userActionBtn} onPress={() => navigation.navigate('UserProfile', { userId: item._id })}>
+            <Ionicons name="person-circle-outline" size={17} color="#111" />
+            <Text style={styles.userActionText}>Профиль</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+    </View>
+  );
+
+  const renderPost = ({ item }: { item: Post }) => {
+    const liked = user ? item.likes?.includes(user._id) : false;
+    const image = item.mediaList?.[0] || item.media;
+    const avatar = item.author?.profileImage ? { uri: item.author.profileImage } : fallbackAvatar;
+
+    return (
+      <View style={styles.postCard}>
+        <TouchableOpacity
+          style={styles.postAuthor}
+          onPress={() => navigation.navigate('UserProfile', { userId: item.author._id })}
+          activeOpacity={0.86}
+        >
+          <Image source={avatar} style={styles.postAvatar} />
+          <View style={styles.postAuthorText}>
+            <Text style={styles.name} numberOfLines={1}>{item.author?.name || 'Пользователь'}</Text>
+            <Text style={styles.username} numberOfLines={1}>@{item.author?.userName || 'avtotime'}</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.navigate('PostComments', { postId: item._id })} activeOpacity={0.9}>
+          {image ? (
+            <Image source={{ uri: image }} style={styles.postImage} />
+          ) : (
+            <View style={[styles.postImage, styles.textPostImage]}>
+              <Ionicons name="text-outline" size={26} color="#aaa" />
+            </View>
+          )}
+          {item.caption ? <Text style={styles.caption} numberOfLines={4}>{item.caption}</Text> : null}
+        </TouchableOpacity>
+
+        <View style={styles.postActions}>
+          <TouchableOpacity style={styles.postActionBtn} onPress={() => handleLike(item._id)}>
+            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={21} color={liked ? '#e53935' : '#555'} />
+            <Text style={styles.postActionText}>{formatCount(item.likes?.length ?? 0)}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.postActionBtn} onPress={() => navigation.navigate('PostComments', { postId: item._id })}>
+            <Ionicons name="chatbubble-outline" size={20} color="#555" />
+            <Text style={styles.postActionText}>{formatCount(item.commentsCount ?? item.comments?.length ?? 0)}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#111" />
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      style={styles.container}
+      data={currentData}
+      keyExtractor={(item: any) => item._id}
+      renderItem={activeTab === 'users' ? renderUser as any : renderPost as any}
+      ListHeaderComponent={renderHeader}
+      contentContainerStyle={currentData.length ? styles.list : styles.emptyList}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      keyboardShouldPersistTaps="handled"
+      ListEmptyComponent={
+        <View style={styles.emptyState}>
+          <Ionicons name={activeTab === 'users' ? 'people-outline' : 'images-outline'} size={44} color="#bbb" />
+          <Text style={styles.emptyTitle}>
+            {hasQuery ? 'Ничего не найдено' : activeTab === 'users' ? 'Нет рекомендаций' : 'Нет публикаций'}
+          </Text>
+          <Text style={styles.emptyText}>
+            {hasQuery ? 'Попробуйте другой запрос.' : 'Потяните экран вниз, чтобы обновить.'}
+          </Text>
+        </View>
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  searchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    margin: 12, paddingHorizontal: 14, paddingVertical: 10,
-    backgroundColor: '#f3f3f3', borderRadius: 14,
-  },
+  container: { flex: 1, backgroundColor: '#f4f5f7' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  list: { padding: 12, paddingBottom: 28, gap: 10 },
+  emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
+  header: { gap: 10, marginBottom: 2 },
+  hero: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', alignItems: 'center', justifyContent: 'center' },
+  heroText: { flex: 1 },
+  title: { color: '#111', fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 2, color: '#666', fontSize: 13, fontWeight: '800' },
+  searchBar: { height: 46, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
   input: { flex: 1, fontSize: 15, color: '#111' },
-  section: { paddingHorizontal: 16, paddingVertical: 10, fontSize: 13, fontWeight: '700', color: '#888' },
-  userRow: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
-    paddingVertical: 10, gap: 12,
-  },
-  avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#eee' },
+  segment: { flexDirection: 'row', gap: 8 },
+  segmentBtn: { flex: 1, height: 40, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5e5', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  segmentBtnActive: { backgroundColor: '#111', borderColor: '#111' },
+  segmentText: { color: '#555', fontSize: 13, fontWeight: '900' },
+  segmentTextActive: { color: '#fff' },
+  hint: { flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 10 },
+  hintText: { flex: 1, color: '#666', fontSize: 13, fontWeight: '700' },
+  searchingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', paddingVertical: 8 },
+  searchingText: { color: '#555', fontSize: 13, fontWeight: '800' },
+  userCard: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', overflow: 'hidden' },
+  userMain: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12 },
+  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#eee' },
   userInfo: { flex: 1 },
-  name: { fontSize: 15, fontWeight: '600', color: '#111' },
-  username: { fontSize: 13, color: '#888', marginTop: 1 },
-  empty: { textAlign: 'center', marginTop: 40, color: '#aaa', fontSize: 15 },
+  name: { color: '#111', fontSize: 15, fontWeight: '900' },
+  username: { marginTop: 2, color: '#777', fontSize: 12, fontWeight: '800' },
+  userMeta: { marginTop: 4, color: '#555', fontSize: 12, fontWeight: '700' },
+  userActions: { flexDirection: 'row', gap: 8, borderTopWidth: 1, borderTopColor: '#f0f0f0', padding: 8 },
+  userActionBtn: { flex: 1, height: 36, borderRadius: 8, backgroundColor: '#f5f5f5', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  userActionText: { color: '#111', fontSize: 12, fontWeight: '900' },
+  postCard: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', overflow: 'hidden' },
+  postAuthor: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
+  postAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee' },
+  postAuthorText: { flex: 1 },
+  postImage: { width: '100%', aspectRatio: 1, backgroundColor: '#eee' },
+  textPostImage: { alignItems: 'center', justifyContent: 'center' },
+  caption: { paddingHorizontal: 12, paddingTop: 10, color: '#222', fontSize: 14, lineHeight: 20 },
+  postActions: { flexDirection: 'row', gap: 16, paddingHorizontal: 12, paddingVertical: 11 },
+  postActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  postActionText: { color: '#555', fontSize: 13, fontWeight: '800' },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 5, color: '#777', fontSize: 13, textAlign: 'center', lineHeight: 19 },
 });

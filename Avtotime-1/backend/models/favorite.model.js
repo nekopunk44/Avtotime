@@ -16,6 +16,7 @@ const favoriteSchema = new mongoose.Schema(
       enum: [
         "car",
         "car-service",
+        "part",
         "auto-tuning",
         "consultation",
         "dry-cleaning",

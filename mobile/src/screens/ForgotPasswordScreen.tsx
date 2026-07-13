@@ -5,29 +5,78 @@ import {
 } from 'react-native';
 import client from '../api/client';
 
-export default function ForgotPasswordScreen() {
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
+type Step = 'email' | 'otp' | 'password' | 'done';
 
-  const handleSend = async () => {
-    if (!email.trim()) { Alert.alert('Ошибка', 'Введите email'); return; }
+export default function ForgotPasswordScreen() {
+  const [step, setStep] = useState<Step>('email');
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const showError = (fallback: string, e: any) => {
+    Alert.alert('Ошибка', e.response?.data?.message || fallback);
+  };
+
+  const handleSendOtp = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) { Alert.alert('Ошибка', 'Введите email'); return; }
+
     setLoading(true);
     try {
-      await client.post('/auth/forgot-password', { email: email.trim() });
-      setSent(true);
+      await client.post('/auth/sendOtp', { email: normalizedEmail });
+      setEmail(normalizedEmail);
+      setStep('otp');
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось отправить письмо');
+      showError('Не удалось отправить код', e);
     } finally {
       setLoading(false);
     }
   };
 
-  if (sent) {
+  const handleVerifyOtp = async () => {
+    if (!otp.trim()) { Alert.alert('Ошибка', 'Введите код из письма'); return; }
+
+    setLoading(true);
+    try {
+      await client.post('/auth/verifyOtp', { email, otp: otp.trim() });
+      setStep('password');
+    } catch (e: any) {
+      showError('Неверный или просроченный код', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (password.length < 8) {
+      Alert.alert('Ошибка', 'Пароль должен быть не короче 8 символов');
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert('Ошибка', 'Пароли не совпадают');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await client.post('/auth/resetPassword', { email, password });
+      setStep('done');
+    } catch (e: any) {
+      showError('Не удалось изменить пароль', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (step === 'done') {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Письмо отправлено</Text>
-        <Text style={styles.sub}>Проверьте {email} и следуйте инструкциям</Text>
+        <View style={styles.inner}>
+          <Text style={styles.title}>Пароль изменен</Text>
+          <Text style={styles.sub}>Теперь можно вернуться на экран входа и войти с новым паролем.</Text>
+        </View>
       </View>
     );
   }
@@ -35,19 +84,73 @@ export default function ForgotPasswordScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.inner}>
-        <Text style={styles.title}>Забыли пароль?</Text>
-        <Text style={styles.sub}>Введите email и мы отправим инструкции</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#999"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-        <TouchableOpacity style={[styles.btn, loading && { opacity: 0.6 }]} onPress={handleSend} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Отправить</Text>}
+        <Text style={styles.title}>
+          {step === 'email' ? 'Забыли пароль?' : step === 'otp' ? 'Введите код' : 'Новый пароль'}
+        </Text>
+        <Text style={styles.sub}>
+          {step === 'email'
+            ? 'Введите email, и мы отправим код подтверждения'
+            : step === 'otp'
+              ? `Код отправлен на ${email}`
+              : 'Придумайте новый пароль для аккаунта'}
+        </Text>
+
+        {step === 'email' && (
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#999"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+        )}
+
+        {step === 'otp' && (
+          <TextInput
+            style={styles.input}
+            placeholder="Код из письма"
+            placeholderTextColor="#999"
+            value={otp}
+            onChangeText={setOtp}
+            keyboardType="number-pad"
+          />
+        )}
+
+        {step === 'password' && (
+          <>
+            <TextInput
+              style={styles.input}
+              placeholder="Новый пароль"
+              placeholderTextColor="#999"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Повторите пароль"
+              placeholderTextColor="#999"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+            />
+          </>
+        )}
+
+        <TouchableOpacity
+          style={[styles.btn, loading && styles.btnDisabled]}
+          onPress={step === 'email' ? handleSendOtp : step === 'otp' ? handleVerifyOtp : handleResetPassword}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.btnText}>
+              {step === 'email' ? 'Отправить код' : step === 'otp' ? 'Подтвердить код' : 'Сохранить пароль'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -57,8 +160,8 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   inner: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  title: { fontSize: 24, fontWeight: '700', marginBottom: 12, color: '#111' },
-  sub: { fontSize: 14, color: '#666', marginBottom: 28, textAlign: 'center' },
+  title: { fontSize: 24, fontWeight: '700', marginBottom: 12, color: '#111', textAlign: 'center' },
+  sub: { fontSize: 14, color: '#666', marginBottom: 28, textAlign: 'center', lineHeight: 20 },
   input: {
     width: '100%', height: 52, borderWidth: 2, borderColor: '#111',
     borderRadius: 16, paddingHorizontal: 18, fontSize: 15, marginBottom: 14, color: '#111',
@@ -67,5 +170,6 @@ const styles = StyleSheet.create({
     width: '100%', height: 52, backgroundColor: '#111',
     borderRadius: 16, justifyContent: 'center', alignItems: 'center',
   },
+  btnDisabled: { opacity: 0.6 },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 });

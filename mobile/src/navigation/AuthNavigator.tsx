@@ -3,11 +3,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SignInScreen from '../screens/SignInScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 
 export type AuthStackParamList = {
   SignIn: undefined;
   SignUp: undefined;
   ForgotPassword: undefined;
+  PrivacyPolicy: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -21,6 +23,11 @@ export default function AuthNavigator() {
         name="ForgotPassword"
         component={ForgotPasswordScreen}
         options={{ headerShown: true, title: 'Восстановление пароля', headerBackTitle: 'Назад' }}
+      />
+      <Stack.Screen
+        name="PrivacyPolicy"
+        component={PrivacyPolicyScreen}
+        options={{ headerShown: true, title: 'Политика', headerBackTitle: 'Назад' }}
       />
     </Stack.Navigator>
   );

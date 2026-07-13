@@ -112,6 +112,59 @@ export const gettAllPost = async(req, res) => {
     }
 }
 
+export const getPostsByUser = async(req, res) => {
+    try {
+        const { userId } = req.params
+        if (!/^[0-9a-fA-F]{24}$/.test(userId)) {
+            return res.status(400).json({ message: 'Некорректный пользователь' })
+        }
+
+        const page = Math.max(1, parseInt(req.query.page) || 1)
+        const limit = Math.min(90, Math.max(1, parseInt(req.query.limit) || 30))
+        const skip = (page - 1) * limit
+
+        const [posts, total] = await Promise.all([
+            Post.find({ author: userId })
+                .populate('author', 'name userName profileImage')
+                .populate('comments.author', 'name userName profileImage')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Post.countDocuments({ author: userId }),
+        ])
+
+        return res.status(200).json({
+            posts: posts.map(trimPostCommentsForFeed),
+            total,
+            page,
+            limit,
+        })
+    } catch (error) {
+        return res.status(500).json({ message: `Ошибка получения постов пользователя ${error}` })
+    }
+}
+
+export const getPostById = async(req, res) => {
+    try {
+        const post = await Post.findById(req.params.postId)
+            .populate('author', 'name userName profileImage')
+            .populate('comments.author', 'name userName profileImage')
+            .lean()
+
+        if (!post) {
+            return res.status(404).json({ message: 'Пост не найден' })
+        }
+
+        return res.status(200).json(normalizeMediaList({
+            ...post,
+            commentsCount: Array.isArray(post.comments) ? post.comments.length : 0,
+        }))
+    } catch (error) {
+        return res.status(500).json({ message: `Ошибка получения поста ${error}` })
+    }
+}
+
 export const searchPosts = async (req, res) => {
     try {
         const q = String(req.query.q || '').trim()
@@ -236,7 +289,49 @@ export const editPost = async (req, res) => {
             return res.status(403).json({ message: 'Нет доступа' })
         }
 
+        const pickedFiles = Array.isArray(req.files) ? req.files : (req.file ? [req.file] : [])
         const caption = typeof req.body.caption === 'string' ? req.body.caption.trim() : post.caption
+        const requestedMediaType = req.body.mediaType === 'video' ? 'video' : req.body.mediaType === 'image' ? 'image' : null
+        const detectedMediaType = pickedFiles[0]?.mimetype?.startsWith('video/') ? 'video' : 'image'
+        const mediaType = requestedMediaType || (pickedFiles.length ? detectedMediaType : post.mediaType || detectedMediaType)
+
+        if (mediaType === 'video' && pickedFiles.length > 1) {
+            return res.status(400).json({ message: 'Можно загрузить только одно видео' })
+        }
+
+        let nextMediaList = null
+        if (pickedFiles.length) {
+            nextMediaList = (
+                await Promise.all(pickedFiles.map(file => uploadOnCloudinary(file.path)))
+            ).filter(Boolean)
+
+            if (!nextMediaList.length) {
+                return res.status(400).json({ message: 'Не удалось загрузить медиа' })
+            }
+        }
+
+        const imageUrlsForModeration = mediaType === 'image'
+            ? nextMediaList || (Array.isArray(post.mediaList) && post.mediaList.length ? post.mediaList : post.media ? [post.media] : [])
+            : []
+        const modResult = await moderateTextAndImages({
+            text: caption || "",
+            imageUrls: imageUrlsForModeration,
+        })
+
+        if (!modResult.skipped && modResult.flagged) {
+            if (nextMediaList) {
+                await Promise.allSettled(nextMediaList.map(item => deleteFromCloudinary(item)))
+            }
+            return res.status(422).json({ message: "Публикация отклонена: контент не прошёл проверку." })
+        }
+
+        if (nextMediaList) {
+            await deletePostMedia(post)
+            post.media = nextMediaList[0]
+            post.mediaList = nextMediaList
+            post.mediaType = mediaType
+        }
+
         post.caption = caption
         await post.save()
         await post.populate('author', 'name userName profileImage')

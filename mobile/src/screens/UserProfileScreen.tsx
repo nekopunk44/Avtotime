@@ -1,13 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
-  View, Text, Image, StyleSheet, TouchableOpacity,
-  FlatList, ActivityIndicator, ScrollView, Alert,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Linking,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { RouteProp } from '@react-navigation/native';
+import { RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getUserById, toggleFollow, getFollowStatus } from '../api/users';
-import { getFeed, Post } from '../api/posts';
+import { getFollowStatus, getUserById, toggleFollow } from '../api/users';
+import { getUserPosts, Post } from '../api/posts';
+import { getUserRatingStats, ReviewStats } from '../api/reviews';
 import { useAuthStore } from '../store/authStore';
 import { User } from '../api/auth';
 import { AppStackParamList } from '../navigation/AppNavigator';
@@ -17,28 +26,72 @@ type Props = {
   route: RouteProp<AppStackParamList, 'UserProfile'>;
 };
 
+const getUserRefId = (ref: User['followers'][number]) => (typeof ref === 'string' ? ref : ref._id);
+
+const emptyRatingStats: ReviewStats = {
+  totalReviews: 0,
+  avgRating: 0,
+  ratingBreakdown: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
+};
+
+function Stars({ value }: { value: number }) {
+  return (
+    <View style={styles.stars}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Ionicons
+          key={star}
+          name={star <= value ? 'star' : 'star-outline'}
+          size={17}
+          color={star <= value ? '#f5a400' : '#ccc'}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function UserProfileScreen({ route, navigation }: Props) {
   const { userId } = route.params;
   const me = useAuthStore((s) => s.user);
   const [user, setUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [postsTotal, setPostsTotal] = useState(0);
+  const [ratingStats, setRatingStats] = useState<ReviewStats>(emptyRatingStats);
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
-  useEffect(() => {
-    Promise.all([
-      getUserById(userId),
-      getFeed(),
-      getFollowStatus(userId),
-    ]).then(([u, allPosts, status]) => {
-      setUser(u);
-      navigation.setOptions({ title: u.name });
-      setPosts(allPosts.filter((p) => p.author?._id === userId));
+  const loadProfile = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const [freshUser, postsPage, status, nextRatingStats] = await Promise.all([
+        getUserById(userId),
+        getUserPosts(userId),
+        getFollowStatus(userId).catch(() => ({ isFollowing: false })),
+        getUserRatingStats(userId).catch(() => emptyRatingStats),
+      ]);
+      setUser(freshUser);
+      navigation.setOptions({ title: freshUser.name || freshUser.userName });
+      setPosts(postsPage.posts);
+      setPostsTotal(postsPage.total);
       setIsFollowing(status.isFollowing);
-    }).catch(console.error)
-      .finally(() => setLoading(false));
-  }, [userId]);
+      setRatingStats(nextRatingStats);
+    } catch (e: any) {
+      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить профиль');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [navigation, userId]);
+
+  useFocusEffect(useCallback(() => {
+    loadProfile();
+  }, [loadProfile]));
+
+  const refresh = () => {
+    setRefreshing(true);
+    loadProfile(true);
+  };
 
   const handleFollow = async () => {
     if (!user) return;
@@ -46,120 +99,245 @@ export default function UserProfileScreen({ route, navigation }: Props) {
     try {
       await toggleFollow(userId);
       setIsFollowing((prev) => !prev);
-      setUser((prev) => prev ? {
+      setUser((prev) => (prev ? {
         ...prev,
         followers: isFollowing
-          ? prev.followers.filter((id) => id !== me?._id)
+          ? prev.followers.filter((item) => getUserRefId(item) !== me?._id)
           : [...prev.followers, me!._id],
-      } : prev);
+      } : prev));
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось');
+      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось обновить подписку');
     } finally {
       setFollowLoading(false);
     }
   };
 
-  if (loading || !user) return <View style={styles.center}><ActivityIndicator size="large" color="#111" /></View>;
+  const openFollowList = (mode: 'followers' | 'following') => {
+    navigation.navigate('FollowList', {
+      userId,
+      mode,
+      title: mode === 'followers' ? 'Подписчики' : 'Подписки',
+    });
+  };
+
+  const openUrl = async (value?: string) => {
+    if (!value) return;
+    const url = value.startsWith('http') ? value : `https://${value}`;
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Ссылка', 'Не удалось открыть ссылку');
+    }
+  };
+
+  if (loading || !user) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#111" />
+      </View>
+    );
+  }
 
   const isMe = me?._id === userId;
   const avatar = user.profileImage ? { uri: user.profileImage } : require('../../assets/icon.png');
 
-  return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View style={styles.profileTop}>
         <Image source={avatar} style={styles.avatar} />
-        <View style={styles.stats}>
-          {[
-            { label: 'Публикации', value: posts.length },
-            { label: 'Подписчики', value: user.followers.length },
-            { label: 'Подписки', value: user.following.length },
-          ].map((s) => (
-            <View key={s.label} style={styles.stat}>
-              <Text style={styles.statNum}>{s.value}</Text>
-              <Text style={styles.statLabel}>{s.label}</Text>
-            </View>
-          ))}
+        <View style={styles.profileInfo}>
+          <Text style={styles.name}>{user.name || 'Пользователь'}</Text>
+          <Text style={styles.username}>@{user.userName || 'avtotime'}</Text>
+          {user.profession || user.location ? (
+            <Text style={styles.meta} numberOfLines={1}>{user.profession || user.location}</Text>
+          ) : null}
         </View>
       </View>
 
-      <View style={styles.info}>
-        <Text style={styles.name}>{user.name}</Text>
-        <Text style={styles.username}>@{user.userName}</Text>
-        {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
+      {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
+
+      <View style={styles.stats}>
+        <View style={styles.stat}>
+          <Text style={styles.statNum}>{postsTotal}</Text>
+          <Text style={styles.statLabel}>Публикации</Text>
+        </View>
+        <TouchableOpacity style={styles.stat} onPress={() => openFollowList('followers')}>
+          <Text style={styles.statNum}>{user.followers?.length ?? 0}</Text>
+          <Text style={styles.statLabel}>Подписчики</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.stat} onPress={() => openFollowList('following')}>
+          <Text style={styles.statNum}>{user.following?.length ?? 0}</Text>
+          <Text style={styles.statLabel}>Подписки</Text>
+        </TouchableOpacity>
       </View>
 
-      {!isMe && (
-        <View style={styles.actions}>
+      <TouchableOpacity
+        style={styles.ratingCard}
+        activeOpacity={0.86}
+        onPress={() => navigation.navigate('UserReviews', {
+          userId,
+          title: user.name || user.userName || 'Отзывы',
+        })}
+      >
+        <View style={styles.ratingIcon}>
+          <Ionicons name="star-outline" size={22} color="#f5a400" />
+        </View>
+        <View style={styles.ratingBody}>
+          <Text style={styles.ratingTitle}>Рейтинг продавца</Text>
+          <View style={styles.ratingRow}>
+            <Text style={styles.ratingValue}>{Number(ratingStats.avgRating || 0).toFixed(1)}</Text>
+            <Stars value={Math.round(Number(ratingStats.avgRating || 0))} />
+            <Text style={styles.ratingCount}>{ratingStats.totalReviews} отзывов</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color="#aaa" />
+      </TouchableOpacity>
+
+      {isMe ? (
+        <View style={styles.mainActions}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.navigate('EditProfile')}>
+            <Ionicons name="create-outline" size={18} color="#fff" />
+            <Text style={styles.primaryText}>Редактировать</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.mainActions}>
           <TouchableOpacity
-            style={[styles.followBtn, isFollowing && styles.followingBtn]}
+            style={[styles.primaryBtn, isFollowing && styles.followingBtn]}
             onPress={handleFollow}
             disabled={followLoading}
           >
-            {followLoading
-              ? <ActivityIndicator color={isFollowing ? '#111' : '#fff'} size="small" />
-              : <Text style={[styles.followBtnText, isFollowing && styles.followingBtnText]}>
-                  {isFollowing ? 'Отписаться' : 'Подписаться'}
+            {followLoading ? (
+              <ActivityIndicator color={isFollowing ? '#111' : '#fff'} />
+            ) : (
+              <>
+                <Ionicons name={isFollowing ? 'checkmark-outline' : 'person-add-outline'} size={18} color={isFollowing ? '#111' : '#fff'} />
+                <Text style={[styles.primaryText, isFollowing && styles.followingText]}>
+                  {isFollowing ? 'Вы подписаны' : 'Подписаться'}
                 </Text>
-            }
+              </>
+            )}
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.msgBtn}
+            style={styles.secondaryBtn}
             onPress={() => navigation.navigate('Chat', { userId, name: user.name, userName: user.userName ?? '' })}
           >
             <Ionicons name="chatbubble-outline" size={18} color="#111" />
-            <Text style={styles.msgBtnText}>Сообщение</Text>
+            <Text style={styles.secondaryText}>Сообщение</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      <FlatList
-        data={posts}
-        keyExtractor={(p) => p._id}
-        numColumns={3}
-        scrollEnabled={false}
-        renderItem={({ item }) => (
-          <View style={styles.gridItem}>
-            {item.mediaList?.[0]
-              ? <Image source={{ uri: item.mediaList[0] }} style={styles.gridImage} />
-              : <View style={[styles.gridImage, styles.gridNoImage]}>
-                  <Ionicons name="text-outline" size={20} color="#ccc" />
-                </View>
-            }
-          </View>
-        )}
-      />
-    </ScrollView>
+      {(user.website || user.instagram || user.telegram || user.location) ? (
+        <View style={styles.infoCard}>
+          {user.location ? (
+            <View style={styles.infoLine}>
+              <Ionicons name="location-outline" size={17} color="#777" />
+              <Text style={styles.infoText}>{user.location}</Text>
+            </View>
+          ) : null}
+          {user.website ? (
+            <TouchableOpacity style={styles.infoLine} onPress={() => openUrl(user.website)}>
+              <Ionicons name="globe-outline" size={17} color="#777" />
+              <Text style={styles.infoLink} numberOfLines={1}>{user.website}</Text>
+            </TouchableOpacity>
+          ) : null}
+          {user.instagram ? (
+            <Text style={styles.infoText}>Instagram: {user.instagram}</Text>
+          ) : null}
+          {user.telegram ? (
+            <Text style={styles.infoText}>Telegram: {user.telegram}</Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      <View style={styles.sectionTitleRow}>
+        <Text style={styles.sectionTitle}>Публикации</Text>
+      </View>
+    </View>
+  );
+
+  const renderPost = ({ item }: { item: Post }) => (
+    <TouchableOpacity
+      style={styles.gridItem}
+      onPress={() => navigation.navigate('PostComments', { postId: item._id })}
+      activeOpacity={0.85}
+    >
+      {item.mediaList?.[0] || item.media ? (
+        <Image source={{ uri: item.mediaList?.[0] || item.media }} style={styles.gridImage} />
+      ) : (
+        <View style={[styles.gridImage, styles.gridNoImage]}>
+          <Ionicons name="text-outline" size={20} color="#aaa" />
+          {item.caption ? <Text style={styles.textPost} numberOfLines={3}>{item.caption}</Text> : null}
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+
+  return (
+    <FlatList
+      style={styles.container}
+      data={posts}
+      keyExtractor={(item) => item._id}
+      renderItem={renderPost}
+      numColumns={3}
+      ListHeaderComponent={renderHeader}
+      contentContainerStyle={posts.length ? styles.list : styles.emptyList}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      ListEmptyComponent={
+        <View style={styles.emptyState}>
+          <Ionicons name="images-outline" size={42} color="#bbb" />
+          <Text style={styles.emptyTitle}>Публикаций пока нет</Text>
+          <Text style={styles.emptyText}>Когда пользователь опубликует посты, они появятся здесь.</Text>
+        </View>
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 20 },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#eee' },
-  stats: { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
-  stat: { alignItems: 'center' },
-  statNum: { fontSize: 18, fontWeight: '700', color: '#111' },
-  statLabel: { fontSize: 11, color: '#888', marginTop: 2 },
-  info: { paddingHorizontal: 16, paddingBottom: 12 },
-  name: { fontWeight: '700', fontSize: 16, color: '#111' },
-  username: { fontSize: 13, color: '#888', marginTop: 1 },
-  bio: { fontSize: 14, color: '#444', marginTop: 6, lineHeight: 20 },
-  actions: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 16, gap: 10 },
-  followBtn: {
-    flex: 1, height: 38, backgroundColor: '#111',
-    borderRadius: 10, justifyContent: 'center', alignItems: 'center',
-  },
-  followingBtn: { backgroundColor: '#f3f3f3', borderWidth: 1, borderColor: '#ddd' },
-  followBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  followingBtnText: { color: '#111' },
-  msgBtn: {
-    flex: 1, height: 38, backgroundColor: '#f3f3f3', borderRadius: 10,
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6,
-    borderWidth: 1, borderColor: '#ddd',
-  },
-  msgBtnText: { fontSize: 14, fontWeight: '600', color: '#111' },
-  gridItem: { flex: 1/3 },
-  gridImage: { width: '100%', aspectRatio: 1, backgroundColor: '#eee' },
-  gridNoImage: { justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: '#f4f5f7' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f4f5f7' },
+  list: { padding: 12, paddingBottom: 28 },
+  emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
+  header: { gap: 12, marginBottom: 12 },
+  profileTop: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12 },
+  avatar: { width: 74, height: 74, borderRadius: 37, backgroundColor: '#eee' },
+  profileInfo: { flex: 1 },
+  name: { color: '#111', fontSize: 22, fontWeight: '900' },
+  username: { marginTop: 2, color: '#777', fontSize: 13, fontWeight: '800' },
+  meta: { marginTop: 6, color: '#555', fontSize: 13, fontWeight: '800' },
+  bio: { color: '#333', fontSize: 14, lineHeight: 21, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12 },
+  stats: { flexDirection: 'row', gap: 8 },
+  stat: { flex: 1, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', alignItems: 'center', paddingVertical: 12 },
+  statNum: { color: '#111', fontSize: 20, fontWeight: '900' },
+  statLabel: { marginTop: 2, color: '#777', fontSize: 11, fontWeight: '800' },
+  ratingCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12 },
+  ratingIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#fff8ec', alignItems: 'center', justifyContent: 'center' },
+  ratingBody: { flex: 1 },
+  ratingTitle: { color: '#111', fontSize: 14, fontWeight: '900' },
+  ratingRow: { marginTop: 5, flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap' },
+  ratingValue: { color: '#111', fontSize: 18, fontWeight: '900' },
+  ratingCount: { color: '#777', fontSize: 12, fontWeight: '800' },
+  stars: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  mainActions: { flexDirection: 'row', gap: 8 },
+  primaryBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  primaryText: { color: '#fff', fontSize: 14, fontWeight: '900' },
+  followingBtn: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd' },
+  followingText: { color: '#111' },
+  secondaryBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  secondaryText: { color: '#111', fontSize: 14, fontWeight: '900' },
+  infoCard: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12, gap: 8 },
+  infoLine: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  infoText: { color: '#555', fontSize: 13, fontWeight: '700' },
+  infoLink: { flex: 1, color: '#0066ff', fontSize: 13, fontWeight: '800' },
+  sectionTitleRow: { paddingHorizontal: 2 },
+  sectionTitle: { color: '#111', fontSize: 18, fontWeight: '900' },
+  gridItem: { width: '33.333%', aspectRatio: 1, padding: 1.5 },
+  gridImage: { width: '100%', height: '100%', borderRadius: 4, backgroundColor: '#eee' },
+  gridNoImage: { alignItems: 'center', justifyContent: 'center', padding: 7, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' },
+  textPost: { marginTop: 5, color: '#555', fontSize: 10, textAlign: 'center', lineHeight: 14 },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 5, color: '#777', fontSize: 13, textAlign: 'center', lineHeight: 19 },
 });

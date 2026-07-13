@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { getMe, signOut, User } from '../api/auth';
+import { disconnectSocket } from '../hooks/useSocket';
 
 interface AuthState {
   user: User | null;
@@ -18,6 +19,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     await signOut();
+    disconnectSocket();
     set({ user: null });
   },
 
