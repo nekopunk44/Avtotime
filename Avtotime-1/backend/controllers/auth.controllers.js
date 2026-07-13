@@ -115,7 +115,7 @@ export const signUp = async (req, res) => {
         const token = genToken(user._id, user.tokenVersion ?? 0)
         setAuthCookie(res, token)
 
-        return res.status(201).json(toSafeUser(user))
+        return res.status(201).json({ ...toSafeUser(user), token })
     } catch (error) {
         return res.status(500).json({ message: `Ошибка регистрации: ${error}` })
     }

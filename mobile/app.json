@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Avtotime",
+    "slug": "avtotime",
     "version": "1.0.0",
     "scheme": "avtotime",
     "orientation": "portrait",
