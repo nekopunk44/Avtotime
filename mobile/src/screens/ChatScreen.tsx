@@ -16,7 +16,14 @@ import {
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import {
+  useAudioRecorder,
+  RecordingPresets,
+  setAudioModeAsync,
+  requestRecordingPermissionsAsync,
+} from 'expo-audio';
 import { Ionicons } from '@expo/vector-icons';
+import VoiceMessage from '../components/VoiceMessage';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -85,6 +92,20 @@ export default function ChatScreen({ route, navigation }: Props) {
   const [menuBusy, setMenuBusy] = useState(false);
   const flatRef = useRef<FlatList>(null);
   const me = useAuthStore((s) => s.user);
+
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const [recording, setRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopRecordTimer = useCallback(() => {
+    if (recordTimerRef.current) {
+      clearInterval(recordTimerRef.current);
+      recordTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => stopRecordTimer, [stopRecordTimer]);
 
   const isMessageInChat = useCallback((msg: Message) => {
     const senderId = getMessageUserId(msg.sender);
@@ -269,6 +290,69 @@ export default function ChatScreen({ route, navigation }: Props) {
     ]);
   };
 
+  const startRecording = async () => {
+    if (isBlocked || sending || recording) return;
+    try {
+      const { granted } = await requestRecordingPermissionsAsync();
+      if (!granted) {
+        Alert.alert('Доступ к микрофону', 'Разрешите доступ к микрофону, чтобы записывать голосовые сообщения.');
+        return;
+      }
+      await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+      setRecordSeconds(0);
+      setRecording(true);
+      recordTimerRef.current = setInterval(() => setRecordSeconds((s) => s + 1), 1000);
+    } catch {
+      Alert.alert('Ошибка', 'Не удалось начать запись.');
+    }
+  };
+
+  const cancelRecording = async () => {
+    stopRecordTimer();
+    setRecording(false);
+    setRecordSeconds(0);
+    try { await recorder.stop(); } catch {}
+    // Route audio back to the speaker for playback (iOS)
+    setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
+  };
+
+  const stopAndSendRecording = async () => {
+    stopRecordTimer();
+    setRecording(false);
+    const seconds = recordSeconds;
+    setRecordSeconds(0);
+    try {
+      await recorder.stop();
+    } catch {
+      Alert.alert('Ошибка', 'Не удалось завершить запись.');
+      return;
+    }
+    // Route audio back to the speaker for playback (iOS)
+    setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
+
+    const uri = recorder.uri;
+    if (!uri || seconds < 1) {
+      if (seconds < 1) Alert.alert('Слишком коротко', 'Удерживайте запись хотя бы одну секунду.');
+      return;
+    }
+
+    setSending(true);
+    try {
+      const msg = await sendMessage(userId, {
+        audioUri: uri,
+        audioName: 'voice-message.m4a',
+        audioType: 'audio/mp4',
+      });
+      prependMessage(msg);
+    } catch (e: any) {
+      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось отправить голосовое сообщение');
+    } finally {
+      setSending(false);
+    }
+  };
+
   const handleSend = async () => {
     if (isBlocked) {
       Alert.alert('Чат заблокирован', 'Разблокируйте пользователя, чтобы отправить сообщение.');
@@ -332,10 +416,7 @@ export default function ChatScreen({ route, navigation }: Props) {
           </TouchableOpacity>
         ) : null}
         {item.audioUrl ? (
-          <TouchableOpacity style={[styles.attachment, isMine && styles.attachmentMine]} onPress={() => openUrl(item.audioUrl)}>
-            <Ionicons name="mic-outline" size={20} color={isMine ? '#fff' : '#111'} />
-            <Text style={[styles.attachmentTitle, isMine && styles.mineText]}>Голосовое сообщение</Text>
-          </TouchableOpacity>
+          <VoiceMessage uri={item.audioUrl} mine={isMine} />
         ) : null}
         {item.message ? <Text style={[styles.msgText, isMine && styles.mineText]}>{item.message}</Text> : null}
         <Text style={[styles.msgTime, isMine && styles.mineTime]}>{formatTime(item.createdAt)}</Text>
@@ -352,7 +433,8 @@ export default function ChatScreen({ route, navigation }: Props) {
     );
   }
 
-  const canSend = Boolean(text.trim() || attachment) && !sending && !isBlocked;
+  const hasContent = Boolean(text.trim() || attachment);
+  const canSend = hasContent && !sending && !isBlocked;
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -406,26 +488,47 @@ export default function ChatScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
-      <View style={styles.inputRow}>
-        <TouchableOpacity style={styles.attachBtn} onPress={openAttachmentMenu} disabled={sending || isBlocked}>
-          <Ionicons name="attach-outline" size={24} color={isBlocked ? '#bbb' : '#555'} />
-        </TouchableOpacity>
-        <TextInput
-          style={[styles.input, isBlocked && styles.inputDisabled]}
-          placeholder={isBlocked ? 'Пользователь заблокирован' : 'Сообщение...'}
-          placeholderTextColor="#aaa"
-          value={text}
-          onChangeText={setText}
-          multiline
-          editable={!isBlocked}
-        />
-        <TouchableOpacity style={[styles.sendBtn, canSend && styles.sendBtnActive]} onPress={handleSend} disabled={!canSend}>
-          {sending
-            ? <ActivityIndicator size="small" color="#fff" />
-            : <Ionicons name="send" size={19} color={canSend ? '#fff' : '#bbb'} />
-          }
-        </TouchableOpacity>
-      </View>
+      {recording ? (
+        <View style={styles.inputRow}>
+          <TouchableOpacity style={styles.attachBtn} onPress={cancelRecording}>
+            <Ionicons name="trash-outline" size={23} color="#d92323" />
+          </TouchableOpacity>
+          <View style={styles.recordingBar}>
+            <View style={styles.recordDot} />
+            <Text style={styles.recordingText}>Запись… {Math.floor(recordSeconds / 60)}:{(recordSeconds % 60).toString().padStart(2, '0')}</Text>
+          </View>
+          <TouchableOpacity style={[styles.sendBtn, styles.sendBtnActive]} onPress={stopAndSendRecording}>
+            <Ionicons name="send" size={19} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.inputRow}>
+          <TouchableOpacity style={styles.attachBtn} onPress={openAttachmentMenu} disabled={sending || isBlocked}>
+            <Ionicons name="attach-outline" size={24} color={isBlocked ? '#bbb' : '#555'} />
+          </TouchableOpacity>
+          <TextInput
+            style={[styles.input, isBlocked && styles.inputDisabled]}
+            placeholder={isBlocked ? 'Пользователь заблокирован' : 'Сообщение...'}
+            placeholderTextColor="#aaa"
+            value={text}
+            onChangeText={setText}
+            multiline
+            editable={!isBlocked}
+          />
+          {hasContent ? (
+            <TouchableOpacity style={[styles.sendBtn, canSend && styles.sendBtnActive]} onPress={handleSend} disabled={!canSend}>
+              {sending
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name="send" size={19} color={canSend ? '#fff' : '#bbb'} />
+              }
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.micBtn} onPress={startRecording} disabled={sending || isBlocked}>
+              <Ionicons name="mic" size={22} color={isBlocked ? '#bbb' : '#fff'} />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -468,4 +571,8 @@ const styles = StyleSheet.create({
   inputDisabled: { color: '#999', backgroundColor: '#eee' },
   sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f3f3f3', justifyContent: 'center', alignItems: 'center' },
   sendBtnActive: { backgroundColor: '#111' },
+  micBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' },
+  recordingBar: { flex: 1, height: 40, borderRadius: 20, backgroundColor: '#f3f3f3', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 8 },
+  recordDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#d92323' },
+  recordingText: { color: '#111', fontSize: 14, fontWeight: '700' },
 });
