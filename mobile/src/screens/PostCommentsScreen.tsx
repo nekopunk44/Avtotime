@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { addComment, deletePost, getPostById, isPostSaved, Post, PostComment, toggleLike, toggleSavePost } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import PostMediaCarousel from '../components/PostMediaCarousel';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'PostComments'>;
@@ -108,8 +109,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
     const liked = user ? post.likes?.includes(user._id) : false;
     const saved = isPostSaved(user, post._id);
     const isMine = post.author?._id === user?._id;
-    const media = post.mediaList?.[0] || post.media;
-    const mediaCount = post.mediaList?.length ?? (post.media ? 1 : 0);
+    const hasMedia = !!(post.mediaList?.length || post.media);
 
     return (
       <View style={styles.postHeader}>
@@ -120,16 +120,8 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
             <Text style={styles.username}>@{post.author?.userName}</Text>
           </View>
         </View>
-        {media ? (
-          <View>
-            <Image source={{ uri: media }} style={styles.postImage} resizeMode="cover" />
-            {mediaCount > 1 ? (
-              <View style={styles.mediaCounter}>
-                <Ionicons name="images-outline" size={14} color="#fff" />
-                <Text style={styles.mediaCounterText}>{mediaCount}</Text>
-              </View>
-            ) : null}
-          </View>
+        {hasMedia ? (
+          <PostMediaCarousel media={post.media} mediaList={post.mediaList} mediaType={post.mediaType} />
         ) : null}
         {post.caption ? <Text style={styles.caption}>{post.caption}</Text> : null}
         <View style={styles.postActions}>

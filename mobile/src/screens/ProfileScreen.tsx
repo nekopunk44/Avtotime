@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { getMe } from '../api/auth';
-import { getUserPosts, Post } from '../api/posts';
+import { getPostThumb, getUserPosts, Post } from '../api/posts';
 import { getUserRatingStats, ReviewStats } from '../api/reviews';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
@@ -235,8 +235,15 @@ export default function ProfileScreen({ navigation }: Props) {
       onPress={() => navigation.navigate('PostComments', { postId: item._id })}
       activeOpacity={0.85}
     >
-      {item.mediaList?.[0] || item.media ? (
-        <Image source={{ uri: item.mediaList?.[0] || item.media }} style={styles.gridImage} />
+      {getPostThumb(item) ? (
+        <View>
+          <Image source={{ uri: getPostThumb(item) }} style={styles.gridImage} />
+          {item.mediaType === 'video' ? (
+            <View style={styles.gridVideoBadge}>
+              <Ionicons name="play" size={13} color="#fff" />
+            </View>
+          ) : null}
+        </View>
       ) : (
         <View style={[styles.gridImage, styles.gridNoImage]}>
           <Ionicons name="text-outline" size={20} color="#aaa" />
@@ -326,6 +333,7 @@ const styles = StyleSheet.create({
   gridItem: { width: '33.333%', aspectRatio: 1, padding: 1.5 },
   gridImage: { width: '100%', height: '100%', borderRadius: 4, backgroundColor: '#eee' },
   gridNoImage: { alignItems: 'center', justifyContent: 'center', padding: 7, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' },
+  gridVideoBadge: { position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   textPost: { marginTop: 5, color: '#555', fontSize: 10, textAlign: 'center', lineHeight: 14 },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },

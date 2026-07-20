@@ -7,8 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
-import { deletePost, getFeed, isPostSaved, toggleLike, Post, toggleSavePost } from '../api/posts';
-import { getStories, getStoryByUserName, Story, uploadImageStory } from '../api/stories';
+import { deletePost, getFeed, getVideoPoster, isPostSaved, toggleLike, Post, toggleSavePost } from '../api/posts';
+import { getStories, getStoryByUserName, Story, uploadStory } from '../api/stories';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 
@@ -49,24 +49,25 @@ export default function FeedScreen({ navigation }: Props) {
     loadFeed();
   }, [loadFeed]));
 
-  const uploadStory = async () => {
+  const pickAndUploadStory = async (mediaType: 'image' | 'video') => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Доступ к галерее', 'Разрешите доступ к фото, чтобы загрузить историю.');
+      Alert.alert('Доступ к галерее', 'Разрешите доступ к медиатеке, чтобы загрузить историю.');
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: mediaType === 'video' ? ImagePicker.MediaTypeOptions.Videos : ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 0.85,
+      videoMaxDuration: 60,
     });
 
     if (result.canceled) return;
 
     setUploadingStory(true);
     try {
-      const story = await uploadImageStory(result.assets[0].uri);
+      const story = await uploadStory(result.assets[0].uri, mediaType);
       setStories((prev) => [story, ...prev.filter((item) => item._id !== story._id)]);
       navigation.navigate('StoryViewer', { story });
     } catch (e: any) {
@@ -74,6 +75,14 @@ export default function FeedScreen({ navigation }: Props) {
     } finally {
       setUploadingStory(false);
     }
+  };
+
+  const uploadStoryPrompt = () => {
+    Alert.alert('Новая история', 'Что хотите опубликовать?', [
+      { text: 'Фото', onPress: () => pickAndUploadStory('image') },
+      { text: 'Видео', onPress: () => pickAndUploadStory('video') },
+      { text: 'Отмена', style: 'cancel' },
+    ]);
   };
 
   const handleLike = async (postId: string) => {
@@ -128,6 +137,8 @@ export default function FeedScreen({ navigation }: Props) {
       : require('../../assets/icon.png');
     const firstMedia = item.mediaList?.[0] || item.media;
     const mediaCount = item.mediaList?.length ?? (item.media ? 1 : 0);
+    const isVideoPost = item.mediaType === 'video';
+    const posterUri = isVideoPost ? (getVideoPoster(firstMedia) || firstMedia) : firstMedia;
 
     return (
       <View style={styles.card}>
@@ -151,7 +162,14 @@ export default function FeedScreen({ navigation }: Props) {
 
         {firstMedia ? (
           <TouchableOpacity onPress={() => navigation.navigate('PostComments', { postId: item._id })} activeOpacity={0.92}>
-            <Image source={{ uri: firstMedia }} style={styles.postImage} resizeMode="cover" />
+            <Image source={{ uri: posterUri }} style={styles.postImage} resizeMode="cover" />
+            {isVideoPost ? (
+              <View style={styles.playBadge}>
+                <View style={styles.playCircle}>
+                  <Ionicons name="play" size={28} color="#fff" />
+                </View>
+              </View>
+            ) : null}
             {mediaCount > 1 ? (
               <View style={styles.mediaCounter}>
                 <Ionicons name="images-outline" size={14} color="#fff" />
@@ -192,7 +210,7 @@ export default function FeedScreen({ navigation }: Props) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.storiesList}
         ListHeaderComponent={
-          <TouchableOpacity style={styles.storyItem} onPress={uploadStory} disabled={uploadingStory}>
+          <TouchableOpacity style={styles.storyItem} onPress={uploadStoryPrompt} disabled={uploadingStory}>
             <View style={[styles.storyAvatar, styles.addStoryAvatar]}>
               {uploadingStory ? (
                 <ActivityIndicator color="#111" />
@@ -268,6 +286,8 @@ const styles = StyleSheet.create({
   name: { fontWeight: '700', fontSize: 14, color: '#111' },
   username: { fontSize: 12, color: '#888' },
   postImage: { width: '100%', aspectRatio: 1 },
+  playBadge: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  playCircle: { width: 58, height: 58, borderRadius: 29, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', paddingLeft: 4 },
   mediaCounter: { position: 'absolute', right: 10, top: 10, borderRadius: 14, paddingHorizontal: 8, height: 28, backgroundColor: 'rgba(0,0,0,0.62)', flexDirection: 'row', alignItems: 'center', gap: 4 },
   mediaCounterText: { color: '#fff', fontSize: 12, fontWeight: '900' },
   caption: { paddingHorizontal: 12, paddingTop: 10, fontSize: 14, color: '#222', lineHeight: 20 },

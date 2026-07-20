@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getSavedPosts, Post, toggleLike, toggleSavePost } from '../api/posts';
+import { getPostThumb, getSavedPosts, Post, toggleLike, toggleSavePost } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 
@@ -82,7 +82,7 @@ export default function SavedPostsScreen({ navigation }: Props) {
   );
 
   const renderPost = ({ item }: { item: Post }) => {
-    const image = item.mediaList?.[0] || item.media;
+    const image = getPostThumb(item);
     const liked = user ? item.likes?.includes(user._id) : false;
     const busy = busyId === item._id;
 
@@ -105,7 +105,16 @@ export default function SavedPostsScreen({ navigation }: Props) {
 
         <TouchableOpacity onPress={() => navigation.navigate('PostComments', { postId: item._id })} activeOpacity={0.9}>
           {image ? (
-            <Image source={{ uri: image }} style={styles.postImage} />
+            <View>
+              <Image source={{ uri: image }} style={styles.postImage} />
+              {item.mediaType === 'video' ? (
+                <View style={styles.playOverlay}>
+                  <View style={styles.playCircle}>
+                    <Ionicons name="play" size={26} color="#fff" />
+                  </View>
+                </View>
+              ) : null}
+            </View>
           ) : (
             <View style={[styles.postImage, styles.noImage]}>
               <Ionicons name="text-outline" size={30} color="#aaa" />
@@ -176,6 +185,8 @@ const styles = StyleSheet.create({
   name: { color: '#111', fontSize: 14, fontWeight: '900' },
   username: { color: '#777', fontSize: 12, fontWeight: '800', marginTop: 1 },
   postImage: { width: '100%', aspectRatio: 1, backgroundColor: '#eee' },
+  playOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  playCircle: { width: 54, height: 54, borderRadius: 27, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', paddingLeft: 4 },
   noImage: { alignItems: 'center', justifyContent: 'center' },
   caption: { paddingHorizontal: 12, paddingTop: 10, color: '#222', fontSize: 14, lineHeight: 20 },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 12, paddingVertical: 11 },

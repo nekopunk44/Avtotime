@@ -32,21 +32,32 @@ export async function viewStory(storyId: string): Promise<Story> {
   return data;
 }
 
-const getUploadFile = (uri: string) => {
+const getImageFile = (uri: string) => {
   const filename = uri.split('/').pop() ?? 'story.jpg';
   const ext = filename.includes('.') ? filename.split('.').pop()?.toLowerCase() : 'jpg';
   const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
   return { uri, name: filename, type } as any;
 };
 
-export async function uploadImageStory(imageUri: string): Promise<Story> {
+const getVideoFile = (uri: string) => {
+  const filename = uri.split('/').pop() ?? 'story.mp4';
+  const ext = filename.includes('.') ? filename.split('.').pop()?.toLowerCase() : 'mp4';
+  const type = ext === 'mov' || ext === 'qt' ? 'video/quicktime' : ext === 'm4v' ? 'video/x-m4v' : 'video/mp4';
+  return { uri, name: filename, type } as any;
+};
+
+export async function uploadStory(uri: string, mediaType: 'image' | 'video'): Promise<Story> {
   const formData = new FormData();
-  formData.append('mediaType', 'image');
-  formData.append('media', getUploadFile(imageUri));
+  formData.append('mediaType', mediaType);
+  formData.append('media', mediaType === 'video' ? getVideoFile(uri) : getImageFile(uri));
 
   const { data } = await client.post('/story/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 30000,
+    timeout: mediaType === 'video' ? 45000 : 30000,
   });
   return data;
+}
+
+export async function uploadImageStory(imageUri: string): Promise<Story> {
+  return uploadStory(imageUri, 'image');
 }

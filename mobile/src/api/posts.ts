@@ -41,6 +41,22 @@ export interface EditPostPayload {
   mediaType?: 'image' | 'video';
 }
 
+// Cloudinary can render a still frame from a video by swapping the file
+// extension for an image one. Returns null for non-Cloudinary or non-video URLs.
+export function getVideoPoster(url?: string): string | null {
+  if (!url || !/res\.cloudinary\.com/.test(url)) return null;
+  if (!/\.(mp4|mov|webm|m4v|avi|mkv)$/i.test(url)) return null;
+  return url.replace(/\.(mp4|mov|webm|m4v|avi|mkv)$/i, '.jpg');
+}
+
+// Thumbnail URI for a post: a still frame for videos, the first image otherwise.
+export function getPostThumb(post: Pick<Post, 'media' | 'mediaList' | 'mediaType'>): string | undefined {
+  const first = post.mediaList?.[0] || post.media;
+  if (!first) return undefined;
+  if (post.mediaType === 'video') return getVideoPoster(first) || first;
+  return first;
+}
+
 export function getSavedPostIds(user?: Pick<User, 'saved'> | null) {
   return (user?.saved ?? []).map((item) => (typeof item === 'string' ? item : item._id)).filter(Boolean);
 }
