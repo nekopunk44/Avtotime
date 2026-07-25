@@ -7,6 +7,29 @@ import client from '../api/client';
 
 type Step = 'email' | 'otp' | 'password' | 'done';
 
+const OTP_LENGTH = 6;
+
+function OtpBoxes({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <View style={styles.otpRow}>
+      {Array.from({ length: OTP_LENGTH }).map((_, i) => (
+        <View key={i} style={[styles.otpBox, value.length === i && styles.otpBoxActive]}>
+          <Text style={styles.otpDigit}>{value[i] ?? ''}</Text>
+        </View>
+      ))}
+      <TextInput
+        style={styles.otpOverlay}
+        value={value}
+        onChangeText={(t) => onChange(t.replace(/\D/g, '').slice(0, OTP_LENGTH))}
+        keyboardType="number-pad"
+        maxLength={OTP_LENGTH}
+        autoFocus
+        caretHidden
+      />
+    </View>
+  );
+}
+
 export default function ForgotPasswordScreen() {
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
@@ -107,16 +130,7 @@ export default function ForgotPasswordScreen() {
           />
         )}
 
-        {step === 'otp' && (
-          <TextInput
-            style={styles.input}
-            placeholder="Код из письма"
-            placeholderTextColor="#999"
-            value={otp}
-            onChangeText={setOtp}
-            keyboardType="number-pad"
-          />
-        )}
+        {step === 'otp' && <OtpBoxes value={otp} onChange={setOtp} />}
 
         {step === 'password' && (
           <>
@@ -172,4 +186,12 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  otpRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 18, position: 'relative' },
+  otpBox: {
+    width: 48, height: 58, borderWidth: 2, borderColor: '#ddd', borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa',
+  },
+  otpBoxActive: { borderColor: '#111', backgroundColor: '#fff' },
+  otpDigit: { fontSize: 24, fontWeight: '800', color: '#111' },
+  otpOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, color: 'transparent' },
 });

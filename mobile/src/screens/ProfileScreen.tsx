@@ -79,7 +79,9 @@ export default function ProfileScreen({ navigation }: Props) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [setUser, user]);
+    // Depend on the stable id, not the whole user object: load() calls
+    // setUser, and depending on `user` would recreate load → refocus → loop.
+  }, [setUser, user?._id]);
 
   useFocusEffect(useCallback(() => {
     load();
