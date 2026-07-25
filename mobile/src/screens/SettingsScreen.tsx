@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -22,6 +23,8 @@ import { BillingStatus, getBillingStatus } from '../api/billing';
 import { changePassword, deleteProfile, logoutAllSessions } from '../api/users';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { useAuthStore } from '../store/authStore';
+import { useLockStore } from '../store/lockStore';
+import { authenticateBiometric, getBiometricLabel, isBiometricAvailable } from '../utils/biometric';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'Settings'> };
 
@@ -58,6 +61,29 @@ export default function SettingsScreen({ navigation }: Props) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
+  const bioEnabled = useLockStore((s) => s.enabled);
+  const setBioEnabled = useLockStore((s) => s.setEnabled);
+  const [bioAvailable, setBioAvailable] = useState(false);
+  const [bioLabel, setBioLabel] = useState('биометрию');
+
+  useEffect(() => {
+    isBiometricAvailable().then(setBioAvailable);
+    getBiometricLabel().then(setBioLabel);
+  }, []);
+
+  const toggleBiometric = async (value: boolean) => {
+    if (value) {
+      if (!bioAvailable) {
+        Alert.alert('Биометрия недоступна', 'На устройстве не настроены отпечаток пальца или Face ID. Добавьте их в настройках телефона.');
+        return;
+      }
+      const ok = await authenticateBiometric('Подтвердите включение блокировки');
+      if (!ok) return;
+      await setBioEnabled(true);
+    } else {
+      await setBioEnabled(false);
+    }
+  };
   const [logoutAllLoading, setLogoutAllLoading] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -254,6 +280,36 @@ export default function SettingsScreen({ navigation }: Props) {
     </TouchableOpacity>
   );
 
+  const renderToggle = ({
+    icon,
+    title,
+    description,
+    value,
+    onValueChange,
+  }: {
+    icon: keyof typeof Ionicons.glyphMap;
+    title: string;
+    description: string;
+    value: boolean;
+    onValueChange: (v: boolean) => void;
+  }) => (
+    <View style={styles.actionRow}>
+      <View style={styles.actionIcon}>
+        <Ionicons name={icon} size={21} color="#111" />
+      </View>
+      <View style={styles.actionBody}>
+        <Text style={styles.actionTitle}>{title}</Text>
+        <Text style={styles.actionDescription}>{description}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: '#ddd', true: '#111' }}
+        thumbColor="#fff"
+      />
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -358,6 +414,15 @@ export default function SettingsScreen({ navigation }: Props) {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Безопасность</Text>
+          {renderToggle({
+            icon: 'finger-print-outline',
+            title: 'Вход по биометрии',
+            description: bioAvailable
+              ? `Блокировать приложение и открывать через ${bioLabel}`
+              : 'Настройте отпечаток или Face ID в настройках телефона',
+            value: bioEnabled,
+            onValueChange: toggleBiometric,
+          })}
           {renderAction({
             icon: 'key-outline',
             title: 'Изменить пароль',

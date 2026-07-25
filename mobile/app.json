@@ -41,7 +41,19 @@
           "microphonePermission": "Приложению нужен доступ к микрофону для записи голосовых сообщений."
         }
       ],
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#111111"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Приложение использует Face ID для входа в аккаунт."
+        }
+      ],
       [
         "expo-splash-screen",
         {
