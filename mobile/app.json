@@ -14,7 +14,7 @@
     "android": {
       "package": "org.avtotime.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0B0B0B",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -41,7 +41,16 @@
           "microphonePermission": "Приложению нужен доступ к микрофону для записи голосовых сообщений."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 240,
+          "resizeMode": "contain",
+          "backgroundColor": "#0B0B0B"
+        }
+      ]
     ],
     "extra": {
       "googleWebClientId": "602150943944-45oom92dmun40ae6qhk1iepc05la8ahd.apps.googleusercontent.com",
