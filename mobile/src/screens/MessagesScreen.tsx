@@ -16,6 +16,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Conversation, deleteConversation, getConversations } from '../api/messages';
 import { useSocketEvent } from '../hooks/useSocket';
+import { useBadgeStore } from '../store/badgeStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
@@ -37,12 +38,14 @@ export default function MessagesScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState('');
   const [deletingId, setDeletingId] = useState('');
+  const setUnreadMessages = useBadgeStore((s) => s.setUnreadMessages);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
       const data = await getConversations();
       setChats(data);
+      setUnreadMessages(data.reduce((sum, chat) => sum + (chat.unreadCount || 0), 0));
     } catch (e: any) {
       Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить диалоги');
     } finally {

@@ -39,6 +39,7 @@ import {
 import { getSocket } from '../hooks/useSocket';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { useAuthStore } from '../store/authStore';
+import { useBadgeStore } from '../store/badgeStore';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'Chat'>;
@@ -127,6 +128,8 @@ export default function ChatScreen({ route, navigation }: Props) {
       ]);
       setMessages(data.reverse());
       setIsBlocked(blocked.isBlocked);
+      // Opening the chat marked messages read on the server — refresh tab badges
+      useBadgeStore.getState().refresh();
     } catch (e: any) {
       Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить чат');
     } finally {

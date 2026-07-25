@@ -57,6 +57,8 @@ import DrivingResultsScreen from '../screens/DrivingResultsScreen';
 import { DrivingMode } from '../api/driving';
 import StoryViewerScreen from '../screens/StoryViewerScreen';
 import { Story } from '../api/stories';
+import { useBadgeSync } from '../hooks/useBadgeSync';
+import { useBadgeStore } from '../store/badgeStore';
 
 export type AppStackParamList = {
   Tabs: NavigatorScreenParams<AppTabParamList> | undefined;
@@ -129,6 +131,10 @@ const TAB_ICONS: Record<string, { on: string; off: string }> = {
 };
 
 function TabNavigator() {
+  useBadgeSync();
+  const unreadMessages = useBadgeStore((s) => s.unreadMessages);
+  const unreadNotifications = useBadgeStore((s) => s.unreadNotifications);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -155,8 +161,16 @@ function TabNavigator() {
       />
       <Tab.Screen name="Market" component={MarketScreen} options={{ title: 'Маркет' }} />
       <Tab.Screen name="Driving" component={DrivingCoursesScreen} options={{ title: 'Курсы' }} />
-      <Tab.Screen name="Messages" component={MessagesScreen} options={{ title: 'Сообщения' }} />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Уведомления' }} />
+      <Tab.Screen
+        name="Messages"
+        component={MessagesScreen}
+        options={{ title: 'Сообщения', tabBarBadge: unreadMessages || undefined }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ title: 'Уведомления', tabBarBadge: unreadNotifications || undefined }}
+      />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Профиль' }} />
     </Tab.Navigator>
   );

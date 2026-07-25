@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -23,6 +23,7 @@ import {
   Notification as AppNotification,
 } from '../api/notifications';
 import { useSocketEvent } from '../hooks/useSocket';
+import { useBadgeStore } from '../store/badgeStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
@@ -98,6 +99,12 @@ export default function NotificationsScreen({ navigation }: Props) {
   useFocusEffect(useCallback(() => {
     load();
   }, [load]));
+
+  // Mirror the unread count into the tab-bar badge store
+  const setUnreadNotifications = useBadgeStore((s) => s.setUnreadNotifications);
+  useEffect(() => {
+    setUnreadNotifications(unreadCount);
+  }, [unreadCount, setUnreadNotifications]);
 
   useSocketEvent<AppNotification>('notification', (notification) => {
     setNotifications((prev) => [notification, ...prev.filter((item) => item._id !== notification._id)]);

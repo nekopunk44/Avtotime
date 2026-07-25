@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import uploadOnCloudinary from '../config/cloudinary.js';
 import { buildPublicFileUrl } from '../config/publicFiles.js';
 import Conversation from '../models/conversation.model.js';
@@ -125,6 +126,16 @@ export const getAllMessages = async (req, res) => {
         });
 
         const messages = conversation ? [...conversation.messages].reverse() : [];
+
+        // Mark the other user's messages to us as read now that we've opened the chat
+        const { modifiedCount } = await Message.updateMany(
+            { sender: receiverId, receiver: senderId, read: false },
+            { $set: { read: true } }
+        );
+        if (modifiedCount > 0) {
+            io.to(String(receiverId)).emit('messagesRead', { by: String(senderId) });
+        }
+
         return res.status(200).json(messages);
     } catch (error) {
         return res.status(500).json({ message: `Ошибка получения: ${error.message}` });
@@ -150,6 +161,14 @@ export const getPrevUserChats = async (req, res) => {
         .limit(limit)
         .lean({ getters: true });
 
+        // Count unread messages sent to the current user, grouped by sender
+        const unreadAgg = await Message.aggregate([
+            { $match: { receiver: new mongoose.Types.ObjectId(currentUserId), read: false } },
+            { $group: { _id: '$sender', count: { $sum: 1 } } },
+        ]);
+        const unreadBySender = {};
+        unreadAgg.forEach(entry => { unreadBySender[String(entry._id)] = entry.count; });
+
         const previousUsers = conversations
             .map(conv => {
                 const user = conv.participants.find(user => user._id.toString() !== currentUserId.toString());
@@ -165,6 +184,7 @@ export const getPrevUserChats = async (req, res) => {
                     ...user,
                     lastMessage,
                     lastMessageAt: last?.createdAt || conv.updatedAt,
+                    unreadCount: unreadBySender[String(user._id)] || 0,
                 };
             })
             .filter(Boolean);
