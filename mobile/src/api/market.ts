@@ -474,7 +474,8 @@ export async function createServiceListing(payload: CreateServiceListingPayload)
     appendText(formData, 'tags', payload.tags);
     appendText(formData, 'rating', payload.rating);
     appendText(formData, 'reviewsCount', payload.reviews);
-    appendText(formData, 'isVerified', 'false');
+    // Do not send isVerified: the backend does Boolean(isVerified), and any non-empty
+    // string (including 'false') becomes true. Omitting it defaults to false.
     formData.append('avatar', getUploadFile(payload.imageUri, 'market-avatar.jpg'));
   } else {
     appendText(formData, 'title', payload.title);

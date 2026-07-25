@@ -901,7 +901,7 @@ export const createConsultationExpert = async (req, res) => {
       name,
       avatar,
       socialNickname,
-      isVerified: Boolean(isVerified),
+      isVerified: isVerified === true || isVerified === "true" || isVerified === "1",
       rating: Number(rating) || 0,
       reviewsCount: Number(reviewsCount) || 0,
       specialties: parseArrayField(specialties),
