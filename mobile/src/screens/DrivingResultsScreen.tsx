@@ -233,7 +233,7 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
           <Ionicons name="document-text-outline" size={42} color="#bbb" />
           <Text style={styles.emptyTitle}>Пока нет результатов</Text>
           <Text style={styles.emptyText}>Пройдите билет, тренировку или марафон, и результат появится здесь.</Text>
-          <TouchableOpacity style={styles.startBtn} onPress={() => navigation.navigate('Tabs', { screen: 'Driving' })}>
+          <TouchableOpacity style={styles.startBtn} onPress={() => navigation.navigate('MarketTabs', { screen: 'Driving' })}>
             <Text style={styles.startText}>К билетам</Text>
           </TouchableOpacity>
         </View>

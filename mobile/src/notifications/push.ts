@@ -117,7 +117,7 @@ function navigateFromPush(data: PushData) {
     }
 
     if (data.relatedType === 'loop' && data.relatedId) {
-      navigationRef.navigate('Tabs', { screen: 'Loops', params: { loopId: data.relatedId } });
+      navigationRef.navigate('SocialTabs', { screen: 'Loops', params: { loopId: data.relatedId } });
       return;
     }
 
@@ -132,10 +132,10 @@ function navigateFromPush(data: PushData) {
         return;
       }
       if (data.type === 'listing_rejected' || data.type === 'listing_approved') {
-        navigationRef.navigate('MyListings');
+        navigationRef.navigate('MarketTabs', { screen: 'MyListings' });
         return;
       }
-      navigationRef.navigate('Tabs', { screen: 'Market' });
+      navigationRef.navigate('MarketTabs', { screen: 'Market' });
       return;
     }
 
@@ -152,7 +152,7 @@ function navigateFromPush(data: PushData) {
 
     const loopId = getIdFromPath(link, '/loop/');
     if (loopId) {
-      navigationRef.navigate('Tabs', { screen: 'Loops', params: { loopId } });
+      navigationRef.navigate('SocialTabs', { screen: 'Loops', params: { loopId } });
       return;
     }
 
@@ -162,11 +162,11 @@ function navigateFromPush(data: PushData) {
     }
 
     if (link.startsWith('/market')) {
-      navigationRef.navigate('Tabs', { screen: 'Market' });
+      navigationRef.navigate('MarketTabs', { screen: 'Market' });
       return;
     }
 
-    navigationRef.navigate('Tabs', { screen: 'Notifications' });
+    navigationRef.navigate('Notifications');
   } catch {
     // Экран мог быть недоступен (например, разлогин) — молча игнорируем
   }

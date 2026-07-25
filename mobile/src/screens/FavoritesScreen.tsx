@@ -23,7 +23,7 @@ import {
 import { getMarketCategory, MarketCategoryId, MarketListing } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
 
-type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'Favorites'> };
+type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
 const FILTERS: Array<{ label: string; type?: FavoriteListingType }> = [
   { label: 'Все' },

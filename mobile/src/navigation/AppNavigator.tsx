@@ -1,5 +1,6 @@
 import React from 'react';
-import { NavigatorScreenParams } from '@react-navigation/native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { NavigatorScreenParams, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -61,7 +62,9 @@ import { useBadgeSync } from '../hooks/useBadgeSync';
 import { useBadgeStore } from '../store/badgeStore';
 
 export type AppStackParamList = {
-  Tabs: NavigatorScreenParams<AppTabParamList> | undefined;
+  SocialTabs: NavigatorScreenParams<SocialTabParamList> | undefined;
+  MarketTabs: NavigatorScreenParams<MarketTabParamList> | undefined;
+  Notifications: undefined;
   Chat: { userId: string; name: string; userName: string };
   UserProfile: { userId: string };
   CreatePost: undefined;
@@ -71,7 +74,6 @@ export type AppStackParamList = {
   MarketSearch: undefined;
   MarketListingDetails: { listing: MarketListing; categoryId: MarketCategoryId };
   CreateMarketListing: undefined;
-  Favorites: undefined;
   Compare: undefined;
   MarketAnalytics: undefined;
   CarRequest: undefined;
@@ -92,7 +94,6 @@ export type AppStackParamList = {
   EmailVerification: undefined;
   Admin: undefined;
   AdminUserDetails: { userId: string };
-  MyListings: undefined;
   EditMarketListing: { listing: MarketListing; categoryId: MarketCategoryId };
   MarketReviews: { listing: MarketListing; categoryId: MarketCategoryId };
   MyReviews: undefined;
@@ -105,81 +106,130 @@ export type AppStackParamList = {
   StoryViewer: { story: Story };
 };
 
-export type AppTabParamList = {
+export type SocialTabParamList = {
   Feed: undefined;
-  Search: undefined;
   Loops: { loopId?: string } | undefined;
-  Market: undefined;
-  Driving: undefined;
+  Search: undefined;
   Messages: undefined;
-  Notifications: undefined;
   Profile: undefined;
 };
 
+export type MarketTabParamList = {
+  Market: undefined;
+  Favorites: undefined;
+  MyListings: undefined;
+  Driving: undefined;
+  Profile: undefined;
+};
+
+// Kept for screens that still reference the old union (e.g. Loops route params)
+export type AppTabParamList = SocialTabParamList & MarketTabParamList;
+
 const Stack = createNativeStackNavigator<AppStackParamList>();
-const Tab = createBottomTabNavigator<AppTabParamList>();
+const SocialTab = createBottomTabNavigator<SocialTabParamList>();
+const MarketTab = createBottomTabNavigator<MarketTabParamList>();
 
 const TAB_ICONS: Record<string, { on: string; off: string }> = {
   Feed:          { on: 'home',                    off: 'home-outline' },
   Search:        { on: 'search',                  off: 'search-outline' },
   Loops:         { on: 'play-circle',             off: 'play-circle-outline' },
   Market:        { on: 'car-sport',               off: 'car-sport-outline' },
+  Favorites:     { on: 'heart',                   off: 'heart-outline' },
+  MyListings:    { on: 'pricetags',               off: 'pricetags-outline' },
   Driving:       { on: 'school',                  off: 'school-outline' },
   Messages:      { on: 'chatbubbles',             off: 'chatbubbles-outline' },
   Notifications: { on: 'notifications',           off: 'notifications-outline' },
   Profile:       { on: 'person',                  off: 'person-outline' },
 };
 
-function TabNavigator() {
-  useBadgeSync();
-  const unreadMessages = useBadgeStore((s) => s.unreadMessages);
-  const unreadNotifications = useBadgeStore((s) => s.unreadNotifications);
-
+// Top segmented switch between the social and market experiences.
+function ModeSwitcher({ current }: { current: 'social' | 'market' }) {
+  const navigation = useNavigation<any>();
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          const icon = TAB_ICONS[route.name];
-          return <Ionicons name={(focused ? icon.on : icon.off) as any} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#111',
-        tabBarInactiveTintColor: '#aaa',
-        tabBarShowLabel: false,
-        headerShown: true,
-      })}
-    >
-      <Tab.Screen name="Feed" component={FeedScreen} options={{ title: 'Лента' }} />
-      <Tab.Screen name="Search" component={SearchScreen} options={{ title: 'Поиск' }} />
-      <Tab.Screen
+    <View style={styles.switcher}>
+      <TouchableOpacity
+        style={[styles.segment, current === 'social' && styles.segmentActive]}
+        onPress={() => navigation.navigate('SocialTabs')}
+        activeOpacity={0.85}
+      >
+        <Text style={[styles.segmentText, current === 'social' && styles.segmentTextActive]}>Соцсеть</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.segment, current === 'market' && styles.segmentActive]}
+        onPress={() => navigation.navigate('MarketTabs')}
+        activeOpacity={0.85}
+      >
+        <Text style={[styles.segmentText, current === 'market' && styles.segmentTextActive]}>Маркет</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function HeaderBell() {
+  const navigation = useNavigation<any>();
+  const unread = useBadgeStore((s) => s.unreadNotifications);
+  return (
+    <TouchableOpacity style={styles.bell} onPress={() => navigation.navigate('Notifications')} activeOpacity={0.7}>
+      <Ionicons name="notifications-outline" size={23} color="#111" />
+      {unread > 0 ? <View style={styles.bellDot} /> : null}
+    </TouchableOpacity>
+  );
+}
+
+const makeTabOptions = (current: 'social' | 'market') => ({ route }: any) => ({
+  tabBarIcon: ({ focused, color, size }: any) => {
+    const icon = TAB_ICONS[route.name];
+    return <Ionicons name={(focused ? icon.on : icon.off) as any} size={size} color={color} />;
+  },
+  tabBarActiveTintColor: '#111',
+  tabBarInactiveTintColor: '#aaa',
+  tabBarShowLabel: false,
+  headerShown: true,
+  headerTitle: () => <ModeSwitcher current={current} />,
+  headerTitleAlign: 'center' as const,
+  headerRight: () => <HeaderBell />,
+});
+
+function SocialTabs() {
+  const unreadMessages = useBadgeStore((s) => s.unreadMessages);
+  return (
+    <SocialTab.Navigator screenOptions={makeTabOptions('social')}>
+      <SocialTab.Screen name="Feed" component={FeedScreen} />
+      <SocialTab.Screen
         name="Loops"
         component={LoopsScreen}
-        options={{
-          title: 'Видео',
-          headerShown: false,
-          tabBarStyle: { backgroundColor: '#000', borderTopColor: '#111' },
-        }}
+        options={{ headerShown: false, tabBarStyle: { backgroundColor: '#000', borderTopColor: '#111' } }}
       />
-      <Tab.Screen name="Market" component={MarketScreen} options={{ title: 'Маркет' }} />
-      <Tab.Screen name="Driving" component={DrivingCoursesScreen} options={{ title: 'Курсы' }} />
-      <Tab.Screen
+      <SocialTab.Screen name="Search" component={SearchScreen} />
+      <SocialTab.Screen
         name="Messages"
         component={MessagesScreen}
-        options={{ title: 'Сообщения', tabBarBadge: unreadMessages || undefined }}
+        options={{ tabBarBadge: unreadMessages || undefined }}
       />
-      <Tab.Screen
-        name="Notifications"
-        component={NotificationsScreen}
-        options={{ title: 'Уведомления', tabBarBadge: unreadNotifications || undefined }}
-      />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Профиль' }} />
-    </Tab.Navigator>
+      <SocialTab.Screen name="Profile" component={ProfileScreen} />
+    </SocialTab.Navigator>
+  );
+}
+
+function MarketTabs() {
+  return (
+    <MarketTab.Navigator screenOptions={makeTabOptions('market')}>
+      <MarketTab.Screen name="Market" component={MarketScreen} />
+      <MarketTab.Screen name="Favorites" component={FavoritesScreen} />
+      <MarketTab.Screen name="MyListings" component={MyListingsScreen} />
+      <MarketTab.Screen name="Driving" component={DrivingCoursesScreen} />
+      <MarketTab.Screen name="Profile" component={ProfileScreen} />
+    </MarketTab.Navigator>
   );
 }
 
 export default function AppNavigator() {
+  useBadgeSync();
   return (
     <Stack.Navigator>
-      <Stack.Screen name="Tabs" component={TabNavigator} options={{ headerShown: false }} />
+      <Stack.Screen name="SocialTabs" component={SocialTabs} options={{ headerShown: false }} />
+      <Stack.Screen name="MarketTabs" component={MarketTabs} options={{ headerShown: false }} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Уведомления' }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ title: '' }} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: '' }} />
       <Stack.Screen name="PostComments" component={PostCommentsScreen} options={{ title: 'Комментарии' }} />
@@ -187,7 +237,6 @@ export default function AppNavigator() {
       <Stack.Screen name="MarketSearch" component={MarketSearchScreen} options={{ title: 'Поиск маркета' }} />
       <Stack.Screen name="MarketListingDetails" component={MarketListingDetailsScreen} options={{ title: 'Объявление' }} />
       <Stack.Screen name="CreateMarketListing" component={CreateMarketListingScreen} options={{ title: 'Новое объявление' }} />
-      <Stack.Screen name="Favorites" component={FavoritesScreen} options={{ title: 'Избранное' }} />
       <Stack.Screen name="Compare" component={CompareScreen} options={{ title: 'Сравнение' }} />
       <Stack.Screen name="MarketAnalytics" component={MarketAnalyticsScreen} options={{ title: 'Аналитика' }} />
       <Stack.Screen name="CarRequest" component={CarRequestScreen} options={{ title: 'Подбор авто' }} />
@@ -208,7 +257,6 @@ export default function AppNavigator() {
       <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} options={{ title: 'Email' }} />
       <Stack.Screen name="Admin" component={AdminScreen} options={{ title: 'Админ' }} />
       <Stack.Screen name="AdminUserDetails" component={AdminUserDetailsScreen} options={{ title: 'Пользователь' }} />
-      <Stack.Screen name="MyListings" component={MyListingsScreen} options={{ title: 'Мои объявления' }} />
       <Stack.Screen name="DrivingQuiz" component={DrivingQuizScreen} options={{ title: 'Автокурсы' }} />
       <Stack.Screen name="DrivingResults" component={DrivingResultsScreen} options={{ title: 'Результаты' }} />
       <Stack.Screen name="StoryViewer" component={StoryViewerScreen} options={{ headerShown: false }} />
@@ -228,3 +276,13 @@ export default function AppNavigator() {
     </Stack.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  switcher: { flexDirection: 'row', backgroundColor: '#f0f0f0', borderRadius: 10, padding: 3 },
+  segment: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 8 },
+  segmentActive: { backgroundColor: '#111' },
+  segmentText: { fontSize: 13, fontWeight: '800', color: '#777' },
+  segmentTextActive: { color: '#fff' },
+  bell: { marginRight: 14, padding: 4 },
+  bellDot: { position: 'absolute', top: 3, right: 3, width: 9, height: 9, borderRadius: 5, backgroundColor: '#ff3b30', borderWidth: 1.5, borderColor: '#fff' },
+});

@@ -31,7 +31,7 @@ import {
 } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
 
-type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'MyListings'> };
+type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
 type StatusFilter = 'all' | 'approved' | 'pending' | 'rejected' | 'unknown';
 

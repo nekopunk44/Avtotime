@@ -207,7 +207,7 @@ export default function NotificationsScreen({ navigation }: Props) {
     }
 
     if (item.relatedType === 'loop' && item.relatedId) {
-      navigation.navigate('Tabs', { screen: 'Loops', params: { loopId: item.relatedId } });
+      navigation.navigate('SocialTabs', { screen: 'Loops', params: { loopId: item.relatedId } });
       return;
     }
 
@@ -223,11 +223,11 @@ export default function NotificationsScreen({ navigation }: Props) {
       }
 
       if (item.type === 'listing_rejected' || item.type === 'listing_approved') {
-        navigation.navigate('MyListings');
+        navigation.navigate('MarketTabs', { screen: 'MyListings' });
         return;
       }
 
-      navigation.navigate('Tabs', { screen: 'Market' });
+      navigation.navigate('MarketTabs', { screen: 'Market' });
       return;
     }
 
@@ -253,7 +253,7 @@ export default function NotificationsScreen({ navigation }: Props) {
 
     const loopId = getIdFromPath(linkPath, '/loop/');
     if (loopId) {
-      navigation.navigate('Tabs', { screen: 'Loops', params: { loopId } });
+      navigation.navigate('SocialTabs', { screen: 'Loops', params: { loopId } });
       return;
     }
 
@@ -268,7 +268,7 @@ export default function NotificationsScreen({ navigation }: Props) {
     }
 
     if (linkPath.startsWith('/market')) {
-      navigation.navigate('Tabs', { screen: 'Market' });
+      navigation.navigate('MarketTabs', { screen: 'Market' });
       return;
     }
 

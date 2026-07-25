@@ -144,7 +144,7 @@ export default function MarketScreen({ navigation }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.myListingsBtn}
-            onPress={() => navigation.navigate('MyListings')}
+            onPress={() => navigation.navigate('MarketTabs', { screen: 'MyListings' })}
             activeOpacity={0.85}
           >
             <Ionicons name="albums-outline" size={22} color="#111" />
@@ -166,7 +166,7 @@ export default function MarketScreen({ navigation }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.quickAction}
-            onPress={() => navigation.navigate('Favorites')}
+            onPress={() => navigation.navigate('MarketTabs', { screen: 'Favorites' })}
             activeOpacity={0.85}
           >
             <Ionicons name="bookmark-outline" size={18} color="#111" />

@@ -68,7 +68,7 @@ export default function FollowListScreen({ navigation, route }: Props) {
 
   const openUser = (user: User) => {
     if (user._id === me?._id) {
-      navigation.navigate('Tabs', { screen: 'Profile' } as any);
+      navigation.navigate('SocialTabs', { screen: 'Profile' } as any);
       return;
     }
     navigation.navigate('UserProfile', { userId: user._id });

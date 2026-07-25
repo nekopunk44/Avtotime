@@ -196,11 +196,11 @@ export default function ProfileScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.quickGrid}>
-        <TouchableOpacity style={styles.quickCard} onPress={() => navigation.navigate('MyListings')}>
+        <TouchableOpacity style={styles.quickCard} onPress={() => navigation.navigate('MarketTabs', { screen: 'MyListings' })}>
           <Ionicons name="albums-outline" size={21} color="#111" />
           <Text style={styles.quickTitle}>Мои объявления</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.quickCard} onPress={() => navigation.navigate('Favorites')}>
+        <TouchableOpacity style={styles.quickCard} onPress={() => navigation.navigate('MarketTabs', { screen: 'Favorites' })}>
           <Ionicons name="bookmark-outline" size={21} color="#111" />
           <Text style={styles.quickTitle}>Маркет избранное</Text>
         </TouchableOpacity>

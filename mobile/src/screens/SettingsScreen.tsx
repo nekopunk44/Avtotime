@@ -384,7 +384,7 @@ export default function SettingsScreen({ navigation }: Props) {
             icon: 'albums-outline',
             title: 'Мои объявления',
             description: 'Открыть маркет с фильтром ваших объявлений',
-            onPress: () => navigation.navigate('MyListings'),
+            onPress: () => navigation.navigate('MarketTabs', { screen: 'MyListings' }),
           })}
           {renderAction({
             icon: 'bar-chart-outline',
