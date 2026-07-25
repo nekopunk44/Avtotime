@@ -3,7 +3,10 @@
     "name": "Avtotime",
     "slug": "avtotime",
     "version": "1.0.0",
-    "scheme": "avtotime",
+    "scheme": [
+      "avtotime",
+      "com.googleusercontent.apps.602150943944-dtkv9od8gidpnh0di64g6bjs7omobluv"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
