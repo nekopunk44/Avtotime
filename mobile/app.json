@@ -19,7 +19,13 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -38,7 +44,11 @@
       "expo-notifications"
     ],
     "extra": {
-      "googleWebClientId": "602150943944-45oom92dmun40ae6qhk1iepc05la8ahd.apps.googleusercontent.com"
-    }
+      "googleWebClientId": "602150943944-45oom92dmun40ae6qhk1iepc05la8ahd.apps.googleusercontent.com",
+      "eas": {
+        "projectId": "1b236563-82b2-4dc0-a347-c211f3bd7603"
+      }
+    },
+    "owner": "nekopunk"
   }
 }
