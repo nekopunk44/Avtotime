@@ -99,7 +99,7 @@ export const signUp = async (req, res) => {
         })
 
         // If email is not configured (local dev) — auto-verify so nothing is blocked
-        if (!process.env.EMAIL) {
+        if (!process.env.RESEND_API_KEY) {
             user.isEmailVerified = true
             await user.save()
         } else {

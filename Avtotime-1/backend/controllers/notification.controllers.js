@@ -2,39 +2,31 @@ import Notification from "../models/notification.model.js";
 import User from "../models/user.model.js";
 import { io } from "../socket.js";
 import { sendExpoPushToUser, isExpoPushToken } from "../services/expoPush.js";
-import nodemailer from "nodemailer";
+import { sendViaResend } from "../config/Mail.js";
 import {
   getCachedResponse,
   invalidateCachedResponse,
   setCachedResponse,
 } from "../services/responseCache.js";
 
-const transporter = process.env.EMAIL ? nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL,
-    pass: process.env.EMAIL_PASS,
-  }
-}) : null;
-
 const sendEmailNotification = async (recipient, notification, actor) => {
-  if (!transporter || !recipient.email || !recipient.notificationPreferences?.emailNotifications) {
+  if (!process.env.RESEND_API_KEY || !recipient.email || !recipient.notificationPreferences?.emailNotifications) {
     return false;
   }
 
   try {
-    const mailOptions = {
-      from: process.env.EMAIL,
+    await sendViaResend({
       to: recipient.email,
       subject: notification.title,
       html: `
-        <h2>${notification.title}</h2>
-        <p>${notification.description}</p>
-        <a href="${process.env.CLIENT_URL}${notification.link}">Открыть</a>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+          <h2 style="color:#111">${notification.title}</h2>
+          <p>${notification.description}</p>
+          <a href="${process.env.CLIENT_URL || ''}${notification.link || ''}"
+             style="display:inline-block;margin:16px 0;padding:10px 22px;background:#111;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">Открыть</a>
+        </div>
+      `,
+    });
     return true;
   } catch (error) {
     console.error("Email send error:", error);

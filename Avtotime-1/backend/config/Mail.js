@@ -1,34 +1,54 @@
-import nodemailer from 'nodemailer';
+// Transactional email via Resend (https://resend.com).
+// Configure on the server (.env.production):
+//   RESEND_API_KEY=re_...            (secret — never commit)
+//   RESEND_FROM=Avtotime <noreply@avtotime.org>   (domain must be verified in Resend)
 
-const MAIL_TIMEOUT_MS = 5000;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM = process.env.RESEND_FROM || 'Avtotime <noreply@avtotime.org>';
+const MAIL_TIMEOUT_MS = 8000;
 
-const transporter = nodemailer.createTransport({
-    service: "Gmail",
-    port: 465,
-    secure: true,
-    connectionTimeout: MAIL_TIMEOUT_MS,
-    greetingTimeout: MAIL_TIMEOUT_MS,
-    socketTimeout: MAIL_TIMEOUT_MS,
-    auth: {
-        user: process.env.EMAIL,
-        pass: process.env.EMAIL_PASS,
-    },
-});
+export const sendViaResend = async ({ to, subject, html }) => {
+    if (!RESEND_API_KEY) {
+        throw new Error('RESEND_API_KEY is not configured');
+    }
+
+    const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ from: RESEND_FROM, to, subject, html }),
+        signal: AbortSignal.timeout(MAIL_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`Resend error ${response.status}: ${body.slice(0, 200)}`);
+    }
+
+    return response.json().catch(() => ({}));
+};
 
 const sendMail = async (to, otp) => {
-    await transporter.sendMail({
-        from: process.env.EMAIL,
+    await sendViaResend({
         to,
-        subject: "Сбросить ваш пароль",
-        html: `<p>Ваш код для сброса пароля: <b>${otp}</b>. Истекает через 5 минут.</p>`,
+        subject: 'Сброс пароля — Avtotime',
+        html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+                <h2 style="color:#111">Сброс пароля</h2>
+                <p>Ваш код для сброса пароля:</p>
+                <p style="font-size:28px;font-weight:700;letter-spacing:4px;color:#111">${otp}</p>
+                <p style="color:#888;font-size:13px">Код действителен 5 минут. Если вы не запрашивали сброс — просто проигнорируйте это письмо.</p>
+            </div>
+        `,
     });
 };
 
 export const sendVerificationMail = async (to, verifyUrl) => {
-    await transporter.sendMail({
-        from: process.env.EMAIL,
+    await sendViaResend({
         to,
-        subject: "Подтвердите ваш email - Avtotime",
+        subject: 'Подтвердите ваш email — Avtotime',
         html: `
             <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
                 <h2 style="color:#111">Добро пожаловать в Avtotime!</h2>
@@ -37,7 +57,7 @@ export const sendVerificationMail = async (to, verifyUrl) => {
                    style="display:inline-block;margin:20px 0;padding:12px 28px;background:#111;color:#fff;border-radius:10px;text-decoration:none;font-weight:600">
                     Подтвердить email
                 </a>
-                <p style="color:#888;font-size:13px">Ссылка действительна 24 часа. Если вы не регистрировались - просто проигнорируйте это письмо.</p>
+                <p style="color:#888;font-size:13px">Ссылка действительна 24 часа. Если вы не регистрировались — просто проигнорируйте это письмо.</p>
             </div>
         `,
     });
