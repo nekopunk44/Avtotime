@@ -23,12 +23,24 @@ const MEDIA_LIMIT = 8;
 export default function CreatePostScreen({ navigation }: Props) {
   const [caption, setCaption] = useState('');
   const [mediaUris, setMediaUris] = useState<string[]>([]);
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [loading, setLoading] = useState(false);
+
+  const isVideo = mediaType === 'video';
+
+  const addImages = (uris: string[]) => {
+    // Switching to photos discards a previously picked video
+    setMediaType('image');
+    setMediaUris((prev) => {
+      const base = mediaType === 'video' ? [] : prev;
+      return [...base, ...uris].slice(0, MEDIA_LIMIT);
+    });
+  };
 
   const pickImages = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Доступ к галерее', 'Разрешите доступ к фото, чтобы добавить медиа.');
+      Alert.alert('Доступ к галерее', 'Разрешите доступ к медиатеке, чтобы добавить медиа.');
       return;
     }
 
@@ -40,8 +52,7 @@ export default function CreatePostScreen({ navigation }: Props) {
     });
 
     if (!result.canceled) {
-      const selected = result.assets.map((asset) => asset.uri);
-      setMediaUris((prev) => [...prev, ...selected].slice(0, MEDIA_LIMIT));
+      addImages(result.assets.map((asset) => asset.uri));
     }
   };
 
@@ -54,7 +65,28 @@ export default function CreatePostScreen({ navigation }: Props) {
 
     const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.82 });
     if (!result.canceled) {
-      setMediaUris((prev) => [...prev, result.assets[0].uri].slice(0, MEDIA_LIMIT));
+      addImages([result.assets[0].uri]);
+    }
+  };
+
+  const pickVideo = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Доступ к галерее', 'Разрешите доступ к медиатеке, чтобы добавить видео.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsMultipleSelection: false,
+      videoMaxDuration: 120,
+      quality: 0.82,
+    });
+
+    if (!result.canceled) {
+      // A post is either photos or a single video — a video replaces any photos
+      setMediaType('video');
+      setMediaUris([result.assets[0].uri]);
     }
   };
 
@@ -64,7 +96,7 @@ export default function CreatePostScreen({ navigation }: Props) {
 
   const handlePost = async () => {
     if (!mediaUris.length) {
-      Alert.alert('Публикация', 'Добавьте хотя бы одно фото.');
+      Alert.alert('Публикация', 'Добавьте фото или видео.');
       return;
     }
 
@@ -73,7 +105,7 @@ export default function CreatePostScreen({ navigation }: Props) {
       await createPost({
         caption: caption.trim(),
         mediaUris,
-        mediaType: 'image',
+        mediaType,
       });
       navigation.goBack();
     } catch (e: any) {
@@ -114,10 +146,25 @@ export default function CreatePostScreen({ navigation }: Props) {
       <View style={styles.mediaPanel}>
         <View style={styles.mediaHeader}>
           <Text style={styles.sectionTitle}>Медиа</Text>
-          <Text style={styles.mediaCount}>{mediaUris.length}/{MEDIA_LIMIT}</Text>
+          <Text style={styles.mediaCount}>{isVideo ? 'видео' : `${mediaUris.length}/${MEDIA_LIMIT}`}</Text>
         </View>
 
-        {mediaUris.length ? (
+        {!mediaUris.length ? (
+          <View style={styles.emptyMedia}>
+            <Ionicons name="images-outline" size={38} color="#bbb" />
+            <Text style={styles.emptyTitle}>Добавьте фото или видео</Text>
+          </View>
+        ) : isVideo ? (
+          <View style={styles.videoPreview}>
+            <View style={styles.videoPlayCircle}>
+              <Ionicons name="play" size={26} color="#fff" />
+            </View>
+            <Text style={styles.videoPreviewText}>Видео готово к публикации</Text>
+            <TouchableOpacity style={styles.removeBtn} onPress={() => removeMedia(mediaUris[0])}>
+              <Ionicons name="close" size={15} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        ) : (
           <View style={styles.previewGrid}>
             {mediaUris.map((uri, index) => (
               <View key={uri} style={styles.previewItem}>
@@ -129,21 +176,20 @@ export default function CreatePostScreen({ navigation }: Props) {
               </View>
             ))}
           </View>
-        ) : (
-          <View style={styles.emptyMedia}>
-            <Ionicons name="images-outline" size={38} color="#bbb" />
-            <Text style={styles.emptyTitle}>Добавьте фото</Text>
-          </View>
         )}
 
         <View style={styles.mediaButtons}>
-          <TouchableOpacity style={styles.mediaBtn} onPress={takePhoto} disabled={loading || mediaUris.length >= MEDIA_LIMIT}>
-            <Ionicons name="camera-outline" size={23} color="#111" />
+          <TouchableOpacity style={styles.mediaBtn} onPress={takePhoto} disabled={loading || (!isVideo && mediaUris.length >= MEDIA_LIMIT)}>
+            <Ionicons name="camera-outline" size={22} color="#111" />
             <Text style={styles.mediaBtnText}>Камера</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.mediaBtn} onPress={pickImages} disabled={loading || mediaUris.length >= MEDIA_LIMIT}>
-            <Ionicons name="image-outline" size={23} color="#111" />
-            <Text style={styles.mediaBtnText}>Галерея</Text>
+          <TouchableOpacity style={styles.mediaBtn} onPress={pickImages} disabled={loading || (!isVideo && mediaUris.length >= MEDIA_LIMIT)}>
+            <Ionicons name="image-outline" size={22} color="#111" />
+            <Text style={styles.mediaBtnText}>Фото</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.mediaBtn} onPress={pickVideo} disabled={loading}>
+            <Ionicons name="videocam-outline" size={22} color="#111" />
+            <Text style={styles.mediaBtnText}>Видео</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -172,6 +218,9 @@ const styles = StyleSheet.create({
   removeBtn: { position: 'absolute', top: 5, right: 5, width: 23, height: 23, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' },
   emptyMedia: { minHeight: 150, borderRadius: 8, backgroundColor: '#f7f7f7', alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { marginTop: 8, color: '#777', fontSize: 14, fontWeight: '900' },
+  videoPreview: { minHeight: 150, borderRadius: 8, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center', gap: 12 },
+  videoPlayCircle: { width: 54, height: 54, borderRadius: 27, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', paddingLeft: 4 },
+  videoPreviewText: { color: '#eee', fontSize: 14, fontWeight: '900' },
   mediaButtons: { flexDirection: 'row', gap: 8, marginTop: 12 },
   mediaBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: '#f4f4f4', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   mediaBtnText: { color: '#111', fontSize: 14, fontWeight: '900' },

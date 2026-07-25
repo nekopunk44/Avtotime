@@ -144,8 +144,9 @@ export async function createPost(payload: CreatePostPayload): Promise<Post> {
   const formData = new FormData();
   if (payload.caption) formData.append('caption', payload.caption);
   formData.append('mediaType', payload.mediaType || 'image');
+  const fallbackName = payload.mediaType === 'video' ? 'post-video.mp4' : 'post-photo.jpg';
   payload.mediaUris.forEach((mediaUri) => {
-    formData.append('media', getUploadFile(mediaUri, 'post-photo.jpg'));
+    formData.append('media', getUploadFile(mediaUri, fallbackName));
   });
   const { data } = await client.post('/post/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
