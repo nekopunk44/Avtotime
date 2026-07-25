@@ -1,0 +1,13 @@
+# The EAS (Expo) build only needs the mobile/ app. Everything below is
+# excluded from the uploaded build archive to keep it small and fast.
+Avtotime-1/
+frontend_market/
+scripts/
+.venv/
+.github/
+node_modules/
+
+# Local dev junk that must never be uploaded
+**/.mongo-*/
+**/.mongo-binaries/
+**/*.log
