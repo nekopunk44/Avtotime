@@ -28,8 +28,12 @@ jobs:
           ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Sync backend to server
+        # The deploy user has ACL rwx on the project but does not own the
+        # existing root-created files, so it cannot set their times/perms.
+        # Skip dir-times and perms — the docker daemon (root) reads the files
+        # regardless, and the container is rebuilt anyway.
         run: |
-          rsync -az \
+          rsync -az --omit-dir-times --no-perms \
             --exclude=node_modules \
             --exclude=public \
             --exclude='*.log' \
