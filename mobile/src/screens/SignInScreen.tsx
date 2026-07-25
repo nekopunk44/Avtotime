@@ -17,6 +17,7 @@ type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'SignIn
 WebBrowser.maybeCompleteAuthSession();
 
 const googleWebClientId = Constants.expoConfig?.extra?.googleWebClientId as string | undefined;
+const googleAndroidClientId = Constants.expoConfig?.extra?.googleAndroidClientId as string | undefined;
 const isExpoGo = Constants.appOwnership === 'expo';
 
 export default function SignInScreen({ navigation }: Props) {
@@ -26,7 +27,10 @@ export default function SignInScreen({ navigation }: Props) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const setUser = useAuthStore((s) => s.setUser);
   const [googleRequest, _googleResponse, promptGoogleAsync] = Google.useIdTokenAuthRequest({
-    clientId: googleWebClientId,
+    // Native builds must use the Android/iOS client (custom scheme redirect);
+    // Google rejects custom schemes for the Web client. webClientId stays as
+    // the id_token audience so the backend can still verify the token.
+    androidClientId: googleAndroidClientId,
     webClientId: googleWebClientId,
     scopes: ['openid', 'profile', 'email'],
     selectAccount: true,
