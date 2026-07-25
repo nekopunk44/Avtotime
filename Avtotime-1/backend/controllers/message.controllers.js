@@ -142,6 +142,25 @@ export const getAllMessages = async (req, res) => {
     }
 };
 
+export const markConversationRead = async (req, res) => {
+    try {
+        const currentUserId = req.userId;
+        const otherId = req.params.targetId;
+
+        const { modifiedCount } = await Message.updateMany(
+            { sender: otherId, receiver: currentUserId, read: false },
+            { $set: { read: true } }
+        );
+        if (modifiedCount > 0) {
+            io.to(String(otherId)).emit('messagesRead', { by: String(currentUserId) });
+        }
+
+        return res.status(200).json({ modifiedCount });
+    } catch (error) {
+        return res.status(500).json({ message: `Ошибка отметки прочтения: ${error.message}` });
+    }
+};
+
 export const getPrevUserChats = async (req, res) => {
     try {
         const currentUserId = req.userId;

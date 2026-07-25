@@ -78,6 +78,10 @@ export async function sendMessage(receiverId: string, payload: SendMessagePayloa
   return data;
 }
 
+export async function markConversationRead(targetId: string): Promise<void> {
+  await client.patch(`/message/read/${targetId}`);
+}
+
 export async function blockUser(targetId: string): Promise<void> {
   await client.post(`/message/block/${targetId}`);
 }

@@ -5,6 +5,7 @@ import {
     getAllMessages,
     getPrevUserChats,
     sendMessage,
+    markConversationRead,
     blockUser,
     unblockUser,
     getBlockedStatus,
@@ -25,6 +26,7 @@ messageRouter.post(
 )
 messageRouter.get('/getAll/:receiverId', isAuth, getAllMessages)
 messageRouter.get('/prevChats/', isAuth, getPrevUserChats)
+messageRouter.patch('/read/:targetId', isAuth, markConversationRead)
 
 messageRouter.post('/block/:targetId', isAuth, blockUser)
 messageRouter.delete('/block/:targetId', isAuth, unblockUser)

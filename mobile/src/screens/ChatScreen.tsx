@@ -32,6 +32,7 @@ import {
   getBlockedStatus,
   getMessages,
   getMessageUserId,
+  markConversationRead,
   Message,
   sendMessage,
   unblockUser,
@@ -222,6 +223,12 @@ export default function ChatScreen({ route, navigation }: Props) {
     let socket: any;
     const handler = (msg: Message) => {
       prependMessage(msg);
+      // Incoming message from the peer while the chat is open — mark it read
+      if (isMessageInChat(msg) && getMessageUserId(msg.sender) === userId) {
+        markConversationRead(userId)
+          .then(() => useBadgeStore.getState().refresh())
+          .catch(() => {});
+      }
     };
 
     getSocket().then((s) => {
@@ -230,7 +237,7 @@ export default function ChatScreen({ route, navigation }: Props) {
     });
 
     return () => socket?.off('newMessage', handler);
-  }, [load, prependMessage]);
+  }, [load, prependMessage, isMessageInChat, userId]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
