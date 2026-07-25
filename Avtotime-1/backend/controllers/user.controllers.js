@@ -86,6 +86,9 @@ export const getCurrentUser = async (req, res) => {
         const userObj = user.toObject()
         userObj.effectivePlan = effectivePlan
         userObj.planLimits = planLimits
+        // Sliding session: hand back a fresh token so active clients keep a
+        // valid one and don't get bounced to the login screen.
+        userObj.token = genToken(user._id, user.tokenVersion ?? 0)
 
         return res.status(200).json(userObj)
     } catch (error) {

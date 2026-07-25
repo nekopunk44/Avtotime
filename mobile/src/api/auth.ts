@@ -77,7 +77,12 @@ export async function signOut(): Promise<void> {
 
 export async function getMe(): Promise<User> {
   const { data } = await client.get('/user/current');
-  return data;
+  // Sliding session: persist the refreshed token so the login stays valid.
+  if (data?.token) {
+    await SecureStore.setItemAsync('auth_token', data.token);
+  }
+  const { token: _token, ...user } = data ?? {};
+  return user as User;
 }
 
 export async function resendVerificationEmail(): Promise<{ message?: string }> {
