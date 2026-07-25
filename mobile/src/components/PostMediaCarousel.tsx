@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -6,9 +6,11 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import ImageViewer from './ImageViewer';
 
 interface Props {
   media: string;
@@ -40,6 +42,7 @@ export default function PostMediaCarousel({ media, mediaList, mediaType, width, 
   const screenWidth = width ?? Dimensions.get('window').width;
   const mediaHeight = height ?? screenWidth;
   const [index, setIndex] = useState(0);
+  const [viewerUri, setViewerUri] = useState<string | undefined>();
 
   const items = (mediaList && mediaList.length ? mediaList : media ? [media] : []).filter(Boolean);
   if (!items.length) return null;
@@ -53,10 +56,19 @@ export default function PostMediaCarousel({ media, mediaList, mediaType, width, 
     );
   }
 
+  const viewer = (
+    <ImageViewer uri={viewerUri} visible={!!viewerUri} onClose={() => setViewerUri(undefined)} />
+  );
+
   // A single image — no need for a scroll view
   if (items.length === 1) {
     return (
-      <Image source={{ uri: items[0] }} style={{ width: screenWidth, height: mediaHeight }} resizeMode="cover" />
+      <>
+        <TouchableOpacity activeOpacity={0.95} onPress={() => setViewerUri(items[0])}>
+          <Image source={{ uri: items[0] }} style={{ width: screenWidth, height: mediaHeight }} resizeMode="cover" />
+        </TouchableOpacity>
+        {viewer}
+      </>
     );
   }
 
@@ -75,7 +87,9 @@ export default function PostMediaCarousel({ media, mediaList, mediaType, width, 
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={onScroll}
         renderItem={({ item }) => (
-          <Image source={{ uri: item }} style={{ width: screenWidth, height: mediaHeight }} resizeMode="cover" />
+          <TouchableOpacity activeOpacity={0.95} onPress={() => setViewerUri(item)}>
+            <Image source={{ uri: item }} style={{ width: screenWidth, height: mediaHeight }} resizeMode="cover" />
+          </TouchableOpacity>
         )}
       />
       <View style={styles.dots}>
@@ -83,6 +97,7 @@ export default function PostMediaCarousel({ media, mediaList, mediaType, width, 
           <View key={i} style={[styles.dot, i === index && styles.dotActive]} />
         ))}
       </View>
+      {viewer}
     </View>
   );
 }

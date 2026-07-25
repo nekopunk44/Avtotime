@@ -24,6 +24,7 @@ import {
 } from 'expo-audio';
 import { Ionicons } from '@expo/vector-icons';
 import VoiceMessage from '../components/VoiceMessage';
+import ImageViewer from '../components/ImageViewer';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -92,6 +93,7 @@ export default function ChatScreen({ route, navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
   const [menuBusy, setMenuBusy] = useState(false);
+  const [viewerUri, setViewerUri] = useState<string | undefined>();
   const flatRef = useRef<FlatList>(null);
   const me = useAuthStore((s) => s.user);
 
@@ -410,7 +412,7 @@ export default function ChatScreen({ route, navigation }: Props) {
     return (
       <View style={[styles.bubble, isMine ? styles.mine : styles.theirs]}>
         {item.image ? (
-          <TouchableOpacity onPress={() => openUrl(item.image)} activeOpacity={0.9}>
+          <TouchableOpacity onPress={() => setViewerUri(item.image)} activeOpacity={0.9}>
             <Image source={{ uri: item.image }} style={styles.msgImage} />
           </TouchableOpacity>
         ) : null}
@@ -539,6 +541,8 @@ export default function ChatScreen({ route, navigation }: Props) {
           )}
         </View>
       )}
+
+      <ImageViewer uri={viewerUri} visible={!!viewerUri} onClose={() => setViewerUri(undefined)} />
     </KeyboardAvoidingView>
   );
 }

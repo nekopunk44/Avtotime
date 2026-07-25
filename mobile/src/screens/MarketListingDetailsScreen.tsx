@@ -39,6 +39,7 @@ import {
 } from '../api/compare';
 import { searchUsers } from '../api/users';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import ImageViewer from '../components/ImageViewer';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'MarketListingDetails'>;
@@ -50,6 +51,7 @@ const isObjectId = (value: string) => /^[0-9a-fA-F]{24}$/.test(value);
 export default function MarketListingDetailsScreen({ navigation, route }: Props) {
   const { listing, categoryId } = route.params;
   const [imageIndex, setImageIndex] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [compareItems, setCompareItems] = useState<CompareItem[]>([]);
@@ -218,7 +220,9 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.hero}>
         {images[imageIndex] ? (
-          <Image source={{ uri: images[imageIndex] }} style={styles.heroImage} />
+          <TouchableOpacity activeOpacity={0.95} onPress={() => setViewerOpen(true)}>
+            <Image source={{ uri: images[imageIndex] }} style={styles.heroImage} />
+          </TouchableOpacity>
         ) : (
           <View style={[styles.heroImage, styles.noImage]}>
             <Ionicons name={category.icon as any} size={42} color="#aaa" />
@@ -349,6 +353,8 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
           <Text style={styles.contactText}>Профиль</Text>
         </TouchableOpacity>
       </View>
+
+      <ImageViewer uri={images[imageIndex]} visible={viewerOpen} onClose={() => setViewerOpen(false)} />
     </ScrollView>
   );
 }
