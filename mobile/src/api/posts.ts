@@ -65,8 +65,10 @@ export function isPostSaved(user: Pick<User, 'saved'> | null | undefined, postId
   return getSavedPostIds(user).includes(postId);
 }
 
-export async function getFeed(): Promise<Post[]> {
-  const { data } = await client.get('/post/getAll', { params: { page: 1, limit: 20 } });
+export const FEED_PAGE_SIZE = 20;
+
+export async function getFeed(page = 1, limit = FEED_PAGE_SIZE): Promise<Post[]> {
+  const { data } = await client.get('/post/getAll', { params: { page, limit } });
   return Array.isArray(data) ? data : data.posts ?? [];
 }
 

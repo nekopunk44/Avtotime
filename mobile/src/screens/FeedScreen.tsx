@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
-import { deletePost, getFeed, getVideoPoster, isPostSaved, toggleLike, Post, toggleSavePost } from '../api/posts';
+import { deletePost, FEED_PAGE_SIZE, getFeed, getVideoPoster, isPostSaved, toggleLike, Post, toggleSavePost } from '../api/posts';
 import { getStories, getStoryByUserName, Story, uploadStory } from '../api/stories';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
@@ -20,13 +20,16 @@ export default function FeedScreen({ navigation }: Props) {
   const [uploadingStory, setUploadingStory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
 
   const loadFeed = useCallback(async () => {
     try {
       const [postData, followingStories, myStory] = await Promise.all([
-        getFeed(),
+        getFeed(1, FEED_PAGE_SIZE),
         getStories().catch(() => []),
         user?.userName ? getStoryByUserName(user.userName).catch(() => null) : Promise.resolve(null),
       ]);
@@ -37,6 +40,8 @@ export default function FeedScreen({ navigation }: Props) {
 
       setPosts(postData);
       setStories(Array.from(storyMap.values()));
+      setPage(1);
+      setHasMore(postData.length === FEED_PAGE_SIZE);
     } catch (e) {
       console.error('Feed error', e);
     } finally {
@@ -44,6 +49,25 @@ export default function FeedScreen({ navigation }: Props) {
       setRefreshing(false);
     }
   }, [user?.userName]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || loading || refreshing) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const more = await getFeed(next, FEED_PAGE_SIZE);
+      setPosts((prev) => {
+        const seen = new Set(prev.map((p) => p._id));
+        return [...prev, ...more.filter((p) => !seen.has(p._id))];
+      });
+      setPage(next);
+      setHasMore(more.length === FEED_PAGE_SIZE);
+    } catch {
+      // keep current posts; user can retry by scrolling again
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, loading, refreshing, page]);
 
   useFocusEffect(useCallback(() => {
     loadFeed();
@@ -261,6 +285,9 @@ export default function FeedScreen({ navigation }: Props) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadFeed(); }} />}
       ListHeaderComponent={renderStories}
       ListEmptyComponent={<View style={styles.center}><Text style={styles.empty}>Нет публикаций</Text></View>}
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footer} color="#111" /> : null}
     />
   );
 }
@@ -268,6 +295,7 @@ export default function FeedScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   list: { flex: 1, backgroundColor: '#f5f5f5' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 },
+  footer: { paddingVertical: 20 },
   empty: { color: '#999', fontSize: 16 },
   storiesWrap: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee', marginBottom: 8 },
   storiesList: { paddingHorizontal: 12, paddingVertical: 12, gap: 12 },

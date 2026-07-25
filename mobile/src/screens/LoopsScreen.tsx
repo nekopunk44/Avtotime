@@ -27,6 +27,8 @@ import { AppStackParamList, AppTabParamList } from '../navigation/AppNavigator';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
+const LOOPS_PAGE_SIZE = 10;
+
 type LoopCardProps = {
   loop: Loop;
   active: boolean;
@@ -139,6 +141,9 @@ export default function LoopsScreen({ navigation }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [commentTarget, setCommentTarget] = useState<Loop | null>(null);
   const [commentText, setCommentText] = useState('');
@@ -179,8 +184,10 @@ export default function LoopsScreen({ navigation }: Props) {
     if (!silent) setLoading(true);
     setError('');
     try {
-      const data = await getLoops(1, 30);
+      const data = await getLoops(1, LOOPS_PAGE_SIZE);
       setLoops(data);
+      setPage(1);
+      setHasMore(data.length === LOOPS_PAGE_SIZE);
     } catch (e: any) {
       setError(e.response?.data?.message || 'Не удалось загрузить видео');
     } finally {
@@ -188,6 +195,25 @@ export default function LoopsScreen({ navigation }: Props) {
       setRefreshing(false);
     }
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || loading || refreshing) return;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const more = await getLoops(next, LOOPS_PAGE_SIZE);
+      setLoops((prev) => {
+        const seen = new Set(prev.map((l) => l._id));
+        return [...prev, ...more.filter((l) => !seen.has(l._id))];
+      });
+      setPage(next);
+      setHasMore(more.length === LOOPS_PAGE_SIZE);
+    } catch {
+      // keep current list; scrolling again retries
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, loading, refreshing, page]);
 
   useFocusEffect(useCallback(() => {
     load(true);
@@ -309,6 +335,8 @@ export default function LoopsScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
+        onEndReached={loadMore}
+        onEndReachedThreshold={1.5}
         getItemLayout={(_, index) => ({ length: listHeight, offset: listHeight * index, index })}
         onScrollToIndexFailed={({ index }) => {
           requestAnimationFrame(() => listRef.current?.scrollToOffset({
