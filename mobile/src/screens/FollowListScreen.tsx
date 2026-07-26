@@ -18,6 +18,7 @@ import { User } from '../api/auth';
 import { getFollowers, getFollowing } from '../api/users';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'FollowList'>;
@@ -78,7 +79,7 @@ export default function FollowListScreen({ navigation, route }: Props) {
     <View style={styles.header}>
       <View style={styles.hero}>
         <View style={styles.heroIcon}>
-          <Ionicons name={mode === 'followers' ? 'people-outline' : 'person-add-outline'} size={27} color="#111" />
+          <Ionicons name={mode === 'followers' ? 'people-outline' : 'person-add-outline'} size={27} color={colors.text} />
         </View>
         <View style={styles.heroText}>
           <Text style={styles.title}>{title}</Text>
@@ -87,18 +88,18 @@ export default function FollowListScreen({ navigation, route }: Props) {
       </View>
 
       <View style={styles.searchBox}>
-        <Ionicons name="search-outline" size={18} color="#777" />
+        <Ionicons name="search-outline" size={18} color={colors.textMuted} />
         <TextInput
           style={styles.searchInput}
           placeholder="Поиск по людям"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textFaint}
           value={query}
           onChangeText={setQuery}
           autoCapitalize="none"
         />
         {query ? (
           <TouchableOpacity onPress={() => setQuery('')}>
-            <Ionicons name="close-circle" size={18} color="#999" />
+            <Ionicons name="close-circle" size={18} color={colors.textFaint} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -121,14 +122,14 @@ export default function FollowListScreen({ navigation, route }: Props) {
           <Text style={styles.meta} numberOfLines={1}>{item.bio || item.location}</Text>
         ) : null}
       </View>
-      <Ionicons name="chevron-forward" size={19} color="#aaa" />
+      <Ionicons name="chevron-forward" size={19} color={colors.textFaint} />
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -144,7 +145,7 @@ export default function FollowListScreen({ navigation, route }: Props) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       ListEmptyComponent={
         <View style={styles.emptyState}>
-          <Ionicons name="people-outline" size={42} color="#bbb" />
+          <Ionicons name="people-outline" size={42} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>{query ? 'Никого не нашли' : 'Список пуст'}</Text>
           <Text style={styles.emptyText}>{query ? 'Попробуйте изменить запрос.' : 'Здесь появятся профили пользователей.'}</Text>
         </View>
@@ -154,27 +155,27 @@ export default function FollowListScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   header: { gap: 10, marginBottom: 2 },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', alignItems: 'center', justifyContent: 'center' },
+  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   heroText: { flex: 1 },
-  title: { color: '#111', fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 2, color: '#666', fontSize: 13, fontWeight: '800' },
-  searchBox: { height: 44, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
-  searchInput: { flex: 1, color: '#111', fontSize: 15 },
-  card: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 },
-  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#eee' },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#111' },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  searchBox: { height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  searchInput: { flex: 1, color: colors.text, fontSize: 15 },
+  card: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.surfaceAlt },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceHi },
   avatarText: { color: '#fff', fontSize: 18, fontWeight: '900' },
   userBody: { flex: 1 },
-  name: { color: '#111', fontSize: 16, fontWeight: '900' },
-  userName: { marginTop: 2, color: '#777', fontSize: 12, fontWeight: '800' },
-  meta: { marginTop: 4, color: '#555', fontSize: 12, fontWeight: '700' },
+  name: { color: colors.text, fontSize: 16, fontWeight: '900' },
+  userName: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  meta: { marginTop: 4, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 5, color: '#777', fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
 });

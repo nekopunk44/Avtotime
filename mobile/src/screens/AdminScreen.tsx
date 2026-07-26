@@ -37,6 +37,7 @@ import {
   MarketListing,
 } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type TabId = 'overview' | 'moderation' | 'users';
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'Admin'> };
@@ -334,7 +335,7 @@ export default function AdminScreen({ navigation }: Props) {
 
       <View style={styles.overviewCard}>
         <View style={styles.sectionTitleRow}>
-          <Ionicons name="bar-chart-outline" size={20} color="#111" />
+          <Ionicons name="bar-chart-outline" size={20} color={colors.text} />
           <Text style={styles.sectionTitle}>Маркет</Text>
         </View>
         <Text style={styles.overviewText}>Всего объявлений: {stats?.listings.total ?? 0}</Text>
@@ -344,7 +345,7 @@ export default function AdminScreen({ navigation }: Props) {
 
       <View style={styles.overviewCard}>
         <View style={styles.sectionTitleRow}>
-          <Ionicons name="pulse-outline" size={20} color="#111" />
+          <Ionicons name="pulse-outline" size={20} color={colors.text} />
           <Text style={styles.sectionTitle}>Динамика</Text>
         </View>
         {stats?.daily?.slice(-7).map((item) => (
@@ -387,7 +388,7 @@ export default function AdminScreen({ navigation }: Props) {
       </View>
 
       {moderationLoading ? (
-        <View style={styles.inlineLoader}><ActivityIndicator color="#111" /></View>
+        <View style={styles.inlineLoader}><ActivityIndicator color={colors.text} /></View>
       ) : listings.length ? listings.map((item) => {
         const id = getListingId(item);
         const approving = actingId === `approve-${id}`;
@@ -397,7 +398,7 @@ export default function AdminScreen({ navigation }: Props) {
           <View key={id || getListingTitle(item)} style={styles.listingCard}>
             <View style={styles.listingTop}>
               <View style={styles.listingIcon}>
-                <Ionicons name={activeCategory.icon as any} size={22} color="#111" />
+                <Ionicons name={activeCategory.icon as any} size={22} color={colors.text} />
               </View>
               <View style={styles.listingInfo}>
                 <Text style={styles.cardTitle}>{getListingTitle(item)}</Text>
@@ -421,7 +422,7 @@ export default function AdminScreen({ navigation }: Props) {
         );
       }) : (
         <View style={styles.emptyBox}>
-          <Ionicons name="shield-checkmark-outline" size={38} color="#bbb" />
+          <Ionicons name="shield-checkmark-outline" size={38} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>Очередь пуста</Text>
           <Text style={styles.emptyText}>{activeCategory.label}: нет объявлений в выбранном режиме.</Text>
         </View>
@@ -432,18 +433,18 @@ export default function AdminScreen({ navigation }: Props) {
   const renderUsers = () => (
     <View style={styles.section}>
       <View style={styles.searchBox}>
-        <Ionicons name="search-outline" size={18} color="#777" />
+        <Ionicons name="search-outline" size={18} color={colors.textMuted} />
         <TextInput
           style={styles.searchInput}
           placeholder="Поиск по имени, нику или email"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textFaint}
           value={userSearch}
           onChangeText={setUserSearch}
           autoCapitalize="none"
         />
         {userSearch ? (
           <TouchableOpacity onPress={() => setUserSearch('')}>
-            <Ionicons name="close-circle" size={18} color="#999" />
+            <Ionicons name="close-circle" size={18} color={colors.textFaint} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -451,7 +452,7 @@ export default function AdminScreen({ navigation }: Props) {
       <Text style={styles.usersTotal}>Всего: {usersTotal}</Text>
 
       {usersLoading ? (
-        <View style={styles.inlineLoader}><ActivityIndicator color="#111" /></View>
+        <View style={styles.inlineLoader}><ActivityIndicator color={colors.text} /></View>
       ) : users.length ? users.map((item) => {
         const banned = !!item.isBanned;
         const admin = !!item.isAdmin;
@@ -472,7 +473,7 @@ export default function AdminScreen({ navigation }: Props) {
                 <Text style={styles.cardMeta}>@{item.userName || 'user'} · {item.email || 'email не указан'}</Text>
                 <Text style={styles.cardMeta}>План: {item.plan || 'free'} · создан: {formatDate(item.createdAt)}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#aaa" />
+              <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
             </TouchableOpacity>
 
             <View style={styles.badgeRow}>
@@ -482,7 +483,7 @@ export default function AdminScreen({ navigation }: Props) {
 
             <View style={styles.actionsRow}>
               <TouchableOpacity style={styles.secondaryActionBtn} onPress={() => toggleAdmin(item)} disabled={!!actingId}>
-                {adminLoading ? <ActivityIndicator color="#111" /> : <Text style={styles.actionTextDark}>{admin ? 'Снять admin' : 'Выдать admin'}</Text>}
+                {adminLoading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.actionTextDark}>{admin ? 'Снять admin' : 'Выдать admin'}</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={banned ? styles.approveBtn : styles.rejectBtn} onPress={() => toggleBan(item)} disabled={!!actingId}>
                 {banLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionTextLight}>{banned ? 'Разбанить' : 'Бан'}</Text>}
@@ -492,7 +493,7 @@ export default function AdminScreen({ navigation }: Props) {
         );
       }) : (
         <View style={styles.emptyBox}>
-          <Ionicons name="people-outline" size={38} color="#bbb" />
+          <Ionicons name="people-outline" size={38} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>Пользователи не найдены</Text>
           <Text style={styles.emptyText}>Измените поиск или обновите список.</Text>
         </View>
@@ -501,13 +502,13 @@ export default function AdminScreen({ navigation }: Props) {
   );
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color="#111" /></View>;
+    return <View style={styles.center}><ActivityIndicator size="large" color={colors.text} /></View>;
   }
 
   if (!isAdmin) {
     return (
       <View style={styles.centerContent}>
-        <Ionicons name="lock-closed-outline" size={44} color="#bbb" />
+        <Ionicons name="lock-closed-outline" size={44} color={colors.textFaint} />
         <Text style={styles.emptyTitle}>Нет доступа</Text>
         <Text style={styles.emptyText}>{error || 'Этот раздел доступен только администраторам Avtotime.'}</Text>
       </View>
@@ -519,7 +520,7 @@ export default function AdminScreen({ navigation }: Props) {
       <View style={styles.top}>
         <View style={styles.titleRow}>
           <View style={styles.titleIcon}>
-            <Ionicons name="shield-checkmark-outline" size={27} color="#111" />
+            <Ionicons name="shield-checkmark-outline" size={27} color={colors.text} />
           </View>
           <View style={styles.titleBlock}>
             <Text style={styles.title}>Админ</Text>
@@ -548,78 +549,78 @@ export default function AdminScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
-  centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
-  top: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+  centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.surface },
+  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  titleIcon: { width: 50, height: 50, borderRadius: 16, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
+  titleIcon: { width: 50, height: 50, borderRadius: 16, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   titleBlock: { flex: 1 },
-  title: { color: '#111', fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 3, color: '#666', fontSize: 13 },
-  tabs: { flexDirection: 'row', backgroundColor: '#f3f3f3', borderRadius: 12, padding: 3, marginTop: 14 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 3, color: colors.textMuted, fontSize: 13 },
+  tabs: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3, marginTop: 14 },
   tabBtn: { flex: 1, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 5 },
-  tabBtnActive: { backgroundColor: '#111' },
-  tabText: { color: '#777', fontSize: 12, fontWeight: '900' },
+  tabBtnActive: { backgroundColor: colors.surfaceHi },
+  tabText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
   tabTextActive: { color: '#fff' },
   content: { padding: 12, paddingBottom: 28 },
   section: { gap: 10 },
   rangeList: { gap: 8, paddingBottom: 2 },
-  rangeBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5e5', alignItems: 'center', justifyContent: 'center' },
-  rangeBtnActive: { backgroundColor: '#111', borderColor: '#111' },
-  rangeText: { color: '#555', fontSize: 13, fontWeight: '900' },
+  rangeBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  rangeBtnActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  rangeText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
   rangeTextActive: { color: '#fff' },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  statCard: { width: '48.7%', backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 14 },
-  statValue: { color: '#111', fontSize: 25, fontWeight: '900' },
-  statLabel: { marginTop: 3, color: '#666', fontSize: 12, fontWeight: '800' },
-  overviewCard: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 14, gap: 8 },
+  statCard: { width: '48.7%', backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 14 },
+  statValue: { color: colors.text, fontSize: 25, fontWeight: '900' },
+  statLabel: { marginTop: 3, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  overviewCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 8 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  sectionTitle: { color: '#111', fontSize: 17, fontWeight: '900' },
-  overviewText: { color: '#555', fontSize: 13, fontWeight: '800' },
-  dailyRow: { minHeight: 34, borderRadius: 8, backgroundColor: '#f7f7f7', paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dailyDate: { flex: 1, color: '#111', fontSize: 12, fontWeight: '900' },
-  dailyValue: { color: '#666', fontSize: 11, fontWeight: '800' },
+  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  overviewText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  dailyRow: { minHeight: 34, borderRadius: 8, backgroundColor: colors.bg, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dailyDate: { flex: 1, color: colors.text, fontSize: 12, fontWeight: '900' },
+  dailyValue: { color: colors.textMuted, fontSize: 11, fontWeight: '800' },
   categoryList: { gap: 8, paddingBottom: 2 },
-  categoryBtn: { height: 38, borderRadius: 10, paddingHorizontal: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5e5', flexDirection: 'row', alignItems: 'center', gap: 6 },
-  categoryBtnActive: { backgroundColor: '#111', borderColor: '#111' },
-  categoryText: { color: '#555', fontSize: 13, fontWeight: '900' },
+  categoryBtn: { height: 38, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  categoryBtnActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  categoryText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
   categoryTextActive: { color: '#fff' },
   switchRow: { flexDirection: 'row', backgroundColor: '#ececec', borderRadius: 12, padding: 3 },
   switchBtn: { flex: 1, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  switchBtnActive: { backgroundColor: '#111' },
-  switchText: { color: '#666', fontSize: 13, fontWeight: '900' },
+  switchBtnActive: { backgroundColor: colors.surfaceHi },
+  switchText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
   switchTextActive: { color: '#fff' },
   inlineLoader: { minHeight: 90, alignItems: 'center', justifyContent: 'center' },
-  listingCard: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 13 },
+  listingCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 13 },
   listingTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  listingIcon: { width: 44, height: 44, borderRadius: 13, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
+  listingIcon: { width: 44, height: 44, borderRadius: 13, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   listingInfo: { flex: 1 },
-  cardTitle: { color: '#111', fontSize: 16, fontWeight: '900' },
-  cardMeta: { marginTop: 3, color: '#666', fontSize: 12, fontWeight: '700' },
-  description: { marginTop: 10, color: '#333', fontSize: 13, lineHeight: 19 },
+  cardTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
+  cardMeta: { marginTop: 3, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  description: { marginTop: 10, color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   reasonText: { marginTop: 8, color: '#b45309', fontSize: 12, fontWeight: '800' },
   actionsRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
   approveBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: '#15803d', alignItems: 'center', justifyContent: 'center' },
-  rejectBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: '#d92323', alignItems: 'center', justifyContent: 'center' },
-  secondaryActionBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: '#f3f3f3', borderWidth: 1, borderColor: '#e2e2e2', alignItems: 'center', justifyContent: 'center' },
+  rejectBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
+  secondaryActionBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: '#e2e2e2', alignItems: 'center', justifyContent: 'center' },
   actionTextLight: { color: '#fff', fontSize: 13, fontWeight: '900' },
-  actionTextDark: { color: '#111', fontSize: 13, fontWeight: '900' },
-  searchBox: { height: 44, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
-  searchInput: { flex: 1, color: '#111', fontSize: 15 },
-  usersTotal: { color: '#666', fontSize: 12, fontWeight: '800', paddingHorizontal: 2 },
-  userCard: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 13 },
+  actionTextDark: { color: colors.text, fontSize: 13, fontWeight: '900' },
+  searchBox: { height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  searchInput: { flex: 1, color: colors.text, fontSize: 15 },
+  usersTotal: { color: colors.textMuted, fontSize: 12, fontWeight: '800', paddingHorizontal: 2 },
+  userCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 13 },
   userTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatar: { width: 46, height: 46, borderRadius: 15, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' },
-  avatarDanger: { backgroundColor: '#d92323' },
+  avatar: { width: 46, height: 46, borderRadius: 15, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
+  avatarDanger: { backgroundColor: colors.danger },
   avatarText: { color: '#fff', fontSize: 17, fontWeight: '900' },
   userInfo: { flex: 1 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 10 },
-  adminBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: '#111', color: '#fff', paddingHorizontal: 9, paddingVertical: 5, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  bannedBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: '#fff0f0', color: '#d92323', paddingHorizontal: 9, paddingVertical: 5, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  emptyBox: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 24, alignItems: 'center' },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 17, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 6, color: '#777', fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  errorBox: { borderRadius: 8, backgroundColor: '#fff0f0', borderWidth: 1, borderColor: '#ffd3d3', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  errorText: { flex: 1, color: '#a51010', fontSize: 13, fontWeight: '800' },
+  adminBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: colors.surfaceHi, color: '#fff', paddingHorizontal: 9, paddingVertical: 5, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  bannedBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: 'rgba(255,90,95,0.12)', color: colors.danger, paddingHorizontal: 9, paddingVertical: 5, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  emptyBox: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 24, alignItems: 'center' },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 17, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  errorBox: { borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: 1, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
 });

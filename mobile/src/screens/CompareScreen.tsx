@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { colors } from '../theme';
 import {
   CompareItem,
   CompareItemType,
@@ -143,7 +144,7 @@ export default function CompareScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -156,7 +157,7 @@ export default function CompareScreen() {
     >
       <View style={styles.hero}>
         <View style={styles.heroIcon}>
-          <Ionicons name="git-compare-outline" size={27} color="#111" />
+          <Ionicons name="git-compare-outline" size={27} color={colors.text} />
         </View>
         <Text style={styles.title}>Сравнение</Text>
         <Text style={styles.subtitle}>
@@ -166,13 +167,13 @@ export default function CompareScreen() {
 
       {error ? (
         <View style={styles.emptyCard}>
-          <Ionicons name="alert-circle-outline" size={36} color="#d92323" />
+          <Ionicons name="alert-circle-outline" size={36} color={colors.danger} />
           <Text style={styles.emptyTitle}>{error}</Text>
           <Text style={styles.emptyText}>Потяните экран вниз, чтобы попробовать снова.</Text>
         </View>
       ) : !items.length ? (
         <View style={styles.emptyCard}>
-          <Ionicons name="albums-outline" size={38} color="#bbb" />
+          <Ionicons name="albums-outline" size={38} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>Список сравнения пуст</Text>
           <Text style={styles.emptyText}>Откройте объявление в маркете и нажмите “Сравнить”.</Text>
         </View>
@@ -181,7 +182,7 @@ export default function CompareScreen() {
           <View style={styles.topRow}>
             <Text style={styles.countText}>{items.length}/2 элемента</Text>
             <TouchableOpacity style={styles.clearBtn} onPress={clear} disabled={saving}>
-              {saving ? <ActivityIndicator size="small" color="#d92323" /> : <Text style={styles.clearText}>Очистить</Text>}
+              {saving ? <ActivityIndicator size="small" color={colors.danger} /> : <Text style={styles.clearText}>Очистить</Text>}
             </TouchableOpacity>
           </View>
 
@@ -192,7 +193,7 @@ export default function CompareScreen() {
                   <Image source={{ uri: getListingImage(item.listing) }} style={styles.itemImage} />
                 ) : (
                   <View style={[styles.itemImage, styles.itemImageFallback]}>
-                    <Ionicons name="image-outline" size={25} color="#999" />
+                    <Ionicons name="image-outline" size={25} color={colors.textFaint} />
                   </View>
                 )}
                 <Text style={styles.itemTitle} numberOfLines={2}>
@@ -202,7 +203,7 @@ export default function CompareScreen() {
                   {item.listing ? getListingPrice(item.listing, item.categoryId) : 'Не найдено'}
                 </Text>
                 <TouchableOpacity style={styles.removeBtn} onPress={() => removeItem(item)} disabled={saving}>
-                  <Ionicons name="close" size={16} color="#d92323" />
+                  <Ionicons name="close" size={16} color={colors.danger} />
                   <Text style={styles.removeText}>Убрать</Text>
                 </TouchableOpacity>
               </View>
@@ -234,32 +235,32 @@ export default function CompareScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 28 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   hero: { alignItems: 'center', paddingVertical: 18 },
-  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#eee' },
-  title: { color: '#111', fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 6, color: '#666', fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  emptyCard: { marginTop: 18, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee', padding: 20, alignItems: 'center' },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 17, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 6, color: '#777', fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 1, borderColor: colors.border },
+  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
+  subtitle: { marginTop: 6, color: colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  emptyCard: { marginTop: 18, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 20, alignItems: 'center' },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 17, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 10 },
-  countText: { color: '#666', fontSize: 13, fontWeight: '800' },
-  clearBtn: { minWidth: 88, height: 34, borderRadius: 8, backgroundColor: '#fff0f0', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
-  clearText: { color: '#d92323', fontSize: 13, fontWeight: '900' },
+  countText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  clearBtn: { minWidth: 88, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
+  clearText: { color: colors.danger, fontSize: 13, fontWeight: '900' },
   cardsRow: { flexDirection: 'row', gap: 10 },
-  itemCard: { flex: 1, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee', overflow: 'hidden' },
-  itemImage: { width: '100%', height: 112, backgroundColor: '#eee' },
+  itemCard: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  itemImage: { width: '100%', height: 112, backgroundColor: colors.surfaceAlt },
   itemImageFallback: { alignItems: 'center', justifyContent: 'center' },
-  itemTitle: { marginTop: 10, paddingHorizontal: 10, color: '#111', fontSize: 14, lineHeight: 19, fontWeight: '900', minHeight: 38 },
-  itemPrice: { paddingHorizontal: 10, marginTop: 5, color: '#111', fontSize: 14, fontWeight: '900' },
-  removeBtn: { margin: 10, height: 34, borderRadius: 8, backgroundColor: '#fff0f0', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
-  removeText: { color: '#d92323', fontSize: 12, fontWeight: '900' },
-  table: { marginTop: 12, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee', overflow: 'hidden' },
-  tableRow: { borderBottomWidth: 1, borderBottomColor: '#f0f0f0', padding: 12 },
-  rowLabel: { color: '#777', fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 8 },
+  itemTitle: { marginTop: 10, paddingHorizontal: 10, color: colors.text, fontSize: 14, lineHeight: 19, fontWeight: '900', minHeight: 38 },
+  itemPrice: { paddingHorizontal: 10, marginTop: 5, color: colors.text, fontSize: 14, fontWeight: '900' },
+  removeBtn: { margin: 10, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  removeText: { color: colors.danger, fontSize: 12, fontWeight: '900' },
+  table: { marginTop: 12, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  tableRow: { borderBottomWidth: 1, borderBottomColor: colors.border, padding: 12 },
+  rowLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 8 },
   rowValues: { flexDirection: 'row', gap: 10 },
-  rowValue: { flex: 1, color: '#111', fontSize: 14, lineHeight: 19, fontWeight: '800' },
+  rowValue: { flex: 1, color: colors.text, fontSize: 14, lineHeight: 19, fontWeight: '800' },
   emptyBox: { padding: 18, alignItems: 'center' },
 });

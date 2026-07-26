@@ -23,6 +23,7 @@ import {
   MarketCategoryId,
 } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'CreateMarketListing'> };
 
@@ -243,7 +244,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
     <TextInput
       style={[styles.input, options.multiline && styles.textArea]}
       placeholder={placeholder}
-      placeholderTextColor="#999"
+      placeholderTextColor={colors.textFaint}
       value={form[key]}
       onChangeText={(value) => update(key, value)}
       keyboardType={options.keyboardType ?? 'default'}
@@ -331,11 +332,11 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
         <Text style={styles.sectionTitle}>{isConsultation ? 'Аватар' : 'Фото'}</Text>
         <View style={styles.imageActionRow}>
           <TouchableOpacity style={styles.imagePicker} onPress={takePhoto} activeOpacity={0.85} disabled={images.length >= imageLimit}>
-            <Ionicons name="camera-outline" size={22} color="#111" />
+            <Ionicons name="camera-outline" size={22} color={colors.text} />
             <Text style={styles.imagePickerText}>Камера</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.imagePicker} onPress={pickImages} activeOpacity={0.85} disabled={images.length >= imageLimit}>
-            <Ionicons name="images-outline" size={22} color="#111" />
+            <Ionicons name="images-outline" size={22} color={colors.text} />
             <Text style={styles.imagePickerText}>Галерея</Text>
             <Text style={styles.imagePickerCount}>{images.length}/{imageLimit}</Text>
           </TouchableOpacity>
@@ -370,38 +371,38 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.surface },
   content: { padding: 16, paddingBottom: 32 },
   hero: { marginBottom: 14 },
-  title: { color: '#111', fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: '#666', fontSize: 13, lineHeight: 19 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   modeRow: { gap: 8, paddingBottom: 10 },
   modeBtn: {
-    height: 40, borderRadius: 10, backgroundColor: '#f3f3f3',
-    borderWidth: 1, borderColor: '#ddd', flexDirection: 'row',
+    height: 40, borderRadius: 10, backgroundColor: colors.surfaceAlt,
+    borderWidth: 1, borderColor: colors.border, flexDirection: 'row',
     alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 12,
   },
-  modeBtnActive: { backgroundColor: '#111', borderColor: '#111' },
-  modeText: { color: '#111', fontWeight: '800', fontSize: 13 },
+  modeBtnActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  modeText: { color: colors.text, fontWeight: '800', fontSize: 13 },
   modeTextActive: { color: '#fff' },
-  sectionTitle: { marginTop: 14, marginBottom: 8, color: '#111', fontSize: 15, fontWeight: '900' },
+  sectionTitle: { marginTop: 14, marginBottom: 8, color: colors.text, fontSize: 15, fontWeight: '900' },
   input: {
-    minHeight: 48, borderWidth: 1, borderColor: '#ddd', borderRadius: 10,
-    paddingHorizontal: 12, color: '#111', fontSize: 15, marginBottom: 10,
-    backgroundColor: '#fafafa',
+    minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: 10,
+    paddingHorizontal: 12, color: colors.text, fontSize: 15, marginBottom: 10,
+    backgroundColor: colors.bg,
   },
   textArea: { minHeight: 110, paddingTop: 12, lineHeight: 20 },
   imageActionRow: { flexDirection: 'row', gap: 8 },
   imagePicker: {
     flex: 1,
-    height: 48, borderRadius: 10, borderWidth: 1, borderColor: '#ddd',
-    backgroundColor: '#fafafa', flexDirection: 'row', alignItems: 'center',
+    height: 48, borderRadius: 10, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.bg, flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 12, gap: 8,
   },
-  imagePickerText: { flex: 1, color: '#111', fontSize: 15, fontWeight: '800' },
-  imagePickerCount: { color: '#777', fontWeight: '800' },
+  imagePickerText: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '800' },
+  imagePickerCount: { color: colors.textMuted, fontWeight: '800' },
   previewGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  previewItem: { width: '31.8%', aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: '#eee' },
+  previewItem: { width: '31.8%', aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: colors.surfaceAlt },
   previewImage: { width: '100%', height: '100%' },
   removeImage: {
     position: 'absolute', top: 5, right: 5, width: 24, height: 24,
@@ -409,7 +410,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   submitBtn: {
-    height: 52, borderRadius: 12, backgroundColor: '#111',
+    height: 52, borderRadius: 12, backgroundColor: colors.surfaceHi,
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     gap: 8, marginTop: 22,
   },

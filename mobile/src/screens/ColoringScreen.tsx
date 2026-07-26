@@ -22,6 +22,7 @@ import {
   saveColoringDrawing,
 } from '../api/kidsGames';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'Coloring'> };
 type SectionId = 'templates' | 'drawings';
@@ -119,7 +120,7 @@ export default function ColoringScreen({ navigation }: Props) {
     <View style={styles.top}>
       <View style={styles.titleRow}>
         <View style={styles.titleIcon}>
-          <Ionicons name="color-palette-outline" size={28} color="#111" />
+          <Ionicons name="color-palette-outline" size={28} color={colors.text} />
         </View>
         <View style={styles.titleText}>
           <Text style={styles.title}>Раскраски</Text>
@@ -220,7 +221,7 @@ export default function ColoringScreen({ navigation }: Props) {
         </View>
       )) : (
         <View style={styles.emptyBox}>
-          <Ionicons name="images-outline" size={38} color="#bbb" />
+          <Ionicons name="images-outline" size={38} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>Шаблоны не найдены</Text>
           <Text style={styles.emptyText}>Backend не вернул SVG-файлы для выбранной коллекции.</Text>
         </View>
@@ -253,7 +254,7 @@ export default function ColoringScreen({ navigation }: Props) {
         );
       }) : (
         <View style={styles.emptyBox}>
-          <Ionicons name="albums-outline" size={38} color="#bbb" />
+          <Ionicons name="albums-outline" size={38} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>Пока нет рисунков</Text>
           <Text style={styles.emptyText}>Выберите шаблон и сохраните автораскрашенную версию.</Text>
           <TouchableOpacity style={styles.emptyBtn} onPress={() => setActiveSection('templates')}>
@@ -269,7 +270,7 @@ export default function ColoringScreen({ navigation }: Props) {
       {renderHeader()}
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#111" />
+          <ActivityIndicator size="large" color={colors.text} />
         </View>
       ) : (
         <ScrollView
@@ -290,61 +291,61 @@ export default function ColoringScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  top: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  titleIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: '#fff0f0', alignItems: 'center', justifyContent: 'center' },
+  titleIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center' },
   titleText: { flex: 1 },
-  title: { color: '#111', fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 3, color: '#666', fontSize: 13, lineHeight: 18 },
-  tabs: { flexDirection: 'row', backgroundColor: '#f3f3f3', borderRadius: 12, padding: 3, marginTop: 14 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 3, color: colors.textMuted, fontSize: 13, lineHeight: 18 },
+  tabs: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3, marginTop: 14 },
   tabBtn: { flex: 1, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 5 },
-  tabBtnActive: { backgroundColor: '#111' },
-  tabText: { color: '#777', fontSize: 12, fontWeight: '900' },
+  tabBtnActive: { backgroundColor: colors.surfaceHi },
+  tabText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
   tabTextActive: { color: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: 12, paddingBottom: 28 },
   section: { gap: 12 },
   collectionList: { gap: 8, paddingBottom: 2 },
-  collectionBtn: { height: 38, borderRadius: 10, paddingHorizontal: 13, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5e5', flexDirection: 'row', alignItems: 'center', gap: 6 },
-  collectionBtnActive: { backgroundColor: '#111', borderColor: '#111' },
-  collectionText: { color: '#555', fontSize: 13, fontWeight: '900' },
+  collectionBtn: { height: 38, borderRadius: 10, paddingHorizontal: 13, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  collectionBtnActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  collectionText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
   collectionTextActive: { color: '#fff' },
   statsRow: { flexDirection: 'row', gap: 10 },
-  statBox: { flex: 1, borderRadius: 8, backgroundColor: '#fff', padding: 14, borderWidth: 1, borderColor: '#ececec' },
-  statValue: { color: '#111', fontSize: 24, fontWeight: '900' },
-  statLabel: { marginTop: 3, color: '#666', fontSize: 12, fontWeight: '800' },
+  statBox: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, padding: 14, borderWidth: 1, borderColor: colors.border },
+  statValue: { color: colors.text, fontSize: 24, fontWeight: '900' },
+  statLabel: { marginTop: 3, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   groupBlock: { gap: 9 },
-  groupTitle: { color: '#111', fontSize: 17, fontWeight: '900' },
+  groupTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   templateList: { gap: 10 },
-  templateCard: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', overflow: 'hidden' },
+  templateCard: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   templatePreview: { minHeight: 132, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center', gap: 12 },
   templateEmoji: { fontSize: 46 },
   swatches: { flexDirection: 'row', gap: 6 },
   swatch: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#fff' },
   templateBody: { padding: 13 },
   cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  typePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: '#fff0f0', color: '#d92323', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  fileText: { flex: 1, color: '#999', fontSize: 11, fontWeight: '700', textAlign: 'right' },
-  cardTitle: { marginTop: 10, color: '#111', fontSize: 18, lineHeight: 23, fontWeight: '900' },
-  cardText: { marginTop: 5, color: '#555', fontSize: 13, lineHeight: 19 },
-  saveBtn: { marginTop: 13, height: 44, borderRadius: 10, backgroundColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  typePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: 'rgba(255,90,95,0.12)', color: colors.danger, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  fileText: { flex: 1, color: colors.textFaint, fontSize: 11, fontWeight: '700', textAlign: 'right' },
+  cardTitle: { marginTop: 10, color: colors.text, fontSize: 18, lineHeight: 23, fontWeight: '900' },
+  cardText: { marginTop: 5, color: colors.textMuted, fontSize: 13, lineHeight: 19 },
+  saveBtn: { marginTop: 13, height: 44, borderRadius: 10, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   saveBtnDisabled: { opacity: 0.7 },
   saveText: { color: '#fff', fontSize: 14, fontWeight: '900' },
-  drawingCard: { flexDirection: 'row', gap: 12, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 13 },
-  drawingIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: '#fff0f0', alignItems: 'center', justifyContent: 'center' },
+  drawingCard: { flexDirection: 'row', gap: 12, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 13 },
+  drawingIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center' },
   drawingInfo: { flex: 1 },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, marginBottom: 6 },
-  progressLabel: { color: '#666', fontSize: 12, fontWeight: '800' },
-  progressValue: { color: '#111', fontSize: 12, fontWeight: '900' },
+  progressLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  progressValue: { color: colors.text, fontSize: 12, fontWeight: '900' },
   progressTrack: { height: 7, borderRadius: 4, backgroundColor: '#ededed', overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 4, backgroundColor: '#d92323' },
-  savedDate: { marginTop: 8, color: '#999', fontSize: 12, fontWeight: '800' },
-  errorBox: { borderRadius: 8, backgroundColor: '#fff0f0', borderWidth: 1, borderColor: '#ffd3d3', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  errorText: { flex: 1, color: '#a51010', fontSize: 13, fontWeight: '800' },
-  emptyBox: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 24, alignItems: 'center' },
-  emptyTitle: { marginTop: 9, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 5, color: '#777', fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  emptyBtn: { marginTop: 15, height: 42, borderRadius: 10, paddingHorizontal: 18, backgroundColor: '#111', justifyContent: 'center' },
+  progressFill: { height: '100%', borderRadius: 4, backgroundColor: colors.danger },
+  savedDate: { marginTop: 8, color: colors.textFaint, fontSize: 12, fontWeight: '800' },
+  errorBox: { borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: 1, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
+  emptyBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 24, alignItems: 'center' },
+  emptyTitle: { marginTop: 9, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  emptyBtn: { marginTop: 15, height: 42, borderRadius: 10, paddingHorizontal: 18, backgroundColor: colors.surfaceHi, justifyContent: 'center' },
   emptyBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' },
 });

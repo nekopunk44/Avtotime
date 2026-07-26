@@ -30,6 +30,7 @@ import {
   submitMarketAppeal,
 } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
@@ -46,8 +47,8 @@ const STATUS_LABEL: Record<StatusFilter, string> = {
 const STATUS_STYLE: Record<Exclude<StatusFilter, 'all'>, { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
   approved: { color: '#14843b', bg: '#eaf8ef', icon: 'checkmark-circle-outline' },
   pending: { color: '#9a5a00', bg: '#fff6df', icon: 'time-outline' },
-  rejected: { color: '#d92323', bg: '#fff0f0', icon: 'alert-circle-outline' },
-  unknown: { color: '#555', bg: '#f0f0f0', icon: 'help-circle-outline' },
+  rejected: { color: colors.danger, bg: '#fff0f0', icon: 'alert-circle-outline' },
+  unknown: { color: colors.textMuted, bg: '#f0f0f0', icon: 'help-circle-outline' },
 };
 
 const statusFilters: StatusFilter[] = ['all', 'approved', 'pending', 'rejected', 'unknown'];
@@ -229,7 +230,7 @@ export default function MyListingsScreen({ navigation }: Props) {
     <View style={styles.header}>
       <View style={styles.hero}>
         <View style={styles.heroIcon}>
-          <Ionicons name="albums-outline" size={27} color="#111" />
+          <Ionicons name="albums-outline" size={27} color={colors.text} />
         </View>
         <Text style={styles.title}>Мои объявления</Text>
         <Text style={styles.subtitle}>Все ваши публикации в маркете Avtotime</Text>
@@ -251,18 +252,18 @@ export default function MyListingsScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.searchBox}>
-        <Ionicons name="search-outline" size={18} color="#777" />
+        <Ionicons name="search-outline" size={18} color={colors.textMuted} />
         <TextInput
           style={styles.searchInput}
           placeholder="Поиск по объявлениям"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textFaint}
           value={query}
           onChangeText={setQuery}
           autoCapitalize="none"
         />
         {query ? (
           <TouchableOpacity onPress={() => setQuery('')}>
-            <Ionicons name="close-circle" size={18} color="#999" />
+            <Ionicons name="close-circle" size={18} color={colors.textFaint} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -313,7 +314,7 @@ export default function MyListingsScreen({ navigation }: Props) {
           <Image source={{ uri: image }} style={styles.cardImage} />
         ) : (
           <View style={[styles.cardImage, styles.cardImageFallback]}>
-            <Ionicons name={item.category.icon as any} size={30} color="#aaa" />
+            <Ionicons name={item.category.icon as any} size={30} color={colors.textFaint} />
           </View>
         )}
         <View style={styles.cardBody}>
@@ -337,7 +338,7 @@ export default function MyListingsScreen({ navigation }: Props) {
               <Text style={styles.openBtnText}>Открыть</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.editBtn} onPress={() => editListing(item)} activeOpacity={0.85}>
-              <Ionicons name="create-outline" size={18} color="#111" />
+              <Ionicons name="create-outline" size={18} color={colors.text} />
               <Text style={styles.editBtnText}>Ред.</Text>
             </TouchableOpacity>
             {itemStatus === 'rejected' ? (
@@ -351,7 +352,7 @@ export default function MyListingsScreen({ navigation }: Props) {
                 disabled={appealingKey === item.key}
               >
                 {appealingKey === item.key ? (
-                  <ActivityIndicator color="#111" />
+                  <ActivityIndicator color={colors.text} />
                 ) : (
                   <Text style={styles.appealBtnText}>Апел.</Text>
                 )}
@@ -359,9 +360,9 @@ export default function MyListingsScreen({ navigation }: Props) {
             ) : null}
             <TouchableOpacity style={styles.deleteBtn} onPress={() => removeListing(item)} activeOpacity={0.85} disabled={deleting}>
               {deleting ? (
-                <ActivityIndicator color="#d92323" />
+                <ActivityIndicator color={colors.danger} />
               ) : (
-                <Ionicons name="trash-outline" size={18} color="#d92323" />
+                <Ionicons name="trash-outline" size={18} color={colors.danger} />
               )}
             </TouchableOpacity>
           </View>
@@ -373,7 +374,7 @@ export default function MyListingsScreen({ navigation }: Props) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -390,7 +391,7 @@ export default function MyListingsScreen({ navigation }: Props) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name={error ? 'alert-circle-outline' : 'albums-outline'} size={38} color="#bbb" />
+            <Ionicons name={error ? 'alert-circle-outline' : 'albums-outline'} size={38} color={colors.textFaint} />
             <Text style={styles.emptyTitle}>{error || 'Объявлений пока нет'}</Text>
             <Text style={styles.emptyText}>
               {error ? 'Потяните экран вниз, чтобы повторить загрузку.' : 'Создайте первое объявление в маркете, и оно появится здесь.'}
@@ -422,7 +423,7 @@ export default function MyListingsScreen({ navigation }: Props) {
               value={appealMessage}
               onChangeText={(value) => setAppealMessage(value.slice(0, 500))}
               placeholder="Например: я исправил описание и фото соответствуют правилам"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
               multiline
               textAlignVertical="top"
             />
@@ -443,68 +444,68 @@ export default function MyListingsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   header: { gap: 10, marginBottom: 2 },
   hero: { alignItems: 'center', paddingVertical: 12 },
-  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  title: { color: '#111', fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 5, color: '#666', fontSize: 14, textAlign: 'center' },
+  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
+  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, textAlign: 'center' },
   statsRow: { flexDirection: 'row', gap: 8 },
-  statCard: { flex: 1, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 12 },
-  statValue: { color: '#111', fontSize: 23, fontWeight: '900' },
+  statCard: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  statValue: { color: colors.text, fontSize: 23, fontWeight: '900' },
   greenText: { color: '#14843b' },
   amberText: { color: '#9a5a00' },
-  statLabel: { marginTop: 2, color: '#666', fontSize: 12, fontWeight: '800' },
-  searchBox: { height: 44, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
-  searchInput: { flex: 1, color: '#111', fontSize: 15 },
+  statLabel: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  searchBox: { height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  searchInput: { flex: 1, color: colors.text, fontSize: 15 },
   filterRow: { gap: 8, paddingVertical: 2 },
-  filterBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5e5', justifyContent: 'center' },
-  filterBtnActive: { backgroundColor: '#111', borderColor: '#111' },
-  filterText: { color: '#555', fontSize: 13, fontWeight: '800' },
+  filterBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' },
+  filterBtnActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  filterText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   filterTextActive: { color: '#fff' },
-  statusFilterBtn: { height: 34, borderRadius: 10, paddingHorizontal: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5e5', justifyContent: 'center' },
-  statusFilterBtnActive: { backgroundColor: '#d92323', borderColor: '#d92323' },
-  statusFilterText: { color: '#555', fontSize: 12, fontWeight: '900' },
+  statusFilterBtn: { height: 34, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' },
+  statusFilterBtnActive: { backgroundColor: colors.danger, borderColor: colors.danger },
+  statusFilterText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
   statusFilterTextActive: { color: '#fff' },
-  card: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', overflow: 'hidden' },
-  cardImage: { width: '100%', height: 170, backgroundColor: '#eee' },
+  card: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  cardImage: { width: '100%', height: 170, backgroundColor: colors.surfaceAlt },
   cardImageFallback: { alignItems: 'center', justifyContent: 'center' },
   cardBody: { padding: 13 },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  categoryPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: '#f2f2f2', color: '#111', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  categoryPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: colors.surfaceAlt, color: colors.text, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   statusPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  cardTitle: { marginTop: 11, color: '#111', fontSize: 18, lineHeight: 23, fontWeight: '900' },
-  cardPrice: { marginTop: 7, color: '#111', fontSize: 17, fontWeight: '900' },
-  cardMeta: { marginTop: 6, color: '#666', fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  cardDate: { marginTop: 6, color: '#999', fontSize: 12, fontWeight: '700' },
-  rejectText: { marginTop: 8, color: '#d92323', fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  cardTitle: { marginTop: 11, color: colors.text, fontSize: 18, lineHeight: 23, fontWeight: '900' },
+  cardPrice: { marginTop: 7, color: colors.text, fontSize: 17, fontWeight: '900' },
+  cardMeta: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  cardDate: { marginTop: 6, color: colors.textFaint, fontSize: 12, fontWeight: '700' },
+  rejectText: { marginTop: 8, color: colors.danger, fontSize: 12, lineHeight: 17, fontWeight: '700' },
   actionRow: { flexDirection: 'row', gap: 8, marginTop: 13 },
-  openBtn: { flex: 1, height: 42, borderRadius: 8, backgroundColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  openBtn: { flex: 1, height: 42, borderRadius: 8, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   openBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' },
-  editBtn: { width: 62, height: 42, borderRadius: 8, backgroundColor: '#f3f3f3', borderWidth: 1, borderColor: '#e5e5e5', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
-  editBtnText: { color: '#111', fontSize: 12, fontWeight: '900' },
+  editBtn: { width: 62, height: 42, borderRadius: 8, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  editBtnText: { color: colors.text, fontSize: 12, fontWeight: '900' },
   appealBtn: { width: 62, height: 42, borderRadius: 8, backgroundColor: '#fff6df', borderWidth: 1, borderColor: '#f3d58b', alignItems: 'center', justifyContent: 'center' },
   appealBtnText: { color: '#7c4a00', fontSize: 12, fontWeight: '900' },
-  deleteBtn: { width: 42, height: 42, borderRadius: 8, backgroundColor: '#fff0f0', alignItems: 'center', justifyContent: 'center' },
+  deleteBtn: { width: 42, height: 42, borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center' },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 6, color: '#777', fontSize: 13, textAlign: 'center', lineHeight: 19 },
-  createBtn: { marginTop: 16, height: 44, borderRadius: 8, paddingHorizontal: 16, backgroundColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  createBtn: { marginTop: 16, height: 44, borderRadius: 8, paddingHorizontal: 16, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   createBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
+  sheet: { backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
   sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: '#ddd', marginBottom: 12 },
-  sheetTitle: { color: '#111', fontSize: 20, fontWeight: '900' },
-  sheetSubtitle: { marginTop: 5, color: '#666', fontSize: 13, lineHeight: 19, fontWeight: '700' },
-  appealInput: { minHeight: 122, marginTop: 14, borderRadius: 8, backgroundColor: '#f3f3f3', padding: 12, color: '#111', fontSize: 15, lineHeight: 21 },
-  counterText: { marginTop: 6, color: '#999', fontSize: 12, fontWeight: '800', textAlign: 'right' },
+  sheetTitle: { color: colors.text, fontSize: 20, fontWeight: '900' },
+  sheetSubtitle: { marginTop: 5, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  appealInput: { minHeight: 122, marginTop: 14, borderRadius: 8, backgroundColor: colors.surfaceAlt, padding: 12, color: colors.text, fontSize: 15, lineHeight: 21 },
+  counterText: { marginTop: 6, color: colors.textFaint, fontSize: 12, fontWeight: '800', textAlign: 'right' },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  cancelBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
-  cancelText: { color: '#111', fontSize: 15, fontWeight: '900' },
-  submitAppealBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' },
+  cancelBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  submitAppealBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
   submitAppealText: { color: '#fff', fontSize: 15, fontWeight: '900' },
 });

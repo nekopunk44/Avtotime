@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createPost } from '../api/posts';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'CreatePost'> };
 
@@ -124,7 +125,7 @@ export default function CreatePostScreen({ navigation }: Props) {
         <Text style={styles.title}>Новая публикация</Text>
         <TouchableOpacity onPress={handlePost} disabled={loading || !mediaUris.length}>
           {loading ? (
-            <ActivityIndicator color="#111" />
+            <ActivityIndicator color={colors.text} />
           ) : (
             <Text style={[styles.post, !mediaUris.length && styles.postDisabled]}>Опубликовать</Text>
           )}
@@ -134,7 +135,7 @@ export default function CreatePostScreen({ navigation }: Props) {
       <TextInput
         style={styles.input}
         placeholder="Добавьте подпись..."
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.textFaint}
         multiline
         value={caption}
         onChangeText={setCaption}
@@ -151,7 +152,7 @@ export default function CreatePostScreen({ navigation }: Props) {
 
         {!mediaUris.length ? (
           <View style={styles.emptyMedia}>
-            <Ionicons name="images-outline" size={38} color="#bbb" />
+            <Ionicons name="images-outline" size={38} color={colors.textFaint} />
             <Text style={styles.emptyTitle}>Добавьте фото или видео</Text>
           </View>
         ) : isVideo ? (
@@ -180,15 +181,15 @@ export default function CreatePostScreen({ navigation }: Props) {
 
         <View style={styles.mediaButtons}>
           <TouchableOpacity style={styles.mediaBtn} onPress={takePhoto} disabled={loading || (!isVideo && mediaUris.length >= MEDIA_LIMIT)}>
-            <Ionicons name="camera-outline" size={22} color="#111" />
+            <Ionicons name="camera-outline" size={22} color={colors.text} />
             <Text style={styles.mediaBtnText}>Камера</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.mediaBtn} onPress={pickImages} disabled={loading || (!isVideo && mediaUris.length >= MEDIA_LIMIT)}>
-            <Ionicons name="image-outline" size={22} color="#111" />
+            <Ionicons name="image-outline" size={22} color={colors.text} />
             <Text style={styles.mediaBtnText}>Фото</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.mediaBtn} onPress={pickVideo} disabled={loading}>
-            <Ionicons name="videocam-outline" size={22} color="#111" />
+            <Ionicons name="videocam-outline" size={22} color={colors.text} />
             <Text style={styles.mediaBtnText}>Видео</Text>
           </TouchableOpacity>
         </View>
@@ -198,30 +199,30 @@ export default function CreatePostScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.surface },
   content: { paddingBottom: 28 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  cancel: { fontSize: 15, color: '#555', fontWeight: '800' },
-  title: { fontSize: 16, fontWeight: '900', color: '#111' },
-  post: { fontSize: 15, fontWeight: '900', color: '#111' },
-  postDisabled: { color: '#aaa' },
-  input: { margin: 16, marginBottom: 6, fontSize: 16, color: '#111', lineHeight: 24, minHeight: 120, borderRadius: 10, backgroundColor: '#f7f7f7', padding: 12 },
-  charCount: { textAlign: 'right', marginRight: 18, color: '#999', fontSize: 12, fontWeight: '700' },
-  mediaPanel: { margin: 16, marginTop: 18, borderRadius: 8, borderWidth: 1, borderColor: '#ececec', backgroundColor: '#fff', padding: 12 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
+  cancel: { fontSize: 15, color: colors.textMuted, fontWeight: '800' },
+  title: { fontSize: 16, fontWeight: '900', color: colors.text },
+  post: { fontSize: 15, fontWeight: '900', color: colors.text },
+  postDisabled: { color: colors.textFaint },
+  input: { margin: 16, marginBottom: 6, fontSize: 16, color: colors.text, lineHeight: 24, minHeight: 120, borderRadius: 10, backgroundColor: colors.bg, padding: 12 },
+  charCount: { textAlign: 'right', marginRight: 18, color: colors.textFaint, fontSize: 12, fontWeight: '700' },
+  mediaPanel: { margin: 16, marginTop: 18, borderRadius: 8, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 12 },
   mediaHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  sectionTitle: { color: '#111', fontSize: 17, fontWeight: '900' },
-  mediaCount: { color: '#777', fontSize: 12, fontWeight: '900' },
+  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  mediaCount: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
   previewGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  previewItem: { width: '31.8%', aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: '#eee' },
+  previewItem: { width: '31.8%', aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: colors.surfaceAlt },
   previewImage: { width: '100%', height: '100%' },
   previewIndex: { position: 'absolute', left: 6, bottom: 6, overflow: 'hidden', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, fontWeight: '900' },
   removeBtn: { position: 'absolute', top: 5, right: 5, width: 23, height: 23, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' },
-  emptyMedia: { minHeight: 150, borderRadius: 8, backgroundColor: '#f7f7f7', alignItems: 'center', justifyContent: 'center' },
-  emptyTitle: { marginTop: 8, color: '#777', fontSize: 14, fontWeight: '900' },
-  videoPreview: { minHeight: 150, borderRadius: 8, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center', gap: 12 },
+  emptyMedia: { minHeight: 150, borderRadius: 8, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { marginTop: 8, color: colors.textMuted, fontSize: 14, fontWeight: '900' },
+  videoPreview: { minHeight: 150, borderRadius: 8, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center', gap: 12 },
   videoPlayCircle: { width: 54, height: 54, borderRadius: 27, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', paddingLeft: 4 },
   videoPreviewText: { color: '#eee', fontSize: 14, fontWeight: '900' },
   mediaButtons: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  mediaBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: '#f4f4f4', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  mediaBtnText: { color: '#111', fontSize: 14, fontWeight: '900' },
+  mediaBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  mediaBtnText: { color: colors.text, fontSize: 14, fontWeight: '900' },
 });

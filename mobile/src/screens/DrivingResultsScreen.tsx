@@ -19,6 +19,7 @@ import {
   getDrivingStatistics,
 } from '../api/driving';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'DrivingResults'>;
@@ -108,7 +109,7 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
   };
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color="#111" /></View>;
+    return <View style={styles.center}><ActivityIndicator size="large" color={colors.text} /></View>;
   }
 
   return (
@@ -119,7 +120,7 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
     >
       <View style={styles.header}>
         <View style={styles.headerIcon}>
-          <Ionicons name="stats-chart-outline" size={28} color="#111" />
+          <Ionicons name="stats-chart-outline" size={28} color={colors.text} />
         </View>
         <Text style={styles.title}>Результаты</Text>
         <Text style={styles.subtitle}>История тестов, экзаменов и тренировок по билетам ПДД</Text>
@@ -169,7 +170,7 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
           <Text style={styles.summaryText}>{totals.correct} верных ответов</Text>
         </View>
         <View style={styles.summaryItem}>
-          <Ionicons name="help-circle-outline" size={20} color="#555" />
+          <Ionicons name="help-circle-outline" size={20} color={colors.textMuted} />
           <Text style={styles.summaryText}>{totals.questions} вопросов пройдено</Text>
         </View>
       </View>
@@ -211,7 +212,7 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
                     <Text style={styles.metaText}>{result.wrongAnswers} ошибок</Text>
                   </View>
                   <View style={styles.metaItem}>
-                    <Ionicons name="time-outline" size={16} color="#555" />
+                    <Ionicons name="time-outline" size={16} color={colors.textMuted} />
                     <Text style={styles.metaText}>{formatTime(result.timeSpentSeconds)}</Text>
                   </View>
                   <View style={styles.metaItem}>
@@ -221,7 +222,7 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
                 </View>
 
                 <TouchableOpacity style={styles.repeatBtn} onPress={() => repeatResult(result)} activeOpacity={0.88}>
-                  <Ionicons name="refresh-outline" size={18} color="#111" />
+                  <Ionicons name="refresh-outline" size={18} color={colors.text} />
                   <Text style={styles.repeatText}>Пройти еще раз</Text>
                 </TouchableOpacity>
               </View>
@@ -230,7 +231,7 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
         </View>
       ) : (
         <View style={styles.emptyBox}>
-          <Ionicons name="document-text-outline" size={42} color="#bbb" />
+          <Ionicons name="document-text-outline" size={42} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>Пока нет результатов</Text>
           <Text style={styles.emptyText}>Пройдите билет, тренировку или марафон, и результат появится здесь.</Text>
           <TouchableOpacity style={styles.startBtn} onPress={() => navigation.navigate('MarketTabs', { screen: 'Driving' })}>
@@ -243,36 +244,36 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 28 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   header: { alignItems: 'center', paddingTop: 10, paddingBottom: 18 },
-  headerIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#eee' },
-  title: { marginTop: 12, color: '#111', fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 5, color: '#666', fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fef2f2', borderColor: '#fee2e2', borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 12 },
+  headerIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  title: { marginTop: 12, color: colors.text, fontSize: 30, fontWeight: '900' },
+  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderColor: '#fee2e2', borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 12 },
   errorText: { flex: 1, color: '#991b1b', fontSize: 13, fontWeight: '700' },
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 8, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
-  statValue: { color: '#111', fontSize: 20, fontWeight: '900' },
-  statLabel: { color: '#777', fontSize: 11, fontWeight: '700', marginTop: 3 },
+  statCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 8, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  statValue: { color: colors.text, fontSize: 20, fontWeight: '900' },
+  statLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', marginTop: 3 },
   filters: { gap: 8, paddingVertical: 8 },
-  filterBtn: { height: 38, paddingHorizontal: 14, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5e5', justifyContent: 'center' },
-  filterBtnActive: { backgroundColor: '#111', borderColor: '#111' },
-  filterText: { color: '#555', fontSize: 13, fontWeight: '900' },
+  filterBtn: { height: 38, paddingHorizontal: 14, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' },
+  filterBtnActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  filterText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
   filterTextActive: { color: '#fff' },
-  summaryBox: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#eee', padding: 12, gap: 9, marginTop: 6, marginBottom: 14 },
+  summaryBox: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 9, marginTop: 6, marginBottom: 14 },
   summaryItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  summaryText: { color: '#222', fontSize: 13, fontWeight: '800' },
+  summaryText: { color: colors.text, fontSize: 13, fontWeight: '800' },
   resultList: { gap: 10 },
-  resultCard: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 13 },
+  resultCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 13 },
   resultTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   modeBadge: { height: 30, borderRadius: 10, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 5 },
   modeBadgeText: { fontSize: 12, fontWeight: '900' },
-  dateText: { color: '#888', fontSize: 12, fontWeight: '700' },
+  dateText: { color: colors.textFaint, fontSize: 12, fontWeight: '700' },
   scoreRow: { marginTop: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  ticketText: { color: '#111', fontSize: 16, fontWeight: '900' },
-  answerText: { marginTop: 3, color: '#666', fontSize: 13, fontWeight: '700' },
+  ticketText: { color: colors.text, fontSize: 16, fontWeight: '900' },
+  answerText: { marginTop: 3, color: colors.textMuted, fontSize: 13, fontWeight: '700' },
   percentBadge: { minWidth: 64, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   percentPassed: { backgroundColor: '#dcfce7' },
   percentFailed: { backgroundColor: '#fee2e2' },
@@ -280,13 +281,13 @@ const styles = StyleSheet.create({
   percentTextPassed: { color: '#15803d' },
   percentTextFailed: { color: '#b91c1c' },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  metaItem: { minHeight: 28, borderRadius: 9, backgroundColor: '#f7f7f7', paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  metaText: { color: '#555', fontSize: 12, fontWeight: '800' },
-  repeatBtn: { marginTop: 12, height: 42, borderRadius: 10, backgroundColor: '#f4f4f4', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  repeatText: { color: '#111', fontSize: 14, fontWeight: '900' },
-  emptyBox: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#eee', padding: 22, alignItems: 'center' },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 18, fontWeight: '900' },
-  emptyText: { marginTop: 6, color: '#666', fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  startBtn: { marginTop: 15, height: 42, paddingHorizontal: 20, borderRadius: 10, backgroundColor: '#111', justifyContent: 'center' },
+  metaItem: { minHeight: 28, borderRadius: 9, backgroundColor: colors.bg, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  metaText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  repeatBtn: { marginTop: 12, height: 42, borderRadius: 10, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  repeatText: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  emptyBox: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 22, alignItems: 'center' },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 18, fontWeight: '900' },
+  emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  startBtn: { marginTop: 15, height: 42, paddingHorizontal: 20, borderRadius: 10, backgroundColor: colors.surfaceHi, justifyContent: 'center' },
   startText: { color: '#fff', fontSize: 14, fontWeight: '900' },
 });

@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getPostThumb, getSavedPosts, Post, toggleLike, toggleSavePost } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'SavedPosts'> };
 
@@ -72,7 +73,7 @@ export default function SavedPostsScreen({ navigation }: Props) {
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.heroIcon}>
-        <Ionicons name="bookmark-outline" size={27} color="#111" />
+        <Ionicons name="bookmark-outline" size={27} color={colors.text} />
       </View>
       <View style={styles.heroText}>
         <Text style={styles.title}>Сохранённые</Text>
@@ -117,7 +118,7 @@ export default function SavedPostsScreen({ navigation }: Props) {
             </View>
           ) : (
             <View style={[styles.postImage, styles.noImage]}>
-              <Ionicons name="text-outline" size={30} color="#aaa" />
+              <Ionicons name="text-outline" size={30} color={colors.textFaint} />
             </View>
           )}
           {item.caption ? <Text style={styles.caption} numberOfLines={4}>{item.caption}</Text> : null}
@@ -129,11 +130,11 @@ export default function SavedPostsScreen({ navigation }: Props) {
             <Text style={styles.actionText}>{item.likes?.length ?? 0}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('PostComments', { postId: item._id })}>
-            <Ionicons name="chatbubble-outline" size={20} color="#555" />
+            <Ionicons name="chatbubble-outline" size={20} color={colors.textMuted} />
             <Text style={styles.actionText}>{item.commentsCount ?? item.comments?.length ?? 0}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.removeBtn} onPress={() => removeSaved(item._id)} disabled={busy}>
-            {busy ? <ActivityIndicator color="#111" /> : <Ionicons name="bookmark" size={21} color="#111" />}
+            {busy ? <ActivityIndicator color={colors.text} /> : <Ionicons name="bookmark" size={21} color={colors.text} />}
           </TouchableOpacity>
         </View>
       </View>
@@ -143,7 +144,7 @@ export default function SavedPostsScreen({ navigation }: Props) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -159,7 +160,7 @@ export default function SavedPostsScreen({ navigation }: Props) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       ListEmptyComponent={
         <View style={styles.emptyState}>
-          <Ionicons name="bookmark-outline" size={44} color="#bbb" />
+          <Ionicons name="bookmark-outline" size={44} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>Сохранённых постов нет</Text>
           <Text style={styles.emptyText}>Нажмите значок закладки в ленте, чтобы сохранить публикацию.</Text>
         </View>
@@ -169,31 +170,31 @@ export default function SavedPostsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', alignItems: 'center', justifyContent: 'center' },
+  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   heroText: { flex: 1 },
-  title: { color: '#111', fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 2, color: '#666', fontSize: 13, fontWeight: '800' },
-  card: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', overflow: 'hidden' },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  card: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt },
   authorText: { flex: 1 },
-  name: { color: '#111', fontSize: 14, fontWeight: '900' },
-  username: { color: '#777', fontSize: 12, fontWeight: '800', marginTop: 1 },
-  postImage: { width: '100%', aspectRatio: 1, backgroundColor: '#eee' },
+  name: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  username: { color: colors.textMuted, fontSize: 12, fontWeight: '800', marginTop: 1 },
+  postImage: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceAlt },
   playOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   playCircle: { width: 54, height: 54, borderRadius: 27, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', paddingLeft: 4 },
   noImage: { alignItems: 'center', justifyContent: 'center' },
-  caption: { paddingHorizontal: 12, paddingTop: 10, color: '#222', fontSize: 14, lineHeight: 20 },
+  caption: { paddingHorizontal: 12, paddingTop: 10, color: colors.text, fontSize: 14, lineHeight: 20 },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 12, paddingVertical: 11 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actionText: { color: '#555', fontSize: 13, fontWeight: '800' },
-  removeBtn: { marginLeft: 'auto', width: 34, height: 34, borderRadius: 17, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
+  actionText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  removeBtn: { marginLeft: 'auto', width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 5, color: '#777', fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
 });

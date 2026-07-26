@@ -40,6 +40,7 @@ import {
 import { searchUsers } from '../api/users';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import ImageViewer from '../components/ImageViewer';
+import { colors } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'MarketListingDetails'>;
@@ -225,17 +226,17 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
           </TouchableOpacity>
         ) : (
           <View style={[styles.heroImage, styles.noImage]}>
-            <Ionicons name={category.icon as any} size={42} color="#aaa" />
+            <Ionicons name={category.icon as any} size={42} color={colors.textFaint} />
           </View>
         )}
 
         {images.length > 1 ? (
           <>
             <TouchableOpacity style={[styles.imageNav, styles.imageNavLeft]} onPress={previousImage}>
-              <Ionicons name="chevron-back" size={24} color="#111" />
+              <Ionicons name="chevron-back" size={24} color={colors.text} />
             </TouchableOpacity>
             <TouchableOpacity style={[styles.imageNav, styles.imageNavRight]} onPress={nextImage}>
-              <Ionicons name="chevron-forward" size={24} color="#111" />
+              <Ionicons name="chevron-forward" size={24} color={colors.text} />
             </TouchableOpacity>
             <View style={styles.imageCounter}>
               <Text style={styles.imageCounterText}>{imageIndex + 1}/{images.length}</Text>
@@ -247,7 +248,7 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
       <View style={styles.panel}>
         <View style={styles.panelTopRow}>
           <View style={styles.categoryLine}>
-            <Ionicons name={category.icon as any} size={17} color="#555" />
+            <Ionicons name={category.icon as any} size={17} color={colors.textMuted} />
             <Text style={styles.categoryText}>{category.label}</Text>
           </View>
           <View style={styles.panelActions}>
@@ -281,7 +282,7 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
         <Text style={styles.price}>{getListingPrice(listing, categoryId)}</Text>
 
         <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={16} color="#777" />
+          <Ionicons name="location-outline" size={16} color={colors.textMuted} />
           <Text style={styles.locationText}>{listing.location || listing.region || 'Локация не указана'}</Text>
         </View>
 
@@ -292,7 +293,7 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
               {reviewCount > 0 ? `${reviewRating ? reviewRating.toFixed(1) : '0.0'} · ${reviewCount} отзывов` : 'Отзывы'}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#777" />
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TouchableOpacity>
 
         {listing.sellerBadge ? (
@@ -338,7 +339,7 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
             <Image source={{ uri: listing.sellerAvatar || listing.avatar }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.avatarFallback]}>
-              <Ionicons name="person-outline" size={20} color="#777" />
+              <Ionicons name="person-outline" size={20} color={colors.textMuted} />
             </View>
           )}
           <View style={styles.sellerTextWrap}>
@@ -360,14 +361,14 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingBottom: 28 },
-  hero: { position: 'relative', backgroundColor: '#e9e9e9' },
-  heroImage: { width: '100%', aspectRatio: 1, backgroundColor: '#eee' },
+  hero: { position: 'relative', backgroundColor: colors.surfaceAlt },
+  heroImage: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceAlt },
   noImage: { alignItems: 'center', justifyContent: 'center' },
   imageNav: {
     position: 'absolute', top: '48%', width: 38, height: 38, borderRadius: 19,
-    backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center',
   },
   imageNavLeft: { left: 12 },
   imageNavRight: { right: 12 },
@@ -376,42 +377,42 @@ const styles = StyleSheet.create({
     borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.65)',
   },
   imageCounterText: { color: '#fff', fontWeight: '800', fontSize: 12 },
-  panel: { backgroundColor: '#fff', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  panel: { backgroundColor: colors.surface, padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
   panelTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   categoryLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  categoryText: { color: '#555', fontSize: 13, fontWeight: '700' },
+  categoryText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
   panelActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f3f3f3', borderWidth: 1, borderColor: '#e5e5e5', alignItems: 'center', justifyContent: 'center' },
-  saveBtnActive: { backgroundColor: '#111', borderColor: '#111' },
-  title: { marginTop: 10, color: '#111', fontSize: 24, fontWeight: '900', lineHeight: 29 },
-  price: { marginTop: 10, color: '#111', fontSize: 24, fontWeight: '900' },
+  saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  saveBtnActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  title: { marginTop: 10, color: colors.text, fontSize: 24, fontWeight: '900', lineHeight: 29 },
+  price: { marginTop: 10, color: colors.text, fontSize: 24, fontWeight: '900' },
   locationRow: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  locationText: { flex: 1, color: '#666', fontSize: 14 },
-  reviewsBtn: { marginTop: 12, minHeight: 44, borderRadius: 8, backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e8e8e8', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
+  locationText: { flex: 1, color: colors.textMuted, fontSize: 14 },
+  reviewsBtn: { marginTop: 12, minHeight: 44, borderRadius: 8, backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
   reviewsLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  reviewsText: { color: '#111', fontSize: 14, fontWeight: '900' },
-  sellerBadge: { alignSelf: 'flex-start', marginTop: 12, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8, backgroundColor: '#111', color: '#fff', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  section: { marginTop: 10, backgroundColor: '#fff', padding: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#eee' },
-  sectionTitle: { color: '#111', fontSize: 17, fontWeight: '900', marginBottom: 12 },
+  reviewsText: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  sellerBadge: { alignSelf: 'flex-start', marginTop: 12, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8, backgroundColor: colors.surfaceHi, color: '#fff', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  section: { marginTop: 10, backgroundColor: colors.surface, padding: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border },
+  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 12 },
   specGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  specItem: { width: '48%', minHeight: 64, borderRadius: 8, backgroundColor: '#f4f4f4', padding: 10 },
-  specLabel: { color: '#777', fontSize: 11, fontWeight: '700', marginBottom: 5 },
-  specValue: { color: '#111', fontSize: 14, fontWeight: '800' },
-  description: { color: '#333', fontSize: 14, lineHeight: 21 },
+  specItem: { width: '48%', minHeight: 64, borderRadius: 8, backgroundColor: colors.surfaceAlt, padding: 10 },
+  specLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 5 },
+  specValue: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  description: { color: colors.textMuted, fontSize: 14, lineHeight: 21 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  tag: { paddingHorizontal: 9, paddingVertical: 6, borderRadius: 8, backgroundColor: '#f2f2f2', color: '#444', fontSize: 12, fontWeight: '700' },
+  tag: { paddingHorizontal: 9, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.surfaceAlt, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   sellerBox: {
-    marginTop: 10, marginHorizontal: 12, borderRadius: 8, backgroundColor: '#fff',
-    padding: 12, borderWidth: 1, borderColor: '#eee',
+    marginTop: 10, marginHorizontal: 12, borderRadius: 8, backgroundColor: colors.surface,
+    padding: 12, borderWidth: 1, borderColor: colors.border,
   },
   sellerInfo: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#eee' },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surfaceAlt },
   avatarFallback: { justifyContent: 'center', alignItems: 'center' },
   sellerTextWrap: { flex: 1 },
-  sellerTitle: { color: '#777', fontSize: 12, fontWeight: '700' },
-  sellerName: { color: '#111', fontSize: 16, fontWeight: '900', marginTop: 2 },
+  sellerTitle: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  sellerName: { color: colors.text, fontSize: 16, fontWeight: '900', marginTop: 2 },
   contactBtn: {
-    height: 46, borderRadius: 8, backgroundColor: '#111',
+    height: 46, borderRadius: 8, backgroundColor: colors.surfaceHi,
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7,
   },
   contactText: { color: '#fff', fontSize: 15, fontWeight: '900' },

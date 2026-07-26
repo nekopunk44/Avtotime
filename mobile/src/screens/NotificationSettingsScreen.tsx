@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { colors } from '../theme';
 import {
   defaultNotificationPreferences,
   DigestFrequency,
@@ -102,7 +103,7 @@ export default function NotificationSettingsScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -115,7 +116,7 @@ export default function NotificationSettingsScreen() {
     >
       <View style={styles.hero}>
         <View style={styles.heroIcon}>
-          <Ionicons name="options-outline" size={27} color="#111" />
+          <Ionicons name="options-outline" size={27} color={colors.text} />
         </View>
         <Text style={styles.title}>Настройки уведомлений</Text>
         <Text style={styles.subtitle}>Выберите, какие события показывать в приложении и отправлять на email</Text>
@@ -127,7 +128,7 @@ export default function NotificationSettingsScreen() {
           {group.items.map((item) => (
             <View key={item.key} style={styles.row}>
               <View style={styles.rowIcon}>
-                <Ionicons name={item.icon} size={21} color="#111" />
+                <Ionicons name={item.icon} size={21} color={colors.text} />
               </View>
               <View style={styles.rowBody}>
                 <Text style={styles.rowTitle}>{item.title}</Text>
@@ -148,7 +149,7 @@ export default function NotificationSettingsScreen() {
         <Text style={styles.sectionTitle}>Email</Text>
         <View style={styles.row}>
           <View style={styles.rowIcon}>
-            <Ionicons name="mail-open-outline" size={21} color="#111" />
+            <Ionicons name="mail-open-outline" size={21} color={colors.text} />
           </View>
           <View style={styles.rowBody}>
             <Text style={styles.rowTitle}>Email-уведомления</Text>
@@ -201,31 +202,31 @@ export default function NotificationSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32 },
   hero: { alignItems: 'center', paddingVertical: 14 },
-  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  title: { color: '#111', fontSize: 28, fontWeight: '900', textAlign: 'center' },
-  subtitle: { marginTop: 5, color: '#666', fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  section: { marginTop: 12, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', paddingHorizontal: 12, paddingTop: 14, paddingBottom: 4 },
-  sectionTitle: { color: '#111', fontSize: 17, fontWeight: '900', marginBottom: 6 },
-  row: { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 11, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingVertical: 12 },
-  rowIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
+  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900', textAlign: 'center' },
+  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  section: { marginTop: 12, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingTop: 14, paddingBottom: 4 },
+  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 6 },
+  row: { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 11, borderTopWidth: 1, borderTopColor: colors.border, paddingVertical: 12 },
+  rowIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   rowBody: { flex: 1 },
-  rowTitle: { color: '#111', fontSize: 15, fontWeight: '900' },
-  rowDescription: { marginTop: 3, color: '#777', fontSize: 12, lineHeight: 17, fontWeight: '700' },
-  digestTitle: { color: '#555', fontSize: 13, fontWeight: '900', marginTop: 12, marginBottom: 8 },
+  rowTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  rowDescription: { marginTop: 3, color: colors.textMuted, fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  digestTitle: { color: colors.textMuted, fontSize: 13, fontWeight: '900', marginTop: 12, marginBottom: 8 },
   digestList: { gap: 8, paddingBottom: 10 },
-  digestOption: { minHeight: 58, borderRadius: 8, backgroundColor: '#f7f7f7', borderWidth: 1, borderColor: '#eee', flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 8 },
-  digestOptionActive: { borderColor: '#111', backgroundColor: '#f0f0f0' },
+  digestOption: { minHeight: 58, borderRadius: 8, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 8 },
+  digestOptionActive: { borderColor: '#111', backgroundColor: colors.surfaceAlt },
   radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#bbb', alignItems: 'center', justifyContent: 'center' },
   radioActive: { borderColor: '#111' },
-  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#111' },
+  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.surfaceHi },
   digestBody: { flex: 1 },
-  digestLabel: { color: '#111', fontSize: 14, fontWeight: '900' },
-  digestDescription: { marginTop: 2, color: '#777', fontSize: 12, lineHeight: 17, fontWeight: '700' },
-  saveBtn: { marginTop: 18, height: 52, borderRadius: 12, backgroundColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  digestLabel: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  digestDescription: { marginTop: 2, color: colors.textMuted, fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  saveBtn: { marginTop: 18, height: 52, borderRadius: 12, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   saveBtnDisabled: { opacity: 0.65 },
   saveText: { color: '#fff', fontSize: 16, fontWeight: '900' },
 });

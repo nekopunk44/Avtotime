@@ -24,6 +24,7 @@ import { RouteProp, useFocusEffect, useIsFocused, useRoute } from '@react-naviga
 import { commentLoop, getLoops, likeLoop, Loop, uploadLoop } from '../api/loops';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList, AppTabParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
@@ -347,7 +348,7 @@ export default function LoopsScreen({ navigation }: Props) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#fff" />}
         ListEmptyComponent={
           <View style={[styles.emptyState, { height: listHeight }]}>
-            <Ionicons name={error ? 'alert-circle-outline' : 'play-circle-outline'} size={48} color="#666" />
+            <Ionicons name={error ? 'alert-circle-outline' : 'play-circle-outline'} size={48} color={colors.textMuted} />
             <Text style={styles.emptyTitle}>{error || 'Пока нет видео'}</Text>
             <Text style={styles.emptyText}>
               {error ? 'Потяните вниз, чтобы попробовать снова.' : 'Загрузите первое короткое видео для Avtotime.'}
@@ -363,9 +364,9 @@ export default function LoopsScreen({ navigation }: Props) {
         activeOpacity={0.85}
       >
         {uploading ? (
-          <ActivityIndicator color="#111" />
+          <ActivityIndicator color={colors.text} />
         ) : (
-          <Ionicons name="add" size={26} color="#111" />
+          <Ionicons name="add" size={26} color={colors.text} />
         )}
       </TouchableOpacity>
 
@@ -384,7 +385,7 @@ export default function LoopsScreen({ navigation }: Props) {
             <TextInput
               style={styles.uploadCaptionInput}
               placeholder="Описание..."
-              placeholderTextColor="#888"
+              placeholderTextColor={colors.textFaint}
               value={uploadCaption}
               onChangeText={(value) => setUploadCaption(value.slice(0, 280))}
               multiline
@@ -425,7 +426,7 @@ export default function LoopsScreen({ navigation }: Props) {
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Комментарии</Text>
               <TouchableOpacity style={styles.closeBtn} onPress={closeComments}>
-                <Ionicons name="close" size={22} color="#111" />
+                <Ionicons name="close" size={22} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -441,7 +442,7 @@ export default function LoopsScreen({ navigation }: Props) {
                     <Image source={{ uri: item.author.profileImage }} style={styles.commentAvatar} />
                   ) : (
                     <View style={[styles.commentAvatar, styles.commentAvatarFallback]}>
-                      <Ionicons name="person-outline" size={16} color="#777" />
+                      <Ionicons name="person-outline" size={16} color={colors.textMuted} />
                     </View>
                   )}
                   <View style={styles.commentBody}>
@@ -456,7 +457,7 @@ export default function LoopsScreen({ navigation }: Props) {
               <TextInput
                 style={styles.commentInput}
                 placeholder="Напишите комментарий..."
-                placeholderTextColor="#888"
+                placeholderTextColor={colors.textFaint}
                 value={commentText}
                 onChangeText={setCommentText}
                 returnKeyType="send"
@@ -482,9 +483,9 @@ export default function LoopsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  centerDark: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' },
-  loopCard: { width: '100%', backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  container: { flex: 1, backgroundColor: colors.surfaceHi },
+  centerDark: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceHi },
+  loopCard: { width: '100%', backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   video: { width: '100%', height: '100%' },
   topOverlay: { position: 'absolute', top: 14, left: 0, right: 0, alignItems: 'center' },
   screenTitle: { color: '#fff', fontSize: 17, fontWeight: '900', textShadowColor: 'rgba(0,0,0,0.55)', textShadowRadius: 8 },
@@ -500,39 +501,39 @@ const styles = StyleSheet.create({
   caption: { marginTop: 10, color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
   progressTrack: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.18)' },
   progressFill: { height: '100%', backgroundColor: '#ff335f' },
-  uploadBtn: { position: 'absolute', top: 14, left: 14, width: 42, height: 42, borderRadius: 21, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  uploadBtn: { position: 'absolute', top: 14, left: 14, width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   emptyTitle: { marginTop: 12, color: '#fff', fontSize: 18, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 8, color: '#aaa', fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  emptyText: { marginTop: 8, color: colors.textFaint, fontSize: 14, textAlign: 'center', lineHeight: 20 },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
-  commentsSheet: { maxHeight: '72%', minHeight: '50%', backgroundColor: '#fff', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingTop: 8 },
+  commentsSheet: { maxHeight: '72%', minHeight: '50%', backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingTop: 8 },
   sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: '#ddd', marginBottom: 8 },
-  sheetHeader: { height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: '#eee' },
-  sheetTitle: { color: '#111', fontSize: 17, fontWeight: '900' },
-  closeBtn: { position: 'absolute', right: 12, width: 34, height: 34, borderRadius: 17, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
+  sheetHeader: { height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: colors.border },
+  sheetTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  closeBtn: { position: 'absolute', right: 12, width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   commentsList: { flex: 1 },
   commentsContent: { padding: 16, gap: 14 },
-  noComments: { marginTop: 36, textAlign: 'center', color: '#777', fontSize: 15, fontWeight: '700' },
+  noComments: { marginTop: 36, textAlign: 'center', color: colors.textMuted, fontSize: 15, fontWeight: '700' },
   commentRow: { flexDirection: 'row', gap: 10 },
-  commentAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#eee' },
+  commentAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceAlt },
   commentAvatarFallback: { alignItems: 'center', justifyContent: 'center' },
   commentBody: { flex: 1 },
-  commentAuthor: { color: '#111', fontSize: 13, fontWeight: '900' },
-  commentMessage: { marginTop: 3, color: '#333', fontSize: 14, lineHeight: 20 },
-  commentInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: '#eee' },
-  commentInput: { flex: 1, minHeight: 42, borderRadius: 12, backgroundColor: '#f2f2f2', paddingHorizontal: 12, color: '#111', fontSize: 14 },
-  sendBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' },
+  commentAuthor: { color: colors.text, fontSize: 13, fontWeight: '900' },
+  commentMessage: { marginTop: 3, color: colors.textMuted, fontSize: 14, lineHeight: 20 },
+  commentInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: colors.border },
+  commentInput: { flex: 1, minHeight: 42, borderRadius: 12, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 14 },
+  sendBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
   sendBtnDisabled: { opacity: 0.45 },
   uploadModalRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
   uploadModalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.62)' },
-  uploadDialog: { width: '100%', maxWidth: 420, borderRadius: 8, backgroundColor: '#fff', padding: 16 },
-  uploadTitle: { color: '#111', fontSize: 20, fontWeight: '900' },
-  uploadCaptionInput: { minHeight: 112, marginTop: 14, borderRadius: 8, backgroundColor: '#f3f3f3', padding: 12, color: '#111', fontSize: 15, lineHeight: 21, textAlignVertical: 'top' },
-  captionCounter: { marginTop: 6, color: '#777', fontSize: 12, textAlign: 'right', fontWeight: '700' },
+  uploadDialog: { width: '100%', maxWidth: 420, borderRadius: 8, backgroundColor: colors.surface, padding: 16 },
+  uploadTitle: { color: colors.text, fontSize: 20, fontWeight: '900' },
+  uploadCaptionInput: { minHeight: 112, marginTop: 14, borderRadius: 8, backgroundColor: colors.surfaceAlt, padding: 12, color: colors.text, fontSize: 15, lineHeight: 21, textAlignVertical: 'top' },
+  captionCounter: { marginTop: 6, color: colors.textMuted, fontSize: 12, textAlign: 'right', fontWeight: '700' },
   uploadActions: { marginTop: 16, flexDirection: 'row', gap: 10 },
-  cancelUploadBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
-  cancelUploadText: { color: '#111', fontSize: 15, fontWeight: '900' },
-  publishBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' },
+  cancelUploadBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  cancelUploadText: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  publishBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
   publishText: { color: '#fff', fontSize: 15, fontWeight: '900' },
 });

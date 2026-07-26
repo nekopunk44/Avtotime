@@ -14,6 +14,7 @@ import { RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AdminUserDetails, getAdminUserDetails } from '../api/admin';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'AdminUserDetails'>;
@@ -29,7 +30,7 @@ const formatDate = (value?: string | null) => {
 
 const Stat = ({ value, label, icon }: { value: number; label: string; icon: keyof typeof Ionicons.glyphMap }) => (
   <View style={styles.statCard}>
-    <Ionicons name={icon} size={20} color="#111" />
+    <Ionicons name={icon} size={20} color={colors.text} />
     <Text style={styles.statValue}>{value}</Text>
     <Text style={styles.statLabel}>{label}</Text>
   </View>
@@ -69,7 +70,7 @@ export default function AdminUserDetailsScreen({ navigation, route }: Props) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -85,7 +86,7 @@ export default function AdminUserDetailsScreen({ navigation, route }: Props) {
     >
       {error ? (
         <View style={styles.errorBox}>
-          <Ionicons name="alert-circle-outline" size={22} color="#d92323" />
+          <Ionicons name="alert-circle-outline" size={22} color={colors.danger} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : null}
@@ -144,7 +145,7 @@ export default function AdminUserDetailsScreen({ navigation, route }: Props) {
         </>
       ) : (
         <View style={styles.empty}>
-          <Ionicons name="person-circle-outline" size={42} color="#bbb" />
+          <Ionicons name="person-circle-outline" size={42} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>Пользователь не найден</Text>
           <Text style={styles.emptyText}>Обновите экран или вернитесь к списку пользователей.</Text>
         </View>
@@ -154,34 +155,34 @@ export default function AdminUserDetailsScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   content: { padding: 12, paddingBottom: 30, gap: 10 },
-  errorBox: { borderRadius: 8, backgroundColor: '#fff0f0', borderWidth: 1, borderColor: '#ffd3d3', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  errorText: { flex: 1, color: '#a51010', fontSize: 13, lineHeight: 18, fontWeight: '800' },
-  profileCard: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 74, height: 74, borderRadius: 24, backgroundColor: '#eee' },
-  avatarFallback: { backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' },
+  errorBox: { borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: 1, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  errorText: { flex: 1, color: colors.danger, fontSize: 13, lineHeight: 18, fontWeight: '800' },
+  profileCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: { width: 74, height: 74, borderRadius: 24, backgroundColor: colors.surfaceAlt },
+  avatarFallback: { backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#fff', fontSize: 24, fontWeight: '900' },
   profileInfo: { flex: 1 },
-  name: { color: '#111', fontSize: 22, fontWeight: '900' },
-  username: { marginTop: 2, color: '#777', fontSize: 13, fontWeight: '800' },
-  email: { marginTop: 5, color: '#555', fontSize: 13, fontWeight: '800' },
+  name: { color: colors.text, fontSize: 22, fontWeight: '900' },
+  username: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  email: { marginTop: 5, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  planBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: '#111', color: '#fff', paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  planBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: colors.surfaceHi, color: '#fff', paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   adminBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: '#effaf2', color: '#14843b', paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  bannedBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: '#fff0f0', color: '#d92323', paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  section: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 14, gap: 10 },
-  sectionTitle: { color: '#111', fontSize: 17, fontWeight: '900' },
+  bannedBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: 'rgba(255,90,95,0.12)', color: colors.danger, paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  section: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 },
+  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  statCard: { width: '48.6%', borderRadius: 8, backgroundColor: '#f7f7f7', padding: 12 },
-  statValue: { marginTop: 8, color: '#111', fontSize: 24, fontWeight: '900' },
-  statLabel: { marginTop: 2, color: '#666', fontSize: 12, fontWeight: '800' },
-  infoLine: { color: '#444', fontSize: 14, lineHeight: 20, fontWeight: '700' },
-  bio: { color: '#333', fontSize: 14, lineHeight: 21, backgroundColor: '#f7f7f7', borderRadius: 8, padding: 10 },
-  profileBtn: { height: 48, borderRadius: 8, backgroundColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  statCard: { width: '48.6%', borderRadius: 8, backgroundColor: colors.bg, padding: 12 },
+  statValue: { marginTop: 8, color: colors.text, fontSize: 24, fontWeight: '900' },
+  statLabel: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  infoLine: { color: colors.textMuted, fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  bio: { color: colors.textMuted, fontSize: 14, lineHeight: 21, backgroundColor: colors.bg, borderRadius: 8, padding: 10 },
+  profileBtn: { height: 48, borderRadius: 8, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   profileBtnText: { color: '#fff', fontSize: 15, fontWeight: '900' },
   empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 42, paddingHorizontal: 20 },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 5, color: '#777', fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
 });

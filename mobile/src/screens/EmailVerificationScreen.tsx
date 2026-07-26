@@ -17,6 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getMe, resendVerificationEmail, verifyEmailToken } from '../api/auth';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { useAuthStore } from '../store/authStore';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'EmailVerification'> };
 
@@ -147,7 +148,7 @@ export default function EmailVerificationScreen({ navigation }: Props) {
 
           {lastMessage ? (
             <View style={styles.messageBox}>
-              <Ionicons name="information-circle-outline" size={18} color="#111" />
+              <Ionicons name="information-circle-outline" size={18} color={colors.text} />
               <Text style={styles.messageText}>{lastMessage}</Text>
             </View>
           ) : null}
@@ -181,7 +182,7 @@ export default function EmailVerificationScreen({ navigation }: Props) {
                 value={tokenValue}
                 onChangeText={setTokenValue}
                 placeholder="https://avtotime.org/verify-email?token=..."
-                placeholderTextColor="#999"
+                placeholderTextColor={colors.textFaint}
                 autoCapitalize="none"
                 autoCorrect={false}
                 multiline
@@ -205,7 +206,7 @@ export default function EmailVerificationScreen({ navigation }: Props) {
           </>
         ) : (
           <TouchableOpacity style={styles.doneBtn} onPress={() => navigation.goBack()} activeOpacity={0.86}>
-            <Ionicons name="arrow-back-outline" size={18} color="#111" />
+            <Ionicons name="arrow-back-outline" size={18} color={colors.text} />
             <Text style={styles.doneText}>Вернуться назад</Text>
           </TouchableOpacity>
         )}
@@ -215,35 +216,35 @@ export default function EmailVerificationScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f4f5f7' },
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
+  root: { flex: 1, backgroundColor: colors.bg },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32 },
   hero: { alignItems: 'center', paddingVertical: 18 },
   heroIcon: {
     width: 62,
     height: 62,
     borderRadius: 18,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   heroIconOk: { backgroundColor: '#effaf2', borderColor: '#cdebd6' },
-  title: { color: '#111', fontSize: 29, lineHeight: 35, fontWeight: '900', textAlign: 'center' },
-  subtitle: { marginTop: 6, color: '#666', fontSize: 14, lineHeight: 20, textAlign: 'center', fontWeight: '700' },
+  title: { color: colors.text, fontSize: 29, lineHeight: 35, fontWeight: '900', textAlign: 'center' },
+  subtitle: { marginTop: 6, color: colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center', fontWeight: '700' },
   statusCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ececec',
+    borderColor: colors.border,
     padding: 14,
     marginBottom: 10,
   },
   statusTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  statusLabel: { color: '#777', fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
-  emailText: { marginTop: 4, color: '#111', fontSize: 16, fontWeight: '900' },
+  statusLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  emailText: { marginTop: 4, color: colors.text, fontSize: 16, fontWeight: '900' },
   statusPill: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 6 },
   statusPillOk: { backgroundColor: '#effaf2' },
   statusPillWarn: { backgroundColor: '#fff5e6' },
@@ -253,17 +254,17 @@ const styles = StyleSheet.create({
   messageBox: {
     marginTop: 12,
     borderRadius: 8,
-    backgroundColor: '#f3f3f3',
+    backgroundColor: colors.surfaceAlt,
     padding: 10,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 7,
   },
-  messageText: { flex: 1, color: '#333', fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  messageText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   primaryBtn: {
     height: 48,
     borderRadius: 8,
-    backgroundColor: '#111',
+    backgroundColor: colors.surfaceHi,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -272,20 +273,20 @@ const styles = StyleSheet.create({
   },
   primaryText: { color: '#fff', fontSize: 15, fontWeight: '900' },
   formCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ececec',
+    borderColor: colors.border,
     padding: 14,
   },
-  formTitle: { color: '#111', fontSize: 18, fontWeight: '900' },
-  formHint: { marginTop: 6, color: '#777', fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  formTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
+  formHint: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700' },
   input: {
     minHeight: 86,
     marginTop: 12,
     borderRadius: 8,
-    backgroundColor: '#f3f3f3',
-    color: '#111',
+    backgroundColor: colors.surfaceAlt,
+    color: colors.text,
     fontSize: 14,
     lineHeight: 20,
     paddingHorizontal: 12,
@@ -295,7 +296,7 @@ const styles = StyleSheet.create({
   verifyBtn: {
     height: 46,
     borderRadius: 8,
-    backgroundColor: '#d92323',
+    backgroundColor: colors.danger,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -306,14 +307,14 @@ const styles = StyleSheet.create({
   doneBtn: {
     height: 46,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
   },
-  doneText: { color: '#111', fontSize: 15, fontWeight: '900' },
+  doneText: { color: colors.text, fontSize: 15, fontWeight: '900' },
   disabled: { opacity: 0.6 },
 });

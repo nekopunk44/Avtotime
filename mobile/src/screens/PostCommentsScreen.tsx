@@ -10,6 +10,7 @@ import { addComment, deletePost, getPostById, isPostSaved, Post, PostComment, to
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import PostMediaCarousel from '../components/PostMediaCarousel';
+import { colors } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'PostComments'>;
@@ -130,16 +131,16 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
             <Text style={styles.postActionText}>{post.likes?.length ?? 0}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.postActionBtn} onPress={handleSave}>
-            <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={21} color="#555" />
+            <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={21} color={colors.textMuted} />
             <Text style={styles.postActionText}>{saved ? 'Сохранено' : 'Сохранить'}</Text>
           </TouchableOpacity>
           {isMine ? (
             <View style={styles.ownerActions}>
               <TouchableOpacity style={styles.ownerBtn} onPress={() => navigation.navigate('EditPost', { post })}>
-                <Ionicons name="create-outline" size={18} color="#111" />
+                <Ionicons name="create-outline" size={18} color={colors.text} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.ownerBtn} onPress={confirmDelete}>
-                <Ionicons name="trash-outline" size={18} color="#d92323" />
+                <Ionicons name="trash-outline" size={18} color={colors.danger} />
               </TouchableOpacity>
             </View>
           ) : null}
@@ -165,7 +166,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
   };
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color="#111" /></View>;
+    return <View style={styles.center}><ActivityIndicator size="large" color={colors.text} /></View>;
   }
 
   return (
@@ -183,7 +184,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
         <TextInput
           style={styles.input}
           placeholder="Добавить комментарий..."
-          placeholderTextColor="#aaa"
+          placeholderTextColor={colors.textFaint}
           value={text}
           onChangeText={setText}
           multiline
@@ -194,7 +195,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
           disabled={sending || !text.trim()}
         >
           {sending
-            ? <ActivityIndicator size="small" color="#111" />
+            ? <ActivityIndicator size="small" color={colors.text} />
             : <Ionicons name="send" size={20} color={text.trim() ? '#111' : '#ccc'} />
           }
         </TouchableOpacity>
@@ -204,40 +205,40 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.surface },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContent: { paddingBottom: 16 },
-  postHeader: { borderBottomWidth: 1, borderBottomColor: '#f0f0f0', paddingBottom: 14 },
+  postHeader: { borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 14 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt },
   authorText: { flex: 1 },
-  name: { fontSize: 14, fontWeight: '700', color: '#111' },
-  username: { fontSize: 12, color: '#888', marginTop: 1 },
-  postImage: { width: '100%', aspectRatio: 1, backgroundColor: '#eee' },
+  name: { fontSize: 14, fontWeight: '700', color: colors.text },
+  username: { fontSize: 12, color: colors.textFaint, marginTop: 1 },
+  postImage: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceAlt },
   mediaCounter: { position: 'absolute', right: 10, top: 10, borderRadius: 14, paddingHorizontal: 8, height: 28, backgroundColor: 'rgba(0,0,0,0.62)', flexDirection: 'row', alignItems: 'center', gap: 4 },
   mediaCounterText: { color: '#fff', fontSize: 12, fontWeight: '900' },
-  caption: { paddingHorizontal: 14, paddingTop: 12, fontSize: 14, color: '#222', lineHeight: 20 },
+  caption: { paddingHorizontal: 14, paddingTop: 12, fontSize: 14, color: colors.text, lineHeight: 20 },
   postActions: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14, paddingTop: 12 },
   postActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  postActionText: { color: '#555', fontSize: 13, fontWeight: '800' },
+  postActionText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   ownerActions: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 8 },
-  ownerBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
-  sectionTitle: { paddingHorizontal: 14, paddingTop: 16, fontSize: 13, fontWeight: '700', color: '#777' },
+  ownerBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  sectionTitle: { paddingHorizontal: 14, paddingTop: 16, fontSize: 13, fontWeight: '700', color: colors.textMuted },
   commentRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 14, paddingVertical: 8 },
-  commentAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#eee' },
+  commentAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceAlt },
   commentBubble: { flex: 1, backgroundColor: '#f5f5f5', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8 },
-  commentName: { fontSize: 12, fontWeight: '700', color: '#333', marginBottom: 3 },
-  commentText: { fontSize: 14, color: '#222', lineHeight: 19 },
-  empty: { textAlign: 'center', color: '#aaa', marginTop: 30, fontSize: 14 },
+  commentName: { fontSize: 12, fontWeight: '700', color: colors.textMuted, marginBottom: 3 },
+  commentText: { fontSize: 14, color: colors.text, lineHeight: 19 },
+  empty: { textAlign: 'center', color: colors.textFaint, marginTop: 30, fontSize: 14 },
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 8,
     paddingHorizontal: 12, paddingVertical: 10,
-    backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eee',
+    backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border,
   },
   input: {
-    flex: 1, minHeight: 40, maxHeight: 110, backgroundColor: '#f3f3f3',
+    flex: 1, minHeight: 40, maxHeight: 110, backgroundColor: colors.surfaceAlt,
     borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
-    fontSize: 15, color: '#111',
+    fontSize: 15, color: colors.text,
   },
   sendBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
 });

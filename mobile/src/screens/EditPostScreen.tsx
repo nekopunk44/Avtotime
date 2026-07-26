@@ -16,6 +16,7 @@ import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { editPost } from '../api/posts';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'EditPost'>;
@@ -127,25 +128,25 @@ export default function EditPostScreen({ navigation, route }: Props) {
           </View>
         ) : (
           <View style={styles.emptyMedia}>
-            <Ionicons name="images-outline" size={38} color="#bbb" />
+            <Ionicons name="images-outline" size={38} color={colors.textFaint} />
             <Text style={styles.emptyTitle}>Медиа не найдены</Text>
           </View>
         )}
 
         <View style={styles.mediaButtons}>
           <TouchableOpacity style={styles.mediaBtn} onPress={takePhoto} disabled={saving}>
-            <Ionicons name="camera-outline" size={22} color="#111" />
+            <Ionicons name="camera-outline" size={22} color={colors.text} />
             <Text style={styles.mediaBtnText}>Камера</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.mediaBtn} onPress={pickImages} disabled={saving}>
-            <Ionicons name="image-outline" size={22} color="#111" />
+            <Ionicons name="image-outline" size={22} color={colors.text} />
             <Text style={styles.mediaBtnText}>Галерея</Text>
           </TouchableOpacity>
         </View>
 
         {isReplacingMedia ? (
           <TouchableOpacity style={styles.resetBtn} onPress={() => setReplacementUris([])} disabled={saving}>
-            <Ionicons name="refresh-outline" size={18} color="#555" />
+            <Ionicons name="refresh-outline" size={18} color={colors.textMuted} />
             <Text style={styles.resetText}>Вернуть текущие медиа</Text>
           </TouchableOpacity>
         ) : null}
@@ -156,7 +157,7 @@ export default function EditPostScreen({ navigation, route }: Props) {
         value={caption}
         onChangeText={setCaption}
         placeholder="Подпись к публикации"
-        placeholderTextColor="#999"
+        placeholderTextColor={colors.textFaint}
         multiline
         maxLength={500}
         textAlignVertical="top"
@@ -178,32 +179,32 @@ export default function EditPostScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.surface },
   content: { padding: 16, paddingBottom: 30 },
   header: { marginBottom: 14 },
-  title: { color: '#111', fontSize: 26, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: '#666', fontSize: 13, lineHeight: 19 },
-  mediaPanel: { marginBottom: 16, borderRadius: 8, borderWidth: 1, borderColor: '#ececec', backgroundColor: '#fff', padding: 12 },
+  title: { color: colors.text, fontSize: 26, fontWeight: '900' },
+  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13, lineHeight: 19 },
+  mediaPanel: { marginBottom: 16, borderRadius: 8, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 12 },
   mediaHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 },
-  sectionTitle: { color: '#111', fontSize: 17, fontWeight: '900' },
-  sectionHint: { marginTop: 2, color: '#777', fontSize: 12, fontWeight: '700' },
-  mediaCount: { color: '#777', fontSize: 12, fontWeight: '900' },
+  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  sectionHint: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  mediaCount: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
   previewGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  previewItem: { width: '31.8%', aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: '#eee' },
+  previewItem: { width: '31.8%', aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: colors.surfaceAlt },
   previewImage: { width: '100%', height: '100%' },
-  videoPreview: { width: '100%', height: '100%', backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' },
+  videoPreview: { width: '100%', height: '100%', backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
   previewIndex: { position: 'absolute', left: 6, bottom: 6, overflow: 'hidden', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, fontWeight: '900' },
   removeBtn: { position: 'absolute', top: 5, right: 5, width: 23, height: 23, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' },
-  emptyMedia: { minHeight: 150, borderRadius: 8, backgroundColor: '#f7f7f7', alignItems: 'center', justifyContent: 'center' },
-  emptyTitle: { marginTop: 8, color: '#777', fontSize: 14, fontWeight: '900' },
+  emptyMedia: { minHeight: 150, borderRadius: 8, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { marginTop: 8, color: colors.textMuted, fontSize: 14, fontWeight: '900' },
   mediaButtons: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  mediaBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: '#f4f4f4', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  mediaBtnText: { color: '#111', fontSize: 14, fontWeight: '900' },
-  resetBtn: { marginTop: 10, height: 42, borderRadius: 8, backgroundColor: '#fafafa', borderWidth: 1, borderColor: '#eee', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  resetText: { color: '#555', fontSize: 13, fontWeight: '900' },
-  input: { minHeight: 130, borderRadius: 10, backgroundColor: '#f7f7f7', borderWidth: 1, borderColor: '#eee', color: '#111', fontSize: 16, lineHeight: 23, padding: 12 },
-  counter: { marginTop: 6, color: '#999', fontSize: 12, fontWeight: '700', textAlign: 'right' },
-  saveBtn: { marginTop: 18, height: 52, borderRadius: 12, backgroundColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  mediaBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  mediaBtnText: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  resetBtn: { marginTop: 10, height: 42, borderRadius: 8, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  resetText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
+  input: { minHeight: 130, borderRadius: 10, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, color: colors.text, fontSize: 16, lineHeight: 23, padding: 12 },
+  counter: { marginTop: 6, color: colors.textFaint, fontSize: 12, fontWeight: '700', textAlign: 'right' },
+  saveBtn: { marginTop: 18, height: 52, borderRadius: 12, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   saveBtnDisabled: { opacity: 0.65 },
   saveText: { color: '#fff', fontSize: 16, fontWeight: '900' },
 });

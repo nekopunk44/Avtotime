@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../theme';
 
 const EFFECTIVE_DATE = '23 апреля 2026';
 const CONTACT_EMAIL = 'avtotimereal@gmail.com';
@@ -71,7 +72,7 @@ export default function PrivacyPolicyScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.hero}>
         <View style={styles.heroIcon}>
-          <Ionicons name="shield-checkmark-outline" size={28} color="#111" />
+          <Ionicons name="shield-checkmark-outline" size={28} color={colors.text} />
         </View>
         <Text style={styles.title}>Политика конфиденциальности</Text>
         <Text style={styles.subtitle}>Персональные данные Avtotime</Text>
@@ -101,7 +102,7 @@ export default function PrivacyPolicyScreen() {
 
       <View style={styles.contactCard}>
         <View style={styles.contactIcon}>
-          <Ionicons name="mail-outline" size={22} color="#111" />
+          <Ionicons name="mail-outline" size={22} color={colors.text} />
         </View>
         <View style={styles.contactBody}>
           <Text style={styles.contactTitle}>Контакты</Text>
@@ -116,48 +117,48 @@ export default function PrivacyPolicyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32 },
   hero: { alignItems: 'center', paddingVertical: 18 },
   heroIcon: {
     width: 58,
     height: 58,
     borderRadius: 18,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
-  title: { color: '#111', fontSize: 27, lineHeight: 33, fontWeight: '900', textAlign: 'center' },
-  subtitle: { marginTop: 5, color: '#666', fontSize: 14, textAlign: 'center', fontWeight: '700' },
-  date: { marginTop: 8, color: '#777', fontSize: 12, fontWeight: '800' },
+  title: { color: colors.text, fontSize: 27, lineHeight: 33, fontWeight: '900', textAlign: 'center' },
+  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, textAlign: 'center', fontWeight: '700' },
+  date: { marginTop: 8, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   introCard: {
-    backgroundColor: '#111',
+    backgroundColor: colors.surfaceHi,
     borderRadius: 8,
     padding: 15,
     marginBottom: 10,
   },
   introText: { color: '#fff', fontSize: 14, lineHeight: 21, fontWeight: '700' },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ececec',
+    borderColor: colors.border,
     padding: 14,
     marginBottom: 10,
   },
-  sectionTitle: { color: '#111', fontSize: 17, lineHeight: 22, fontWeight: '900', marginBottom: 8 },
-  paragraph: { color: '#555', fontSize: 14, lineHeight: 21, fontWeight: '600' },
+  sectionTitle: { color: colors.text, fontSize: 17, lineHeight: 22, fontWeight: '900', marginBottom: 8 },
+  paragraph: { color: colors.textMuted, fontSize: 14, lineHeight: 21, fontWeight: '600' },
   bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, marginTop: 8 },
-  bullet: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#d92323', marginTop: 7 },
-  bulletText: { flex: 1, color: '#555', fontSize: 14, lineHeight: 21, fontWeight: '600' },
+  bullet: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.danger, marginTop: 7 },
+  bulletText: { flex: 1, color: colors.textMuted, fontSize: 14, lineHeight: 21, fontWeight: '600' },
   contactCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ececec',
+    borderColor: colors.border,
     padding: 14,
     flexDirection: 'row',
     gap: 11,
@@ -166,12 +167,12 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: '#f3f3f3',
+    backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
   contactBody: { flex: 1 },
-  contactTitle: { color: '#111', fontSize: 16, fontWeight: '900' },
-  contactText: { marginTop: 4, color: '#777', fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  email: { marginTop: 6, color: '#111', fontSize: 14, fontWeight: '900', textDecorationLine: 'underline' },
+  contactTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
+  contactText: { marginTop: 4, color: colors.textMuted, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  email: { marginTop: 6, color: colors.text, fontSize: 14, fontWeight: '900', textDecorationLine: 'underline' },
 });

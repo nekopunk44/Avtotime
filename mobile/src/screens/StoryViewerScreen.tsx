@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Story, viewStory } from '../api/stories';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'StoryViewer'>;
@@ -142,7 +143,7 @@ export default function StoryViewerScreen({ navigation, route }: Props) {
           <View style={styles.viewersHeader}>
             <Text style={styles.viewersTitle}>Просмотры</Text>
             <TouchableOpacity onPress={() => setShowViewers(false)}>
-              <Ionicons name="close" size={22} color="#111" />
+              <Ionicons name="close" size={22} color={colors.text} />
             </TouchableOpacity>
           </View>
           {viewers.length ? (
@@ -164,7 +165,7 @@ export default function StoryViewerScreen({ navigation, route }: Props) {
             />
           ) : (
             <View style={styles.emptyViewers}>
-              <ActivityIndicator color="#111" />
+              <ActivityIndicator color={colors.text} />
               <Text style={styles.emptyText}>Пока нет просмотров</Text>
             </View>
           )}
@@ -177,7 +178,7 @@ export default function StoryViewerScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   progressTrack: { position: 'absolute', top: 8, left: 8, right: 8, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)', zIndex: 10, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#fff' },
+  progressFill: { height: '100%', backgroundColor: colors.surface },
   topBar: { position: 'absolute', top: 22, left: 10, right: 10, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
   closeBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#333' },
@@ -191,13 +192,13 @@ const styles = StyleSheet.create({
   viewersButton: { alignSelf: 'flex-start', height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.16)', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 13 },
   viewersText: { color: '#fff', fontWeight: '900', fontSize: 14 },
   viewersLabel: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  viewersPanel: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '52%', backgroundColor: '#fff', borderTopLeftRadius: 14, borderTopRightRadius: 14, paddingTop: 12 },
-  viewersHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  viewersTitle: { color: '#111', fontSize: 17, fontWeight: '900' },
+  viewersPanel: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '52%', backgroundColor: colors.surface, borderTopLeftRadius: 14, borderTopRightRadius: 14, paddingTop: 12 },
+  viewersHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
+  viewersTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   viewerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10 },
-  viewerAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#eee' },
-  viewerName: { color: '#111', fontWeight: '900', fontSize: 14 },
-  viewerUserName: { color: '#777', fontSize: 12, marginTop: 1 },
+  viewerAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surfaceAlt },
+  viewerName: { color: colors.text, fontWeight: '900', fontSize: 14 },
+  viewerUserName: { color: colors.textMuted, fontSize: 12, marginTop: 1 },
   emptyViewers: { padding: 24, alignItems: 'center' },
-  emptyText: { marginTop: 8, color: '#777', fontSize: 13, fontWeight: '700' },
+  emptyText: { marginTop: 8, color: colors.textMuted, fontSize: 13, fontWeight: '700' },
 });

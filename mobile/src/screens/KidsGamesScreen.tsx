@@ -33,6 +33,7 @@ import {
   MarketGame,
 } from '../api/kidsGames';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'KidsGames'> };
 
@@ -372,7 +373,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
           <Image source={{ uri: activity.image }} style={styles.activityImage} />
         ) : (
           <View style={[styles.activityImage, styles.activityImageFallback]}>
-            <Ionicons name={getActivityIcon(activity.type) as any} size={30} color="#d92323" />
+            <Ionicons name={getActivityIcon(activity.type) as any} size={30} color={colors.danger} />
           </View>
         )}
         <View style={styles.activityBody}>
@@ -413,7 +414,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
 
       <View style={styles.leaderboardBox}>
         <View style={styles.sectionTitleRow}>
-          <Ionicons name="trophy-outline" size={20} color="#111" />
+          <Ionicons name="trophy-outline" size={20} color={colors.text} />
           <Text style={styles.sectionTitle}>Детский топ</Text>
         </View>
         {kidsLeaderboard.length ? (
@@ -433,12 +434,12 @@ export default function KidsGamesScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.sectionTitleRow}>
-        <Ionicons name="sparkles-outline" size={20} color="#111" />
+        <Ionicons name="sparkles-outline" size={20} color={colors.text} />
         <Text style={styles.sectionTitle}>Активности</Text>
       </View>
       {activities.length ? activities.map(renderActivity) : (
         <View style={styles.emptyInline}>
-          <Ionicons name="game-controller-outline" size={30} color="#bbb" />
+          <Ionicons name="game-controller-outline" size={30} color={colors.textFaint} />
           <Text style={styles.emptyInlineTitle}>Активностей пока нет</Text>
           <Text style={styles.emptyInlineText}>Когда они появятся на backend, экран подтянет их автоматически.</Text>
         </View>
@@ -449,18 +450,18 @@ export default function KidsGamesScreen({ navigation }: Props) {
   const renderGames = () => (
     <View style={styles.section}>
       <View style={styles.searchBox}>
-        <Ionicons name="search-outline" size={18} color="#777" />
+        <Ionicons name="search-outline" size={18} color={colors.textMuted} />
         <TextInput
           style={styles.searchInput}
           placeholder="Поиск игр"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textFaint}
           value={query}
           onChangeText={setQuery}
           autoCapitalize="none"
         />
         {query ? (
           <TouchableOpacity onPress={() => setQuery('')}>
-            <Ionicons name="close-circle" size={18} color="#999" />
+            <Ionicons name="close-circle" size={18} color={colors.textFaint} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -487,7 +488,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
             <Image source={{ uri: game.image }} style={styles.gameImage} />
           ) : (
             <View style={[styles.gameImage, styles.gameImageFallback]}>
-              <Ionicons name={game.icon as any} size={34} color="#111" />
+              <Ionicons name={game.icon as any} size={34} color={colors.text} />
             </View>
           )}
           <View style={styles.gameBody}>
@@ -511,7 +512,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
                 onPress={() => showLeaderboard(game.gameId, game.title)}
                 activeOpacity={0.85}
               >
-                <Ionicons name="trophy-outline" size={18} color="#111" />
+                <Ionicons name="trophy-outline" size={18} color={colors.text} />
               </TouchableOpacity>
             </View>
           </View>
@@ -520,7 +521,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
 
       {!filteredGames.length ? (
         <View style={styles.emptyInline}>
-          <Ionicons name="search-outline" size={30} color="#bbb" />
+          <Ionicons name="search-outline" size={30} color={colors.textFaint} />
           <Text style={styles.emptyInlineTitle}>Игры не найдены</Text>
           <Text style={styles.emptyInlineText}>Измените поиск или категорию.</Text>
         </View>
@@ -544,7 +545,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
       {achievements.length ? (
         <View style={styles.achievementsBox}>
           <View style={styles.sectionTitleRow}>
-            <Ionicons name="ribbon-outline" size={20} color="#111" />
+            <Ionicons name="ribbon-outline" size={20} color={colors.text} />
             <Text style={styles.sectionTitle}>Достижения</Text>
           </View>
           <View style={styles.achievementList}>
@@ -556,7 +557,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
       ) : null}
 
       <View style={styles.sectionTitleRow}>
-        <Ionicons name="stats-chart-outline" size={20} color="#111" />
+        <Ionicons name="stats-chart-outline" size={20} color={colors.text} />
         <Text style={styles.sectionTitle}>Мой прогресс</Text>
       </View>
       {stats.games.length ? (
@@ -568,7 +569,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
             activeOpacity={0.85}
           >
             <View style={styles.progressIcon}>
-              <Ionicons name={(getBuiltInGame(item.gameId)?.icon || 'game-controller-outline') as any} size={22} color="#d92323" />
+              <Ionicons name={(getBuiltInGame(item.gameId)?.icon || 'game-controller-outline') as any} size={22} color={colors.danger} />
             </View>
             <View style={styles.progressInfo}>
               <Text style={styles.progressTitle}>{item.gameName || getBuiltInGame(item.gameId)?.title || item.gameId}</Text>
@@ -579,12 +580,12 @@ export default function KidsGamesScreen({ navigation }: Props) {
                 <View style={[styles.progressFill, { width: `${Math.max(0, Math.min(100, item.progress || 0))}%` }]} />
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#aaa" />
+            <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
           </TouchableOpacity>
         ))
       ) : (
         <View style={styles.emptyInline}>
-          <Ionicons name="stats-chart-outline" size={30} color="#bbb" />
+          <Ionicons name="stats-chart-outline" size={30} color={colors.textFaint} />
           <Text style={styles.emptyInlineTitle}>Прогресса пока нет</Text>
           <Text style={styles.emptyInlineText}>Он появится после игр, которые сохраняют результат через backend.</Text>
         </View>
@@ -609,7 +610,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#111" />
+          <ActivityIndicator size="large" color={colors.text} />
         </View>
       ) : (
         <ScrollView
@@ -618,7 +619,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
         >
           {error ? (
             <View style={styles.errorBox}>
-              <Ionicons name="alert-circle-outline" size={24} color="#d92323" />
+              <Ionicons name="alert-circle-outline" size={24} color={colors.danger} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
@@ -635,12 +636,12 @@ export default function KidsGamesScreen({ navigation }: Props) {
             <View style={styles.dialogHeader}>
               <Text style={styles.dialogTitle}>{leaderboardTitle}</Text>
               <TouchableOpacity onPress={() => setLeaderboardOpen(false)} style={styles.closeBtn}>
-                <Ionicons name="close" size={22} color="#111" />
+                <Ionicons name="close" size={22} color={colors.text} />
               </TouchableOpacity>
             </View>
             {leaderboardLoading ? (
               <View style={styles.dialogCenter}>
-                <ActivityIndicator color="#111" />
+                <ActivityIndicator color={colors.text} />
               </View>
             ) : gameLeaderboard.length ? (
               gameLeaderboard.map((item, index) => (
@@ -674,7 +675,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
             <TextInput
               style={styles.input}
               placeholder="Например: Авто-квиз"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
               value={draft.title}
               onChangeText={(title) => setDraft((prev) => ({ ...prev, title: title.slice(0, 80) }))}
             />
@@ -683,7 +684,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
             <TextInput
               style={styles.input}
               placeholder="Игры"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
               value={draft.category}
               onChangeText={(value) => setDraft((prev) => ({ ...prev, category: value.slice(0, 40) }))}
             />
@@ -692,7 +693,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
             <TextInput
               style={styles.input}
               placeholder="https://..."
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
               value={draft.url}
               onChangeText={(url) => setDraft((prev) => ({ ...prev, url }))}
               autoCapitalize="none"
@@ -703,7 +704,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
             <TextInput
               style={styles.input}
               placeholder="https://..."
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
               value={draft.image}
               onChangeText={(image) => setDraft((prev) => ({ ...prev, image }))}
               autoCapitalize="none"
@@ -714,7 +715,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Коротко опишите игру"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
               value={draft.description}
               onChangeText={(description) => setDraft((prev) => ({ ...prev, description: description.slice(0, 400) }))}
               multiline
@@ -737,96 +738,96 @@ export default function KidsGamesScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  top: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   titleBlock: { flex: 1 },
-  title: { color: '#111', fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: '#666', fontSize: 13 },
-  addBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#d92323', alignItems: 'center', justifyContent: 'center' },
-  tabs: { flexDirection: 'row', backgroundColor: '#f3f3f3', borderRadius: 12, padding: 3, marginTop: 14 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13 },
+  addBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
+  tabs: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3, marginTop: 14 },
   tabBtn: { flex: 1, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 5 },
-  tabBtnActive: { backgroundColor: '#111' },
-  tabText: { color: '#777', fontSize: 12, fontWeight: '900' },
+  tabBtnActive: { backgroundColor: colors.surfaceHi },
+  tabText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
   tabTextActive: { color: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { padding: 12, paddingBottom: 28 },
   section: { gap: 10 },
   statsRow: { flexDirection: 'row', gap: 10 },
-  statBox: { flex: 1, borderRadius: 8, backgroundColor: '#fff', padding: 14, borderWidth: 1, borderColor: '#ececec' },
-  statValue: { color: '#111', fontSize: 24, fontWeight: '900' },
-  statLabel: { marginTop: 3, color: '#666', fontSize: 12, fontWeight: '800' },
-  leaderboardBox: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 14, gap: 9 },
+  statBox: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, padding: 14, borderWidth: 1, borderColor: colors.border },
+  statValue: { color: colors.text, fontSize: 24, fontWeight: '900' },
+  statLabel: { marginTop: 3, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  leaderboardBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 9 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 4 },
-  sectionTitle: { color: '#111', fontSize: 17, fontWeight: '900' },
-  rankRow: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 8, backgroundColor: '#f7f7f7', paddingHorizontal: 10, paddingVertical: 7 },
-  rankNumber: { width: 22, color: '#d92323', fontSize: 14, fontWeight: '900', textAlign: 'center' },
-  rankAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' },
+  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  rankRow: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 8, backgroundColor: colors.bg, paddingHorizontal: 10, paddingVertical: 7 },
+  rankNumber: { width: 22, color: colors.danger, fontSize: 14, fontWeight: '900', textAlign: 'center' },
+  rankAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
   rankInitial: { color: '#fff', fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
-  rankName: { flex: 1, color: '#111', fontSize: 14, fontWeight: '800' },
-  rankScore: { color: '#111', fontSize: 14, fontWeight: '900' },
-  activityCard: { backgroundColor: '#fff', borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#ececec' },
-  activityImage: { width: '100%', height: 154, backgroundColor: '#fff0f0' },
+  rankName: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '800' },
+  rankScore: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  activityCard: { backgroundColor: colors.surface, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
+  activityImage: { width: '100%', height: 154, backgroundColor: 'rgba(255,90,95,0.12)' },
   activityImageFallback: { alignItems: 'center', justifyContent: 'center' },
   activityBody: { padding: 14 },
   cardMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  typePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: '#fff0f0', color: '#d92323', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  sourcePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: '#f0f0f0', color: '#555', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  dateText: { color: '#999', fontSize: 12, fontWeight: '800' },
-  cardTitle: { marginTop: 11, color: '#111', fontSize: 18, lineHeight: 23, fontWeight: '900' },
-  cardText: { marginTop: 7, color: '#555', fontSize: 14, lineHeight: 20 },
+  typePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: 'rgba(255,90,95,0.12)', color: colors.danger, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  sourcePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: colors.surfaceAlt, color: colors.textMuted, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  dateText: { color: colors.textFaint, fontSize: 12, fontWeight: '800' },
+  cardTitle: { marginTop: 11, color: colors.text, fontSize: 18, lineHeight: 23, fontWeight: '900' },
+  cardText: { marginTop: 7, color: colors.textMuted, fontSize: 14, lineHeight: 20 },
   progressBlock: { marginTop: 12 },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  progressLabel: { color: '#666', fontSize: 12, fontWeight: '800' },
-  progressValue: { color: '#111', fontSize: 12, fontWeight: '900' },
+  progressLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  progressValue: { color: colors.text, fontSize: 12, fontWeight: '900' },
   progressTrack: { height: 7, borderRadius: 4, backgroundColor: '#ededed', overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 4, backgroundColor: '#d92323' },
-  searchBox: { height: 44, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
-  searchInput: { flex: 1, color: '#111', fontSize: 15 },
+  progressFill: { height: '100%', borderRadius: 4, backgroundColor: colors.danger },
+  searchBox: { height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  searchInput: { flex: 1, color: colors.text, fontSize: 15 },
   categoryList: { gap: 8, paddingTop: 4, paddingBottom: 2 },
-  categoryBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, justifyContent: 'center', backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5e5' },
-  categoryBtnActive: { backgroundColor: '#111', borderColor: '#111' },
-  categoryText: { color: '#555', fontSize: 13, fontWeight: '800' },
+  categoryBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  categoryBtnActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  categoryText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   categoryTextActive: { color: '#fff' },
-  gameCard: { backgroundColor: '#fff', borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#ececec' },
-  gameImage: { width: '100%', height: 160, backgroundColor: '#f2f2f2' },
+  gameCard: { backgroundColor: colors.surface, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
+  gameImage: { width: '100%', height: 160, backgroundColor: colors.surfaceAlt },
   gameImageFallback: { alignItems: 'center', justifyContent: 'center' },
   gameBody: { padding: 14 },
   gameActions: { flexDirection: 'row', gap: 8, marginTop: 14 },
-  playBtn: { flex: 1, height: 42, borderRadius: 8, backgroundColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  playBtn: { flex: 1, height: 42, borderRadius: 8, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   playText: { color: '#fff', fontSize: 14, fontWeight: '900' },
-  leaderBtn: { width: 42, height: 42, borderRadius: 8, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
-  achievementsBox: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 14 },
+  leaderBtn: { width: 42, height: 42, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  achievementsBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 14 },
   achievementList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  achievementPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#fff0f0', color: '#d92323', fontSize: 12, fontWeight: '900' },
-  progressCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 12 },
-  progressIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#fff0f0', alignItems: 'center', justifyContent: 'center' },
+  achievementPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'rgba(255,90,95,0.12)', color: colors.danger, fontSize: 12, fontWeight: '900' },
+  progressCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  progressIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center' },
   progressInfo: { flex: 1 },
-  progressTitle: { color: '#111', fontSize: 15, fontWeight: '900' },
-  progressSub: { marginTop: 3, marginBottom: 8, color: '#666', fontSize: 12, fontWeight: '700' },
-  errorBox: { marginBottom: 10, borderRadius: 8, backgroundColor: '#fff0f0', borderWidth: 1, borderColor: '#ffd3d3', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  errorText: { flex: 1, color: '#a51010', fontSize: 13, fontWeight: '800' },
-  emptyInline: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 24, alignItems: 'center' },
-  emptyInlineTitle: { marginTop: 9, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyInlineText: { marginTop: 5, color: '#777', fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  mutedText: { color: '#777', fontSize: 13, lineHeight: 19 },
+  progressTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  progressSub: { marginTop: 3, marginBottom: 8, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  errorBox: { marginBottom: 10, borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: 1, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
+  emptyInline: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 24, alignItems: 'center' },
+  emptyInlineTitle: { marginTop: 9, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyInlineText: { marginTop: 5, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  mutedText: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   modalRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 18 },
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
-  dialog: { width: '100%', maxHeight: '76%', borderRadius: 14, backgroundColor: '#fff', padding: 14, gap: 8 },
+  dialog: { width: '100%', maxHeight: '76%', borderRadius: 14, backgroundColor: colors.surface, padding: 14, gap: 8 },
   dialogHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
-  dialogTitle: { flex: 1, color: '#111', fontSize: 18, fontWeight: '900' },
-  closeBtn: { width: 34, height: 34, borderRadius: 8, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
+  dialogTitle: { flex: 1, color: colors.text, fontSize: 18, fontWeight: '900' },
+  closeBtn: { width: 34, height: 34, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   dialogCenter: { minHeight: 120, alignItems: 'center', justifyContent: 'center' },
   sheetRoot: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { maxHeight: '92%', backgroundColor: '#fff', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
+  sheet: { maxHeight: '92%', backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
   sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: '#ddd', marginBottom: 12 },
-  sheetTitle: { color: '#111', fontSize: 20, fontWeight: '900', marginBottom: 14 },
-  inputLabel: { color: '#555', fontSize: 13, fontWeight: '800', marginBottom: 7 },
-  input: { minHeight: 46, borderRadius: 8, backgroundColor: '#f3f3f3', paddingHorizontal: 12, color: '#111', fontSize: 15, marginBottom: 12 },
+  sheetTitle: { color: colors.text, fontSize: 20, fontWeight: '900', marginBottom: 14 },
+  inputLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '800', marginBottom: 7 },
+  input: { minHeight: 46, borderRadius: 8, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 15, marginBottom: 12 },
   textArea: { minHeight: 104, paddingTop: 12, lineHeight: 21 },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  cancelBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
-  cancelText: { color: '#111', fontSize: 15, fontWeight: '900' },
-  saveBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: '#d92323', alignItems: 'center', justifyContent: 'center' },
+  cancelBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  saveBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
   saveText: { color: '#fff', fontSize: 15, fontWeight: '900' },
 });

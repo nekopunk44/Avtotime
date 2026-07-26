@@ -20,6 +20,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { createEcoTip, EcoTip, getEcoTips } from '../api/ecoTips';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'EcoTips'> };
 
@@ -188,7 +189,7 @@ export default function EcoTipsScreen({ navigation }: Props) {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#111" />
+          <ActivityIndicator size="large" color={colors.text} />
         </View>
       ) : (
         <FlatList
@@ -199,7 +200,7 @@ export default function EcoTipsScreen({ navigation }: Props) {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name={error ? 'alert-circle-outline' : 'leaf-outline'} size={38} color="#bbb" />
+              <Ionicons name={error ? 'alert-circle-outline' : 'leaf-outline'} size={38} color={colors.textFaint} />
               <Text style={styles.emptyTitle}>{error || 'Советов пока нет'}</Text>
               <Text style={styles.emptyText}>
                 {error ? 'Потяните экран вниз, чтобы повторить загрузку.' : 'Поделитесь первым советом для сообщества.'}
@@ -240,7 +241,7 @@ export default function EcoTipsScreen({ navigation }: Props) {
             <TextInput
               style={styles.input}
               placeholder="Например: Проверяйте давление в шинах"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
               value={title}
               onChangeText={(value) => setTitle(value.slice(0, 80))}
             />
@@ -265,7 +266,7 @@ export default function EcoTipsScreen({ navigation }: Props) {
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Опишите совет подробнее"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
               value={description}
               onChangeText={(value) => setDescription(value.slice(0, 600))}
               multiline
@@ -289,55 +290,55 @@ export default function EcoTipsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  top: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   titleBlock: { flex: 1 },
-  title: { color: '#111', fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: '#666', fontSize: 13 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13 },
   addBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#14843b', alignItems: 'center', justifyContent: 'center' },
   categoryList: { gap: 8, paddingTop: 14, paddingBottom: 2 },
-  categoryBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, justifyContent: 'center', backgroundColor: '#f3f3f3', borderWidth: 1, borderColor: '#e5e5e5' },
+  categoryBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, justifyContent: 'center', backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
   categoryBtnActive: { backgroundColor: '#14843b', borderColor: '#14843b' },
-  categoryText: { color: '#555', fontSize: 13, fontWeight: '800' },
+  categoryText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   categoryTextActive: { color: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: 12, gap: 10 },
   emptyList: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   emptyState: { alignItems: 'center' },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 6, color: '#777', fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  card: { backgroundColor: '#fff', borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#ececec' },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  card: { backgroundColor: colors.surface, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
   image: { width: '100%', height: 178, backgroundColor: '#eaf8ef' },
   imageFallback: { alignItems: 'center', justifyContent: 'center' },
   cardBody: { padding: 14 },
   cardMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   pill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: '#eaf8ef', color: '#14843b', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  date: { color: '#999', fontSize: 12, fontWeight: '800' },
-  cardTitle: { marginTop: 12, color: '#111', fontSize: 18, lineHeight: 23, fontWeight: '900' },
-  description: { marginTop: 8, color: '#444', fontSize: 14, lineHeight: 20 },
+  date: { color: colors.textFaint, fontSize: 12, fontWeight: '800' },
+  cardTitle: { marginTop: 12, color: colors.text, fontSize: 18, lineHeight: 23, fontWeight: '900' },
+  description: { marginTop: 8, color: colors.textMuted, fontSize: 14, lineHeight: 20 },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
-  sheet: { maxHeight: '92%', backgroundColor: '#fff', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
+  sheet: { maxHeight: '92%', backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
   sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: '#ddd', marginBottom: 12 },
-  sheetTitle: { color: '#111', fontSize: 20, fontWeight: '900', marginBottom: 14 },
+  sheetTitle: { color: colors.text, fontSize: 20, fontWeight: '900', marginBottom: 14 },
   imagePicker: { height: 116, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', borderColor: '#a8d8b9', backgroundColor: '#f2fbf5', alignItems: 'center', justifyContent: 'center', gap: 6, overflow: 'hidden' },
   imagePickerText: { color: '#14843b', fontSize: 14, fontWeight: '900' },
   pickedImage: { width: '100%', height: '100%' },
   removeImageBtn: { alignSelf: 'flex-end', paddingVertical: 8 },
-  removeImageText: { color: '#d92323', fontSize: 13, fontWeight: '800' },
-  inputLabel: { color: '#555', fontSize: 13, fontWeight: '800', marginTop: 12, marginBottom: 7 },
-  input: { minHeight: 46, borderRadius: 8, backgroundColor: '#f3f3f3', paddingHorizontal: 12, color: '#111', fontSize: 15 },
+  removeImageText: { color: colors.danger, fontSize: 13, fontWeight: '800' },
+  inputLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '800', marginTop: 12, marginBottom: 7 },
+  input: { minHeight: 46, borderRadius: 8, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 15 },
   draftCategories: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  draftCategoryBtn: { height: 34, borderRadius: 9, paddingHorizontal: 10, backgroundColor: '#f3f3f3', justifyContent: 'center' },
+  draftCategoryBtn: { height: 34, borderRadius: 9, paddingHorizontal: 10, backgroundColor: colors.surfaceAlt, justifyContent: 'center' },
   draftCategoryActive: { backgroundColor: '#14843b' },
-  draftCategoryText: { color: '#555', fontSize: 12, fontWeight: '800' },
+  draftCategoryText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   draftCategoryTextActive: { color: '#fff' },
   textArea: { minHeight: 112, paddingTop: 12, lineHeight: 21 },
-  counter: { marginTop: 5, color: '#999', fontSize: 12, textAlign: 'right', fontWeight: '700' },
+  counter: { marginTop: 5, color: colors.textFaint, fontSize: 12, textAlign: 'right', fontWeight: '700' },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  cancelBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
-  cancelText: { color: '#111', fontSize: 15, fontWeight: '900' },
+  cancelBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { color: colors.text, fontSize: 15, fontWeight: '900' },
   saveBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: '#14843b', alignItems: 'center', justifyContent: 'center' },
   saveText: { color: '#fff', fontSize: 15, fontWeight: '900' },
 });

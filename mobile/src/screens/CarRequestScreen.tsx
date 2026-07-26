@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { sendCarRequest } from '../api/carRequests';
 import { useAuthStore } from '../store/authStore';
+import { colors } from '../theme';
 
 const REGION_PRESETS = ['Кишинев', 'Бельцы', 'Кагул', 'Орхей', 'Комрат', 'Любой регион'];
 
@@ -94,7 +95,7 @@ export default function CarRequestScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <View style={styles.headerIcon}>
-            <Ionicons name="car-sport-outline" size={30} color="#111" />
+            <Ionicons name="car-sport-outline" size={30} color={colors.text} />
           </View>
           <Text style={styles.title}>Подбор автомобиля</Text>
           <Text style={styles.subtitle}>Оставьте параметры, и команда Avtotime свяжется с вами по email.</Text>
@@ -114,7 +115,7 @@ export default function CarRequestScreen() {
           <TextInput
             style={styles.input}
             placeholder="Например: BMW"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textFaint}
             value={marca}
             onChangeText={setMarca}
             autoCapitalize="words"
@@ -124,7 +125,7 @@ export default function CarRequestScreen() {
           <TextInput
             style={styles.input}
             placeholder="Например: X5"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textFaint}
             value={model}
             onChangeText={setModel}
             autoCapitalize="words"
@@ -134,7 +135,7 @@ export default function CarRequestScreen() {
           <TextInput
             style={[styles.input, yearError ? styles.inputError : null]}
             placeholder={`${currentYear}`}
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textFaint}
             value={year}
             onChangeText={(value) => setYear(value.replace(/[^0-9]/g, '').slice(0, 4))}
             keyboardType="number-pad"
@@ -146,7 +147,7 @@ export default function CarRequestScreen() {
           <TextInput
             style={styles.input}
             placeholder="Город или регион поиска"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textFaint}
             value={region}
             onChangeText={setRegion}
           />
@@ -173,7 +174,7 @@ export default function CarRequestScreen() {
           <TextInput
             style={styles.input}
             placeholder="name@example.com"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textFaint}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -198,7 +199,7 @@ export default function CarRequestScreen() {
         </View>
 
         <View style={styles.infoBox}>
-          <Ionicons name="mail-outline" size={20} color="#555" />
+          <Ionicons name="mail-outline" size={20} color={colors.textMuted} />
           <Text style={styles.infoText}>Backend отправит заявку администратору и письмо-подтверждение на указанный email.</Text>
         </View>
       </ScrollView>
@@ -207,28 +208,28 @@ export default function CarRequestScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 30 },
   header: { alignItems: 'center', paddingTop: 10, paddingBottom: 20 },
-  headerIcon: { width: 62, height: 62, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee', alignItems: 'center', justifyContent: 'center' },
-  title: { marginTop: 12, color: '#111', fontSize: 28, fontWeight: '900', textAlign: 'center' },
-  subtitle: { marginTop: 5, color: '#666', fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  headerIcon: { width: 62, height: 62, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  title: { marginTop: 12, color: colors.text, fontSize: 28, fontWeight: '900', textAlign: 'center' },
+  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
   successBox: { marginBottom: 12, borderRadius: 8, borderWidth: 1, borderColor: '#bbf7d0', backgroundColor: '#f0fdf4', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
   successText: { flex: 1, color: '#166534', fontSize: 13, lineHeight: 19, fontWeight: '800' },
-  formCard: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 14, marginBottom: 12 },
-  sectionTitle: { color: '#111', fontSize: 18, fontWeight: '900', marginBottom: 12 },
-  inputLabel: { color: '#555', fontSize: 13, fontWeight: '800', marginBottom: 7 },
-  input: { minHeight: 48, borderRadius: 10, backgroundColor: '#f3f3f3', paddingHorizontal: 12, color: '#111', fontSize: 15, marginBottom: 13 },
-  inputError: { borderWidth: 1, borderColor: '#ef4444', backgroundColor: '#fff7f7' },
+  formCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 },
+  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '900', marginBottom: 12 },
+  inputLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '800', marginBottom: 7 },
+  input: { minHeight: 48, borderRadius: 10, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 15, marginBottom: 13 },
+  inputError: { borderWidth: 1, borderColor: colors.danger, backgroundColor: '#fff7f7' },
   errorHint: { color: '#b91c1c', fontSize: 12, fontWeight: '800', marginTop: -7, marginBottom: 12 },
   regionChips: { gap: 8, paddingBottom: 2 },
-  regionChip: { height: 36, borderRadius: 10, paddingHorizontal: 12, backgroundColor: '#f7f7f7', borderWidth: 1, borderColor: '#e6e6e6', justifyContent: 'center' },
-  regionChipActive: { backgroundColor: '#111', borderColor: '#111' },
-  regionChipText: { color: '#555', fontSize: 13, fontWeight: '900' },
+  regionChip: { height: 36, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' },
+  regionChipActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  regionChipText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
   regionChipTextActive: { color: '#fff' },
-  submitBtn: { marginTop: 2, height: 50, borderRadius: 12, backgroundColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  submitBtn: { marginTop: 2, height: 50, borderRadius: 12, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   submitBtnDisabled: { opacity: 0.65 },
   submitText: { color: '#fff', fontSize: 16, fontWeight: '900' },
-  infoBox: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  infoText: { flex: 1, color: '#555', fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  infoBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  infoText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700' },
 });

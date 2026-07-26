@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { updateProfile } from '../api/users';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'EditProfile'> };
 
@@ -104,16 +105,16 @@ export default function EditProfileScreen({ navigation }: Props) {
 
         <View style={styles.avatarActions}>
           <TouchableOpacity style={styles.avatarActionBtn} onPress={takePhoto} disabled={saving}>
-            <Ionicons name="camera-outline" size={18} color="#111" />
+            <Ionicons name="camera-outline" size={18} color={colors.text} />
             <Text style={styles.avatarActionText}>Камера</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.avatarActionBtn} onPress={pickImage} disabled={saving}>
-            <Ionicons name="image-outline" size={18} color="#111" />
+            <Ionicons name="image-outline" size={18} color={colors.text} />
             <Text style={styles.avatarActionText}>Галерея</Text>
           </TouchableOpacity>
           {imageUri ? (
             <TouchableOpacity style={styles.avatarActionBtn} onPress={() => setImageUri(undefined)} disabled={saving}>
-              <Ionicons name="refresh-outline" size={18} color="#111" />
+              <Ionicons name="refresh-outline" size={18} color={colors.text} />
               <Text style={styles.avatarActionText}>Сброс</Text>
             </TouchableOpacity>
           ) : null}
@@ -148,7 +149,7 @@ function Field({ label, style, multiline, ...props }: FieldProps) {
       <TextInput
         {...props}
         style={[styles.input, multiline && styles.multiline, style]}
-        placeholderTextColor="#aaa"
+        placeholderTextColor={colors.textFaint}
         multiline={multiline}
         textAlignVertical={multiline ? 'top' : 'center'}
       />
@@ -157,14 +158,14 @@ function Field({ label, style, multiline, ...props }: FieldProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.surface },
   content: { padding: 18, paddingBottom: 34 },
   avatarWrap: { alignSelf: 'center', marginBottom: 24, position: 'relative' },
-  avatar: { width: 104, height: 104, borderRadius: 52, backgroundColor: '#eee' },
+  avatar: { width: 104, height: 104, borderRadius: 52, backgroundColor: colors.surfaceAlt },
   avatarBadge: {
     position: 'absolute', right: 2, bottom: 2,
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#111', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: colors.surfaceHi, justifyContent: 'center', alignItems: 'center',
     borderWidth: 2, borderColor: '#fff',
   },
   avatarActions: { flexDirection: 'row', gap: 8, marginBottom: 20 },
@@ -172,25 +173,25 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 42,
     borderRadius: 10,
-    backgroundColor: '#f3f3f3',
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#e5e5e5',
+    borderColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
-  avatarActionText: { color: '#111', fontSize: 13, fontWeight: '800' },
+  avatarActionText: { color: colors.text, fontSize: 13, fontWeight: '800' },
   field: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '700', color: '#555', marginBottom: 7 },
+  label: { fontSize: 13, fontWeight: '700', color: colors.textMuted, marginBottom: 7 },
   input: {
-    minHeight: 48, borderWidth: 1, borderColor: '#ddd', borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: '#111',
-    backgroundColor: '#fff',
+    minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: colors.text,
+    backgroundColor: colors.surface,
   },
   multiline: { minHeight: 94, lineHeight: 20 },
   saveBtn: {
-    height: 52, borderRadius: 14, backgroundColor: '#111',
+    height: 52, borderRadius: 14, backgroundColor: colors.surfaceHi,
     justifyContent: 'center', alignItems: 'center', marginTop: 10,
   },
   disabled: { opacity: 0.6 },

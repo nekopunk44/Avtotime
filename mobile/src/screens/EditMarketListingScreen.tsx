@@ -25,6 +25,7 @@ import {
   updateMarketListing,
 } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'EditMarketListing'>;
@@ -215,7 +216,7 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
     <TextInput
       style={[styles.input, options.multiline && styles.textArea]}
       placeholder={placeholder}
-      placeholderTextColor="#999"
+      placeholderTextColor={colors.textFaint}
       value={form[key]}
       onChangeText={(value) => update(key, value)}
       keyboardType={options.keyboardType ?? 'default'}
@@ -229,7 +230,7 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
           <View style={styles.heroIcon}>
-            <Ionicons name={category.icon as any} size={26} color="#111" />
+            <Ionicons name={category.icon as any} size={26} color={colors.text} />
           </View>
           <View style={styles.heroText}>
             <Text style={styles.title}>Редактирование</Text>
@@ -299,21 +300,21 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
             <Image source={{ uri: previewImage }} style={styles.previewImage} />
           ) : (
             <View style={[styles.previewImage, styles.imageFallback]}>
-              <Ionicons name="image-outline" size={34} color="#999" />
+              <Ionicons name="image-outline" size={34} color={colors.textFaint} />
             </View>
           )}
           <View style={styles.imageActions}>
             <TouchableOpacity style={styles.imagePicker} onPress={takePhoto} activeOpacity={0.85}>
-              <Ionicons name="camera-outline" size={20} color="#111" />
+              <Ionicons name="camera-outline" size={20} color={colors.text} />
               <Text style={styles.imagePickerText}>Камера</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.imagePicker} onPress={pickImages} activeOpacity={0.85}>
-              <Ionicons name="images-outline" size={20} color="#111" />
+              <Ionicons name="images-outline" size={20} color={colors.text} />
               <Text style={styles.imagePickerText}>{images.length ? 'Выбрать другие' : 'Заменить фото'}</Text>
             </TouchableOpacity>
             {images.length ? (
               <TouchableOpacity style={styles.clearImageBtn} onPress={() => setImages([])}>
-                <Ionicons name="refresh-outline" size={18} color="#555" />
+                <Ionicons name="refresh-outline" size={18} color={colors.textMuted} />
                 <Text style={styles.clearImageText}>Оставить текущее</Text>
               </TouchableOpacity>
             ) : null}
@@ -344,57 +345,57 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.surface },
   content: { padding: 16, paddingBottom: 32 },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   heroIcon: {
     width: 54,
     height: 54,
     borderRadius: 16,
-    backgroundColor: '#f3f3f3',
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#e6e6e6',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   heroText: { flex: 1 },
-  title: { color: '#111', fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 2, color: '#666', fontSize: 14, fontWeight: '700' },
-  sectionTitle: { marginTop: 14, marginBottom: 8, color: '#111', fontSize: 15, fontWeight: '900' },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 2, color: colors.textMuted, fontSize: 14, fontWeight: '700' },
+  sectionTitle: { marginTop: 14, marginBottom: 8, color: colors.text, fontSize: 15, fontWeight: '900' },
   input: {
     minHeight: 48,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
-    color: '#111',
+    color: colors.text,
     fontSize: 15,
     marginBottom: 10,
-    backgroundColor: '#fafafa',
+    backgroundColor: colors.bg,
   },
   textArea: { minHeight: 110, paddingTop: 12, lineHeight: 20 },
   imageBlock: {
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#e5e5e5',
-    backgroundColor: '#fafafa',
+    borderColor: colors.border,
+    backgroundColor: colors.bg,
     overflow: 'hidden',
   },
-  previewImage: { width: '100%', aspectRatio: 1.5, backgroundColor: '#eee' },
+  previewImage: { width: '100%', aspectRatio: 1.5, backgroundColor: colors.surfaceAlt },
   imageFallback: { alignItems: 'center', justifyContent: 'center' },
   imageActions: { padding: 10, gap: 8 },
   imagePicker: {
     height: 44,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
   },
-  imagePickerText: { color: '#111', fontSize: 14, fontWeight: '900' },
+  imagePickerText: { color: colors.text, fontSize: 14, fontWeight: '900' },
   clearImageBtn: {
     height: 38,
     borderRadius: 8,
@@ -403,13 +404,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
-  clearImageText: { color: '#555', fontSize: 13, fontWeight: '800' },
+  clearImageText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   selectedRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  selectedThumb: { width: 58, height: 58, borderRadius: 8, backgroundColor: '#eee' },
+  selectedThumb: { width: 58, height: 58, borderRadius: 8, backgroundColor: colors.surfaceAlt },
   submitBtn: {
     height: 52,
     borderRadius: 12,
-    backgroundColor: '#111',
+    backgroundColor: colors.surfaceHi,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',

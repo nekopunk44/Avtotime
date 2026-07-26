@@ -22,6 +22,7 @@ import {
   getDrivingTickets,
 } from '../api/driving';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
@@ -125,7 +126,7 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
   const activeMode = modes.find((item) => item.mode === selectedMode) ?? modes[0];
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color="#111" /></View>;
+    return <View style={styles.center}><ActivityIndicator size="large" color={colors.text} /></View>;
   }
 
   return (
@@ -136,7 +137,7 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
     >
       <View style={styles.header}>
         <View style={styles.headerIcon}>
-          <Ionicons name="school-outline" size={28} color="#111" />
+          <Ionicons name="school-outline" size={28} color={colors.text} />
         </View>
         <Text style={styles.title}>Автокурсы</Text>
         <Text style={styles.subtitle}>Билеты, тренировка и экзамен по вопросам ПДД</Text>
@@ -166,13 +167,13 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
 
       <TouchableOpacity style={styles.historyBtn} onPress={() => openResults()} activeOpacity={0.88}>
         <View style={styles.historyIcon}>
-          <Ionicons name="stats-chart-outline" size={20} color="#111" />
+          <Ionicons name="stats-chart-outline" size={20} color={colors.text} />
         </View>
         <View style={styles.historyTextWrap}>
           <Text style={styles.historyTitle}>История результатов</Text>
           <Text style={styles.historySubtitle}>Оценки, ошибки и повтор билетов</Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#777" />
+        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
       </TouchableOpacity>
 
       {recentResults.length ? (
@@ -213,7 +214,7 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
           return (
             <TouchableOpacity
               key={item.mode}
-              style={[styles.modeCard, selected && styles.modeCardActive, { backgroundColor: selected ? item.backgroundColor : '#fff' }]}
+              style={[styles.modeCard, selected && styles.modeCardActive, { backgroundColor: selected ? item.backgroundColor : colors.surface }]}
               onPress={() => setSelectedMode(item.mode)}
               activeOpacity={0.88}
             >
@@ -269,50 +270,50 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 28 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   header: { alignItems: 'center', paddingTop: 14, paddingBottom: 20 },
-  headerIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#eee' },
-  title: { marginTop: 12, color: '#111', fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 5, color: '#666', fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fef2f2', borderColor: '#fee2e2', borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 12 },
+  headerIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  title: { marginTop: 12, color: colors.text, fontSize: 30, fontWeight: '900' },
+  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderColor: '#fee2e2', borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 12 },
   errorText: { flex: 1, color: '#991b1b', fontSize: 13, fontWeight: '700' },
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 18 },
-  statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 8, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
-  statValue: { color: '#111', fontSize: 20, fontWeight: '900' },
-  statLabel: { color: '#777', fontSize: 11, fontWeight: '700', marginTop: 3 },
-  historyBtn: { minHeight: 68, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  statCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 8, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  statValue: { color: colors.text, fontSize: 20, fontWeight: '900' },
+  statLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', marginTop: 3 },
+  historyBtn: { minHeight: 68, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
   historyIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' },
   historyTextWrap: { flex: 1 },
-  historyTitle: { color: '#111', fontSize: 15, fontWeight: '900' },
-  historySubtitle: { marginTop: 3, color: '#666', fontSize: 12, fontWeight: '700' },
+  historyTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  historySubtitle: { marginTop: 3, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   recentBlock: { marginBottom: 18 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  sectionTitleCompact: { color: '#111', fontSize: 17, fontWeight: '900' },
-  sectionLink: { color: '#111', fontSize: 13, fontWeight: '900' },
+  sectionTitleCompact: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  sectionLink: { color: colors.text, fontSize: 13, fontWeight: '900' },
   recentList: { gap: 8 },
-  resultMiniCard: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12 },
+  resultMiniCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
   resultMiniTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  resultMiniMode: { color: '#111', fontSize: 14, fontWeight: '900' },
+  resultMiniMode: { color: colors.text, fontSize: 14, fontWeight: '900' },
   resultMiniStatus: { fontSize: 16, fontWeight: '900' },
   resultPassed: { color: '#15803d' },
   resultFailed: { color: '#b91c1c' },
-  resultMiniMeta: { marginTop: 4, color: '#666', fontSize: 12, fontWeight: '700' },
-  sectionTitle: { color: '#111', fontSize: 17, fontWeight: '900', marginBottom: 10 },
+  resultMiniMeta: { marginTop: 4, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 10 },
   modeList: { gap: 9 },
-  modeCard: { minHeight: 78, borderRadius: 8, borderWidth: 1, borderColor: '#eee', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  modeCard: { minHeight: 78, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
   modeCardActive: { borderColor: '#d5d5d5' },
   modeIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   modeTextWrap: { flex: 1 },
-  modeTitle: { color: '#111', fontSize: 16, fontWeight: '900' },
-  modeDescription: { marginTop: 3, color: '#666', fontSize: 12, lineHeight: 17 },
+  modeTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
+  modeDescription: { marginTop: 3, color: colors.textMuted, fontSize: 12, lineHeight: 17 },
   startBigBtn: { height: 52, borderRadius: 12, marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   startBigText: { color: '#fff', fontWeight: '900', fontSize: 16 },
   ticketHeader: { marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  ticketHint: { color: '#888', fontSize: 12, fontWeight: '800' },
+  ticketHint: { color: colors.textFaint, fontSize: 12, fontWeight: '800' },
   ticketRow: { gap: 8, marginBottom: 8 },
-  ticketBtn: { flex: 1, aspectRatio: 1, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', alignItems: 'center', justifyContent: 'center' },
-  ticketNumber: { color: '#111', fontSize: 17, fontWeight: '900' },
-  ticketCount: { marginTop: 2, color: '#999', fontSize: 10, fontWeight: '800' },
+  ticketBtn: { flex: 1, aspectRatio: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  ticketNumber: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  ticketCount: { marginTop: 2, color: colors.textFaint, fontSize: 10, fontWeight: '800' },
 });

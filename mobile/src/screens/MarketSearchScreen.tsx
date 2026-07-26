@@ -29,6 +29,7 @@ import {
   searchMarketListings,
 } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'MarketSearch'> };
 
@@ -149,18 +150,18 @@ export default function MarketSearchScreen({ navigation }: Props) {
     <View style={styles.header}>
       <View style={styles.hero}>
         <View style={styles.heroIcon}>
-          <Ionicons name="options-outline" size={27} color="#111" />
+          <Ionicons name="options-outline" size={27} color={colors.text} />
         </View>
         <Text style={styles.title}>Поиск маркета</Text>
         <Text style={styles.subtitle}>Все объявления, фильтры, бренды и сортировка</Text>
       </View>
 
       <View style={styles.searchBox}>
-        <Ionicons name="search-outline" size={18} color="#777" />
+        <Ionicons name="search-outline" size={18} color={colors.textMuted} />
         <TextInput
           style={styles.searchInput}
           placeholder="Марка, модель, услуга или запчасть"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textFaint}
           value={query}
           onChangeText={setQuery}
           autoCapitalize="none"
@@ -168,7 +169,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
         />
         {query ? (
           <TouchableOpacity onPress={() => setQuery('')}>
-            <Ionicons name="close-circle" size={18} color="#999" />
+            <Ionicons name="close-circle" size={18} color={colors.textFaint} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -200,7 +201,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
           <TextInput
             style={styles.filterInput}
             placeholder="Город"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textFaint}
             value={location}
             onChangeText={setLocation}
           />
@@ -210,7 +211,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
           <TextInput
             style={styles.filterInput}
             placeholder="0"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textFaint}
             value={minPrice}
             onChangeText={(value) => setMinPrice(onlyDigits(value))}
             keyboardType="number-pad"
@@ -221,7 +222,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
           <TextInput
             style={styles.filterInput}
             placeholder="Любая"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textFaint}
             value={maxPrice}
             onChangeText={(value) => setMaxPrice(onlyDigits(value))}
             keyboardType="number-pad"
@@ -249,7 +250,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
       <View style={styles.metaBlock}>
         <View style={styles.metaTitleRow}>
           <Text style={styles.metaTitle}>Бренды и модели</Text>
-          {metaLoading ? <ActivityIndicator color="#111" /> : null}
+          {metaLoading ? <ActivityIndicator color={colors.text} /> : null}
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           {brands.length ? brands.slice(0, 18).map((item) => {
@@ -293,7 +294,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
       <View style={styles.summaryRow}>
         <Text style={styles.resultCount}>{results.length} результатов</Text>
         <TouchableOpacity onPress={clearFilters} style={styles.clearBtn}>
-          <Ionicons name="refresh-outline" size={15} color="#111" />
+          <Ionicons name="refresh-outline" size={15} color={colors.text} />
           <Text style={styles.clearText}>Сбросить</Text>
         </TouchableOpacity>
       </View>
@@ -310,7 +311,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
           <Image source={{ uri: image }} style={styles.cardImage} />
         ) : (
           <View style={[styles.cardImage, styles.noImage]}>
-            <Ionicons name={category.icon as any} size={28} color="#aaa" />
+            <Ionicons name={category.icon as any} size={28} color={colors.textFaint} />
           </View>
         )}
         <View style={styles.cardBody}>
@@ -321,7 +322,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
           <Text style={styles.cardTitle} numberOfLines={2}>{getListingTitle(item)}</Text>
           <Text style={styles.price}>{getListingPrice(item, categoryId)}</Text>
           <View style={styles.metaRow}>
-            <Ionicons name="location-outline" size={14} color="#777" />
+            <Ionicons name="location-outline" size={14} color={colors.textMuted} />
             <Text style={styles.metaText} numberOfLines={1}>{item.location || item.region || item.registrationPlace || 'Локация не указана'}</Text>
           </View>
           <View style={styles.specRow}>
@@ -347,11 +348,11 @@ export default function MarketSearchScreen({ navigation }: Props) {
       ListEmptyComponent={
         loading ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color="#111" />
+            <ActivityIndicator size="large" color={colors.text} />
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Ionicons name={error ? 'alert-circle-outline' : 'search-outline'} size={38} color="#bbb" />
+            <Ionicons name={error ? 'alert-circle-outline' : 'search-outline'} size={38} color={colors.textFaint} />
             <Text style={styles.emptyTitle}>{error || 'Ничего не найдено'}</Text>
             <Text style={styles.emptyText}>
               {error ? 'Потяните экран вниз, чтобы повторить запрос.' : 'Измените запрос, категорию или ценовой диапазон.'}
@@ -364,56 +365,56 @@ export default function MarketSearchScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   header: { gap: 10, marginBottom: 2 },
   hero: { alignItems: 'center', paddingVertical: 12 },
-  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  title: { color: '#111', fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 5, color: '#666', fontSize: 14, textAlign: 'center' },
-  searchBox: { height: 46, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
-  searchInput: { flex: 1, color: '#111', fontSize: 15 },
+  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
+  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, textAlign: 'center' },
+  searchBox: { height: 46, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  searchInput: { flex: 1, color: colors.text, fontSize: 15 },
   chipRow: { gap: 8, paddingVertical: 2 },
-  typeChip: { height: 38, borderRadius: 10, paddingHorizontal: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5e5', flexDirection: 'row', alignItems: 'center', gap: 6 },
-  typeChipActive: { backgroundColor: '#111', borderColor: '#111' },
-  typeChipText: { color: '#555', fontSize: 13, fontWeight: '900' },
+  typeChip: { height: 38, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  typeChipActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  typeChipText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
   typeChipTextActive: { color: '#fff' },
   filterGrid: { flexDirection: 'row', gap: 8 },
   filterInputWrap: { flex: 1 },
-  inputLabel: { color: '#666', fontSize: 12, fontWeight: '800', marginBottom: 6 },
-  filterInput: { height: 42, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', paddingHorizontal: 10, color: '#111', fontSize: 14 },
-  sortChip: { height: 36, borderRadius: 10, paddingHorizontal: 11, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5e5', flexDirection: 'row', alignItems: 'center', gap: 5 },
-  sortChipActive: { backgroundColor: '#d92323', borderColor: '#d92323' },
-  sortChipText: { color: '#555', fontSize: 12, fontWeight: '900' },
+  inputLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '800', marginBottom: 6 },
+  filterInput: { height: 42, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 10, color: colors.text, fontSize: 14 },
+  sortChip: { height: 36, borderRadius: 10, paddingHorizontal: 11, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  sortChipActive: { backgroundColor: colors.danger, borderColor: colors.danger },
+  sortChipText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
   sortChipTextActive: { color: '#fff' },
-  metaBlock: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12, gap: 8 },
+  metaBlock: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 8 },
   metaTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  metaTitle: { color: '#111', fontSize: 15, fontWeight: '900' },
-  metaChip: { height: 34, borderRadius: 10, paddingHorizontal: 11, backgroundColor: '#f7f7f7', borderWidth: 1, borderColor: '#e5e5e5', justifyContent: 'center' },
-  metaChipActive: { backgroundColor: '#111', borderColor: '#111' },
-  metaChipText: { color: '#555', fontSize: 12, fontWeight: '900' },
+  metaTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  metaChip: { height: 34, borderRadius: 10, paddingHorizontal: 11, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' },
+  metaChipActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  metaChipText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
   metaChipTextActive: { color: '#fff' },
-  emptyMetaText: { color: '#999', fontSize: 12, fontWeight: '700' },
+  emptyMetaText: { color: colors.textFaint, fontSize: 12, fontWeight: '700' },
   summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  resultCount: { color: '#111', fontSize: 15, fontWeight: '900' },
-  clearBtn: { height: 34, borderRadius: 10, paddingHorizontal: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5e5', flexDirection: 'row', alignItems: 'center', gap: 5 },
-  clearText: { color: '#111', fontSize: 12, fontWeight: '900' },
-  card: { backgroundColor: '#fff', borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#ececec' },
-  cardImage: { width: '100%', height: 170, backgroundColor: '#eee' },
+  resultCount: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  clearBtn: { height: 34, borderRadius: 10, paddingHorizontal: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  clearText: { color: colors.text, fontSize: 12, fontWeight: '900' },
+  card: { backgroundColor: colors.surface, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
+  cardImage: { width: '100%', height: 170, backgroundColor: colors.surfaceAlt },
   noImage: { alignItems: 'center', justifyContent: 'center' },
   cardBody: { padding: 12 },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  categoryPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: '#f2f2f2', color: '#111', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  yearText: { color: '#777', fontSize: 12, fontWeight: '900' },
-  cardTitle: { marginTop: 11, color: '#111', fontSize: 18, lineHeight: 23, fontWeight: '900' },
-  price: { marginTop: 7, color: '#111', fontSize: 17, fontWeight: '900' },
+  categoryPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: colors.surfaceAlt, color: colors.text, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  yearText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
+  cardTitle: { marginTop: 11, color: colors.text, fontSize: 18, lineHeight: 23, fontWeight: '900' },
+  price: { marginTop: 7, color: colors.text, fontSize: 17, fontWeight: '900' },
   metaRow: { marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { flex: 1, color: '#777', fontSize: 13 },
+  metaText: { flex: 1, color: colors.textMuted, fontSize: 13 },
   specRow: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  spec: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: '#f3f3f3', color: '#555', fontSize: 12, fontWeight: '700' },
+  spec: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: colors.surfaceAlt, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   loadingBox: { paddingVertical: 34 },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 6, color: '#777', fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
 });

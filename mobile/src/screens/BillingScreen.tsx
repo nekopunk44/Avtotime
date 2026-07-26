@@ -23,6 +23,7 @@ import {
   WEB_TARIFFS_URL,
 } from '../api/billing';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'Billing'> };
 
@@ -46,8 +47,8 @@ const PLAN_LABEL: Record<string, string> = {
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
   succeeded: { label: 'Оплачен', color: '#14843b', bg: '#eaf8ef' },
   pending: { label: 'В обработке', color: '#9a5a00', bg: '#fff6df' },
-  failed: { label: 'Ошибка', color: '#d92323', bg: '#fff0f0' },
-  refunded: { label: 'Возврат', color: '#555', bg: '#f0f0f0' },
+  failed: { label: 'Ошибка', color: colors.danger, bg: '#fff0f0' },
+  refunded: { label: 'Возврат', color: colors.textMuted, bg: '#f0f0f0' },
 };
 
 const PLANS: PlanCard[] = [
@@ -285,13 +286,13 @@ export default function BillingScreen({ navigation }: Props) {
   };
 
   const renderPayment = (payment: PaymentRow, index: number) => {
-    const statusInfo = STATUS_LABEL[payment.status] || { label: payment.status, color: '#555', bg: '#f0f0f0' };
+    const statusInfo = STATUS_LABEL[payment.status] || { label: payment.status, color: colors.textMuted, bg: '#f0f0f0' };
     const planLabel = PLAN_LABEL[payment.plan] || payment.plan;
 
     return (
       <View key={payment._id || `${payment.createdAt}-${index}`} style={styles.paymentRow}>
         <View style={styles.paymentIcon}>
-          <Ionicons name={payment.plan === 'business' ? 'business-outline' : 'sparkles-outline'} size={20} color="#d92323" />
+          <Ionicons name={payment.plan === 'business' ? 'business-outline' : 'sparkles-outline'} size={20} color={colors.danger} />
         </View>
         <View style={styles.paymentInfo}>
           <Text style={styles.paymentTitle}>{planLabel}</Text>
@@ -316,14 +317,14 @@ export default function BillingScreen({ navigation }: Props) {
             <Text style={styles.subtitle}>План, лимиты и история платежей AVTOTIME Market</Text>
           </View>
           <TouchableOpacity style={styles.historyBtn} onPress={() => navigation.navigate('MarketAnalytics')} activeOpacity={0.85}>
-            <Ionicons name="bar-chart-outline" size={22} color="#111" />
+            <Ionicons name="bar-chart-outline" size={22} color={colors.text} />
           </TouchableOpacity>
         </View>
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#111" />
+          <ActivityIndicator size="large" color={colors.text} />
         </View>
       ) : (
         <ScrollView
@@ -332,7 +333,7 @@ export default function BillingScreen({ navigation }: Props) {
         >
           {error ? (
             <View style={styles.errorBox}>
-              <Ionicons name="alert-circle-outline" size={24} color="#d92323" />
+              <Ionicons name="alert-circle-outline" size={24} color={colors.danger} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
@@ -367,7 +368,7 @@ export default function BillingScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.noticeBox}>
-            <Ionicons name="card-outline" size={22} color="#111" />
+            <Ionicons name="card-outline" size={22} color={colors.text} />
             <Text style={styles.noticeText}>
               В Expo Go платная карта открывается через web checkout. Native Stripe форму можно добавить позже для dev build.
             </Text>
@@ -379,7 +380,7 @@ export default function BillingScreen({ navigation }: Props) {
 
           <View style={styles.historyBlock}>
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="receipt-outline" size={21} color="#111" />
+              <Ionicons name="receipt-outline" size={21} color={colors.text} />
               <Text style={styles.sectionTitle}>История платежей</Text>
             </View>
 
@@ -389,7 +390,7 @@ export default function BillingScreen({ navigation }: Props) {
               </View>
             ) : (
               <View style={styles.emptyHistory}>
-                <Ionicons name="receipt-outline" size={34} color="#bbb" />
+                <Ionicons name="receipt-outline" size={34} color={colors.textFaint} />
                 <Text style={styles.emptyTitle}>Платежей пока нет</Text>
                 <Text style={styles.emptyText}>После оплаты Pro или Business операции появятся здесь.</Text>
               </View>
@@ -402,16 +403,16 @@ export default function BillingScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  top: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   titleBlock: { flex: 1 },
-  title: { color: '#111', fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: '#666', fontSize: 13 },
-  historyBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13 },
+  historyBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { padding: 12, paddingBottom: 28, gap: 10 },
-  statusCard: { borderRadius: 8, backgroundColor: '#111', padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+  statusCard: { borderRadius: 8, backgroundColor: colors.surfaceHi, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
   statusLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   statusPlan: { marginTop: 5, color: '#fff', fontSize: 27, fontWeight: '900' },
   statusDate: { marginTop: 5, color: 'rgba(255,255,255,0.68)', fontSize: 12, fontWeight: '700' },
@@ -419,18 +420,18 @@ const styles = StyleSheet.create({
   statusStatValue: { color: '#fff', fontSize: 24, fontWeight: '900' },
   statusStatLabel: { color: 'rgba(255,255,255,0.58)', fontSize: 12, fontWeight: '800' },
   statusStatTotal: { marginTop: 8, color: '#fff', fontSize: 13, fontWeight: '900' },
-  geoBox: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  geoIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
+  geoBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  geoIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   geoTextWrap: { flex: 1 },
-  geoTitle: { color: '#111', fontSize: 14, fontWeight: '900' },
-  geoText: { marginTop: 3, color: '#666', fontSize: 12, lineHeight: 17, fontWeight: '700' },
-  noticeBox: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
-  noticeText: { flex: 1, color: '#555', fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  geoTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  geoText: { marginTop: 3, color: colors.textMuted, fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  noticeBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
+  noticeText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700' },
   planList: { gap: 10 },
   planCard: { borderRadius: 8, borderWidth: 1, padding: 15 },
   planHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   planIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  activePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#d92323', color: '#fff', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  activePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: colors.danger, color: '#fff', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   planEyebrow: { marginTop: 15, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   planName: { marginTop: 7, fontSize: 24, fontWeight: '900' },
   planPrice: { marginTop: 5, fontSize: 18, fontWeight: '900' },
@@ -439,28 +440,28 @@ const styles = StyleSheet.create({
   featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   featureText: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   planBtn: { height: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
-  planBtnDark: { backgroundColor: '#111' },
-  planBtnLight: { backgroundColor: '#fff' },
+  planBtnDark: { backgroundColor: colors.surfaceHi },
+  planBtnLight: { backgroundColor: colors.surface },
   planBtnDisabled: { backgroundColor: '#e6e6e6' },
   planBtnText: { fontSize: 14, fontWeight: '900' },
   planBtnTextLight: { color: '#fff' },
-  planBtnTextDark: { color: '#111' },
-  planBtnTextDisabled: { color: '#777' },
-  historyBlock: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 14 },
+  planBtnTextDark: { color: colors.text },
+  planBtnTextDisabled: { color: colors.textMuted },
+  historyBlock: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 14 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sectionTitle: { color: '#111', fontSize: 18, fontWeight: '900' },
+  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
   paymentsList: { gap: 9, marginTop: 12 },
-  paymentRow: { minHeight: 70, borderRadius: 8, backgroundColor: '#f7f7f7', padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  paymentIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff0f0', alignItems: 'center', justifyContent: 'center' },
+  paymentRow: { minHeight: 70, borderRadius: 8, backgroundColor: colors.bg, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  paymentIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center' },
   paymentInfo: { flex: 1 },
-  paymentTitle: { color: '#111', fontSize: 14, fontWeight: '900' },
-  paymentDate: { marginTop: 3, color: '#777', fontSize: 12, fontWeight: '700' },
+  paymentTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  paymentDate: { marginTop: 3, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   paymentRight: { alignItems: 'flex-end', gap: 6 },
-  paymentAmount: { color: '#111', fontSize: 14, fontWeight: '900' },
+  paymentAmount: { color: colors.text, fontSize: 14, fontWeight: '900' },
   statusPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   emptyHistory: { alignItems: 'center', paddingVertical: 28 },
-  emptyTitle: { marginTop: 9, color: '#111', fontSize: 16, fontWeight: '900' },
-  emptyText: { marginTop: 5, color: '#777', fontSize: 13, textAlign: 'center', lineHeight: 19 },
-  errorBox: { borderRadius: 8, backgroundColor: '#fff0f0', borderWidth: 1, borderColor: '#ffd3d3', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  errorText: { flex: 1, color: '#a51010', fontSize: 13, fontWeight: '800' },
+  emptyTitle: { marginTop: 9, color: colors.text, fontSize: 16, fontWeight: '900' },
+  emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  errorBox: { borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: 1, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
 });

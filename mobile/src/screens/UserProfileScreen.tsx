@@ -20,6 +20,7 @@ import { getUserRatingStats, ReviewStats } from '../api/reviews';
 import { useAuthStore } from '../store/authStore';
 import { User } from '../api/auth';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'UserProfile'>;
@@ -133,7 +134,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   if (loading || !user) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -190,7 +191,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
             <Text style={styles.ratingCount}>{ratingStats.totalReviews} отзывов</Text>
           </View>
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#aaa" />
+        <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
       </TouchableOpacity>
 
       {isMe ? (
@@ -222,7 +223,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
             style={styles.secondaryBtn}
             onPress={() => navigation.navigate('Chat', { userId, name: user.name, userName: user.userName ?? '' })}
           >
-            <Ionicons name="chatbubble-outline" size={18} color="#111" />
+            <Ionicons name="chatbubble-outline" size={18} color={colors.text} />
             <Text style={styles.secondaryText}>Сообщение</Text>
           </TouchableOpacity>
         </View>
@@ -232,13 +233,13 @@ export default function UserProfileScreen({ route, navigation }: Props) {
         <View style={styles.infoCard}>
           {user.location ? (
             <View style={styles.infoLine}>
-              <Ionicons name="location-outline" size={17} color="#777" />
+              <Ionicons name="location-outline" size={17} color={colors.textMuted} />
               <Text style={styles.infoText}>{user.location}</Text>
             </View>
           ) : null}
           {user.website ? (
             <TouchableOpacity style={styles.infoLine} onPress={() => openUrl(user.website)}>
-              <Ionicons name="globe-outline" size={17} color="#777" />
+              <Ionicons name="globe-outline" size={17} color={colors.textMuted} />
               <Text style={styles.infoLink} numberOfLines={1}>{user.website}</Text>
             </TouchableOpacity>
           ) : null}
@@ -274,7 +275,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
         </View>
       ) : (
         <View style={[styles.gridImage, styles.gridNoImage]}>
-          <Ionicons name="text-outline" size={20} color="#aaa" />
+          <Ionicons name="text-outline" size={20} color={colors.textFaint} />
           {item.caption ? <Text style={styles.textPost} numberOfLines={3}>{item.caption}</Text> : null}
         </View>
       )}
@@ -293,7 +294,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       ListEmptyComponent={
         <View style={styles.emptyState}>
-          <Ionicons name="images-outline" size={42} color="#bbb" />
+          <Ionicons name="images-outline" size={42} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>Публикаций пока нет</Text>
           <Text style={styles.emptyText}>Когда пользователь опубликует посты, они появятся здесь.</Text>
         </View>
@@ -303,49 +304,49 @@ export default function UserProfileScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
   list: { padding: 12, paddingBottom: 28 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   header: { gap: 12, marginBottom: 12 },
-  profileTop: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12 },
-  avatar: { width: 74, height: 74, borderRadius: 37, backgroundColor: '#eee' },
+  profileTop: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  avatar: { width: 74, height: 74, borderRadius: 37, backgroundColor: colors.surfaceAlt },
   profileInfo: { flex: 1 },
-  name: { color: '#111', fontSize: 22, fontWeight: '900' },
-  username: { marginTop: 2, color: '#777', fontSize: 13, fontWeight: '800' },
-  meta: { marginTop: 6, color: '#555', fontSize: 13, fontWeight: '800' },
-  bio: { color: '#333', fontSize: 14, lineHeight: 21, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12 },
+  name: { color: colors.text, fontSize: 22, fontWeight: '900' },
+  username: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  meta: { marginTop: 6, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  bio: { color: colors.textMuted, fontSize: 14, lineHeight: 21, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
   stats: { flexDirection: 'row', gap: 8 },
-  stat: { flex: 1, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', alignItems: 'center', paddingVertical: 12 },
-  statNum: { color: '#111', fontSize: 20, fontWeight: '900' },
-  statLabel: { marginTop: 2, color: '#777', fontSize: 11, fontWeight: '800' },
-  ratingCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12 },
+  stat: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', paddingVertical: 12 },
+  statNum: { color: colors.text, fontSize: 20, fontWeight: '900' },
+  statLabel: { marginTop: 2, color: colors.textMuted, fontSize: 11, fontWeight: '800' },
+  ratingCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
   ratingIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#fff8ec', alignItems: 'center', justifyContent: 'center' },
   ratingBody: { flex: 1 },
-  ratingTitle: { color: '#111', fontSize: 14, fontWeight: '900' },
+  ratingTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
   ratingRow: { marginTop: 5, flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap' },
-  ratingValue: { color: '#111', fontSize: 18, fontWeight: '900' },
-  ratingCount: { color: '#777', fontSize: 12, fontWeight: '800' },
+  ratingValue: { color: colors.text, fontSize: 18, fontWeight: '900' },
+  ratingCount: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   stars: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   mainActions: { flexDirection: 'row', gap: 8 },
-  primaryBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  primaryBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   primaryText: { color: '#fff', fontSize: 14, fontWeight: '900' },
-  followingBtn: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd' },
-  followingText: { color: '#111' },
-  secondaryBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  secondaryText: { color: '#111', fontSize: 14, fontWeight: '900' },
-  infoCard: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12, gap: 8 },
+  followingBtn: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  followingText: { color: colors.text },
+  secondaryBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  secondaryText: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  infoCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 8 },
   infoLine: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  infoText: { color: '#555', fontSize: 13, fontWeight: '700' },
-  infoLink: { flex: 1, color: '#0066ff', fontSize: 13, fontWeight: '800' },
+  infoText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
+  infoLink: { flex: 1, color: colors.text, fontSize: 13, fontWeight: '800' },
   sectionTitleRow: { paddingHorizontal: 2 },
-  sectionTitle: { color: '#111', fontSize: 18, fontWeight: '900' },
+  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
   gridItem: { width: '33.333%', aspectRatio: 1, padding: 1.5 },
-  gridImage: { width: '100%', height: '100%', borderRadius: 4, backgroundColor: '#eee' },
-  gridNoImage: { alignItems: 'center', justifyContent: 'center', padding: 7, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' },
+  gridImage: { width: '100%', height: '100%', borderRadius: 4, backgroundColor: colors.surfaceAlt },
+  gridNoImage: { alignItems: 'center', justifyContent: 'center', padding: 7, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   gridVideoBadge: { position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
-  textPost: { marginTop: 5, color: '#555', fontSize: 10, textAlign: 'center', lineHeight: 14 },
+  textPost: { marginTop: 5, color: colors.textMuted, fontSize: 10, textAlign: 'center', lineHeight: 14 },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 5, color: '#777', fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
 });

@@ -19,6 +19,7 @@ import {
   saveDrivingResult,
 } from '../api/driving';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'DrivingQuiz'>;
@@ -155,13 +156,13 @@ export default function DrivingQuizScreen({ navigation, route }: Props) {
   };
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color="#111" /></View>;
+    return <View style={styles.center}><ActivityIndicator size="large" color={colors.text} /></View>;
   }
 
   if (error || !currentQuestion) {
     return (
       <View style={styles.center}>
-        <Ionicons name="alert-circle-outline" size={36} color="#bbb" />
+        <Ionicons name="alert-circle-outline" size={36} color={colors.textFaint} />
         <Text style={styles.errorTitle}>{error || 'Вопросы не найдены'}</Text>
         <TouchableOpacity style={styles.retryBtn} onPress={loadQuestions}>
           <Text style={styles.retryText}>Повторить</Text>
@@ -181,7 +182,7 @@ export default function DrivingQuizScreen({ navigation, route }: Props) {
         <Text style={styles.resultMeta}>
           Правильно {correctCount} из {questions.length}
         </Text>
-        {saving ? <ActivityIndicator color="#111" style={{ marginTop: 12 }} /> : null}
+        {saving ? <ActivityIndicator color={colors.text} style={{ marginTop: 12 }} /> : null}
 
         <View style={styles.resultStats}>
           <View style={styles.resultStat}>
@@ -199,7 +200,7 @@ export default function DrivingQuizScreen({ navigation, route }: Props) {
           <Text style={styles.primaryText}>Пройти ещё раз</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('DrivingResults', { mode })}>
-          <Ionicons name="stats-chart-outline" size={18} color="#111" />
+          <Ionicons name="stats-chart-outline" size={18} color={colors.text} />
           <Text style={styles.secondaryText}>История результатов</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.goBack()}>
@@ -277,7 +278,7 @@ export default function DrivingQuizScreen({ navigation, route }: Props) {
             disabled={currentIndex === 0}
             onPress={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
           >
-            <Ionicons name="chevron-back" size={18} color="#111" />
+            <Ionicons name="chevron-back" size={18} color={colors.text} />
             <Text style={styles.navText}>Назад</Text>
           </TouchableOpacity>
           {currentIndex === questions.length - 1 ? (
@@ -290,7 +291,7 @@ export default function DrivingQuizScreen({ navigation, route }: Props) {
               onPress={() => setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1))}
             >
               <Text style={styles.navText}>Далее</Text>
-              <Ionicons name="chevron-forward" size={18} color="#111" />
+              <Ionicons name="chevron-forward" size={18} color={colors.text} />
             </TouchableOpacity>
           )}
         </View>
@@ -321,60 +322,60 @@ export default function DrivingQuizScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#fff' },
-  topBar: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  modeText: { color: '#111', fontSize: 19, fontWeight: '900' },
-  progressText: { color: '#777', fontSize: 12, fontWeight: '700', marginTop: 2 },
-  timerBox: { height: 38, borderRadius: 10, backgroundColor: '#f3f3f3', paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: colors.surface },
+  topBar: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  modeText: { color: colors.text, fontSize: 19, fontWeight: '900' },
+  progressText: { color: colors.textMuted, fontSize: 12, fontWeight: '700', marginTop: 2 },
+  timerBox: { height: 38, borderRadius: 10, backgroundColor: colors.surfaceAlt, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
   timerWarning: { backgroundColor: '#fee2e2' },
-  timerText: { color: '#111', fontSize: 15, fontWeight: '900' },
+  timerText: { color: colors.text, fontSize: 15, fontWeight: '900' },
   timerTextWarning: { color: '#b91c1c' },
   content: { padding: 14, paddingBottom: 28 },
   progressBar: { height: 7, borderRadius: 4, backgroundColor: '#e5e5e5', overflow: 'hidden', marginBottom: 12 },
-  progressFill: { height: '100%', backgroundColor: '#111' },
-  questionImage: { width: '100%', height: 190, borderRadius: 8, marginBottom: 12, backgroundColor: '#eee' },
-  questionCard: { backgroundColor: '#fff', borderRadius: 8, padding: 14, borderWidth: 1, borderColor: '#ececec' },
+  progressFill: { height: '100%', backgroundColor: colors.surfaceHi },
+  questionImage: { width: '100%', height: 190, borderRadius: 8, marginBottom: 12, backgroundColor: colors.surfaceAlt },
+  questionCard: { backgroundColor: colors.surface, borderRadius: 8, padding: 14, borderWidth: 1, borderColor: colors.border },
   ticketLine: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  ticketText: { color: '#777', fontSize: 12, fontWeight: '800' },
-  questionText: { color: '#111', fontSize: 18, lineHeight: 25, fontWeight: '900' },
+  ticketText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  questionText: { color: colors.text, fontSize: 18, lineHeight: 25, fontWeight: '900' },
   answers: { marginTop: 16, gap: 9 },
-  answerBtn: { minHeight: 58, borderRadius: 8, borderWidth: 1, borderColor: '#ddd', backgroundColor: '#fff', padding: 10, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  answerBtn: { minHeight: 58, borderRadius: 8, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 10, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   answerCorrect: { backgroundColor: '#dcfce7', borderColor: '#22c55e' },
-  answerWrong: { backgroundColor: '#fee2e2', borderColor: '#ef4444' },
+  answerWrong: { backgroundColor: '#fee2e2', borderColor: colors.danger },
   answerMuted: { backgroundColor: '#f5f5f5', opacity: 0.78 },
-  answerNumber: { width: 27, height: 27, borderRadius: 14, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' },
+  answerNumber: { width: 27, height: 27, borderRadius: 14, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
   answerNumberText: { color: '#fff', fontSize: 13, fontWeight: '900' },
-  answerText: { flex: 1, color: '#222', fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  answerText: { flex: 1, color: colors.text, fontSize: 14, lineHeight: 20, fontWeight: '700' },
   explanationBox: { marginTop: 14, padding: 12, borderRadius: 8, backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0' },
-  explanationTitle: { color: '#111', fontSize: 14, fontWeight: '900', marginBottom: 5 },
+  explanationTitle: { color: colors.text, fontSize: 14, fontWeight: '900', marginBottom: 5 },
   explanationText: { color: '#334155', fontSize: 13, lineHeight: 19 },
   navRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 14 },
-  navBtn: { flex: 1, height: 45, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 },
+  navBtn: { flex: 1, height: 45, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 },
   navBtnDisabled: { opacity: 0.45 },
-  navText: { color: '#111', fontWeight: '900' },
-  finishBtn: { flex: 1, height: 45, borderRadius: 10, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' },
+  navText: { color: colors.text, fontWeight: '900' },
+  finishBtn: { flex: 1, height: 45, borderRadius: 10, backgroundColor: colors.surfaceHi, justifyContent: 'center', alignItems: 'center' },
   finishText: { color: '#fff', fontWeight: '900' },
   dots: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14, justifyContent: 'center' },
-  dot: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', justifyContent: 'center', alignItems: 'center' },
-  dotActive: { backgroundColor: '#111', borderColor: '#111' },
+  dot: { width: 32, height: 32, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, justifyContent: 'center', alignItems: 'center' },
+  dotActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
   dotAnswered: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
-  dotText: { color: '#777', fontSize: 12, fontWeight: '900' },
+  dotText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
   dotTextActive: { color: '#fff' },
-  errorTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  retryBtn: { marginTop: 14, paddingHorizontal: 18, height: 42, borderRadius: 10, backgroundColor: '#111', justifyContent: 'center' },
+  errorTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  retryBtn: { marginTop: 14, paddingHorizontal: 18, height: 42, borderRadius: 10, backgroundColor: colors.surfaceHi, justifyContent: 'center' },
   retryText: { color: '#fff', fontWeight: '900' },
   resultContent: { alignItems: 'center', padding: 22 },
   resultIcon: { width: 76, height: 76, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginTop: 28 },
-  resultTitle: { marginTop: 18, color: '#111', fontSize: 24, fontWeight: '900', textAlign: 'center' },
-  resultPercent: { marginTop: 8, color: '#111', fontSize: 54, fontWeight: '900' },
-  resultMeta: { color: '#666', fontSize: 15, fontWeight: '700' },
+  resultTitle: { marginTop: 18, color: colors.text, fontSize: 24, fontWeight: '900', textAlign: 'center' },
+  resultPercent: { marginTop: 8, color: colors.text, fontSize: 54, fontWeight: '900' },
+  resultMeta: { color: colors.textMuted, fontSize: 15, fontWeight: '700' },
   resultStats: { flexDirection: 'row', gap: 10, marginTop: 20, width: '100%' },
-  resultStat: { flex: 1, backgroundColor: '#fff', borderRadius: 8, padding: 15, alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
-  resultStatValue: { color: '#111', fontSize: 22, fontWeight: '900' },
-  resultStatLabel: { color: '#777', fontSize: 12, fontWeight: '700', marginTop: 3 },
-  primaryBtn: { marginTop: 22, width: '100%', height: 50, borderRadius: 12, backgroundColor: '#111', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7 },
+  resultStat: { flex: 1, backgroundColor: colors.surface, borderRadius: 8, padding: 15, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  resultStatValue: { color: colors.text, fontSize: 22, fontWeight: '900' },
+  resultStatLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '700', marginTop: 3 },
+  primaryBtn: { marginTop: 22, width: '100%', height: 50, borderRadius: 12, backgroundColor: colors.surfaceHi, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7 },
   primaryText: { color: '#fff', fontSize: 16, fontWeight: '900' },
-  secondaryBtn: { marginTop: 10, width: '100%', height: 48, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', flexDirection: 'row', gap: 7, justifyContent: 'center', alignItems: 'center' },
-  secondaryText: { color: '#111', fontSize: 15, fontWeight: '900' },
+  secondaryBtn: { marginTop: 10, width: '100%', height: 48, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', gap: 7, justifyContent: 'center', alignItems: 'center' },
+  secondaryText: { color: colors.text, fontSize: 15, fontWeight: '900' },
 });

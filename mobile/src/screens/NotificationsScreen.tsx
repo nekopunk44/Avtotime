@@ -25,21 +25,22 @@ import {
 import { useSocketEvent } from '../hooks/useSocket';
 import { useBadgeStore } from '../store/badgeStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 type FilterMode = 'all' | 'unread';
 
 const ICONS: Record<string, { name: keyof typeof Ionicons.glyphMap; color: string }> = {
-  like: { name: 'heart', color: '#e53935' },
+  like: { name: 'heart', color: colors.danger },
   comment: { name: 'chatbubble', color: '#1e88e5' },
   follow: { name: 'person-add', color: '#43a047' },
   message: { name: 'mail', color: '#8e24aa' },
-  mention: { name: 'at', color: '#0066ff' },
+  mention: { name: 'at', color: colors.text },
   listing_comment: { name: 'chatbubbles', color: '#0f8c72' },
-  listing_rejected: { name: 'alert-circle', color: '#d92323' },
+  listing_rejected: { name: 'alert-circle', color: colors.danger },
   listing_approved: { name: 'checkmark-circle', color: '#14843b' },
   listing_appeal: { name: 'flag', color: '#9a5a00' },
-  system: { name: 'settings', color: '#555' },
+  system: { name: 'settings', color: colors.textMuted },
   default: { name: 'notifications', color: '#fb8c00' },
 };
 
@@ -284,14 +285,14 @@ export default function NotificationsScreen({ navigation }: Props) {
     <View style={styles.header}>
       <View style={styles.hero}>
         <View style={styles.heroIcon}>
-          <Ionicons name="notifications-outline" size={27} color="#111" />
+          <Ionicons name="notifications-outline" size={27} color={colors.text} />
         </View>
         <View style={styles.heroText}>
           <Text style={styles.title}>Уведомления</Text>
           <Text style={styles.subtitle}>{unreadCount ? `${unreadCount} непрочитанных` : 'Все уведомления прочитаны'}</Text>
         </View>
         <TouchableOpacity style={styles.settingsBtn} onPress={() => navigation.navigate('NotificationSettings')}>
-          <Ionicons name="options-outline" size={22} color="#111" />
+          <Ionicons name="options-outline" size={22} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -318,7 +319,7 @@ export default function NotificationsScreen({ navigation }: Props) {
           onPress={handleMarkAll}
           disabled={!unreadCount || bulkBusy}
         >
-          {bulkBusy ? <ActivityIndicator color="#111" /> : <Ionicons name="checkmark-done-outline" size={17} color="#111" />}
+          {bulkBusy ? <ActivityIndicator color={colors.text} /> : <Ionicons name="checkmark-done-outline" size={17} color={colors.text} />}
           <Text style={styles.bulkText}>Прочитать все</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -326,7 +327,7 @@ export default function NotificationsScreen({ navigation }: Props) {
           onPress={clearAll}
           disabled={!notifications.length || bulkBusy}
         >
-          <Ionicons name="trash-outline" size={17} color="#d92323" />
+          <Ionicons name="trash-outline" size={17} color={colors.danger} />
           <Text style={[styles.bulkText, styles.bulkTextDanger]}>Очистить</Text>
         </TouchableOpacity>
       </View>
@@ -364,11 +365,11 @@ export default function NotificationsScreen({ navigation }: Props) {
             onPress={() => markOne(item)}
             disabled={item.isRead || busy}
           >
-            {busy ? <ActivityIndicator color="#555" /> : <Ionicons name="checkmark-outline" size={17} color={item.isRead ? '#bbb' : '#555'} />}
+            {busy ? <ActivityIndicator color={colors.textMuted} /> : <Ionicons name="checkmark-outline" size={17} color={item.isRead ? '#bbb' : '#555'} />}
             <Text style={[styles.actionText, item.isRead && styles.actionTextDisabled]}>Прочитано</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={() => removeOne(item)} disabled={busy}>
-            <Ionicons name="trash-outline" size={17} color="#d92323" />
+            <Ionicons name="trash-outline" size={17} color={colors.danger} />
             <Text style={styles.actionTextDanger}>Удалить</Text>
           </TouchableOpacity>
         </View>
@@ -379,7 +380,7 @@ export default function NotificationsScreen({ navigation }: Props) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -395,7 +396,7 @@ export default function NotificationsScreen({ navigation }: Props) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       ListEmptyComponent={
         <View style={styles.emptyState}>
-          <Ionicons name="notifications-off-outline" size={46} color="#bbb" />
+          <Ionicons name="notifications-off-outline" size={46} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>{filter === 'unread' ? 'Непрочитанных нет' : 'Уведомлений нет'}</Text>
           <Text style={styles.emptyText}>Новые события по профилю, сообщениям и объявлениям появятся здесь.</Text>
         </View>
@@ -405,45 +406,45 @@ export default function NotificationsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   header: { gap: 10, marginBottom: 2 },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', alignItems: 'center', justifyContent: 'center' },
+  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   heroText: { flex: 1 },
-  title: { color: '#111', fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 2, color: '#666', fontSize: 13, fontWeight: '800' },
-  settingsBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', alignItems: 'center', justifyContent: 'center' },
-  toolbar: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 5 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  settingsBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  toolbar: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 5 },
   segment: { flexDirection: 'row', gap: 5 },
   segmentBtn: { flex: 1, height: 36, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-  segmentBtnActive: { backgroundColor: '#111' },
-  segmentText: { color: '#666', fontSize: 13, fontWeight: '900' },
+  segmentBtnActive: { backgroundColor: colors.surfaceHi },
+  segmentText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
   segmentTextActive: { color: '#fff' },
   bulkRow: { flexDirection: 'row', gap: 8 },
-  bulkBtn: { flex: 1, height: 42, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  bulkBtn: { flex: 1, height: 42, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   bulkBtnDisabled: { opacity: 0.52 },
-  bulkText: { color: '#111', fontSize: 13, fontWeight: '900' },
-  bulkTextDanger: { color: '#d92323' },
-  card: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', overflow: 'hidden' },
+  bulkText: { color: colors.text, fontSize: 13, fontWeight: '900' },
+  bulkTextDanger: { color: colors.danger },
+  card: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   cardUnread: { borderColor: '#cfe4ff', backgroundColor: '#f8fbff' },
   cardMain: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
   iconWrap: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#eee' },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt },
   cardContent: { flex: 1 },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  cardTitle: { flex: 1, color: '#111', fontSize: 14, fontWeight: '900' },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#0066ff' },
-  message: { marginTop: 3, color: '#333', fontSize: 13, lineHeight: 18 },
-  time: { marginTop: 5, color: '#999', fontSize: 11, fontWeight: '700' },
-  actions: { flexDirection: 'row', gap: 8, borderTopWidth: 1, borderTopColor: '#f0f0f0', padding: 8 },
+  cardTitle: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '900' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
+  message: { marginTop: 3, color: colors.textMuted, fontSize: 13, lineHeight: 18 },
+  time: { marginTop: 5, color: colors.textFaint, fontSize: 11, fontWeight: '700' },
+  actions: { flexDirection: 'row', gap: 8, borderTopWidth: 1, borderTopColor: colors.border, padding: 8 },
   actionBtn: { flex: 1, height: 36, borderRadius: 8, backgroundColor: '#f5f5f5', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
-  actionText: { color: '#555', fontSize: 12, fontWeight: '900' },
-  actionTextDisabled: { color: '#bbb' },
-  actionTextDanger: { color: '#d92323', fontSize: 12, fontWeight: '900' },
+  actionText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
+  actionTextDisabled: { color: colors.textFaint },
+  actionTextDanger: { color: colors.danger, fontSize: 12, fontWeight: '900' },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 5, color: '#777', fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
 });

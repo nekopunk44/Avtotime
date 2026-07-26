@@ -19,6 +19,7 @@ import { User } from '../api/auth';
 import { getFeed, Post, searchPosts, toggleLike } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 type SearchTab = 'users' | 'posts';
@@ -145,7 +146,7 @@ export default function SearchScreen({ navigation }: Props) {
     <View style={styles.header}>
       <View style={styles.hero}>
         <View style={styles.heroIcon}>
-          <Ionicons name="search-outline" size={27} color="#111" />
+          <Ionicons name="search-outline" size={27} color={colors.text} />
         </View>
         <View style={styles.heroText}>
           <Text style={styles.title}>Поиск</Text>
@@ -154,11 +155,11 @@ export default function SearchScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={18} color="#777" />
+        <Ionicons name="search" size={18} color={colors.textMuted} />
         <TextInput
           style={styles.input}
           placeholder="Пользователь или текст публикации"
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textFaint}
           value={query}
           onChangeText={setQuery}
           autoCorrect={false}
@@ -167,7 +168,7 @@ export default function SearchScreen({ navigation }: Props) {
         />
         {query ? (
           <TouchableOpacity onPress={() => setQuery('')}>
-            <Ionicons name="close-circle" size={18} color="#999" />
+            <Ionicons name="close-circle" size={18} color={colors.textFaint} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -191,14 +192,14 @@ export default function SearchScreen({ navigation }: Props) {
 
       {trimmedQuery && trimmedQuery.length < 2 ? (
         <View style={styles.hint}>
-          <Ionicons name="information-circle-outline" size={18} color="#777" />
+          <Ionicons name="information-circle-outline" size={18} color={colors.textMuted} />
           <Text style={styles.hintText}>Введите минимум 2 символа для поиска.</Text>
         </View>
       ) : null}
 
       {searching ? (
         <View style={styles.searchingRow}>
-          <ActivityIndicator color="#111" />
+          <ActivityIndicator color={colors.text} />
           <Text style={styles.searchingText}>Ищем...</Text>
         </View>
       ) : null}
@@ -220,16 +221,16 @@ export default function SearchScreen({ navigation }: Props) {
             <Text style={styles.userMeta} numberOfLines={1}>{item.bio || item.profession || item.location}</Text>
           ) : null}
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#aaa" />
+        <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
       </TouchableOpacity>
       {item._id !== user?._id ? (
         <View style={styles.userActions}>
           <TouchableOpacity style={styles.userActionBtn} onPress={() => openChat(item)}>
-            <Ionicons name="chatbubble-outline" size={17} color="#111" />
+            <Ionicons name="chatbubble-outline" size={17} color={colors.text} />
             <Text style={styles.userActionText}>Сообщение</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.userActionBtn} onPress={() => navigation.navigate('UserProfile', { userId: item._id })}>
-            <Ionicons name="person-circle-outline" size={17} color="#111" />
+            <Ionicons name="person-circle-outline" size={17} color={colors.text} />
             <Text style={styles.userActionText}>Профиль</Text>
           </TouchableOpacity>
         </View>
@@ -261,7 +262,7 @@ export default function SearchScreen({ navigation }: Props) {
             <Image source={{ uri: image }} style={styles.postImage} />
           ) : (
             <View style={[styles.postImage, styles.textPostImage]}>
-              <Ionicons name="text-outline" size={26} color="#aaa" />
+              <Ionicons name="text-outline" size={26} color={colors.textFaint} />
             </View>
           )}
           {item.caption ? <Text style={styles.caption} numberOfLines={4}>{item.caption}</Text> : null}
@@ -273,7 +274,7 @@ export default function SearchScreen({ navigation }: Props) {
             <Text style={styles.postActionText}>{formatCount(item.likes?.length ?? 0)}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.postActionBtn} onPress={() => navigation.navigate('PostComments', { postId: item._id })}>
-            <Ionicons name="chatbubble-outline" size={20} color="#555" />
+            <Ionicons name="chatbubble-outline" size={20} color={colors.textMuted} />
             <Text style={styles.postActionText}>{formatCount(item.commentsCount ?? item.comments?.length ?? 0)}</Text>
           </TouchableOpacity>
         </View>
@@ -284,7 +285,7 @@ export default function SearchScreen({ navigation }: Props) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -301,7 +302,7 @@ export default function SearchScreen({ navigation }: Props) {
       keyboardShouldPersistTaps="handled"
       ListEmptyComponent={
         <View style={styles.emptyState}>
-          <Ionicons name={activeTab === 'users' ? 'people-outline' : 'images-outline'} size={44} color="#bbb" />
+          <Ionicons name={activeTab === 'users' ? 'people-outline' : 'images-outline'} size={44} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>
             {hasQuery ? 'Ничего не найдено' : activeTab === 'users' ? 'Нет рекомендаций' : 'Нет публикаций'}
           </Text>
@@ -315,48 +316,48 @@ export default function SearchScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   header: { gap: 10, marginBottom: 2 },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', alignItems: 'center', justifyContent: 'center' },
+  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   heroText: { flex: 1 },
-  title: { color: '#111', fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 2, color: '#666', fontSize: 13, fontWeight: '800' },
-  searchBar: { height: 46, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
-  input: { flex: 1, fontSize: 15, color: '#111' },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  searchBar: { height: 46, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  input: { flex: 1, fontSize: 15, color: colors.text },
   segment: { flexDirection: 'row', gap: 8 },
-  segmentBtn: { flex: 1, height: 40, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e5e5', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  segmentBtnActive: { backgroundColor: '#111', borderColor: '#111' },
-  segmentText: { color: '#555', fontSize: 13, fontWeight: '900' },
+  segmentBtn: { flex: 1, height: 40, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  segmentBtnActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  segmentText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
   segmentTextActive: { color: '#fff' },
-  hint: { flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 10 },
-  hintText: { flex: 1, color: '#666', fontSize: 13, fontWeight: '700' },
+  hint: { flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 10 },
+  hintText: { flex: 1, color: colors.textMuted, fontSize: 13, fontWeight: '700' },
   searchingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', paddingVertical: 8 },
-  searchingText: { color: '#555', fontSize: 13, fontWeight: '800' },
-  userCard: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', overflow: 'hidden' },
+  searchingText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  userCard: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   userMain: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12 },
-  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#eee' },
+  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.surfaceAlt },
   userInfo: { flex: 1 },
-  name: { color: '#111', fontSize: 15, fontWeight: '900' },
-  username: { marginTop: 2, color: '#777', fontSize: 12, fontWeight: '800' },
-  userMeta: { marginTop: 4, color: '#555', fontSize: 12, fontWeight: '700' },
-  userActions: { flexDirection: 'row', gap: 8, borderTopWidth: 1, borderTopColor: '#f0f0f0', padding: 8 },
+  name: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  username: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  userMeta: { marginTop: 4, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  userActions: { flexDirection: 'row', gap: 8, borderTopWidth: 1, borderTopColor: colors.border, padding: 8 },
   userActionBtn: { flex: 1, height: 36, borderRadius: 8, backgroundColor: '#f5f5f5', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
-  userActionText: { color: '#111', fontSize: 12, fontWeight: '900' },
-  postCard: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', overflow: 'hidden' },
+  userActionText: { color: colors.text, fontSize: 12, fontWeight: '900' },
+  postCard: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   postAuthor: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
-  postAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee' },
+  postAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt },
   postAuthorText: { flex: 1 },
-  postImage: { width: '100%', aspectRatio: 1, backgroundColor: '#eee' },
+  postImage: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceAlt },
   textPostImage: { alignItems: 'center', justifyContent: 'center' },
-  caption: { paddingHorizontal: 12, paddingTop: 10, color: '#222', fontSize: 14, lineHeight: 20 },
+  caption: { paddingHorizontal: 12, paddingTop: 10, color: colors.text, fontSize: 14, lineHeight: 20 },
   postActions: { flexDirection: 'row', gap: 16, paddingHorizontal: 12, paddingVertical: 11 },
   postActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  postActionText: { color: '#555', fontSize: 13, fontWeight: '800' },
+  postActionText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 5, color: '#777', fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
 });

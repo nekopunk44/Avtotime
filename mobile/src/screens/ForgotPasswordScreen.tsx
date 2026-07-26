@@ -4,6 +4,7 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
 } from 'react-native';
 import client from '../api/client';
+import { colors } from '../theme';
 
 type Step = 'email' | 'otp' | 'password' | 'done';
 
@@ -122,7 +123,7 @@ export default function ForgotPasswordScreen() {
           <TextInput
             style={styles.input}
             placeholder="Email"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textFaint}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -137,7 +138,7 @@ export default function ForgotPasswordScreen() {
             <TextInput
               style={styles.input}
               placeholder="Новый пароль"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -145,7 +146,7 @@ export default function ForgotPasswordScreen() {
             <TextInput
               style={styles.input}
               placeholder="Повторите пароль"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
@@ -172,26 +173,26 @@ export default function ForgotPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.surface },
   inner: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  title: { fontSize: 24, fontWeight: '700', marginBottom: 12, color: '#111', textAlign: 'center' },
-  sub: { fontSize: 14, color: '#666', marginBottom: 28, textAlign: 'center', lineHeight: 20 },
+  title: { fontSize: 24, fontWeight: '700', marginBottom: 12, color: colors.text, textAlign: 'center' },
+  sub: { fontSize: 14, color: colors.textMuted, marginBottom: 28, textAlign: 'center', lineHeight: 20 },
   input: {
     width: '100%', height: 52, borderWidth: 2, borderColor: '#111',
-    borderRadius: 16, paddingHorizontal: 18, fontSize: 15, marginBottom: 14, color: '#111',
+    borderRadius: 16, paddingHorizontal: 18, fontSize: 15, marginBottom: 14, color: colors.text,
   },
   btn: {
-    width: '100%', height: 52, backgroundColor: '#111',
+    width: '100%', height: 52, backgroundColor: colors.surfaceHi,
     borderRadius: 16, justifyContent: 'center', alignItems: 'center',
   },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   otpRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 18, position: 'relative' },
   otpBox: {
-    width: 48, height: 58, borderWidth: 2, borderColor: '#ddd', borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafafa',
+    width: 48, height: 58, borderWidth: 2, borderColor: colors.border, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg,
   },
-  otpBoxActive: { borderColor: '#111', backgroundColor: '#fff' },
-  otpDigit: { fontSize: 24, fontWeight: '800', color: '#111' },
+  otpBoxActive: { borderColor: '#111', backgroundColor: colors.surface },
+  otpDigit: { fontSize: 24, fontWeight: '800', color: colors.text },
   otpOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, color: 'transparent' },
 });

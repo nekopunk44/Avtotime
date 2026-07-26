@@ -29,6 +29,7 @@ import {
 import { getAuthorId, getListingImage, getListingTitle } from '../api/market';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'MarketReviews'>;
@@ -237,7 +238,7 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -254,7 +255,7 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
           <Image source={{ uri: listingImage }} style={styles.listingImage} />
         ) : (
           <View style={[styles.listingImage, styles.noImage]}>
-            <Ionicons name="car-sport-outline" size={24} color="#aaa" />
+            <Ionicons name="car-sport-outline" size={24} color={colors.textFaint} />
           </View>
         )}
         <View style={styles.headerText}>
@@ -293,7 +294,7 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
         </View>
       ) : isMyListing ? (
         <View style={styles.notice}>
-          <Ionicons name="person-circle-outline" size={21} color="#555" />
+          <Ionicons name="person-circle-outline" size={21} color={colors.textMuted} />
           <Text style={styles.noticeText}>Это ваше объявление. Отзывы может оставить другой пользователь.</Text>
         </View>
       ) : (
@@ -302,7 +303,7 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
             <Text style={styles.sectionTitle}>{myReview ? 'Ваш отзыв' : 'Оставить отзыв'}</Text>
             {myReview ? (
               <TouchableOpacity onPress={removeOwnReview} disabled={submitting} style={styles.deleteReviewBtn}>
-                <Ionicons name="trash-outline" size={16} color="#d92323" />
+                <Ionicons name="trash-outline" size={16} color={colors.danger} />
                 <Text style={styles.deleteReviewText}>Удалить</Text>
               </TouchableOpacity>
             ) : null}
@@ -311,14 +312,14 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
           <TextInput
             style={styles.input}
             placeholder="Заголовок"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textFaint}
             value={title}
             onChangeText={setTitle}
           />
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Что понравилось или не понравилось?"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textFaint}
             value={comment}
             onChangeText={setComment}
             multiline
@@ -327,14 +328,14 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
           <TextInput
             style={styles.input}
             placeholder="Плюсы через запятую"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textFaint}
             value={pros}
             onChangeText={setPros}
           />
           <TextInput
             style={styles.input}
             placeholder="Минусы через запятую"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textFaint}
             value={cons}
             onChangeText={setCons}
           />
@@ -381,18 +382,18 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
           ) : null}
           <View style={styles.reviewActions}>
             <TouchableOpacity style={styles.voteBtn} onPress={() => mark(review, 'helpful')}>
-              <Ionicons name="thumbs-up-outline" size={16} color="#555" />
+              <Ionicons name="thumbs-up-outline" size={16} color={colors.textMuted} />
               <Text style={styles.voteText}>{review.helpful?.length || 0}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.voteBtn} onPress={() => mark(review, 'unhelpful')}>
-              <Ionicons name="thumbs-down-outline" size={16} color="#555" />
+              <Ionicons name="thumbs-down-outline" size={16} color={colors.textMuted} />
               <Text style={styles.voteText}>{review.unhelpful?.length || 0}</Text>
             </TouchableOpacity>
           </View>
         </View>
       )) : (
         <View style={styles.empty}>
-          <Ionicons name="star-outline" size={38} color="#bbb" />
+          <Ionicons name="star-outline" size={38} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>Отзывов пока нет</Text>
           <Text style={styles.emptyText}>Первый отзыв появится здесь после публикации.</Text>
         </View>
@@ -402,55 +403,55 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   content: { padding: 12, paddingBottom: 30, gap: 10 },
-  header: { flexDirection: 'row', gap: 12, alignItems: 'center', backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 10 },
-  listingImage: { width: 76, height: 76, borderRadius: 8, backgroundColor: '#eee' },
+  header: { flexDirection: 'row', gap: 12, alignItems: 'center', backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 10 },
+  listingImage: { width: 76, height: 76, borderRadius: 8, backgroundColor: colors.surfaceAlt },
   noImage: { alignItems: 'center', justifyContent: 'center' },
   headerText: { flex: 1 },
-  kicker: { color: '#777', fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
-  listingTitle: { marginTop: 4, color: '#111', fontSize: 17, lineHeight: 22, fontWeight: '900' },
-  summary: { flexDirection: 'row', gap: 12, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12 },
+  kicker: { color: colors.textMuted, fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
+  listingTitle: { marginTop: 4, color: colors.text, fontSize: 17, lineHeight: 22, fontWeight: '900' },
+  summary: { flexDirection: 'row', gap: 12, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
   scoreBox: { width: 108, alignItems: 'center', justifyContent: 'center' },
-  score: { color: '#111', fontSize: 34, fontWeight: '900' },
+  score: { color: colors.text, fontSize: 34, fontWeight: '900' },
   stars: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  scoreMeta: { marginTop: 5, color: '#777', fontSize: 12, fontWeight: '800' },
+  scoreMeta: { marginTop: 5, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   breakdown: { flex: 1, gap: 6, justifyContent: 'center' },
   breakdownRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  breakdownLabel: { width: 12, color: '#555', fontSize: 12, fontWeight: '900' },
-  breakdownTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: '#eee', overflow: 'hidden' },
+  breakdownLabel: { width: 12, color: colors.textMuted, fontSize: 12, fontWeight: '900' },
+  breakdownTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
   breakdownFill: { height: '100%', borderRadius: 4, backgroundColor: '#f5a400' },
-  breakdownCount: { width: 24, color: '#777', fontSize: 12, fontWeight: '800', textAlign: 'right' },
-  notice: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12 },
-  noticeText: { flex: 1, color: '#555', fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  form: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12, gap: 10 },
+  breakdownCount: { width: 24, color: colors.textMuted, fontSize: 12, fontWeight: '800', textAlign: 'right' },
+  notice: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  noticeText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  form: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 10 },
   formHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
-  sectionTitle: { color: '#111', fontSize: 17, fontWeight: '900' },
-  deleteReviewBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, height: 34, borderRadius: 8, backgroundColor: '#fff0f0' },
-  deleteReviewText: { color: '#d92323', fontSize: 12, fontWeight: '900' },
-  input: { minHeight: 46, borderWidth: 1, borderColor: '#ddd', borderRadius: 10, backgroundColor: '#fafafa', color: '#111', fontSize: 14, paddingHorizontal: 12 },
+  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  deleteReviewBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)' },
+  deleteReviewText: { color: colors.danger, fontSize: 12, fontWeight: '900' },
+  input: { minHeight: 46, borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: colors.bg, color: colors.text, fontSize: 14, paddingHorizontal: 12 },
   textArea: { minHeight: 92, paddingTop: 11, lineHeight: 20 },
-  submitBtn: { height: 48, borderRadius: 10, backgroundColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  submitBtn: { height: 48, borderRadius: 10, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   submitBtnDisabled: { opacity: 0.65 },
   submitText: { color: '#fff', fontSize: 15, fontWeight: '900' },
   listHeader: { marginTop: 4, paddingHorizontal: 2 },
-  reviewCard: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#ececec', padding: 12 },
+  reviewCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
   reviewTop: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt },
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#111', fontSize: 15, fontWeight: '900' },
+  avatarText: { color: colors.text, fontSize: 15, fontWeight: '900' },
   reviewAuthor: { flex: 1 },
-  authorName: { color: '#111', fontSize: 14, fontWeight: '900' },
-  reviewDate: { marginTop: 2, color: '#999', fontSize: 11, fontWeight: '700' },
-  reviewTitle: { marginTop: 10, color: '#111', fontSize: 15, fontWeight: '900' },
-  reviewComment: { marginTop: 5, color: '#333', fontSize: 14, lineHeight: 20 },
-  listText: { marginTop: 6, color: '#444', fontSize: 13, lineHeight: 18 },
-  listTextStrong: { color: '#111', fontWeight: '900' },
+  authorName: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  reviewDate: { marginTop: 2, color: colors.textFaint, fontSize: 11, fontWeight: '700' },
+  reviewTitle: { marginTop: 10, color: colors.text, fontSize: 15, fontWeight: '900' },
+  reviewComment: { marginTop: 5, color: colors.textMuted, fontSize: 14, lineHeight: 20 },
+  listText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 18 },
+  listTextStrong: { color: colors.text, fontWeight: '900' },
   reviewActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
-  voteBtn: { height: 34, borderRadius: 8, paddingHorizontal: 10, backgroundColor: '#f3f3f3', flexDirection: 'row', alignItems: 'center', gap: 5 },
-  voteText: { color: '#555', fontSize: 12, fontWeight: '900' },
+  voteBtn: { height: 34, borderRadius: 8, paddingHorizontal: 10, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  voteText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
   empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 34 },
-  emptyTitle: { marginTop: 8, color: '#111', fontSize: 16, fontWeight: '900' },
-  emptyText: { marginTop: 4, color: '#777', fontSize: 13, textAlign: 'center' },
+  emptyTitle: { marginTop: 8, color: colors.text, fontSize: 16, fontWeight: '900' },
+  emptyText: { marginTop: 4, color: colors.textMuted, fontSize: 13, textAlign: 'center' },
 });

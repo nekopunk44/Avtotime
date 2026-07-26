@@ -22,6 +22,7 @@ import {
 } from '../api/favorites';
 import { getMarketCategory, MarketCategoryId, MarketListing } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
@@ -118,12 +119,12 @@ export default function FavoritesScreen({ navigation }: Props) {
           <Image source={{ uri: item.listingImage }} style={styles.image} />
         ) : (
           <View style={[styles.image, styles.noImage]}>
-            <Ionicons name={category.icon as any} size={24} color="#999" />
+            <Ionicons name={category.icon as any} size={24} color={colors.textFaint} />
           </View>
         )}
         <View style={styles.body}>
           <View style={styles.categoryRow}>
-            <Ionicons name={category.icon as any} size={14} color="#666" />
+            <Ionicons name={category.icon as any} size={14} color={colors.textMuted} />
             <Text style={styles.categoryText}>{category.shortLabel}</Text>
           </View>
           <Text style={styles.title} numberOfLines={2}>{item.listingTitle || 'Объявление'}</Text>
@@ -136,9 +137,9 @@ export default function FavoritesScreen({ navigation }: Props) {
           hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
         >
           {removing ? (
-            <ActivityIndicator size="small" color="#111" />
+            <ActivityIndicator size="small" color={colors.text} />
           ) : (
-            <Ionicons name="bookmark" size={22} color="#111" />
+            <Ionicons name="bookmark" size={22} color={colors.text} />
           )}
         </TouchableOpacity>
       </TouchableOpacity>
@@ -162,7 +163,7 @@ export default function FavoritesScreen({ navigation }: Props) {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#111" />
+          <ActivityIndicator size="large" color={colors.text} />
         </View>
       ) : (
         <FlatList
@@ -173,7 +174,7 @@ export default function FavoritesScreen({ navigation }: Props) {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="bookmark-outline" size={36} color="#bbb" />
+              <Ionicons name="bookmark-outline" size={36} color={colors.textFaint} />
               <Text style={styles.emptyTitle}>{error || 'Пока ничего не сохранено'}</Text>
               <Text style={styles.emptyText}>
                 {error
@@ -191,28 +192,28 @@ export default function FavoritesScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  header: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  heading: { color: '#111', fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: '#666', fontSize: 13 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  header: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
+  heading: { color: colors.text, fontSize: 28, fontWeight: '900' },
+  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13 },
   filters: { gap: 8, paddingTop: 14, paddingBottom: 2 },
-  filterBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, justifyContent: 'center', backgroundColor: '#f3f3f3', borderWidth: 1, borderColor: '#e6e6e6' },
-  filterBtnActive: { backgroundColor: '#111', borderColor: '#111' },
-  filterText: { color: '#555', fontSize: 13, fontWeight: '800' },
+  filterBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, justifyContent: 'center', backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
+  filterBtnActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  filterText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   filterTextActive: { color: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: 12, gap: 10 },
   emptyList: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  card: { minHeight: 104, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 8, padding: 10, borderWidth: 1, borderColor: '#ececec' },
-  image: { width: 84, height: 84, borderRadius: 8, backgroundColor: '#eee' },
+  card: { minHeight: 104, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: colors.border },
+  image: { width: 84, height: 84, borderRadius: 8, backgroundColor: colors.surfaceAlt },
   noImage: { alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, alignSelf: 'stretch', justifyContent: 'center' },
   categoryRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 5 },
-  categoryText: { color: '#666', fontSize: 12, fontWeight: '800' },
-  title: { color: '#111', fontSize: 15, fontWeight: '900', lineHeight: 20 },
-  price: { marginTop: 6, color: '#111', fontSize: 15, fontWeight: '900' },
-  removeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
+  categoryText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
+  title: { color: colors.text, fontSize: 15, fontWeight: '900', lineHeight: 20 },
+  price: { marginTop: 6, color: colors.text, fontSize: 15, fontWeight: '900' },
+  removeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   emptyState: { alignItems: 'center' },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 6, color: '#777', fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
 });

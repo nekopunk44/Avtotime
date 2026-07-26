@@ -19,6 +19,7 @@ import {
   MarketAnalyticsSummary,
 } from '../api/marketAnalytics';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'MarketAnalytics'> };
 
@@ -90,7 +91,7 @@ function ListingRow({ item }: { item: MarketAnalyticsListing }) {
         <Image source={{ uri: item.image }} style={styles.listingImage} />
       ) : (
         <View style={[styles.listingImage, styles.listingImageFallback]}>
-          <Ionicons name={item.kind === 'cars' ? 'car-sport-outline' : 'construct-outline'} size={22} color="#888" />
+          <Ionicons name={item.kind === 'cars' ? 'car-sport-outline' : 'construct-outline'} size={22} color={colors.textFaint} />
         </View>
       )}
       <View style={styles.listingBody}>
@@ -146,7 +147,7 @@ export default function MarketAnalyticsScreen({ navigation }: Props) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -159,7 +160,7 @@ export default function MarketAnalyticsScreen({ navigation }: Props) {
     >
       <View style={styles.hero}>
         <View style={styles.heroIcon}>
-          <Ionicons name="bar-chart-outline" size={26} color="#d92323" />
+          <Ionicons name="bar-chart-outline" size={26} color={colors.danger} />
         </View>
         <Text style={styles.title}>Аналитика</Text>
         <Text style={styles.subtitle}>Просмотры и контакты по объявлениям за последние 7 дней</Text>
@@ -167,7 +168,7 @@ export default function MarketAnalyticsScreen({ navigation }: Props) {
 
       {error ? (
         <View style={styles.accessCard}>
-          <Ionicons name={errorCode === 'ANALYTICS_DISABLED' ? 'sparkles-outline' : 'alert-circle-outline'} size={34} color="#d92323" />
+          <Ionicons name={errorCode === 'ANALYTICS_DISABLED' ? 'sparkles-outline' : 'alert-circle-outline'} size={34} color={colors.danger} />
           <Text style={styles.accessTitle}>{error}</Text>
           {errorCode === 'ANALYTICS_DISABLED' ? (
             <>
@@ -231,7 +232,7 @@ export default function MarketAnalyticsScreen({ navigation }: Props) {
               </View>
             ) : (
               <View style={styles.emptyBox}>
-                <Ionicons name="albums-outline" size={30} color="#bbb" />
+                <Ionicons name="albums-outline" size={30} color={colors.textFaint} />
                 <Text style={styles.emptyTitle}>Пока нет объявлений для аналитики</Text>
                 <Text style={styles.emptyText}>Статистика собирается для разделов авто и запчастей.</Text>
               </View>
@@ -244,54 +245,54 @@ export default function MarketAnalyticsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 28 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   hero: { alignItems: 'center', paddingVertical: 20 },
-  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: '#fff0f0', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  title: { color: '#111', fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 6, color: '#666', fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  accessCard: { marginTop: 18, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee', padding: 18, alignItems: 'center' },
-  accessTitle: { marginTop: 12, color: '#111', fontSize: 17, fontWeight: '900', textAlign: 'center' },
-  accessText: { marginTop: 8, color: '#666', fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  tariffsBtn: { marginTop: 14, height: 42, borderRadius: 8, paddingHorizontal: 16, backgroundColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
+  subtitle: { marginTop: 6, color: colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  accessCard: { marginTop: 18, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 18, alignItems: 'center' },
+  accessTitle: { marginTop: 12, color: colors.text, fontSize: 17, fontWeight: '900', textAlign: 'center' },
+  accessText: { marginTop: 8, color: colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  tariffsBtn: { marginTop: 14, height: 42, borderRadius: 8, paddingHorizontal: 16, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   tariffsBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' },
-  planCard: { marginTop: 8, borderRadius: 8, backgroundColor: '#111', padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  planCard: { marginTop: 8, borderRadius: 8, backgroundColor: colors.surfaceHi, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   planLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   planValue: { marginTop: 4, color: '#fff', fontSize: 22, fontWeight: '900' },
   metricsGrid: { marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  metricTile: { width: '48%', minHeight: 96, borderRadius: 8, backgroundColor: '#fff', padding: 12, borderWidth: 1, borderColor: '#eee' },
+  metricTile: { width: '48%', minHeight: 96, borderRadius: 8, backgroundColor: colors.surface, padding: 12, borderWidth: 1, borderColor: colors.border },
   metricTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-  metricLabel: { flex: 1, color: '#666', fontSize: 11, lineHeight: 15, fontWeight: '900', textTransform: 'uppercase' },
-  metricValue: { marginTop: 12, color: '#111', fontSize: 28, fontWeight: '900' },
-  section: { marginTop: 12, borderRadius: 8, backgroundColor: '#fff', padding: 14, borderWidth: 1, borderColor: '#eee' },
+  metricLabel: { flex: 1, color: colors.textMuted, fontSize: 11, lineHeight: 15, fontWeight: '900', textTransform: 'uppercase' },
+  metricValue: { marginTop: 12, color: colors.text, fontSize: 28, fontWeight: '900' },
+  section: { marginTop: 12, borderRadius: 8, backgroundColor: colors.surface, padding: 14, borderWidth: 1, borderColor: colors.border },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { color: '#111', fontSize: 18, fontWeight: '900' },
+  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
   legend: { gap: 5 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot: { width: 8, height: 8, borderRadius: 2 },
-  viewsDot: { backgroundColor: '#d92323' },
+  viewsDot: { backgroundColor: colors.danger },
   leadsDot: { backgroundColor: '#14843b' },
-  legendText: { color: '#666', fontSize: 11, fontWeight: '800' },
+  legendText: { color: colors.textMuted, fontSize: 11, fontWeight: '800' },
   barsWrap: { height: 152, flexDirection: 'row', alignItems: 'flex-end', gap: 7, paddingTop: 8 },
   barColumn: { flex: 1, height: '100%', alignItems: 'center' },
   barTrack: { flex: 1, width: '100%', justifyContent: 'flex-end' },
   barPair: { height: '100%', flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
   bar: { flex: 1, minHeight: 2, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
-  viewsBar: { backgroundColor: '#d92323' },
+  viewsBar: { backgroundColor: colors.danger },
   leadsBar: { backgroundColor: '#14843b' },
-  barLabel: { marginTop: 6, color: '#777', fontSize: 10, fontWeight: '800' },
+  barLabel: { marginTop: 6, color: colors.textMuted, fontSize: 10, fontWeight: '800' },
   listings: { marginTop: 8 },
-  listingRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  listingImage: { width: 54, height: 54, borderRadius: 8, backgroundColor: '#eee' },
+  listingRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
+  listingImage: { width: 54, height: 54, borderRadius: 8, backgroundColor: colors.surfaceAlt },
   listingImageFallback: { alignItems: 'center', justifyContent: 'center' },
   listingBody: { flex: 1 },
-  listingTitle: { color: '#111', fontSize: 14, fontWeight: '900' },
-  listingKind: { marginTop: 4, color: '#777', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  listingTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  listingKind: { marginTop: 4, color: colors.textMuted, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   listingStats: { alignItems: 'flex-end' },
-  listingStatRed: { color: '#d92323', fontSize: 12, fontWeight: '900' },
+  listingStatRed: { color: colors.danger, fontSize: 12, fontWeight: '900' },
   listingStatGreen: { marginTop: 3, color: '#14843b', fontSize: 12, fontWeight: '900' },
   emptyBox: { alignItems: 'center', paddingVertical: 28 },
-  emptyTitle: { marginTop: 8, color: '#111', fontSize: 15, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 5, color: '#777', fontSize: 13, lineHeight: 18, textAlign: 'center' },
+  emptyTitle: { marginTop: 8, color: colors.text, fontSize: 15, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, lineHeight: 18, textAlign: 'center' },
 });
