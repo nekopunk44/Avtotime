@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Alert,
+  View, Text, TextInput, TouchableOpacity, Image, Animated, Easing, ScrollView,
+  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
 } from 'react-native';
 import Constants from 'expo-constants';
+import SpeedLines from '../components/SpeedLines';
+import { colors, font, radius, shadow, space } from '../theme';
 import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { signIn, signInWithGoogleCredential } from '../api/auth';
@@ -28,6 +29,17 @@ export default function SignInScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const setUser = useAuthStore((s) => s.setUser);
+
+  // Entrance: the form sheet slides up while the car settles — a smooth
+  // hand-off from the dark splash (same black background + car).
+  const sheetY = useRef(new Animated.Value(48)).current;
+  const carScale = useRef(new Animated.Value(0.9)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(sheetY, { toValue: 0, duration: 520, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.spring(carScale, { toValue: 1, friction: 6, tension: 45, useNativeDriver: true }),
+    ]).start();
+  }, [sheetY, carScale]);
 
   const handleSignIn = async () => {
     if (!identifier.trim() || !password) {
@@ -88,105 +100,115 @@ export default function SignInScreen({ navigation }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.inner}>
-        <Text style={styles.title}>Вход</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Имя пользователя или email"
-          placeholderTextColor="#999"
-          value={identifier}
-          onChangeText={setIdentifier}
-          autoCapitalize="none"
-          autoCorrect={false}
+    <View style={styles.container}>
+      <View style={styles.hero}>
+        <SpeedLines style={styles.heroSpeed} />
+        <Animated.Image
+          source={require('../../assets/splash-icon.png')}
+          style={[styles.heroCar, { transform: [{ scale: carScale }] }]}
+          resizeMode="contain"
         />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Пароль"
-          placeholderTextColor="#999"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-
-        <TouchableOpacity
-          style={styles.forgotBtn}
-          onPress={() => navigation.navigate('ForgotPassword')}
-        >
-          <Text style={styles.forgotText}>Забыли пароль?</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.btn, loading && styles.btnDisabled]}
-          onPress={handleSignIn}
-          disabled={loading}
-        >
-          {loading
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.btnText}>Войти</Text>
-          }
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.googleBtn, (googleLoading || isExpoGo) && styles.btnDisabled]}
-          onPress={handleGoogleSignIn}
-          disabled={googleLoading}
-        >
-          {googleLoading
-            ? <ActivityIndicator color="#111" />
-            : (
-              <>
-                <Text style={styles.googleMark}>G</Text>
-                <Text style={styles.googleText}>Войти через Google</Text>
-              </>
-            )
-          }
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-          <Text style={styles.link}>
-            Нет аккаунта? <Text style={styles.linkBold}>Зарегистрироваться</Text>
-          </Text>
-        </TouchableOpacity>
+        <Text style={styles.brand}>AVTOTIME</Text>
       </View>
-    </KeyboardAvoidingView>
+
+      <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetY }] }]}>
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <Text style={styles.title}>С возвращением</Text>
+            <Text style={styles.subtitle}>Войдите в аккаунт Avtotime</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Имя пользователя или email"
+              placeholderTextColor={colors.textFaint}
+              value={identifier}
+              onChangeText={setIdentifier}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Пароль"
+              placeholderTextColor={colors.textFaint}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+
+            <TouchableOpacity style={styles.forgotBtn} onPress={() => navigation.navigate('ForgotPassword')}>
+              <Text style={styles.forgotText}>Забыли пароль?</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.btn, loading && styles.btnDisabled]}
+              onPress={handleSignIn}
+              disabled={loading}
+              activeOpacity={0.9}
+            >
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Войти</Text>}
+            </TouchableOpacity>
+
+            <View style={styles.divider}>
+              <View style={styles.line} />
+              <Text style={styles.dividerText}>или</Text>
+              <View style={styles.line} />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.googleBtn, (googleLoading || isExpoGo) && styles.btnDisabled]}
+              onPress={handleGoogleSignIn}
+              disabled={googleLoading}
+              activeOpacity={0.9}
+            >
+              {googleLoading ? (
+                <ActivityIndicator color={colors.text} />
+              ) : (
+                <>
+                  <Text style={styles.googleMark}>G</Text>
+                  <Text style={styles.googleText}>Войти через Google</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.signupLink} onPress={() => navigation.navigate('SignUp')}>
+              <Text style={styles.link}>
+                Нет аккаунта? <Text style={styles.linkBold}>Зарегистрироваться</Text>
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  inner: {
-    flex: 1, justifyContent: 'center', alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 32, color: '#111' },
+  container: { flex: 1, backgroundColor: colors.ink },
+  hero: { height: 300, alignItems: 'center', justifyContent: 'center', paddingTop: 24 },
+  heroSpeed: {},
+  heroCar: { width: 240, height: 150 },
+  brand: { color: colors.white, fontSize: font.h2, fontWeight: '900', letterSpacing: 4, marginTop: space.sm },
+  sheet: { flex: 1, backgroundColor: colors.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -24, overflow: 'hidden' },
+  flex: { flex: 1 },
+  form: { padding: space.xl, paddingTop: space.xxl, paddingBottom: space.xl },
+  title: { fontSize: font.h1, fontWeight: '900', color: colors.text },
+  subtitle: { fontSize: font.small, color: colors.textMuted, marginTop: 4, marginBottom: space.xl, fontWeight: '600' },
   input: {
-    width: '100%', height: 52, borderWidth: 2, borderColor: '#111',
-    borderRadius: 16, paddingHorizontal: 18, fontSize: 15,
-    marginBottom: 14, color: '#111', backgroundColor: '#fff',
+    width: '100%', height: 54, backgroundColor: colors.surface, borderRadius: radius.md,
+    paddingHorizontal: 16, fontSize: font.body, marginBottom: space.md, color: colors.text, ...shadow.card,
   },
-  forgotBtn: { alignSelf: 'center', marginBottom: 20 },
-  forgotText: { color: '#555', fontSize: 14 },
-  btn: {
-    width: '100%', height: 52, backgroundColor: '#111',
-    borderRadius: 16, justifyContent: 'center', alignItems: 'center',
-    marginBottom: 20,
-  },
+  forgotBtn: { alignSelf: 'flex-end', marginBottom: space.lg, paddingVertical: 4 },
+  forgotText: { color: colors.accent, fontSize: font.small, fontWeight: '800' },
+  btn: { width: '100%', height: 54, backgroundColor: colors.accent, borderRadius: radius.md, justifyContent: 'center', alignItems: 'center', ...shadow.card },
   btnDisabled: { opacity: 0.6 },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  googleBtn: {
-    width: '100%', height: 52, backgroundColor: '#fff',
-    borderRadius: 16, justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: '#ddd', flexDirection: 'row', gap: 10,
-    marginBottom: 20,
-  },
-  googleMark: { color: '#4285f4', fontWeight: '800', fontSize: 18 },
-  googleText: { color: '#111', fontWeight: '700', fontSize: 15 },
-  link: { color: '#555', fontSize: 14 },
-  linkBold: { color: '#111', fontWeight: '700', textDecorationLine: 'underline' },
+  btnText: { color: colors.white, fontWeight: '900', fontSize: font.body },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: space.lg },
+  line: { flex: 1, height: 1, backgroundColor: colors.border },
+  dividerText: { color: colors.textFaint, fontSize: font.small, fontWeight: '700' },
+  googleBtn: { width: '100%', height: 54, backgroundColor: colors.surface, borderRadius: radius.md, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 10, ...shadow.card },
+  googleMark: { color: '#4285f4', fontWeight: '900', fontSize: 18 },
+  googleText: { color: colors.text, fontWeight: '800', fontSize: font.body },
+  signupLink: { alignSelf: 'center', marginTop: space.xl },
+  link: { color: colors.textMuted, fontSize: font.small },
+  linkBold: { color: colors.accent, fontWeight: '900' },
 });

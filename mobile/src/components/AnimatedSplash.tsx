@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
+import SpeedLines from './SpeedLines';
 
 function Dot({ delay }: { delay: number }) {
   const v = useRef(new Animated.Value(0.25)).current;
@@ -42,11 +43,14 @@ export default function AnimatedSplash() {
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.halo, { opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
-      <Animated.Image
-        source={require('../../assets/splash-icon.png')}
-        style={[styles.logo, { opacity, transform: [{ scale }] }]}
-        resizeMode="contain"
-      />
+      <View style={styles.stage}>
+        <SpeedLines />
+        <Animated.Image
+          source={require('../../assets/splash-icon.png')}
+          style={[styles.logo, { opacity, transform: [{ scale }] }]}
+          resizeMode="contain"
+        />
+      </View>
       <View style={styles.dots}>
         <Dot delay={0} />
         <Dot delay={140} />
@@ -59,6 +63,7 @@ export default function AnimatedSplash() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B0B0B', alignItems: 'center', justifyContent: 'center' },
   halo: { position: 'absolute', width: 420, height: 420, borderRadius: 210, backgroundColor: '#ffffff' },
+  stage: { width: 300, height: 260, alignItems: 'center', justifyContent: 'center' },
   logo: { width: 260, height: 260 },
   dots: { flexDirection: 'row', gap: 9, position: 'absolute', bottom: 90 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#ffffff' },
