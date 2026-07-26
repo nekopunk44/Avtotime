@@ -341,10 +341,10 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
           />
           <TouchableOpacity style={[styles.submitBtn, submitting && styles.submitBtnDisabled]} onPress={submit} disabled={submitting}>
             {submitting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.onAccent} />
             ) : (
               <>
-                <Ionicons name="send-outline" size={18} color="#fff" />
+                <Ionicons name="send-outline" size={18} color={colors.onAccent} />
                 <Text style={styles.submitText}>{myReview ? 'Обновить отзыв' : 'Опубликовать'}</Text>
               </>
             )}
@@ -432,9 +432,9 @@ const styles = StyleSheet.create({
   deleteReviewText: { color: colors.danger, fontSize: 12, fontWeight: '900' },
   input: { minHeight: 46, borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: colors.bg, color: colors.text, fontSize: 14, paddingHorizontal: 12 },
   textArea: { minHeight: 92, paddingTop: 11, lineHeight: 20 },
-  submitBtn: { height: 48, borderRadius: 10, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  submitBtn: { height: 48, borderRadius: 10, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   submitBtnDisabled: { opacity: 0.65 },
-  submitText: { color: '#fff', fontSize: 15, fontWeight: '900' },
+  submitText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
   listHeader: { marginTop: 4, paddingHorizontal: 2 },
   reviewCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
   reviewTop: { flexDirection: 'row', alignItems: 'center', gap: 9 },

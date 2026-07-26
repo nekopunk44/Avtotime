@@ -188,10 +188,10 @@ export default function CarRequestScreen() {
             activeOpacity={0.9}
           >
             {sending ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.onAccent} />
             ) : (
               <>
-                <Ionicons name="send-outline" size={19} color="#fff" />
+                <Ionicons name="send-outline" size={19} color={colors.onAccent} />
                 <Text style={styles.submitText}>Отправить заявку</Text>
               </>
             )}
@@ -227,9 +227,9 @@ const styles = StyleSheet.create({
   regionChipActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
   regionChipText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
   regionChipTextActive: { color: '#fff' },
-  submitBtn: { marginTop: 2, height: 50, borderRadius: 12, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  submitBtn: { marginTop: 2, height: 50, borderRadius: 12, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   submitBtnDisabled: { opacity: 0.65 },
-  submitText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  submitText: { color: colors.onAccent, fontSize: 16, fontWeight: '900' },
   infoBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
   infoText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700' },
 });

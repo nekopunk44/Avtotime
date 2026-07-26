@@ -166,10 +166,10 @@ export default function EditPostScreen({ navigation, route }: Props) {
 
       <TouchableOpacity style={[styles.saveBtn, saving && styles.saveBtnDisabled]} onPress={save} disabled={saving}>
         {saving ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.onAccent} />
         ) : (
           <>
-            <Ionicons name="save-outline" size={19} color="#fff" />
+            <Ionicons name="save-outline" size={19} color={colors.onAccent} />
             <Text style={styles.saveText}>Сохранить</Text>
           </>
         )}
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   resetText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
   input: { minHeight: 130, borderRadius: 10, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, color: colors.text, fontSize: 16, lineHeight: 23, padding: 12 },
   counter: { marginTop: 6, color: colors.textFaint, fontSize: 12, fontWeight: '700', textAlign: 'right' },
-  saveBtn: { marginTop: 18, height: 52, borderRadius: 12, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  saveBtn: { marginTop: 18, height: 52, borderRadius: 12, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   saveBtnDisabled: { opacity: 0.65 },
-  saveText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  saveText: { color: colors.onAccent, fontSize: 16, fontWeight: '900' },
 });

@@ -350,7 +350,7 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
           </View>
         </View>
         <TouchableOpacity style={styles.contactBtn} onPress={openSeller}>
-          <Ionicons name="person-circle-outline" size={19} color="#fff" />
+          <Ionicons name="person-circle-outline" size={19} color={colors.onAccent} />
           <Text style={styles.contactText}>Профиль</Text>
         </TouchableOpacity>
       </View>
@@ -412,8 +412,8 @@ const styles = StyleSheet.create({
   sellerTitle: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   sellerName: { color: colors.text, fontSize: 16, fontWeight: '900', marginTop: 2 },
   contactBtn: {
-    height: 46, borderRadius: 8, backgroundColor: colors.surfaceHi,
+    height: 46, borderRadius: 8, backgroundColor: colors.accent,
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7,
   },
-  contactText: { color: '#fff', fontSize: 15, fontWeight: '900' },
+  contactText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
 });

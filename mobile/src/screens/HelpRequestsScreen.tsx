@@ -359,7 +359,7 @@ export default function HelpRequestsScreen({ navigation }: Props) {
                 <Text style={styles.cancelText}>Отмена</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={saveRequest} disabled={saving}>
-                {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>{editing ? 'Сохранить' : 'Создать'}</Text>}
+                {saving ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.saveText}>{editing ? 'Сохранить' : 'Создать'}</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -426,6 +426,6 @@ const styles = StyleSheet.create({
   modalActions: { flexDirection: 'row', gap: 10 },
   cancelBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   cancelText: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  saveBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
-  saveText: { color: '#fff', fontSize: 15, fontWeight: '900' },
+  saveBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  saveText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
 });

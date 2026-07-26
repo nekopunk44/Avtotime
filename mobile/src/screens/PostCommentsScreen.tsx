@@ -196,7 +196,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
         >
           {sending
             ? <ActivityIndicator size="small" color={colors.text} />
-            : <Ionicons name="send" size={20} color={text.trim() ? '#111' : '#ccc'} />
+            : <Ionicons name="send" size={20} color={text.trim() ? colors.accent : colors.textFaint} />
           }
         </TouchableOpacity>
       </View>

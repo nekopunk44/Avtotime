@@ -405,7 +405,7 @@ export default function LoopsScreen({ navigation }: Props) {
                 disabled={uploading}
               >
                 {uploading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={colors.onAccent} />
                 ) : (
                   <Text style={styles.publishText}>Опубликовать</Text>
                 )}
@@ -534,6 +534,6 @@ const styles = StyleSheet.create({
   uploadActions: { marginTop: 16, flexDirection: 'row', gap: 10 },
   cancelUploadBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   cancelUploadText: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  publishBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
-  publishText: { color: '#fff', fontSize: 15, fontWeight: '900' },
+  publishBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  publishText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
 });

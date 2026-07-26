@@ -163,10 +163,10 @@ export default function EmailVerificationScreen({ navigation }: Props) {
               activeOpacity={0.86}
             >
               {sending ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.onAccent} />
               ) : (
                 <>
-                  <Ionicons name="send-outline" size={18} color="#fff" />
+                  <Ionicons name="send-outline" size={18} color={colors.onAccent} />
                   <Text style={styles.primaryText}>Отправить письмо ещё раз</Text>
                 </>
               )}
@@ -264,14 +264,14 @@ const styles = StyleSheet.create({
   primaryBtn: {
     height: 48,
     borderRadius: 8,
-    backgroundColor: colors.surfaceHi,
+    backgroundColor: colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
     marginBottom: 10,
   },
-  primaryText: { color: '#fff', fontSize: 15, fontWeight: '900' },
+  primaryText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
   formCard: {
     backgroundColor: colors.surface,
     borderRadius: 8,

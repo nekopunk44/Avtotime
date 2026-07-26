@@ -189,10 +189,10 @@ export default function NotificationSettingsScreen() {
 
       <TouchableOpacity style={[styles.saveBtn, saving && styles.saveBtnDisabled]} onPress={save} disabled={saving}>
         {saving ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.onAccent} />
         ) : (
           <>
-            <Ionicons name="save-outline" size={19} color="#fff" />
+            <Ionicons name="save-outline" size={19} color={colors.onAccent} />
             <Text style={styles.saveText}>Сохранить</Text>
           </>
         )}
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   digestBody: { flex: 1 },
   digestLabel: { color: colors.text, fontSize: 14, fontWeight: '900' },
   digestDescription: { marginTop: 2, color: colors.textMuted, fontSize: 12, lineHeight: 17, fontWeight: '700' },
-  saveBtn: { marginTop: 18, height: 52, borderRadius: 12, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  saveBtn: { marginTop: 18, height: 52, borderRadius: 12, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   saveBtnDisabled: { opacity: 0.65 },
-  saveText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  saveText: { color: colors.onAccent, fontSize: 16, fontWeight: '900' },
 });

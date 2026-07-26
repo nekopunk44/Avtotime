@@ -160,7 +160,7 @@ export default function ForgotPasswordScreen() {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.onAccent} />
           ) : (
             <Text style={styles.btnText}>
               {step === 'email' ? 'Отправить код' : step === 'otp' ? 'Подтвердить код' : 'Сохранить пароль'}
@@ -182,11 +182,11 @@ const styles = StyleSheet.create({
     borderRadius: 16, paddingHorizontal: 18, fontSize: 15, marginBottom: 14, color: colors.text,
   },
   btn: {
-    width: '100%', height: 52, backgroundColor: colors.surfaceHi,
+    width: '100%', height: 52, backgroundColor: colors.accent,
     borderRadius: 16, justifyContent: 'center', alignItems: 'center',
   },
   btnDisabled: { opacity: 0.6 },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  btnText: { color: colors.onAccent, fontWeight: '700', fontSize: 16 },
   otpRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 18, position: 'relative' },
   otpBox: {
     width: 48, height: 58, borderWidth: 2, borderColor: colors.border, borderRadius: 12,

@@ -133,7 +133,7 @@ export default function EditProfileScreen({ navigation }: Props) {
           onPress={handleSave}
           disabled={saving}
         >
-          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Сохранить</Text>}
+          {saving ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.saveText}>Сохранить</Text>}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -191,9 +191,9 @@ const styles = StyleSheet.create({
   },
   multiline: { minHeight: 94, lineHeight: 20 },
   saveBtn: {
-    height: 52, borderRadius: 14, backgroundColor: colors.surfaceHi,
+    height: 52, borderRadius: 14, backgroundColor: colors.accent,
     justifyContent: 'center', alignItems: 'center', marginTop: 10,
   },
   disabled: { opacity: 0.6 },
-  saveText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  saveText: { color: colors.onAccent, fontWeight: '700', fontSize: 16 },
 });

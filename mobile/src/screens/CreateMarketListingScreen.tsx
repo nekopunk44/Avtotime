@@ -357,10 +357,10 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
 
         <TouchableOpacity style={[styles.submitBtn, loading && styles.submitBtnDisabled]} onPress={submit} disabled={loading}>
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.onAccent} />
           ) : (
             <>
-              <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+              <Ionicons name="checkmark-circle-outline" size={20} color={colors.onAccent} />
               <Text style={styles.submitText}>Опубликовать</Text>
             </>
           )}
@@ -410,10 +410,10 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   submitBtn: {
-    height: 52, borderRadius: 12, backgroundColor: colors.surfaceHi,
+    height: 52, borderRadius: 12, backgroundColor: colors.accent,
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
     gap: 8, marginTop: 22,
   },
   submitBtnDisabled: { opacity: 0.65 },
-  submitText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  submitText: { color: colors.onAccent, fontSize: 16, fontWeight: '900' },
 });

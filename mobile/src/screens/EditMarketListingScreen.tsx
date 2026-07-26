@@ -331,10 +331,10 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
 
         <TouchableOpacity style={[styles.submitBtn, loading && styles.submitBtnDisabled]} onPress={submit} disabled={loading}>
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.onAccent} />
           ) : (
             <>
-              <Ionicons name="save-outline" size={20} color="#fff" />
+              <Ionicons name="save-outline" size={20} color={colors.onAccent} />
               <Text style={styles.submitText}>Сохранить</Text>
             </>
           )}
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
   submitBtn: {
     height: 52,
     borderRadius: 12,
-    backgroundColor: colors.surfaceHi,
+    backgroundColor: colors.accent,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -418,5 +418,5 @@ const styles = StyleSheet.create({
     marginTop: 22,
   },
   submitBtnDisabled: { opacity: 0.65 },
-  submitText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  submitText: { color: colors.onAccent, fontSize: 16, fontWeight: '900' },
 });

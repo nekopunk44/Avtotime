@@ -197,7 +197,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
       {isMe ? (
         <View style={styles.mainActions}>
           <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.navigate('EditProfile')}>
-            <Ionicons name="create-outline" size={18} color="#fff" />
+            <Ionicons name="create-outline" size={18} color={colors.onAccent} />
             <Text style={styles.primaryText}>Редактировать</Text>
           </TouchableOpacity>
         </View>
@@ -209,10 +209,10 @@ export default function UserProfileScreen({ route, navigation }: Props) {
             disabled={followLoading}
           >
             {followLoading ? (
-              <ActivityIndicator color={isFollowing ? '#111' : '#fff'} />
+              <ActivityIndicator color={isFollowing ? colors.text : colors.onAccent} />
             ) : (
               <>
-                <Ionicons name={isFollowing ? 'checkmark-outline' : 'person-add-outline'} size={18} color={isFollowing ? '#111' : '#fff'} />
+                <Ionicons name={isFollowing ? 'checkmark-outline' : 'person-add-outline'} size={18} color={isFollowing ? colors.text : colors.onAccent} />
                 <Text style={[styles.primaryText, isFollowing && styles.followingText]}>
                   {isFollowing ? 'Вы подписаны' : 'Подписаться'}
                 </Text>
@@ -329,8 +329,8 @@ const styles = StyleSheet.create({
   ratingCount: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   stars: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   mainActions: { flexDirection: 'row', gap: 8 },
-  primaryBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  primaryText: { color: '#fff', fontSize: 14, fontWeight: '900' },
+  primaryBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  primaryText: { color: colors.onAccent, fontSize: 14, fontWeight: '900' },
   followingBtn: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   followingText: { color: colors.text },
   secondaryBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },

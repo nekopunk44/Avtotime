@@ -398,7 +398,7 @@ export default function MyListingsScreen({ navigation }: Props) {
             </Text>
             {!error ? (
               <TouchableOpacity style={styles.createBtn} onPress={() => navigation.navigate('CreateMarketListing')}>
-                <Ionicons name="add" size={18} color="#fff" />
+                <Ionicons name="add" size={18} color={colors.onAccent} />
                 <Text style={styles.createBtnText}>Создать объявление</Text>
               </TouchableOpacity>
             ) : null}
@@ -493,8 +493,8 @@ const styles = StyleSheet.create({
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
-  createBtn: { marginTop: 16, height: 44, borderRadius: 8, paddingHorizontal: 16, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  createBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' },
+  createBtn: { marginTop: 16, height: 44, borderRadius: 8, paddingHorizontal: 16, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  createBtnText: { color: colors.onAccent, fontSize: 14, fontWeight: '900' },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   sheet: { backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
