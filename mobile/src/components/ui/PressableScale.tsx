@@ -7,6 +7,11 @@ interface Props extends Omit<PressableProps, 'children' | 'style'> {
   scaleTo?: number;
 }
 
+// Animate the Pressable itself so the passed style (width/flex/margins) lays
+// out against the real parent — wrapping the style on an inner view collapses
+// percentage/flex widths to the content size.
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 // Pressable that gently scales down on press — the app's standard tap feedback.
 export default function PressableScale({ children, style, scaleTo = 0.97, ...rest }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -14,8 +19,13 @@ export default function PressableScale({ children, style, scaleTo = 0.97, ...res
     Animated.spring(scale, { toValue: v, useNativeDriver: true, speed: 40, bounciness: 0 }).start();
 
   return (
-    <Pressable onPressIn={() => spring(scaleTo)} onPressOut={() => spring(1)} {...rest}>
-      <Animated.View style={[{ transform: [{ scale }] }, style]}>{children}</Animated.View>
-    </Pressable>
+    <AnimatedPressable
+      onPressIn={() => spring(scaleTo)}
+      onPressOut={() => spring(1)}
+      style={[style, { transform: [{ scale }] }]}
+      {...rest}
+    >
+      {children}
+    </AnimatedPressable>
   );
 }

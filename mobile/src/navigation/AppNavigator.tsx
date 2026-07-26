@@ -178,14 +178,30 @@ function HeaderBell() {
 }
 
 const makeTabOptions = (current: 'social' | 'market') => ({ route }: any) => ({
-  tabBarIcon: ({ focused, color, size }: any) => {
+  tabBarIcon: ({ focused }: any) => {
     const icon = TAB_ICONS[route.name];
-    return <Ionicons name={(focused ? icon.on : icon.off) as any} size={size} color={color} />;
+    return (
+      <View style={[styles.tabIcon, focused && styles.tabIconActive]}>
+        <Ionicons
+          name={(focused ? icon.on : icon.off) as any}
+          size={22}
+          color={focused ? colors.onAccent : colors.textFaint}
+        />
+      </View>
+    );
   },
   tabBarActiveTintColor: colors.text,
   tabBarInactiveTintColor: colors.textFaint,
   tabBarShowLabel: false,
-  tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
+  tabBarStyle: {
+    backgroundColor: colors.surface,
+    borderTopColor: colors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    height: 66,
+    paddingTop: 10,
+    paddingBottom: 12,
+  },
+  tabBarItemStyle: { height: 44 },
   headerShown: true,
   headerStyle: { backgroundColor: colors.bg },
   headerShadowVisible: false,
@@ -296,6 +312,8 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: colors.accent },
   segmentText: { fontSize: 13, fontWeight: '800', color: colors.textMuted },
   segmentTextActive: { color: colors.onAccent },
+  tabIcon: { width: 52, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  tabIconActive: { backgroundColor: colors.accent },
   bell: { marginRight: 14, padding: 4 },
   bellDot: { position: 'absolute', top: 3, right: 3, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.danger, borderWidth: 1.5, borderColor: colors.bg },
 });

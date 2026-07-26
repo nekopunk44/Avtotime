@@ -43,7 +43,7 @@ function Stars({ value }: { value: number }) {
           key={star}
           name={star <= value ? 'star' : 'star-outline'}
           size={17}
-          color={star <= value ? '#f5a400' : '#ccc'}
+          color={star <= value ? colors.star : colors.surfaceHi}
         />
       ))}
     </View>
@@ -134,13 +134,13 @@ export default function ProfileScreen({ navigation }: Props) {
       {!user.isEmailVerified ? (
         <PressableScale style={styles.verifyCard} onPress={() => navigation.navigate('EmailVerification')}>
           <View style={styles.verifyIcon}>
-            <Ionicons name="mail-unread-outline" size={22} color="#a85b00" />
+            <Ionicons name="mail-unread-outline" size={22} color={colors.warning} />
           </View>
           <View style={styles.verifyBody}>
             <Text style={styles.verifyTitle}>Подтвердите email</Text>
             <Text style={styles.verifyText}>Это нужно для публикаций, loops, объявлений и заявок.</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#a85b00" />
+          <Ionicons name="chevron-forward" size={18} color={colors.warning} />
         </PressableScale>
       ) : null}
 
@@ -176,7 +176,7 @@ export default function ProfileScreen({ navigation }: Props) {
 
       <View style={styles.mainActions}>
         <PressableScale style={styles.primaryBtn} onPress={() => navigation.navigate('CreatePost')}>
-          <Ionicons name="add" size={18} color="#fff" />
+          <Ionicons name="add" size={18} color={colors.onAccent} />
           <Text style={styles.primaryText}>Публикация</Text>
         </PressableScale>
         <PressableScale style={styles.secondaryBtn} onPress={() => navigation.navigate('EditProfile')}>
@@ -195,8 +195,10 @@ export default function ProfileScreen({ navigation }: Props) {
           { icon: 'card-outline', label: 'Тарифы', go: () => navigation.navigate('Billing') },
         ].map((q) => (
           <PressableScale key={q.label} style={styles.quickCard} onPress={q.go}>
-            <Ionicons name={q.icon as any} size={20} color={colors.accent} />
-            <Text style={styles.quickTitle}>{q.label}</Text>
+            <View style={styles.quickIcon}>
+              <Ionicons name={q.icon as any} size={19} color={colors.text} />
+            </View>
+            <Text style={styles.quickTitle} numberOfLines={2}>{q.label}</Text>
           </PressableScale>
         ))}
       </View>
@@ -282,11 +284,11 @@ const styles = StyleSheet.create({
   locationBadge: { overflow: 'hidden', borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.14)', color: colors.white, paddingHorizontal: 11, paddingVertical: 5, fontSize: font.tiny, fontWeight: '900' },
 
   bio: { color: colors.text, fontSize: font.body, lineHeight: 21, backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.lg, ...shadow.card },
-  verifyCard: { borderRadius: radius.lg, backgroundColor: '#FFF8EC', padding: space.md, flexDirection: 'row', alignItems: 'center', gap: 10, ...shadow.card },
-  verifyIcon: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: '#FFF2D8', alignItems: 'center', justifyContent: 'center' },
+  verifyCard: { borderRadius: radius.lg, backgroundColor: 'rgba(246,178,61,0.14)', padding: space.md, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  verifyIcon: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: 'rgba(246,178,61,0.22)', alignItems: 'center', justifyContent: 'center' },
   verifyBody: { flex: 1 },
   verifyTitle: { color: colors.text, fontSize: font.body, fontWeight: '900' },
-  verifyText: { marginTop: 3, color: '#8a5a16', fontSize: font.tiny, lineHeight: 17, fontWeight: '700' },
+  verifyText: { marginTop: 3, color: colors.textMuted, fontSize: font.tiny, lineHeight: 17, fontWeight: '700' },
 
   stats: { flexDirection: 'row', gap: space.sm },
   stat: { flex: 1, borderRadius: radius.lg, backgroundColor: colors.surface, alignItems: 'center', paddingVertical: space.md, ...shadow.card },
@@ -294,7 +296,7 @@ const styles = StyleSheet.create({
   statLabel: { marginTop: 2, color: colors.textMuted, fontSize: font.tiny, fontWeight: '800' },
 
   ratingCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md, ...shadow.card },
-  ratingIcon: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: '#FFF8EC', alignItems: 'center', justifyContent: 'center' },
+  ratingIcon: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: 'rgba(245,197,24,0.15)', alignItems: 'center', justifyContent: 'center' },
   ratingBody: { flex: 1 },
   ratingTitle: { color: colors.text, fontSize: font.small, fontWeight: '900' },
   ratingRow: { marginTop: 5, flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap' },
@@ -309,8 +311,9 @@ const styles = StyleSheet.create({
   secondaryText: { color: colors.text, fontSize: font.body, fontWeight: '900' },
 
   quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  quickCard: { width: '48.7%', minHeight: 76, borderRadius: radius.lg, backgroundColor: colors.surface, padding: space.md, justifyContent: 'center', gap: 8, ...shadow.card },
-  quickTitle: { color: colors.text, fontSize: font.small, fontWeight: '900' },
+  quickCard: { width: '48.5%', minHeight: 92, borderRadius: radius.lg, backgroundColor: colors.surface, padding: space.md, justifyContent: 'space-between', gap: 12, ...shadow.card },
+  quickIcon: { width: 38, height: 38, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  quickTitle: { color: colors.text, fontSize: font.small, fontWeight: '900', lineHeight: 18 },
 
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2, marginTop: space.xs },
   sectionTitle: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
