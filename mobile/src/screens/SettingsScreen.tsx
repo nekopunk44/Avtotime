@@ -22,6 +22,7 @@ import { getMe } from '../api/auth';
 import { BillingStatus, getBillingStatus } from '../api/billing';
 import { changePassword, deleteProfile, logoutAllSessions } from '../api/users';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors } from '../theme';
 import { useAuthStore } from '../store/authStore';
 import { useLockStore } from '../store/lockStore';
 import { authenticateBiometric, getBiometricLabel, isBiometricAvailable } from '../utils/biometric';
@@ -267,16 +268,16 @@ export default function SettingsScreen({ navigation }: Props) {
     <TouchableOpacity style={styles.actionRow} onPress={onPress} activeOpacity={0.85} disabled={itemLoading}>
       <View style={[styles.actionIcon, danger && styles.actionIconDanger]}>
         {itemLoading ? (
-          <ActivityIndicator color={danger ? '#d92323' : '#111'} />
+          <ActivityIndicator color={danger ? colors.danger : colors.text} />
         ) : (
-          <Ionicons name={icon} size={21} color={danger ? '#d92323' : '#111'} />
+          <Ionicons name={icon} size={21} color={danger ? colors.danger : colors.text} />
         )}
       </View>
       <View style={styles.actionBody}>
         <Text style={[styles.actionTitle, danger && styles.actionTitleDanger]}>{title}</Text>
         <Text style={styles.actionDescription}>{description}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#aaa" />
+      <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
     </TouchableOpacity>
   );
 
@@ -295,7 +296,7 @@ export default function SettingsScreen({ navigation }: Props) {
   }) => (
     <View style={styles.actionRow}>
       <View style={styles.actionIcon}>
-        <Ionicons name={icon} size={21} color="#111" />
+        <Ionicons name={icon} size={21} color={colors.text} />
       </View>
       <View style={styles.actionBody}>
         <Text style={styles.actionTitle}>{title}</Text>
@@ -304,8 +305,8 @@ export default function SettingsScreen({ navigation }: Props) {
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: '#ddd', true: '#111' }}
-        thumbColor="#fff"
+        trackColor={{ false: colors.surfaceHi, true: colors.success }}
+        thumbColor={colors.white}
       />
     </View>
   );
@@ -313,7 +314,7 @@ export default function SettingsScreen({ navigation }: Props) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -328,7 +329,7 @@ export default function SettingsScreen({ navigation }: Props) {
       >
         <View style={styles.hero}>
           <View style={styles.heroIcon}>
-            <Ionicons name="settings-outline" size={27} color="#111" />
+            <Ionicons name="settings-outline" size={27} color={colors.text} />
           </View>
           <Text style={styles.title}>Настройки</Text>
           <Text style={styles.subtitle}>Профиль, безопасность и управление аккаунтом</Text>
@@ -336,7 +337,7 @@ export default function SettingsScreen({ navigation }: Props) {
 
         {error ? (
           <View style={styles.errorBox}>
-            <Ionicons name="alert-circle-outline" size={22} color="#d92323" />
+            <Ionicons name="alert-circle-outline" size={22} color={colors.danger} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
@@ -359,7 +360,7 @@ export default function SettingsScreen({ navigation }: Props) {
             <Text style={styles.planDate}>Действует до: {formatDate(billing.planExpiresAt)}</Text>
           </View>
           <TouchableOpacity style={styles.planBtn} onPress={() => navigation.navigate('Billing')} activeOpacity={0.85}>
-            <Ionicons name="card-outline" size={17} color="#fff" />
+            <Ionicons name="card-outline" size={17} color={colors.onAccent} />
             <Text style={styles.planBtnText}>Тарифы</Text>
           </TouchableOpacity>
         </View>
@@ -492,7 +493,7 @@ export default function SettingsScreen({ navigation }: Props) {
               onChangeText={setCurrentPassword}
               secureTextEntry
               placeholder="Введите текущий пароль"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
             />
 
             <Text style={styles.inputLabel}>Новый пароль</Text>
@@ -502,7 +503,7 @@ export default function SettingsScreen({ navigation }: Props) {
               onChangeText={setNewPassword}
               secureTextEntry
               placeholder="Минимум 8 символов"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
             />
 
             <Text style={styles.inputLabel}>Повторите пароль</Text>
@@ -512,7 +513,7 @@ export default function SettingsScreen({ navigation }: Props) {
               onChangeText={setConfirmPassword}
               secureTextEntry
               placeholder="Повторите новый пароль"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
             />
 
             <View style={styles.modalActions}>
@@ -520,7 +521,7 @@ export default function SettingsScreen({ navigation }: Props) {
                 <Text style={styles.cancelText}>Отмена</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={submitPassword} disabled={savingPassword}>
-                {savingPassword ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Сохранить</Text>}
+                {savingPassword ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.saveText}>Сохранить</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -537,7 +538,7 @@ export default function SettingsScreen({ navigation }: Props) {
             <View style={styles.sheetHandle} />
             <View style={styles.dangerHeader}>
               <View style={styles.dangerIcon}>
-                <Ionicons name="warning-outline" size={23} color="#d92323" />
+                <Ionicons name="warning-outline" size={23} color={colors.danger} />
               </View>
               <View style={styles.dangerTextWrap}>
                 <Text style={styles.sheetTitle}>Удалить аккаунт</Text>
@@ -554,7 +555,7 @@ export default function SettingsScreen({ navigation }: Props) {
               onChangeText={setDeletePassword}
               secureTextEntry
               placeholder="Введите пароль"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
             />
 
             <Text style={styles.inputLabel}>Подтверждение</Text>
@@ -563,7 +564,7 @@ export default function SettingsScreen({ navigation }: Props) {
               value={deleteConfirm}
               onChangeText={(value) => setDeleteConfirm(value.toUpperCase())}
               placeholder="Введите УДАЛИТЬ"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textFaint}
               autoCapitalize="characters"
             />
 
@@ -572,7 +573,7 @@ export default function SettingsScreen({ navigation }: Props) {
                 <Text style={styles.cancelText}>Отмена</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.deleteBtn} onPress={submitDeleteProfile} disabled={deleting}>
-                {deleting ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Удалить</Text>}
+                {deleting ? <ActivityIndicator color={colors.white} /> : <Text style={styles.deleteText}>Удалить</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -583,52 +584,53 @@ export default function SettingsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 30 },
   hero: { alignItems: 'center', paddingVertical: 16 },
-  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  title: { color: '#111', fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 5, color: '#666', fontSize: 14, textAlign: 'center' },
-  errorBox: { marginBottom: 10, borderRadius: 8, backgroundColor: '#fff0f0', borderWidth: 1, borderColor: '#ffd3d3', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  errorText: { flex: 1, color: '#a51010', fontSize: 13, fontWeight: '800' },
-  profileCard: { borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 58, height: 58, borderRadius: 18, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontSize: 22, fontWeight: '900' },
+  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
+  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, textAlign: 'center' },
+  errorBox: { marginBottom: 10, borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
+  profileCard: { borderRadius: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: colors.onAccent, fontSize: 22, fontWeight: '900' },
   profileInfo: { flex: 1 },
-  profileName: { color: '#111', fontSize: 18, fontWeight: '900' },
-  profileUserName: { marginTop: 2, color: '#777', fontSize: 13, fontWeight: '800' },
-  profileMeta: { marginTop: 5, color: '#777', fontSize: 12, fontWeight: '700' },
-  planCard: { marginTop: 10, borderRadius: 8, backgroundColor: '#111', padding: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  planLabel: { color: 'rgba(255,255,255,0.52)', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  planName: { marginTop: 5, color: '#fff', fontSize: 23, fontWeight: '900' },
-  planDate: { marginTop: 5, color: 'rgba(255,255,255,0.68)', fontSize: 12, fontWeight: '700' },
-  planBtn: { height: 40, borderRadius: 8, paddingHorizontal: 12, backgroundColor: '#d92323', flexDirection: 'row', alignItems: 'center', gap: 5 },
-  planBtnText: { color: '#fff', fontSize: 13, fontWeight: '900' },
-  section: { marginTop: 12, borderRadius: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ececec', paddingHorizontal: 12, paddingTop: 14, paddingBottom: 4 },
-  sectionTitle: { color: '#111', fontSize: 17, fontWeight: '900', marginBottom: 6 },
-  actionRow: { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 11, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingVertical: 12 },
-  actionIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
-  actionIconDanger: { backgroundColor: '#fff0f0' },
+  profileName: { color: colors.text, fontSize: 18, fontWeight: '900' },
+  profileUserName: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  profileMeta: { marginTop: 5, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  planCard: { marginTop: 10, borderRadius: 14, backgroundColor: colors.surfaceHi, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  planLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  planName: { marginTop: 5, color: colors.text, fontSize: 23, fontWeight: '900' },
+  planDate: { marginTop: 5, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  planBtn: { height: 40, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  planBtnText: { color: colors.onAccent, fontSize: 13, fontWeight: '900' },
+  section: { marginTop: 12, borderRadius: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 12, paddingTop: 14, paddingBottom: 4 },
+  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 6 },
+  actionRow: { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 11, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingVertical: 12 },
+  actionIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  actionIconDanger: { backgroundColor: 'rgba(255,90,95,0.12)' },
   actionBody: { flex: 1 },
-  actionTitle: { color: '#111', fontSize: 15, fontWeight: '900' },
-  actionTitleDanger: { color: '#d92323' },
-  actionDescription: { marginTop: 3, color: '#777', fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  actionTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  actionTitleDanger: { color: colors.danger },
+  actionDescription: { marginTop: 3, color: colors.textMuted, fontSize: 12, lineHeight: 17, fontWeight: '700' },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
-  sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: '#ddd', marginBottom: 12 },
-  sheetTitle: { color: '#111', fontSize: 20, fontWeight: '900', marginBottom: 14 },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)' },
+  sheet: { backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
+  sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: colors.surfaceHi, marginBottom: 12 },
+  sheetTitle: { color: colors.text, fontSize: 20, fontWeight: '900', marginBottom: 14 },
   dangerHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 14 },
-  dangerIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#fff0f0', alignItems: 'center', justifyContent: 'center' },
+  dangerIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center' },
   dangerTextWrap: { flex: 1 },
-  dangerDescription: { marginTop: -8, color: '#777', fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  inputLabel: { color: '#555', fontSize: 13, fontWeight: '800', marginBottom: 7 },
-  input: { height: 46, borderRadius: 8, backgroundColor: '#f3f3f3', paddingHorizontal: 12, color: '#111', fontSize: 15, marginBottom: 12 },
+  dangerDescription: { marginTop: -8, color: colors.textMuted, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  inputLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '800', marginBottom: 7 },
+  input: { height: 46, borderRadius: 10, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 15, marginBottom: 12 },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  cancelBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
-  cancelText: { color: '#111', fontSize: 15, fontWeight: '900' },
-  saveBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center' },
-  deleteBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: '#d92323', alignItems: 'center', justifyContent: 'center' },
-  saveText: { color: '#fff', fontSize: 15, fontWeight: '900' },
+  cancelBtn: { flex: 1, height: 46, borderRadius: 10, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  saveBtn: { flex: 1, height: 46, borderRadius: 10, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  deleteBtn: { flex: 1, height: 46, borderRadius: 10, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
+  saveText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
+  deleteText: { color: colors.white, fontSize: 15, fontWeight: '900' },
 });
