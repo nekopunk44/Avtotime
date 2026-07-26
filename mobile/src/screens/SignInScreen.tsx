@@ -5,8 +5,7 @@ import {
   ActivityIndicator, Alert,
 } from 'react-native';
 import Constants from 'expo-constants';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { signIn, signInWithGoogleCredential } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
@@ -14,11 +13,14 @@ import { AuthStackParamList } from '../navigation/AuthNavigator';
 
 type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'SignIn'> };
 
-WebBrowser.maybeCompleteAuthSession();
-
 const googleWebClientId = Constants.expoConfig?.extra?.googleWebClientId as string | undefined;
-const googleAndroidClientId = Constants.expoConfig?.extra?.googleAndroidClientId as string | undefined;
 const isExpoGo = Constants.appOwnership === 'expo';
+
+// Native Google Sign-In: the id_token audience is the web client, while the
+// Android OAuth client is matched automatically by package name + signing SHA-1.
+if (googleWebClientId && !isExpoGo) {
+  GoogleSignin.configure({ webClientId: googleWebClientId });
+}
 
 export default function SignInScreen({ navigation }: Props) {
   const [identifier, setIdentifier] = useState('');
@@ -26,15 +28,6 @@ export default function SignInScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const setUser = useAuthStore((s) => s.setUser);
-  const [googleRequest, _googleResponse, promptGoogleAsync] = Google.useIdTokenAuthRequest({
-    // Native builds must use the Android/iOS client (custom scheme redirect);
-    // Google rejects custom schemes for the Web client. webClientId stays as
-    // the id_token audience so the backend can still verify the token.
-    androidClientId: googleAndroidClientId,
-    webClientId: googleWebClientId,
-    scopes: ['openid', 'profile', 'email'],
-    selectAccount: true,
-  });
 
   const handleSignIn = async () => {
     if (!identifier.trim() || !password) {
@@ -74,21 +67,21 @@ export default function SignInScreen({ navigation }: Props) {
 
     setGoogleLoading(true);
     try {
-      const result = await promptGoogleAsync();
-      if (result.type === 'success') {
-        const credential = result.params.id_token || result.authentication?.idToken;
-        if (!credential) {
-          Alert.alert('Ошибка', 'Google не вернул id_token');
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const response = await GoogleSignin.signIn();
+      if (isSuccessResponse(response)) {
+        const idToken = response.data.idToken;
+        if (!idToken) {
+          Alert.alert('Ошибка', 'Google не вернул токен. Попробуйте ещё раз.');
           return;
         }
-
-        const user = await signInWithGoogleCredential(credential);
+        const user = await signInWithGoogleCredential(idToken);
         setUser(user);
-      } else if (result.type === 'error') {
-        Alert.alert('Ошибка', result.error?.message || result.params?.error_description || 'Google вход не удался');
       }
+      // response.type === 'cancelled' — пользователь закрыл окно, ничего не делаем
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || e.message || 'Google вход не удался');
+      if (isErrorWithCode(e) && (e.code === statusCodes.IN_PROGRESS || e.code === statusCodes.SIGN_IN_CANCELLED)) return;
+      Alert.alert('Ошибка', e?.response?.data?.message || e?.message || 'Google вход не удался');
     } finally {
       setGoogleLoading(false);
     }
@@ -140,9 +133,9 @@ export default function SignInScreen({ navigation }: Props) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.googleBtn, (googleLoading || !googleRequest || isExpoGo) && styles.btnDisabled]}
+          style={[styles.googleBtn, (googleLoading || isExpoGo) && styles.btnDisabled]}
           onPress={handleGoogleSignIn}
-          disabled={googleLoading || !googleRequest}
+          disabled={googleLoading}
         >
           {googleLoading
             ? <ActivityIndicator color="#111" />

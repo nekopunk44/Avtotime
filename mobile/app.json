@@ -3,10 +3,7 @@
     "name": "Avtotime",
     "slug": "avtotime",
     "version": "1.0.0",
-    "scheme": [
-      "avtotime",
-      "com.googleusercontent.apps.602150943944-dtkv9od8gidpnh0di64g6bjs7omobluv"
-    ],
+    "scheme": "avtotime",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -65,7 +62,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#0B0B0B"
         }
-      ]
+      ],
+      "@react-native-google-signin/google-signin"
     ],
     "extra": {
       "googleWebClientId": "602150943944-45oom92dmun40ae6qhk1iepc05la8ahd.apps.googleusercontent.com",
