@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Alert, ScrollView,
+  View, Text, TextInput, TouchableOpacity, Image, Animated, Easing, ScrollView,
+  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { signUp } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
+import SpeedLines from '../components/SpeedLines';
+import { colors, font, radius, shadow, space } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'SignUp'> };
 
@@ -18,6 +19,15 @@ export default function SignUpScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const setUser = useAuthStore((s) => s.setUser);
+
+  const sheetY = useRef(new Animated.Value(48)).current;
+  const carScale = useRef(new Animated.Value(0.9)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(sheetY, { toValue: 0, duration: 520, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.spring(carScale, { toValue: 1, friction: 6, tension: 45, useNativeDriver: true }),
+    ]).start();
+  }, [sheetY, carScale]);
 
   const handleSignUp = async () => {
     if (!name.trim() || !username.trim() || !email.trim() || !password) {
@@ -35,76 +45,94 @@ export default function SignUpScreen({ navigation }: Props) {
     }
   };
 
+  const fields = [
+    { placeholder: 'Имя', value: name, onChange: setName },
+    { placeholder: 'Имя пользователя', value: username, onChange: setUsername, lower: true },
+    { placeholder: 'Email', value: email, onChange: setEmail, lower: true },
+    { placeholder: 'Пароль', value: password, onChange: setPassword, secure: true },
+  ];
+
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Регистрация</Text>
+    <View style={styles.container}>
+      <View style={styles.hero}>
+        <SpeedLines />
+        <Animated.Image
+          source={require('../../assets/splash-icon.png')}
+          style={[styles.heroCar, { transform: [{ scale: carScale }] }]}
+          resizeMode="contain"
+        />
+        <Text style={styles.brand}>AVTOTIME</Text>
+      </View>
 
-        {[
-          { placeholder: 'Имя', value: name, onChange: setName },
-          { placeholder: 'Имя пользователя', value: username, onChange: setUsername, lower: true },
-          { placeholder: 'Email', value: email, onChange: setEmail, lower: true },
-          { placeholder: 'Пароль', value: password, onChange: setPassword, secure: true },
-        ].map((field) => (
-          <TextInput
-            key={field.placeholder}
-            style={styles.input}
-            placeholder={field.placeholder}
-            placeholderTextColor="#999"
-            value={field.value}
-            onChangeText={field.onChange}
-            secureTextEntry={field.secure}
-            autoCapitalize={field.lower ? 'none' : 'words'}
-            autoCorrect={false}
-          />
-        ))}
+      <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetY }] }]}>
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <Text style={styles.title}>Создать аккаунт</Text>
+            <Text style={styles.subtitle}>Присоединяйтесь к сообществу Avtotime</Text>
 
-        <TouchableOpacity
-          style={[styles.btn, loading && styles.btnDisabled]}
-          onPress={handleSignUp}
-          disabled={loading}
-        >
-          {loading
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.btnText}>Создать аккаунт</Text>
-          }
-        </TouchableOpacity>
+            {fields.map((field) => (
+              <TextInput
+                key={field.placeholder}
+                style={styles.input}
+                placeholder={field.placeholder}
+                placeholderTextColor={colors.textFaint}
+                value={field.value}
+                onChangeText={field.onChange}
+                secureTextEntry={field.secure}
+                autoCapitalize={field.lower ? 'none' : 'words'}
+                autoCorrect={false}
+              />
+            ))}
 
-        <Text style={styles.privacyText}>
-          Создавая аккаунт, вы соглашаетесь с{' '}
-          <Text style={styles.privacyLink} onPress={() => navigation.navigate('PrivacyPolicy')}>
-            политикой конфиденциальности
-          </Text>
-          .
-        </Text>
+            <TouchableOpacity
+              style={[styles.btn, loading && styles.btnDisabled]}
+              onPress={handleSignUp}
+              disabled={loading}
+              activeOpacity={0.9}
+            >
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Создать аккаунт</Text>}
+            </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
-          <Text style={styles.link}>
-            Уже есть аккаунт? <Text style={styles.linkBold}>Войти</Text>
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <Text style={styles.privacyText}>
+              Создавая аккаунт, вы соглашаетесь с{' '}
+              <Text style={styles.privacyLink} onPress={() => navigation.navigate('PrivacyPolicy')}>
+                политикой конфиденциальности
+              </Text>
+              .
+            </Text>
+
+            <TouchableOpacity style={styles.signinLink} onPress={() => navigation.navigate('SignIn')}>
+              <Text style={styles.link}>
+                Уже есть аккаунт? <Text style={styles.linkBold}>Войти</Text>
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  inner: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, paddingVertical: 48 },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 32, color: '#111' },
+  container: { flex: 1, backgroundColor: colors.ink },
+  hero: { height: 240, alignItems: 'center', justifyContent: 'center', paddingTop: 20 },
+  heroCar: { width: 220, height: 130 },
+  brand: { color: colors.white, fontSize: font.h2, fontWeight: '900', letterSpacing: 4, marginTop: space.sm },
+  sheet: { flex: 1, backgroundColor: colors.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -24, overflow: 'hidden' },
+  flex: { flex: 1 },
+  form: { padding: space.xl, paddingTop: space.xxl, paddingBottom: space.xl },
+  title: { fontSize: font.h1, fontWeight: '900', color: colors.text },
+  subtitle: { fontSize: font.small, color: colors.textMuted, marginTop: 4, marginBottom: space.xl, fontWeight: '600' },
   input: {
-    width: '100%', height: 52, borderWidth: 2, borderColor: '#111',
-    borderRadius: 16, paddingHorizontal: 18, fontSize: 15,
-    marginBottom: 14, color: '#111', backgroundColor: '#fff',
+    width: '100%', height: 54, backgroundColor: colors.surface, borderRadius: radius.md,
+    paddingHorizontal: 16, fontSize: font.body, marginBottom: space.md, color: colors.text, ...shadow.card,
   },
-  btn: {
-    width: '100%', height: 52, backgroundColor: '#111',
-    borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 20,
-  },
+  btn: { width: '100%', height: 54, backgroundColor: colors.accent, borderRadius: radius.md, justifyContent: 'center', alignItems: 'center', marginTop: space.xs, ...shadow.card },
   btnDisabled: { opacity: 0.6 },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  privacyText: { width: '100%', color: '#777', fontSize: 12, lineHeight: 17, textAlign: 'center', marginBottom: 18 },
-  privacyLink: { color: '#111', fontWeight: '800', textDecorationLine: 'underline' },
-  link: { color: '#555', fontSize: 14 },
-  linkBold: { color: '#111', fontWeight: '700', textDecorationLine: 'underline' },
+  btnText: { color: colors.white, fontWeight: '900', fontSize: font.body },
+  privacyText: { width: '100%', color: colors.textMuted, fontSize: font.tiny, lineHeight: 17, textAlign: 'center', marginTop: space.lg, marginBottom: space.md },
+  privacyLink: { color: colors.accent, fontWeight: '800' },
+  signinLink: { alignSelf: 'center', marginTop: space.sm },
+  link: { color: colors.textMuted, fontSize: font.small },
+  linkBold: { color: colors.accent, fontWeight: '900' },
 });
