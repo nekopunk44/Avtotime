@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '700', marginBottom: 12, color: colors.text, textAlign: 'center' },
   sub: { fontSize: 14, color: colors.textMuted, marginBottom: 28, textAlign: 'center', lineHeight: 20 },
   input: {
-    width: '100%', height: 52, borderWidth: 2, borderColor: '#111',
+    width: '100%', height: 52, borderWidth: 2, borderColor: colors.border,
     borderRadius: 16, paddingHorizontal: 18, fontSize: 15, marginBottom: 14, color: colors.text,
   },
   btn: {
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     width: 48, height: 58, borderWidth: 2, borderColor: colors.border, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg,
   },
-  otpBoxActive: { borderColor: '#111', backgroundColor: colors.surface },
+  otpBoxActive: { borderColor: colors.border, backgroundColor: colors.surface },
   otpDigit: { fontSize: 24, fontWeight: '800', color: colors.text },
   otpOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, color: 'transparent' },
 });

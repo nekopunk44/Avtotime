@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   dateText: { marginTop: 2, color: colors.textFaint, fontSize: 11, fontWeight: '700' },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
   typePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: colors.surfaceAlt, color: colors.text, fontSize: 11, fontWeight: '900' },
-  verifiedPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: '#effaf2', color: '#14843b', fontSize: 11, fontWeight: '900' },
+  verifiedPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: 'rgba(61,214,140,0.14)', color: '#14843b', fontSize: 11, fontWeight: '900' },
   reviewTitle: { marginTop: 10, color: colors.text, fontSize: 15, fontWeight: '900' },
   comment: { marginTop: 5, color: colors.textMuted, fontSize: 14, lineHeight: 20 },
   listText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 18 },

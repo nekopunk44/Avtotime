@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   email: { marginTop: 5, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   planBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: colors.surfaceHi, color: '#fff', paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  adminBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: '#effaf2', color: '#14843b', paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  adminBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: 'rgba(61,214,140,0.14)', color: '#14843b', paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   bannedBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: 'rgba(255,90,95,0.12)', color: colors.danger, paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   section: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },

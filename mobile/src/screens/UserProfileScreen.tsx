@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   statNum: { color: colors.text, fontSize: 20, fontWeight: '900' },
   statLabel: { marginTop: 2, color: colors.textMuted, fontSize: 11, fontWeight: '800' },
   ratingCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
-  ratingIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#fff8ec', alignItems: 'center', justifyContent: 'center' },
+  ratingIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: 'rgba(246,178,61,0.14)', alignItems: 'center', justifyContent: 'center' },
   ratingBody: { flex: 1 },
   ratingTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
   ratingRow: { marginTop: 5, flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap' },

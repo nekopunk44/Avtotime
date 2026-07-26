@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13 },
   filters: { gap: 8, paddingTop: 14, paddingBottom: 2 },
   filterBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, justifyContent: 'center', backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
-  filterBtnActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  filterBtnActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
   filterText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   filterTextActive: { color: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },

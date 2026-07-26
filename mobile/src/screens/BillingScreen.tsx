@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   planBtn: { height: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
   planBtnDark: { backgroundColor: colors.surfaceHi },
   planBtnLight: { backgroundColor: colors.surface },
-  planBtnDisabled: { backgroundColor: '#e6e6e6' },
+  planBtnDisabled: { backgroundColor: colors.surfaceHi },
   planBtnText: { fontSize: 14, fontWeight: '900' },
   planBtnTextLight: { color: '#fff' },
   planBtnTextDark: { color: colors.text },

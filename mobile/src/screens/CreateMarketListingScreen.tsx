@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, flexDirection: 'row',
     alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 12,
   },
-  modeBtnActive: { backgroundColor: colors.surfaceHi, borderColor: '#111' },
+  modeBtnActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
   modeText: { color: colors.text, fontWeight: '800', fontSize: 13 },
   modeTextActive: { color: '#fff' },
   sectionTitle: { marginTop: 14, marginBottom: 8, color: colors.text, fontSize: 15, fontWeight: '900' },

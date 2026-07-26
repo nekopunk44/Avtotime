@@ -40,7 +40,7 @@ const modes: Array<{
     description: '20 вопросов, результат и проходной балл 70%',
     icon: 'timer-outline',
     color: '#1d4ed8',
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.surfaceAlt,
   },
   {
     mode: 'practice',
@@ -48,7 +48,7 @@ const modes: Array<{
     description: 'Билет без таймера, ответы с объяснениями',
     icon: 'book-outline',
     color: '#b45309',
-    backgroundColor: '#fff7ed',
+    backgroundColor: 'rgba(246,178,61,0.14)',
   },
   {
     mode: 'marathon',
@@ -56,7 +56,7 @@ const modes: Array<{
     description: '100 случайных вопросов для закрепления',
     icon: 'flash-outline',
     color: '#7c3aed',
-    backgroundColor: '#f5f3ff',
+    backgroundColor: colors.surfaceAlt,
   },
 ];
 
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   statValue: { color: colors.text, fontSize: 20, fontWeight: '900' },
   statLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', marginTop: 3 },
   historyBtn: { minHeight: 68, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  historyIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' },
+  historyIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   historyTextWrap: { flex: 1 },
   historyTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
   historySubtitle: { marginTop: 3, color: colors.textMuted, fontSize: 12, fontWeight: '700' },

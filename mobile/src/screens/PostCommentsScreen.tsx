@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   sectionTitle: { paddingHorizontal: 14, paddingTop: 16, fontSize: 13, fontWeight: '700', color: colors.textMuted },
   commentRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 14, paddingVertical: 8 },
   commentAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceAlt },
-  commentBubble: { flex: 1, backgroundColor: '#f5f5f5', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8 },
+  commentBubble: { flex: 1, backgroundColor: colors.surfaceAlt, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8 },
   commentName: { fontSize: 12, fontWeight: '700', color: colors.textMuted, marginBottom: 3 },
   commentText: { fontSize: 14, color: colors.text, lineHeight: 19 },
   empty: { textAlign: 'center', color: colors.textFaint, marginTop: 30, fontSize: 14 },
