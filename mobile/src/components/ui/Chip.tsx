@@ -15,5 +15,5 @@ const styles = StyleSheet.create({
   chip: { backgroundColor: colors.surfaceAlt, borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 9 },
   chipActive: { backgroundColor: colors.accent },
   text: { fontSize: 13, fontWeight: '800', color: colors.textMuted },
-  textActive: { color: colors.white },
+  textActive: { color: colors.onAccent },
 });

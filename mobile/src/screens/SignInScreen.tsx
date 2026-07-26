@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   forgotText: { color: colors.accent, fontSize: font.small, fontWeight: '800' },
   btn: { width: '100%', height: 54, backgroundColor: colors.accent, borderRadius: radius.md, justifyContent: 'center', alignItems: 'center', ...shadow.card },
   btnDisabled: { opacity: 0.6 },
-  btnText: { color: colors.white, fontWeight: '900', fontSize: font.body },
+  btnText: { color: colors.onAccent, fontWeight: '900', fontSize: font.body },
   divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: space.lg },
   line: { flex: 1, height: 1, backgroundColor: colors.border },
   dividerText: { color: colors.textFaint, fontSize: font.small, fontWeight: '700' },

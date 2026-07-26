@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   name: { color: colors.white, fontSize: font.h1, fontWeight: '900', marginTop: space.md },
   username: { marginTop: 2, color: 'rgba(255,255,255,0.65)', fontSize: font.small, fontWeight: '800' },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: space.md, justifyContent: 'center' },
-  planBadge: { overflow: 'hidden', borderRadius: radius.pill, backgroundColor: colors.accent, color: colors.white, paddingHorizontal: 11, paddingVertical: 5, fontSize: font.tiny, fontWeight: '900' },
+  planBadge: { overflow: 'hidden', borderRadius: radius.pill, backgroundColor: colors.accent, color: colors.onAccent, paddingHorizontal: 11, paddingVertical: 5, fontSize: font.tiny, fontWeight: '900' },
   locationBadge: { overflow: 'hidden', borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.14)', color: colors.white, paddingHorizontal: 11, paddingVertical: 5, fontSize: font.tiny, fontWeight: '900' },
 
   bio: { color: colors.text, fontSize: font.body, lineHeight: 21, backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.lg, ...shadow.card },
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
 
   mainActions: { flexDirection: 'row', gap: space.sm },
   primaryBtn: { flex: 1, height: 50, borderRadius: radius.md, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, ...shadow.card },
-  primaryText: { color: colors.white, fontSize: font.body, fontWeight: '900' },
+  primaryText: { color: colors.onAccent, fontSize: font.body, fontWeight: '900' },
   secondaryBtn: { flex: 1, height: 50, borderRadius: radius.md, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, ...shadow.card },
   secondaryText: { color: colors.text, fontSize: font.body, fontWeight: '900' },
 

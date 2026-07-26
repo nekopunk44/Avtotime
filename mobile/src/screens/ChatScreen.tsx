@@ -39,6 +39,7 @@ import {
   unblockUser,
 } from '../api/messages';
 import { getSocket } from '../hooks/useSocket';
+import { colors } from '../theme';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { useAuthStore } from '../store/authStore';
 import { useBadgeStore } from '../store/badgeStore';
@@ -214,7 +215,7 @@ export default function ChatScreen({ route, navigation }: Props) {
       title: name,
       headerRight: () => (
         <TouchableOpacity style={styles.headerBtn} onPress={openActions} disabled={menuBusy}>
-          {menuBusy ? <ActivityIndicator color="#111" /> : <Ionicons name="ellipsis-horizontal" size={22} color="#111" />}
+          {menuBusy ? <ActivityIndicator color={colors.text} /> : <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />}
         </TouchableOpacity>
       ),
     });
@@ -418,7 +419,7 @@ export default function ChatScreen({ route, navigation }: Props) {
         ) : null}
         {item.file ? (
           <TouchableOpacity style={[styles.attachment, isMine && styles.attachmentMine]} onPress={() => openUrl(item.file)}>
-            <Ionicons name="document-attach-outline" size={20} color={isMine ? '#fff' : '#111'} />
+            <Ionicons name="document-attach-outline" size={20} color={isMine ? colors.onAccent : colors.text} />
             <View style={styles.attachmentTextWrap}>
               <Text style={[styles.attachmentTitle, isMine && styles.mineText]} numberOfLines={1}>{item.fileName || 'Файл'}</Text>
               <Text style={[styles.attachmentMeta, isMine && styles.mineTime]}>
@@ -440,7 +441,7 @@ export default function ChatScreen({ route, navigation }: Props) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -470,7 +471,7 @@ export default function ChatScreen({ route, navigation }: Props) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="chatbubble-ellipses-outline" size={42} color="#bbb" />
+            <Ionicons name="chatbubble-ellipses-outline" size={42} color={colors.textFaint} />
             <Text style={styles.emptyTitle}>Сообщений пока нет</Text>
             <Text style={styles.emptyText}>Напишите первое сообщение, чтобы начать диалог.</Text>
           </View>
@@ -483,7 +484,7 @@ export default function ChatScreen({ route, navigation }: Props) {
             <Image source={{ uri: attachment.uri }} style={styles.previewImage} />
           ) : (
             <View style={styles.previewFileIcon}>
-              <Ionicons name="document-attach-outline" size={25} color="#111" />
+              <Ionicons name="document-attach-outline" size={25} color={colors.text} />
             </View>
           )}
           <View style={styles.previewText}>
@@ -495,7 +496,7 @@ export default function ChatScreen({ route, navigation }: Props) {
             </Text>
           </View>
           <TouchableOpacity style={styles.removePreview} onPress={() => setAttachment(undefined)}>
-            <Ionicons name="close-circle" size={24} color="#111" />
+            <Ionicons name="close-circle" size={24} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
       ) : null}
@@ -503,25 +504,25 @@ export default function ChatScreen({ route, navigation }: Props) {
       {recording ? (
         <View style={styles.inputRow}>
           <TouchableOpacity style={styles.attachBtn} onPress={cancelRecording}>
-            <Ionicons name="trash-outline" size={23} color="#d92323" />
+            <Ionicons name="trash-outline" size={23} color={colors.danger} />
           </TouchableOpacity>
           <View style={styles.recordingBar}>
             <View style={styles.recordDot} />
             <Text style={styles.recordingText}>Запись… {Math.floor(recordSeconds / 60)}:{(recordSeconds % 60).toString().padStart(2, '0')}</Text>
           </View>
           <TouchableOpacity style={[styles.sendBtn, styles.sendBtnActive]} onPress={stopAndSendRecording}>
-            <Ionicons name="send" size={19} color="#fff" />
+            <Ionicons name="send" size={19} color={colors.onAccent} />
           </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.inputRow}>
           <TouchableOpacity style={styles.attachBtn} onPress={openAttachmentMenu} disabled={sending || isBlocked}>
-            <Ionicons name="attach-outline" size={24} color={isBlocked ? '#bbb' : '#555'} />
+            <Ionicons name="attach-outline" size={24} color={isBlocked ? colors.textFaint : colors.textMuted} />
           </TouchableOpacity>
           <TextInput
             style={[styles.input, isBlocked && styles.inputDisabled]}
             placeholder={isBlocked ? 'Пользователь заблокирован' : 'Сообщение...'}
-            placeholderTextColor="#aaa"
+            placeholderTextColor={colors.textFaint}
             value={text}
             onChangeText={setText}
             multiline
@@ -530,13 +531,13 @@ export default function ChatScreen({ route, navigation }: Props) {
           {hasContent ? (
             <TouchableOpacity style={[styles.sendBtn, canSend && styles.sendBtnActive]} onPress={handleSend} disabled={!canSend}>
               {sending
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Ionicons name="send" size={19} color={canSend ? '#fff' : '#bbb'} />
+                ? <ActivityIndicator size="small" color={colors.onAccent} />
+                : <Ionicons name="send" size={19} color={canSend ? colors.onAccent : colors.textFaint} />
               }
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.micBtn} onPress={startRecording} disabled={sending || isBlocked}>
-              <Ionicons name="mic" size={22} color={isBlocked ? '#bbb' : '#fff'} />
+              <Ionicons name="mic" size={22} color={isBlocked ? colors.textFaint : colors.onAccent} />
             </TouchableOpacity>
           )}
         </View>
@@ -548,45 +549,45 @@ export default function ChatScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f5f7' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f4f5f7' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
   headerBtn: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
-  blockedBanner: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: '#fff0f0', borderBottomWidth: 1, borderBottomColor: '#ffd6d6' },
-  blockedText: { flex: 1, color: '#8a1212', fontSize: 13, fontWeight: '800' },
-  unblockText: { color: '#111', fontSize: 13, fontWeight: '900' },
+  blockedBanner: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: 'rgba(255,90,95,0.12)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,90,95,0.25)' },
+  blockedText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
+  unblockText: { color: colors.text, fontSize: 13, fontWeight: '900' },
   list: { paddingHorizontal: 12, paddingVertical: 10 },
   emptyList: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   emptyState: { alignItems: 'center' },
-  emptyTitle: { marginTop: 10, color: '#111', fontSize: 16, fontWeight: '900' },
-  emptyText: { marginTop: 5, color: '#777', fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900' },
+  emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
   bubble: { maxWidth: '80%', borderRadius: 20, padding: 12, marginVertical: 4 },
-  mine: { alignSelf: 'flex-end', backgroundColor: '#0A84FF', borderBottomRightRadius: 6 },
-  theirs: { alignSelf: 'flex-start', backgroundColor: '#fff', borderBottomLeftRadius: 6, shadowColor: '#0B1220', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  msgText: { fontSize: 15, color: '#12141A', lineHeight: 20 },
-  mineText: { color: '#fff' },
-  msgTime: { fontSize: 10, color: '#9AA3AF', marginTop: 5, alignSelf: 'flex-end' },
-  mineTime: { color: 'rgba(255,255,255,0.7)' },
-  msgImage: { width: 210, height: 210, borderRadius: 12, marginBottom: 6, backgroundColor: '#eee' },
-  attachment: { minWidth: 190, borderRadius: 12, backgroundColor: '#f3f3f3', padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  attachmentMine: { backgroundColor: 'rgba(255,255,255,0.12)' },
+  mine: { alignSelf: 'flex-end', backgroundColor: colors.accent, borderBottomRightRadius: 6 },
+  theirs: { alignSelf: 'flex-start', backgroundColor: colors.surfaceAlt, borderBottomLeftRadius: 6, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  msgText: { fontSize: 15, color: colors.text, lineHeight: 20 },
+  mineText: { color: colors.onAccent },
+  msgTime: { fontSize: 10, color: colors.textFaint, marginTop: 5, alignSelf: 'flex-end' },
+  mineTime: { color: 'rgba(11,11,14,0.55)' },
+  msgImage: { width: 210, height: 210, borderRadius: 12, marginBottom: 6, backgroundColor: colors.surfaceHi },
+  attachment: { minWidth: 190, borderRadius: 12, backgroundColor: colors.surface, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  attachmentMine: { backgroundColor: 'rgba(11,11,14,0.08)' },
   attachmentTextWrap: { flex: 1 },
-  attachmentTitle: { color: '#111', fontSize: 13, fontWeight: '900' },
-  attachmentMeta: { marginTop: 2, color: '#777', fontSize: 11, fontWeight: '700' },
-  previewRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eee' },
-  previewImage: { width: 64, height: 64, borderRadius: 10, backgroundColor: '#eee' },
-  previewFileIcon: { width: 64, height: 64, borderRadius: 10, backgroundColor: '#f3f3f3', alignItems: 'center', justifyContent: 'center' },
+  attachmentTitle: { color: colors.text, fontSize: 13, fontWeight: '900' },
+  attachmentMeta: { marginTop: 2, color: colors.textMuted, fontSize: 11, fontWeight: '700' },
+  previewRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  previewImage: { width: 64, height: 64, borderRadius: 10, backgroundColor: colors.surfaceHi },
+  previewFileIcon: { width: 64, height: 64, borderRadius: 10, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   previewText: { flex: 1 },
-  previewTitle: { color: '#111', fontSize: 14, fontWeight: '900' },
-  previewMeta: { marginTop: 2, color: '#777', fontSize: 12, fontWeight: '700' },
+  previewTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  previewMeta: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   removePreview: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eee' },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   attachBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  input: { flex: 1, minHeight: 40, maxHeight: 120, backgroundColor: '#f3f3f3', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, fontSize: 15, color: '#111' },
-  inputDisabled: { color: '#999', backgroundColor: '#eee' },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f3f3f3', justifyContent: 'center', alignItems: 'center' },
-  sendBtnActive: { backgroundColor: '#0A84FF' },
-  micBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#0A84FF', justifyContent: 'center', alignItems: 'center' },
-  recordingBar: { flex: 1, height: 40, borderRadius: 20, backgroundColor: '#f3f3f3', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 8 },
-  recordDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#d92323' },
-  recordingText: { color: '#111', fontSize: 14, fontWeight: '700' },
+  input: { flex: 1, minHeight: 40, maxHeight: 120, backgroundColor: colors.surfaceAlt, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, fontSize: 15, color: colors.text },
+  inputDisabled: { color: colors.textFaint, backgroundColor: colors.surfaceHi },
+  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt, justifyContent: 'center', alignItems: 'center' },
+  sendBtnActive: { backgroundColor: colors.accent },
+  micBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' },
+  recordingBar: { flex: 1, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 8 },
+  recordDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.danger },
+  recordingText: { color: colors.text, fontSize: 14, fontWeight: '700' },
 });

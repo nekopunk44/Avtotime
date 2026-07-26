@@ -17,8 +17,8 @@ interface Props {
 }
 
 export default function Button({ label, onPress, variant = 'primary', icon, loading, disabled, style }: Props) {
-  const bg = variant === 'accent' ? colors.accent : variant === 'secondary' ? colors.surfaceAlt : colors.ink;
-  const fg = variant === 'secondary' ? colors.text : colors.white;
+  const bg = variant === 'accent' ? colors.accent : variant === 'secondary' ? colors.surfaceAlt : colors.surface;
+  const fg = variant === 'accent' ? colors.onAccent : colors.text;
   const blocked = disabled || loading;
 
   return (

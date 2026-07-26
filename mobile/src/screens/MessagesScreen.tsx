@@ -215,5 +215,5 @@ const styles = StyleSheet.create({
   lastMsg: { fontSize: font.small, color: colors.textMuted, marginTop: 4, fontWeight: '600' },
   lastMsgUnread: { color: colors.text, fontWeight: '800' },
   badge: { backgroundColor: colors.accent, borderRadius: 11, minWidth: 22, height: 22, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6 },
-  badgeText: { color: colors.white, fontSize: font.tiny, fontWeight: '900' },
+  badgeText: { color: colors.onAccent, fontSize: font.tiny, fontWeight: '900' },
 });

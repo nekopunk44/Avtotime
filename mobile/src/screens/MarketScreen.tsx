@@ -129,7 +129,7 @@ export default function MarketScreen({ navigation }: Props) {
       <View style={styles.titleRow}>
         <Text style={styles.title}>Маркет</Text>
         <PressableScale style={styles.addBtn} onPress={() => navigation.navigate('CreateMarketListing')}>
-          <Ionicons name="add" size={24} color={colors.white} />
+          <Ionicons name="add" size={24} color={colors.onAccent} />
         </PressableScale>
       </View>
 

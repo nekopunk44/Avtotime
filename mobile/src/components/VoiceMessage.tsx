@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { colors } from '../theme';
 
 interface Props {
   uri: string;
@@ -37,8 +38,8 @@ export default function VoiceMessage({ uri, mine }: Props) {
     }
   };
 
-  const tint = mine ? '#fff' : '#111';
-  const track = mine ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.15)';
+  const tint = mine ? colors.onAccent : colors.text;
+  const track = mine ? 'rgba(11,11,14,0.25)' : 'rgba(255,255,255,0.18)';
 
   return (
     <View style={styles.row}>

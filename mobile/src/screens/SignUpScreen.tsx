@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   btn: { width: '100%', height: 54, backgroundColor: colors.accent, borderRadius: radius.md, justifyContent: 'center', alignItems: 'center', marginTop: space.xs, ...shadow.card },
   btnDisabled: { opacity: 0.6 },
-  btnText: { color: colors.white, fontWeight: '900', fontSize: font.body },
+  btnText: { color: colors.onAccent, fontWeight: '900', fontSize: font.body },
   privacyText: { width: '100%', color: colors.textMuted, fontSize: font.tiny, lineHeight: 17, textAlign: 'center', marginTop: space.lg, marginBottom: space.md },
   privacyLink: { color: colors.accent, fontWeight: '800' },
   signinLink: { alignSelf: 'center', marginTop: space.sm },

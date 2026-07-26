@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
+import { colors } from '../theme';
 import FeedScreen from '../screens/FeedScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SearchScreen from '../screens/SearchScreen';
@@ -170,7 +171,7 @@ function HeaderBell() {
   const unread = useBadgeStore((s) => s.unreadNotifications);
   return (
     <TouchableOpacity style={styles.bell} onPress={() => navigation.navigate('Notifications')} activeOpacity={0.7}>
-      <Ionicons name="notifications-outline" size={23} color="#111" />
+      <Ionicons name="notifications-outline" size={23} color={colors.text} />
       {unread > 0 ? <View style={styles.bellDot} /> : null}
     </TouchableOpacity>
   );
@@ -181,10 +182,14 @@ const makeTabOptions = (current: 'social' | 'market') => ({ route }: any) => ({
     const icon = TAB_ICONS[route.name];
     return <Ionicons name={(focused ? icon.on : icon.off) as any} size={size} color={color} />;
   },
-  tabBarActiveTintColor: '#111',
-  tabBarInactiveTintColor: '#aaa',
+  tabBarActiveTintColor: colors.text,
+  tabBarInactiveTintColor: colors.textFaint,
   tabBarShowLabel: false,
+  tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
   headerShown: true,
+  headerStyle: { backgroundColor: colors.bg },
+  headerShadowVisible: false,
+  headerTintColor: colors.text,
   headerTitle: () => <ModeSwitcher current={current} />,
   headerTitleAlign: 'center' as const,
   headerRight: () => <HeaderBell />,
@@ -226,7 +231,15 @@ function MarketTabs() {
 export default function AppNavigator() {
   useBadgeSync();
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.bg },
+        headerShadowVisible: false,
+        headerTintColor: colors.text,
+        headerTitleStyle: { fontWeight: '900' },
+        contentStyle: { backgroundColor: colors.bg },
+      }}
+    >
       <Stack.Screen name="SocialTabs" component={SocialTabs} options={{ headerShown: false }} />
       <Stack.Screen name="MarketTabs" component={MarketTabs} options={{ headerShown: false }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Уведомления' }} />
@@ -278,11 +291,11 @@ export default function AppNavigator() {
 }
 
 const styles = StyleSheet.create({
-  switcher: { flexDirection: 'row', backgroundColor: '#f0f0f0', borderRadius: 10, padding: 3 },
+  switcher: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 10, padding: 3 },
   segment: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 8 },
-  segmentActive: { backgroundColor: '#111' },
-  segmentText: { fontSize: 13, fontWeight: '800', color: '#777' },
-  segmentTextActive: { color: '#fff' },
+  segmentActive: { backgroundColor: colors.accent },
+  segmentText: { fontSize: 13, fontWeight: '800', color: colors.textMuted },
+  segmentTextActive: { color: colors.onAccent },
   bell: { marginRight: 14, padding: 4 },
-  bellDot: { position: 'absolute', top: 3, right: 3, width: 9, height: 9, borderRadius: 5, backgroundColor: '#ff3b30', borderWidth: 1.5, borderColor: '#fff' },
+  bellDot: { position: 'absolute', top: 3, right: 3, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.danger, borderWidth: 1.5, borderColor: colors.bg },
 });

@@ -301,7 +301,7 @@ export default function FeedScreen({ navigation }: Props) {
                 )}
               </View>
               <View style={styles.storyPlus}>
-                <Ionicons name="add" size={13} color="#fff" />
+                <Ionicons name="add" size={13} color={colors.onAccent} />
               </View>
             </View>
             <Text style={styles.storyName} numberOfLines={1}>Ваша</Text>
