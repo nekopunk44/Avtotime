@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  FlatList, View, Text, Image, StyleSheet,
-  TouchableOpacity, ActivityIndicator, RefreshControl, Alert,
+  Animated, FlatList, View, Text, Image, StyleSheet,
+  ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -11,8 +11,122 @@ import { deletePost, FEED_PAGE_SIZE, getFeed, getVideoPoster, isPostSaved, toggl
 import { getStories, getStoryByUserName, Story, uploadStory } from '../api/stories';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { colors, font, radius, space, shadow } from '../theme';
+import { Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
+
+const fallbackAvatar = require('../../assets/icon.png');
+
+interface PostCardProps {
+  item: Post;
+  liked: boolean;
+  saved: boolean;
+  isMine: boolean;
+  onProfile: () => void;
+  onOpen: () => void;
+  onLike: () => void;
+  onSave: () => void;
+  onActions: () => void;
+}
+
+// Single post as an elevated card with a fade-in on mount.
+function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSave, onActions }: PostCardProps) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(10)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 0, duration: 320, useNativeDriver: true }),
+    ]).start();
+  }, [opacity, translateY]);
+
+  const avatar = item.author?.profileImage ? { uri: item.author.profileImage } : fallbackAvatar;
+  const firstMedia = item.mediaList?.[0] || item.media;
+  const mediaCount = item.mediaList?.length ?? (item.media ? 1 : 0);
+  const isVideo = item.mediaType === 'video';
+  const poster = isVideo ? getVideoPoster(firstMedia) || firstMedia : firstMedia;
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      <Card style={styles.card}>
+        <View style={styles.cardHeader}>
+          <PressableScale style={styles.authorTap} onPress={onProfile}>
+            <Image source={avatar} style={styles.avatar} />
+            <View>
+              <Text style={styles.name}>{item.author?.name}</Text>
+              <Text style={styles.username}>@{item.author?.userName}</Text>
+            </View>
+          </PressableScale>
+          {isMine ? (
+            <PressableScale style={styles.moreBtn} onPress={onActions}>
+              <Ionicons name="ellipsis-horizontal" size={20} color={colors.textMuted} />
+            </PressableScale>
+          ) : null}
+        </View>
+
+        {firstMedia ? (
+          <PressableScale onPress={onOpen} scaleTo={0.99}>
+            <View style={styles.mediaWrap}>
+              <Image source={{ uri: poster }} style={styles.postImage} resizeMode="cover" />
+              {isVideo ? (
+                <View style={styles.playBadge}>
+                  <View style={styles.playCircle}>
+                    <Ionicons name="play" size={26} color="#fff" />
+                  </View>
+                </View>
+              ) : null}
+              {mediaCount > 1 ? (
+                <View style={styles.mediaCounter}>
+                  <Ionicons name="images-outline" size={13} color="#fff" />
+                  <Text style={styles.mediaCounterText}>{mediaCount}</Text>
+                </View>
+              ) : null}
+            </View>
+          </PressableScale>
+        ) : null}
+
+        {item.caption ? <Text style={styles.caption}>{item.caption}</Text> : null}
+
+        <View style={styles.actions}>
+          <PressableScale style={styles.actionBtn} onPress={onLike}>
+            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={23} color={liked ? colors.danger : colors.textMuted} />
+            <Text style={[styles.actionCount, liked && { color: colors.danger }]}>{item.likes.length}</Text>
+          </PressableScale>
+          <PressableScale style={styles.actionBtn} onPress={onOpen}>
+            <Ionicons name="chatbubble-outline" size={21} color={colors.textMuted} />
+            <Text style={styles.actionCount}>{item.commentsCount ?? item.comments.length}</Text>
+          </PressableScale>
+          <PressableScale style={styles.saveActionBtn} onPress={onSave}>
+            <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={21} color={saved ? colors.accent : colors.textMuted} />
+          </PressableScale>
+        </View>
+      </Card>
+    </Animated.View>
+  );
+}
+
+function FeedSkeleton() {
+  return (
+    <View>
+      {[0, 1].map((i) => (
+        <Card key={i} style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.authorTap}>
+              <Skeleton style={styles.avatar} />
+              <View style={{ gap: 6 }}>
+                <Skeleton style={{ width: 120, height: 12 }} />
+                <Skeleton style={{ width: 80, height: 10 }} />
+              </View>
+            </View>
+          </View>
+          <Skeleton style={styles.mediaWrap} />
+          <Skeleton style={{ width: '70%', height: 12, marginTop: space.md }} />
+        </Card>
+      ))}
+    </View>
+  );
+}
 
 export default function FeedScreen({ navigation }: Props) {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -152,78 +266,19 @@ export default function FeedScreen({ navigation }: Props) {
     ]);
   };
 
-  const renderPost = ({ item }: { item: Post }) => {
-    const liked = user ? item.likes.includes(user._id) : false;
-    const saved = isPostSaved(user, item._id);
-    const isMine = item.author?._id === user?._id;
-    const avatar = item.author?.profileImage
-      ? { uri: item.author.profileImage }
-      : require('../../assets/icon.png');
-    const firstMedia = item.mediaList?.[0] || item.media;
-    const mediaCount = item.mediaList?.length ?? (item.media ? 1 : 0);
-    const isVideoPost = item.mediaType === 'video';
-    const posterUri = isVideoPost ? (getVideoPoster(firstMedia) || firstMedia) : firstMedia;
-
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <TouchableOpacity
-            style={styles.authorTap}
-            onPress={() => navigation.navigate('UserProfile', { userId: item.author._id })}
-          >
-            <Image source={avatar} style={styles.avatar} />
-            <View>
-              <Text style={styles.name}>{item.author?.name}</Text>
-              <Text style={styles.username}>@{item.author?.userName}</Text>
-            </View>
-          </TouchableOpacity>
-          {isMine ? (
-            <TouchableOpacity style={styles.moreBtn} onPress={() => openPostActions(item)}>
-              <Ionicons name="ellipsis-horizontal" size={22} color="#555" />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {firstMedia ? (
-          <TouchableOpacity onPress={() => navigation.navigate('PostComments', { postId: item._id })} activeOpacity={0.92}>
-            <Image source={{ uri: posterUri }} style={styles.postImage} resizeMode="cover" />
-            {isVideoPost ? (
-              <View style={styles.playBadge}>
-                <View style={styles.playCircle}>
-                  <Ionicons name="play" size={28} color="#fff" />
-                </View>
-              </View>
-            ) : null}
-            {mediaCount > 1 ? (
-              <View style={styles.mediaCounter}>
-                <Ionicons name="images-outline" size={14} color="#fff" />
-                <Text style={styles.mediaCounterText}>{mediaCount}</Text>
-              </View>
-            ) : null}
-          </TouchableOpacity>
-        ) : null}
-
-        {item.caption ? <Text style={styles.caption}>{item.caption}</Text> : null}
-
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => handleLike(item._id)}>
-            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? '#e53935' : '#555'} />
-            <Text style={styles.actionCount}>{item.likes.length}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('PostComments', { postId: item._id })}
-          >
-            <Ionicons name="chatbubble-outline" size={20} color="#555" />
-            <Text style={styles.actionCount}>{item.commentsCount ?? item.comments.length}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.saveActionBtn} onPress={() => handleSave(item._id)}>
-            <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={21} color="#555" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
+  const renderPost = ({ item }: { item: Post }) => (
+    <PostCard
+      item={item}
+      liked={user ? item.likes.includes(user._id) : false}
+      saved={isPostSaved(user, item._id)}
+      isMine={item.author?._id === user?._id}
+      onProfile={() => navigation.navigate('UserProfile', { userId: item.author._id })}
+      onOpen={() => navigation.navigate('PostComments', { postId: item._id })}
+      onLike={() => handleLike(item._id)}
+      onSave={() => handleSave(item._id)}
+      onActions={() => openPostActions(item)}
+    />
+  );
 
   const renderStories = () => (
     <View style={styles.storiesWrap}>
@@ -234,38 +289,41 @@ export default function FeedScreen({ navigation }: Props) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.storiesList}
         ListHeaderComponent={
-          <TouchableOpacity style={styles.storyItem} onPress={uploadStoryPrompt} disabled={uploadingStory}>
-            <View style={[styles.storyAvatar, styles.addStoryAvatar]}>
-              {uploadingStory ? (
-                <ActivityIndicator color="#111" />
-              ) : user?.profileImage ? (
-                <Image source={{ uri: user.profileImage }} style={styles.storyAvatarImage} />
-              ) : (
-                <Ionicons name="add" size={24} color="#111" />
-              )}
+          <PressableScale style={styles.storyItem} onPress={uploadStoryPrompt} disabled={uploadingStory}>
+            <View style={[styles.storyRing, styles.addStoryRing]}>
+              <View style={styles.storyInner}>
+                {uploadingStory ? (
+                  <ActivityIndicator color={colors.accent} />
+                ) : user?.profileImage ? (
+                  <Image source={{ uri: user.profileImage }} style={styles.storyImage} />
+                ) : (
+                  <Ionicons name="add" size={24} color={colors.accent} />
+                )}
+              </View>
               <View style={styles.storyPlus}>
                 <Ionicons name="add" size={13} color="#fff" />
               </View>
             </View>
             <Text style={styles.storyName} numberOfLines={1}>Ваша</Text>
-          </TouchableOpacity>
+          </PressableScale>
         }
         renderItem={({ item }) => {
           const viewed = user ? item.viewers?.some((viewer) => viewer._id === user._id) : false;
           return (
-            <TouchableOpacity
+            <PressableScale
               style={styles.storyItem}
               onPress={() => navigation.navigate('StoryViewer', { story: item })}
-              activeOpacity={0.85}
             >
-              <View style={[styles.storyAvatar, viewed && styles.storyAvatarViewed]}>
-                <Image
-                  source={item.author?.profileImage ? { uri: item.author.profileImage } : require('../../assets/icon.png')}
-                  style={styles.storyAvatarImage}
-                />
+              <View style={[styles.storyRing, viewed && styles.storyRingViewed]}>
+                <View style={styles.storyInner}>
+                  <Image
+                    source={item.author?.profileImage ? { uri: item.author.profileImage } : fallbackAvatar}
+                    style={styles.storyImage}
+                  />
+                </View>
               </View>
               <Text style={styles.storyName} numberOfLines={1}>{item.author?.userName}</Text>
-            </TouchableOpacity>
+            </PressableScale>
           );
         }}
       />
@@ -273,7 +331,12 @@ export default function FeedScreen({ navigation }: Props) {
   );
 
   if (loading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color="#111" /></View>;
+    return (
+      <View style={styles.list}>
+        {renderStories()}
+        <FeedSkeleton />
+      </View>
+    );
   }
 
   return (
@@ -282,45 +345,67 @@ export default function FeedScreen({ navigation }: Props) {
       keyExtractor={(item) => item._id}
       renderItem={renderPost}
       style={styles.list}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadFeed(); }} />}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => { setRefreshing(true); loadFeed(); }}
+          tintColor={colors.accent}
+        />
+      }
       ListHeaderComponent={renderStories}
-      ListEmptyComponent={<View style={styles.center}><Text style={styles.empty}>Нет публикаций</Text></View>}
+      ListEmptyComponent={
+        <EmptyState
+          icon="newspaper-outline"
+          title="Пока пусто"
+          subtitle="Подпишитесь на людей или создайте первую публикацию, и лента оживёт."
+          actionLabel="Создать публикацию"
+          onAction={() => navigation.navigate('CreatePost')}
+        />
+      }
       onEndReached={loadMore}
       onEndReachedThreshold={0.5}
-      ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footer} color="#111" /> : null}
+      ListFooterComponent={
+        loadingMore ? <ActivityIndicator style={styles.footer} color={colors.accent} /> : <View style={{ height: space.lg }} />
+      }
     />
   );
 }
 
 const styles = StyleSheet.create({
-  list: { flex: 1, backgroundColor: '#f5f5f5' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 },
-  footer: { paddingVertical: 20 },
-  empty: { color: '#999', fontSize: 16 },
-  storiesWrap: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee', marginBottom: 8 },
-  storiesList: { paddingHorizontal: 12, paddingVertical: 12, gap: 12 },
-  storyItem: { width: 66, alignItems: 'center' },
-  storyAvatar: { width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: '#111', padding: 2, backgroundColor: '#fff' },
-  storyAvatarViewed: { borderColor: '#ddd' },
-  addStoryAvatar: { justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed' },
-  storyAvatarImage: { width: '100%', height: '100%', borderRadius: 29, backgroundColor: '#eee' },
-  storyPlus: { position: 'absolute', right: -1, bottom: -1, width: 20, height: 20, borderRadius: 10, backgroundColor: '#111', borderWidth: 2, borderColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  storyName: { marginTop: 5, color: '#444', fontSize: 11, fontWeight: '700', maxWidth: 62 },
-  card: { backgroundColor: '#fff', marginBottom: 8, paddingBottom: 8 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, gap: 10 },
+  list: { flex: 1, backgroundColor: colors.bg },
+  content: { paddingBottom: space.lg },
+  footer: { paddingVertical: space.xl },
+
+  storiesWrap: { backgroundColor: colors.surface, marginBottom: space.md, ...shadow.card },
+  storiesList: { paddingHorizontal: space.md, paddingVertical: space.md, gap: 14 },
+  storyItem: { width: 68, alignItems: 'center' },
+  storyRing: { width: 64, height: 64, borderRadius: 32, borderWidth: 2.5, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  storyRingViewed: { borderColor: colors.border },
+  addStoryRing: { borderColor: colors.accent, borderStyle: 'dashed' },
+  storyInner: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  storyImage: { width: '100%', height: '100%' },
+  storyPlus: { position: 'absolute', right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  storyName: { marginTop: 6, color: colors.textMuted, fontSize: font.tiny, fontWeight: '700', maxWidth: 64 },
+
+  card: { marginHorizontal: space.md, marginBottom: space.md, padding: space.md },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   authorTap: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   moreBtn: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee' },
-  name: { fontWeight: '700', fontSize: 14, color: '#111' },
-  username: { fontSize: 12, color: '#888' },
-  postImage: { width: '100%', aspectRatio: 1 },
+  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surfaceAlt },
+  name: { fontWeight: '900', fontSize: font.body, color: colors.text },
+  username: { fontSize: font.small, color: colors.textFaint, marginTop: 1 },
+
+  mediaWrap: { width: '100%', aspectRatio: 1, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.surfaceAlt, marginTop: space.md },
+  postImage: { width: '100%', height: '100%' },
   playBadge: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  playCircle: { width: 58, height: 58, borderRadius: 29, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', paddingLeft: 4 },
-  mediaCounter: { position: 'absolute', right: 10, top: 10, borderRadius: 14, paddingHorizontal: 8, height: 28, backgroundColor: 'rgba(0,0,0,0.62)', flexDirection: 'row', alignItems: 'center', gap: 4 },
-  mediaCounterText: { color: '#fff', fontSize: 12, fontWeight: '900' },
-  caption: { paddingHorizontal: 12, paddingTop: 10, fontSize: 14, color: '#222', lineHeight: 20 },
-  actions: { flexDirection: 'row', paddingHorizontal: 12, paddingTop: 10, gap: 18 },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  actionCount: { fontSize: 14, color: '#555' },
+  playCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', paddingLeft: 4 },
+  mediaCounter: { position: 'absolute', right: 10, top: 10, borderRadius: 14, paddingHorizontal: 8, height: 26, backgroundColor: 'rgba(0,0,0,0.62)', flexDirection: 'row', alignItems: 'center', gap: 4 },
+  mediaCounterText: { color: '#fff', fontSize: font.tiny, fontWeight: '900' },
+
+  caption: { paddingTop: space.md, fontSize: font.body, color: colors.text, lineHeight: 21 },
+  actions: { flexDirection: 'row', alignItems: 'center', paddingTop: space.md, gap: 20 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  actionCount: { fontSize: font.small, fontWeight: '700', color: colors.textMuted },
   saveActionBtn: { marginLeft: 'auto' },
 });
