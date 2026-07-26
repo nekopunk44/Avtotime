@@ -25,3 +25,6 @@ INFRASTRUCTURE.md
 # Temporary deployment scratch directories
 backend-temp/
 frontend-temp/
+
+# Local MCP config (may contain API keys)
+.mcp.json
