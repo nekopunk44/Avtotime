@@ -4,6 +4,7 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
 } from 'react-native';
 import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
 import SpeedLines from '../components/SpeedLines';
 import { colors, font, radius, shadow, space } from '../theme';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -33,6 +34,7 @@ export default function SignInScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const setUser = useAuthStore((s) => s.setUser);
 
   // Entrance: the form sheet slides up while the car settles — a smooth
@@ -137,17 +139,26 @@ export default function SignInScreen({ navigation }: Props) {
               keyboardType="email-address"
               selectionColor={colors.accent}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Пароль"
-              placeholderTextColor={colors.textFaint}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete="password"
-              textContentType="password"
-              selectionColor={colors.accent}
-            />
+            <View style={styles.passwordWrap}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Пароль"
+                placeholderTextColor={colors.textFaint}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoComplete="password"
+                textContentType="password"
+                selectionColor={colors.accent}
+              />
+              <TouchableOpacity
+                style={styles.eyeBtn}
+                onPress={() => setShowPassword((v) => !v)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={21} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity style={styles.forgotBtn} onPress={() => navigation.navigate('ForgotPassword')}>
               <Text style={styles.forgotText}>Забыли пароль?</Text>
@@ -211,7 +222,13 @@ const styles = StyleSheet.create({
     width: '100%', height: 54, backgroundColor: colors.surface, borderRadius: radius.md,
     paddingHorizontal: 16, fontSize: font.body, marginBottom: space.md, color: colors.text, ...shadow.card,
   },
-  forgotBtn: { alignSelf: 'flex-end', marginBottom: space.lg, paddingVertical: 4 },
+  passwordWrap: {
+    width: '100%', height: 54, backgroundColor: colors.surface, borderRadius: radius.md,
+    paddingHorizontal: 16, marginBottom: space.md, flexDirection: 'row', alignItems: 'center', ...shadow.card,
+  },
+  passwordInput: { flex: 1, height: '100%', fontSize: font.body, color: colors.text },
+  eyeBtn: { paddingLeft: 12, paddingVertical: 6 },
+  forgotBtn: { alignSelf: 'center', marginBottom: space.lg, paddingVertical: 4 },
   forgotText: { color: colors.accent, fontSize: font.small, fontWeight: '800' },
   btn: { width: '100%', height: 54, backgroundColor: colors.accent, borderRadius: radius.md, justifyContent: 'center', alignItems: 'center', ...shadow.card },
   btnDisabled: { opacity: 0.6 },

@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, Image, Animated, Easing, ScrollView,
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { signUp } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
@@ -18,6 +19,7 @@ export default function SignUpScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const setUser = useAuthStore((s) => s.setUser);
 
   const sheetY = useRef(new Animated.Value(48)).current;
@@ -71,18 +73,42 @@ export default function SignUpScreen({ navigation }: Props) {
             <Text style={styles.subtitle}>Присоединяйтесь к сообществу Avtotime</Text>
 
             {fields.map((field) => (
-              <TextInput
-                key={field.placeholder}
-                style={styles.input}
-                placeholder={field.placeholder}
-                placeholderTextColor={colors.textFaint}
-                value={field.value}
-                onChangeText={field.onChange}
-                secureTextEntry={field.secure}
-                autoCapitalize={field.lower ? 'none' : 'words'}
-                autoCorrect={false}
-                selectionColor={colors.accent}
-              />
+              field.secure ? (
+                <View key={field.placeholder} style={styles.passwordWrap}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder={field.placeholder}
+                    placeholderTextColor={colors.textFaint}
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="password-new"
+                    textContentType="newPassword"
+                    selectionColor={colors.accent}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeBtn}
+                    onPress={() => setShowPassword((v) => !v)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={21} color={colors.textMuted} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TextInput
+                  key={field.placeholder}
+                  style={styles.input}
+                  placeholder={field.placeholder}
+                  placeholderTextColor={colors.textFaint}
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  autoCapitalize={field.lower ? 'none' : 'words'}
+                  autoCorrect={false}
+                  selectionColor={colors.accent}
+                />
+              )
             ))}
 
             <TouchableOpacity
@@ -128,6 +154,12 @@ const styles = StyleSheet.create({
     width: '100%', height: 54, backgroundColor: colors.surface, borderRadius: radius.md,
     paddingHorizontal: 16, fontSize: font.body, marginBottom: space.md, color: colors.text, ...shadow.card,
   },
+  passwordWrap: {
+    width: '100%', height: 54, backgroundColor: colors.surface, borderRadius: radius.md,
+    paddingHorizontal: 16, marginBottom: space.md, flexDirection: 'row', alignItems: 'center', ...shadow.card,
+  },
+  passwordInput: { flex: 1, height: '100%', fontSize: font.body, color: colors.text },
+  eyeBtn: { paddingLeft: 12, paddingVertical: 6 },
   btn: { width: '100%', height: 54, backgroundColor: colors.accent, borderRadius: radius.md, justifyContent: 'center', alignItems: 'center', marginTop: space.xs, ...shadow.card },
   btnDisabled: { opacity: 0.6 },
   btnText: { color: colors.onAccent, fontWeight: '900', fontSize: font.body },
