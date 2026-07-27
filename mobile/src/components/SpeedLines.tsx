@@ -30,7 +30,7 @@ function Streak({ top, width, delay, duration }: Line) {
 // it's driving. Overlay it over a dark hero.
 export default function SpeedLines({ style }: { style?: StyleProp<ViewStyle> }) {
   return (
-    <View style={[StyleSheet.absoluteFill, style]} pointerEvents="none">
+    <View style={[StyleSheet.absoluteFill, styles.tilt, style]} pointerEvents="none">
       {LINES.map((line, i) => (
         <Streak key={i} {...line} />
       ))}
@@ -39,5 +39,7 @@ export default function SpeedLines({ style }: { style?: StyleProp<ViewStyle> }) 
 }
 
 const styles = StyleSheet.create({
+  // Match the tilt of the speed streaks drawn in the emblem (right end lifted).
+  tilt: { transform: [{ rotate: '-12deg' }] },
   streak: { position: 'absolute', right: '14%', height: 2, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.35)' },
 });

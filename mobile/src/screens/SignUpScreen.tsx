@@ -63,7 +63,6 @@ export default function SignUpScreen({ navigation }: Props) {
           style={[styles.heroCar, { transform: [{ scale: carScale }] }]}
           resizeMode="contain"
         />
-        <Text style={styles.brand}>AVTOTIME</Text>
       </View>
 
       <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetY }] }]}>
@@ -143,13 +142,13 @@ export default function SignUpScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.ink },
   hero: { height: 240, alignItems: 'center', justifyContent: 'center', paddingTop: 20 },
-  heroCar: { width: 220, height: 130 },
+  heroCar: { width: 250, height: 190 },
   brand: { color: colors.white, fontSize: font.h2, fontWeight: '900', letterSpacing: 4, marginTop: space.sm },
   sheet: { flex: 1, backgroundColor: colors.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -24, overflow: 'hidden' },
   flex: { flex: 1 },
   form: { padding: space.xl, paddingTop: space.xxl, paddingBottom: space.xl },
-  title: { fontSize: font.h1, fontWeight: '900', color: colors.text },
-  subtitle: { fontSize: font.small, color: colors.textMuted, marginTop: 4, marginBottom: space.xl, fontWeight: '600' },
+  title: { fontSize: font.h1, fontWeight: '900', color: colors.text, textAlign: 'center' },
+  subtitle: { fontSize: font.small, color: colors.textMuted, marginTop: 4, marginBottom: space.xl, fontWeight: '600', textAlign: 'center' },
   input: {
     width: '100%', height: 54, backgroundColor: colors.surface, borderRadius: radius.md,
     paddingHorizontal: 16, fontSize: font.body, marginBottom: space.md, color: colors.text, ...shadow.card,
