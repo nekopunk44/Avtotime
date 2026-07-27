@@ -137,8 +137,8 @@ export default function NotificationSettingsScreen() {
               <Switch
                 value={Boolean(preferences[item.key])}
                 onValueChange={(value) => setToggle(item.key, value)}
-                trackColor={{ false: '#ddd', true: '#111' }}
-                thumbColor="#fff"
+                trackColor={{ false: colors.surfaceHi, true: colors.success }}
+                thumbColor={colors.white}
               />
             </View>
           ))}
