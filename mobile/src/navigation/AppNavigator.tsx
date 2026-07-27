@@ -26,6 +26,7 @@ import CreateMarketListingScreen from '../screens/CreateMarketListingScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
 import CompareScreen from '../screens/CompareScreen';
 import MarketAnalyticsScreen from '../screens/MarketAnalyticsScreen';
+import MarketServicesScreen from '../screens/MarketServicesScreen';
 import CarRequestScreen from '../screens/CarRequestScreen';
 import HelpRequestsScreen from '../screens/HelpRequestsScreen';
 import EcoTipsScreen from '../screens/EcoTipsScreen';
@@ -78,6 +79,7 @@ export type AppStackParamList = {
   CreateMarketListing: undefined;
   Compare: undefined;
   MarketAnalytics: undefined;
+  MarketServices: undefined;
   CarRequest: undefined;
   HelpRequests: undefined;
   EcoTips: undefined;
@@ -243,6 +245,7 @@ export default function AppNavigator() {
       <Stack.Screen name="CreateMarketListing" component={CreateMarketListingScreen} options={{ title: 'Новое объявление' }} />
       <Stack.Screen name="Compare" component={CompareScreen} options={{ title: 'Сравнение' }} />
       <Stack.Screen name="MarketAnalytics" component={MarketAnalyticsScreen} options={{ title: 'Аналитика' }} />
+      <Stack.Screen name="MarketServices" component={MarketServicesScreen} options={{ title: 'Сервисы' }} />
       <Stack.Screen name="CarRequest" component={CarRequestScreen} options={{ title: 'Подбор авто' }} />
       <Stack.Screen name="HelpRequests" component={HelpRequestsScreen} options={{ title: 'Помощь другим' }} />
       <Stack.Screen name="EcoTips" component={EcoTipsScreen} options={{ title: 'Эко советы' }} />

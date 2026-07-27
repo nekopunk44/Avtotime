@@ -3,7 +3,6 @@ import {
   FlatList,
   Image,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -27,18 +26,6 @@ import { colors, font, radius, shadow, space } from '../theme';
 import { Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
-
-type Shortcut = { icon: keyof typeof Ionicons.glyphMap; label: string; screen: keyof AppStackParamList };
-
-const SHORTCUTS: Shortcut[] = [
-  { icon: 'car-sport-outline', label: 'Подбор', screen: 'CarRequest' },
-  { icon: 'git-compare-outline', label: 'Сравнение', screen: 'Compare' },
-  { icon: 'bar-chart-outline', label: 'Аналитика', screen: 'MarketAnalytics' },
-  { icon: 'heart-outline', label: 'Помощь', screen: 'HelpRequests' },
-  { icon: 'leaf-outline', label: 'Эко', screen: 'EcoTips' },
-  { icon: 'game-controller-outline', label: 'Детям', screen: 'KidsGames' },
-  { icon: 'card-outline', label: 'Тарифы', screen: 'Billing' },
-];
 
 export default function MarketScreen({ navigation }: Props) {
   const [categoryId, setCategoryId] = useState<MarketCategoryId>('cars');
@@ -128,9 +115,14 @@ export default function MarketScreen({ navigation }: Props) {
     <View style={styles.header}>
       <View style={styles.titleRow}>
         <Text style={styles.title}>Маркет</Text>
-        <PressableScale style={styles.addBtn} onPress={() => navigation.navigate('CreateMarketListing')}>
-          <Ionicons name="add" size={24} color={colors.onAccent} />
-        </PressableScale>
+        <View style={styles.headerActions}>
+          <PressableScale style={styles.iconBtn} onPress={() => navigation.navigate('MarketServices')}>
+            <Ionicons name="apps-outline" size={21} color={colors.text} />
+          </PressableScale>
+          <PressableScale style={styles.addBtn} onPress={() => navigation.navigate('CreateMarketListing')}>
+            <Ionicons name="add" size={24} color={colors.onAccent} />
+          </PressableScale>
+        </View>
       </View>
 
       <PressableScale style={styles.searchBox} scaleTo={1} onPress={() => navigation.navigate('MarketSearch')}>
@@ -155,15 +147,6 @@ export default function MarketScreen({ navigation }: Props) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.catList}
       />
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shortcuts}>
-        {SHORTCUTS.map((s) => (
-          <PressableScale key={s.label} style={styles.shortcut} onPress={() => navigation.navigate(s.screen as any)}>
-            <Ionicons name={s.icon} size={16} color={colors.text} />
-            <Text style={styles.shortcutText}>{s.label}</Text>
-          </PressableScale>
-        ))}
-      </ScrollView>
     </View>
   );
 
@@ -211,6 +194,8 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: space.md, paddingTop: space.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: font.display, fontWeight: '900', color: colors.text },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconBtn: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', ...shadow.card },
   addBtn: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', ...shadow.card },
 
   searchBox: {
@@ -227,10 +212,6 @@ const styles = StyleSheet.create({
   catChipActive: { backgroundColor: colors.ink },
   catText: { fontSize: font.small, fontWeight: '800', color: colors.text },
   catTextActive: { color: colors.white },
-
-  shortcuts: { gap: 8, paddingBottom: space.md },
-  shortcut: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 34, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt },
-  shortcutText: { fontSize: font.tiny, fontWeight: '800', color: colors.text },
 
   grid: { paddingHorizontal: space.md - 3, justifyContent: 'space-between' },
   listContent: { paddingBottom: space.lg },
