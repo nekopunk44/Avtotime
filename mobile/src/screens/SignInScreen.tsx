@@ -6,7 +6,6 @@ import {
 import Constants from 'expo-constants';
 import SpeedLines from '../components/SpeedLines';
 import { colors, font, radius, shadow, space } from '../theme';
-import { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } from '@react-native-google-signin/google-signin';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { signIn, signInWithGoogleCredential } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
@@ -17,10 +16,16 @@ type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'SignIn
 const googleWebClientId = Constants.expoConfig?.extra?.googleWebClientId as string | undefined;
 const isExpoGo = Constants.appOwnership === 'expo';
 
+// Google Sign-In pulls in a native TurboModule (RNGoogleSignin) the moment it
+// is imported, and that module doesn't exist in Expo Go. Lazily require it only
+// outside Expo Go so the app boots there; Google login needs a dev/prod build.
+const GoogleSignInModule: typeof import('@react-native-google-signin/google-signin') | null =
+  isExpoGo ? null : require('@react-native-google-signin/google-signin');
+
 // Native Google Sign-In: the id_token audience is the web client, while the
 // Android OAuth client is matched automatically by package name + signing SHA-1.
-if (googleWebClientId && !isExpoGo) {
-  GoogleSignin.configure({ webClientId: googleWebClientId });
+if (GoogleSignInModule && googleWebClientId) {
+  GoogleSignInModule.GoogleSignin.configure({ webClientId: googleWebClientId });
 }
 
 export default function SignInScreen({ navigation }: Props) {
@@ -76,6 +81,8 @@ export default function SignInScreen({ navigation }: Props) {
       Alert.alert('Ошибка', 'Google Client ID не настроен в app.json');
       return;
     }
+    if (!GoogleSignInModule) return;
+    const { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } = GoogleSignInModule;
 
     setGoogleLoading(true);
     try {
