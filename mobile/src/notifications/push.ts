@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
+import type * as ExpoNotifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
@@ -9,12 +9,16 @@ import { navigationRef } from '../navigation/navigationRef';
 
 const PUSH_TOKEN_KEY = 'expo_push_token';
 
-// Expo Go (SDK 53+) removed remote-push support from expo-notifications, and
-// even touching its APIs at load time throws "runtime not ready". Keep the
-// whole module inert in Expo Go — push needs a development/production build.
+// Expo Go (SDK 53+) removed remote-push from expo-notifications. Merely
+// importing the module runs its top-level push-token auto-registration, which
+// throws "runtime not ready" in Expo Go — so we must not even evaluate it
+// there. Lazily require it only outside Expo Go; push needs a dev/prod build.
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
+const Notifications: typeof ExpoNotifications | undefined = isExpoGo
+  ? undefined
+  : require('expo-notifications');
 
-if (!isExpoGo) {
+if (Notifications) {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldPlaySound: true,
@@ -45,7 +49,7 @@ function getProjectId(): string | undefined {
 export async function registerPushNotifications(): Promise<void> {
   try {
     // Удалённые пуши не работают в Expo Go начиная с SDK 53 — нужен dev build
-    if (isExpoGo) {
+    if (!Notifications) {
       console.log('[push] Expo Go не поддерживает удалённые пуши — нужен dev build');
       return;
     }
@@ -187,7 +191,7 @@ export function consumePendingPush() {
   navigateFromPush(data);
 }
 
-function queuePush(response: Notifications.NotificationResponse) {
+function queuePush(response: ExpoNotifications.NotificationResponse) {
   pendingPush = (response.notification.request.content.data || {}) as PushData;
   consumePendingPush();
 }
@@ -195,7 +199,7 @@ function queuePush(response: Notifications.NotificationResponse) {
 // Регистрирует токен и обрабатывает тапы по пушам, пока пользователь залогинен
 export function usePushNotifications(loggedIn: boolean) {
   useEffect(() => {
-    if (!loggedIn || isExpoGo) return;
+    if (!loggedIn || !Notifications) return;
 
     registerPushNotifications();
 
