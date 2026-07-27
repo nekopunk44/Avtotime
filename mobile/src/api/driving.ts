@@ -1,4 +1,15 @@
-import client from './client';
+import client, { API_URL } from './client';
+
+// Normalize question image URLs: make relative paths absolute, and upgrade
+// http → https. The backend builds local image URLs from req.protocol, which
+// is "http" behind nginx, and Android blocks cleartext http images by default.
+export function resolveQuestionImage(url?: string): string | undefined {
+  if (!url) return undefined;
+  let u = url.trim();
+  if (u.startsWith('//')) u = `https:${u}`;
+  else if (!/^https?:\/\//i.test(u)) u = `${API_URL}${u.startsWith('/') ? '' : '/'}${u}`;
+  return u.replace(/^http:\/\//i, 'https://');
+}
 
 export type DrivingMode = 'exam' | 'practice' | 'marathon';
 
@@ -91,7 +102,11 @@ export async function getDrivingQuestions(mode: DrivingMode, ticketNumber?: numb
   if (ticketNumber) params.ticketNumber = ticketNumber;
 
   const { data } = await client.get('/driving-courses/questions-with-answers', { params });
-  const questions = Array.isArray(data) ? data : data.questions ?? [];
+  const raw = Array.isArray(data) ? data : data.questions ?? [];
+  const questions: DrivingQuestion[] = raw.map((q: DrivingQuestion) => ({
+    ...q,
+    imageUrl: resolveQuestionImage(q.imageUrl),
+  }));
 
   if (mode === 'marathon') {
     return [...questions].sort(() => Math.random() - 0.5).slice(0, limit);
