@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { NavigatorScreenParams, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -131,23 +131,29 @@ const Stack = createNativeStackNavigator<AppStackParamList>();
 const SocialTab = createBottomTabNavigator<SocialTabParamList>();
 const MarketTab = createBottomTabNavigator<MarketTabParamList>();
 
-// Top segmented switch between the social and market experiences.
+const SEG_W = 98;
+
+// Top segmented switch between the social and market experiences — a white
+// thumb springs between the two segments when you switch.
 function ModeSwitcher({ current }: { current: 'social' | 'market' }) {
   const navigation = useNavigation<any>();
+  const target = current === 'social' ? 0 : 1;
+  // Start from the opposite side so the thumb slides into place on switch.
+  const anim = React.useRef(new Animated.Value(1 - target)).current;
+  React.useEffect(() => {
+    Animated.spring(anim, { toValue: target, useNativeDriver: true, speed: 18, bounciness: 9 }).start();
+  }, [target, anim]);
+  const translateX = anim.interpolate({ inputRange: [0, 1], outputRange: [0, SEG_W] });
+
   return (
     <View style={styles.switcher}>
-      <TouchableOpacity
-        style={[styles.segment, current === 'social' && styles.segmentActive]}
-        onPress={() => navigation.navigate('SocialTabs')}
-        activeOpacity={0.85}
-      >
+      <Animated.View style={[styles.thumb, { transform: [{ translateX }] }]} />
+      <TouchableOpacity style={styles.segment} activeOpacity={0.9} onPress={() => navigation.navigate('SocialTabs')}>
+        <Ionicons name="people" size={15} color={current === 'social' ? colors.onAccent : colors.textMuted} />
         <Text style={[styles.segmentText, current === 'social' && styles.segmentTextActive]}>Соцсеть</Text>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.segment, current === 'market' && styles.segmentActive]}
-        onPress={() => navigation.navigate('MarketTabs')}
-        activeOpacity={0.85}
-      >
+      <TouchableOpacity style={styles.segment} activeOpacity={0.9} onPress={() => navigation.navigate('MarketTabs')}>
+        <Ionicons name="storefront" size={15} color={current === 'market' ? colors.onAccent : colors.textMuted} />
         <Text style={[styles.segmentText, current === 'market' && styles.segmentTextActive]}>Маркет</Text>
       </TouchableOpacity>
     </View>
@@ -230,8 +236,8 @@ export default function AppNavigator() {
         contentStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Stack.Screen name="SocialTabs" component={SocialTabs} options={{ headerShown: false, animation: 'fade' }} />
-      <Stack.Screen name="MarketTabs" component={MarketTabs} options={{ headerShown: false, animation: 'fade' }} />
+      <Stack.Screen name="SocialTabs" component={SocialTabs} options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="MarketTabs" component={MarketTabs} options={{ headerShown: false, animation: 'slide_from_right' }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Уведомления' }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ title: '' }} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: '' }} />
@@ -281,9 +287,9 @@ export default function AppNavigator() {
 }
 
 const styles = StyleSheet.create({
-  switcher: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 10, padding: 3 },
-  segment: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 8 },
-  segmentActive: { backgroundColor: colors.accent },
+  switcher: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 999, padding: 4, height: 40 },
+  thumb: { position: 'absolute', top: 4, left: 4, width: SEG_W, height: 32, borderRadius: 999, backgroundColor: colors.accent },
+  segment: { width: SEG_W, height: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   segmentText: { fontSize: 13, fontWeight: '800', color: colors.textMuted },
   segmentTextActive: { color: colors.onAccent },
   bell: { marginRight: 14, padding: 4 },

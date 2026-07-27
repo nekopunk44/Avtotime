@@ -3,6 +3,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { colors } from '../theme';
 
 const ICONS: Record<string, { on: keyof typeof Ionicons.glyphMap; off: keyof typeof Ionicons.glyphMap }> = {
@@ -68,7 +69,10 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
 
           const onPress = () => {
             const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-            if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
+            if (!focused && !event.defaultPrevented) {
+              Haptics.selectionAsync().catch(() => {});
+              navigation.navigate(route.name);
+            }
           };
           const onLongPress = () => navigation.emit({ type: 'tabLongPress', target: route.key });
 
@@ -92,13 +96,16 @@ const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'stretch', paddingHorizontal: 14 },
   bar: {
     flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', backgroundColor: colors.surface,
-    borderRadius: 32, paddingHorizontal: 12, height: 64,
+    borderRadius: 26, paddingHorizontal: 10, height: 52,
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
     shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 16,
   },
   item: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  iconWrap: { width: 56, height: 46, alignItems: 'center', justifyContent: 'center' },
-  pill: { position: 'absolute', width: 48, height: 36, borderRadius: 18, backgroundColor: colors.accent },
+  iconWrap: { width: 54, height: 38, alignItems: 'center', justifyContent: 'center' },
+  pill: {
+    position: 'absolute', width: 46, height: 34, borderRadius: 17, backgroundColor: colors.accent,
+    shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4,
+  },
   iconLayer: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   badge: {
     position: 'absolute', top: 3, right: 8, minWidth: 16, height: 16, borderRadius: 8,
