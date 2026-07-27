@@ -115,11 +115,7 @@ export default function NotificationSettingsScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
       <View style={styles.hero}>
-        <View style={styles.heroIcon}>
-          <Ionicons name="options-outline" size={27} color={colors.text} />
-        </View>
-        <Text style={styles.title}>Настройки уведомлений</Text>
-        <Text style={styles.subtitle}>Выберите, какие события показывать в приложении и отправлять на email</Text>
+        <Text style={styles.subtitle}>Выберите, какие события показывать в приложении и отправлять на email.</Text>
       </View>
 
       {TOGGLE_GROUPS.map((group) => (

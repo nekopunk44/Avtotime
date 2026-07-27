@@ -6,13 +6,15 @@
     "scheme": "avtotime",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0B0B0E",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.avtotime.app"
     },
     "android": {
       "package": "org.avtotime.app",
+      "backgroundColor": "#0B0B0E",
       "adaptiveIcon": {
         "backgroundColor": "#0B0B0B",
         "foregroundImage": "./assets/android-icon-foreground.png",
