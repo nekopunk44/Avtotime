@@ -4,10 +4,11 @@ import { Animated, DimensionValue, Easing, StyleProp, StyleSheet, View, ViewStyl
 type Line = { top: DimensionValue; width: number; delay: number; duration: number };
 
 const LINES: Line[] = [
-  { top: '30%', width: 48, delay: 0, duration: 1400 },
-  { top: '46%', width: 34, delay: 450, duration: 1600 },
-  { top: '58%', width: 66, delay: 200, duration: 1250 },
-  { top: '68%', width: 30, delay: 800, duration: 1700 },
+  { top: '28%', width: 62, delay: 0, duration: 1250 },
+  { top: '38%', width: 40, delay: 380, duration: 1500 },
+  { top: '50%', width: 88, delay: 150, duration: 1150 },
+  { top: '60%', width: 44, delay: 620, duration: 1600 },
+  { top: '70%', width: 56, delay: 880, duration: 1400 },
 ];
 
 function Streak({ top, width, delay, duration }: Line) {
@@ -20,8 +21,8 @@ function Streak({ top, width, delay, duration }: Line) {
     return () => anim.stop();
   }, [t, duration, delay]);
 
-  const translateX = t.interpolate({ inputRange: [0, 1], outputRange: [40, -170] });
-  const opacity = t.interpolate({ inputRange: [0, 0.15, 0.8, 1], outputRange: [0, 0.28, 0.28, 0] });
+  const translateX = t.interpolate({ inputRange: [0, 1], outputRange: [50, -170] });
+  const opacity = t.interpolate({ inputRange: [0, 0.15, 0.8, 1], outputRange: [0, 0.75, 0.75, 0] });
 
   return <Animated.View style={[styles.streak, { top, width, opacity, transform: [{ translateX }] }]} />;
 }
@@ -41,5 +42,5 @@ export default function SpeedLines({ style }: { style?: StyleProp<ViewStyle> }) 
 const styles = StyleSheet.create({
   // Match the tilt of the speed streaks drawn in the emblem (right end lifted).
   tilt: { transform: [{ rotate: '-12deg' }] },
-  streak: { position: 'absolute', right: '14%', height: 2, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.35)' },
+  streak: { position: 'absolute', right: '14%', height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.9)' },
 });
