@@ -19,8 +19,9 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy application source
 COPY . .
 
-# Ensure uploads directory exists
-RUN mkdir -p public
+# Ensure uploads directory exists and is writable by the runtime user.
+# (A named volume mounted at /app/public inherits this ownership on first init.)
+RUN mkdir -p public && chown -R node:node public
 
 # Drop root privileges
 USER node
