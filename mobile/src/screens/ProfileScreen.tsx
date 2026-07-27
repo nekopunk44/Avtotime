@@ -19,7 +19,7 @@ import { getUserRatingStats, ReviewStats } from '../api/reviews';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, font, radius, shadow, space } from '../theme';
-import { EmptyState, PressableScale } from '../components/ui';
+import { EmptyState, PressableScale, Skeleton } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
@@ -76,7 +76,7 @@ export default function ProfileScreen({ navigation }: Props) {
       setPostsTotal(postsPage.total);
       setRatingStats(nextRatingStats);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить профиль');
+      if (!silent) Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить профиль');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -85,8 +85,10 @@ export default function ProfileScreen({ navigation }: Props) {
     // setUser, and depending on `user` would recreate load → refocus → loop.
   }, [setUser, user?._id]);
 
+  // Refresh silently on focus — the header renders instantly from the stored
+  // user, so there's no full-screen spinner blocking the screen.
   useFocusEffect(useCallback(() => {
-    load();
+    load(true);
   }, [load]));
 
   const refresh = () => {
@@ -187,12 +189,8 @@ export default function ProfileScreen({ navigation }: Props) {
 
       <View style={styles.quickGrid}>
         {[
-          { icon: 'albums-outline', label: 'Мои объявления', go: () => navigation.navigate('MarketTabs', { screen: 'MyListings' }) },
-          { icon: 'bookmark-outline', label: 'Маркет избранное', go: () => navigation.navigate('MarketTabs', { screen: 'Favorites' }) },
           { icon: 'bookmarks-outline', label: 'Сохранённые посты', go: () => navigation.navigate('SavedPosts') },
-          { icon: 'bar-chart-outline', label: 'Аналитика', go: () => navigation.navigate('MarketAnalytics') },
           { icon: 'star-outline', label: 'Отзывы обо мне', go: () => navigation.navigate('MyReviews') },
-          { icon: 'card-outline', label: 'Тарифы', go: () => navigation.navigate('Billing') },
         ].map((q) => (
           <PressableScale key={q.label} style={styles.quickCard} onPress={q.go}>
             <View style={styles.quickIcon}>
@@ -236,14 +234,6 @@ export default function ProfileScreen({ navigation }: Props) {
     </PressableScale>
   );
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.accent} />
-      </View>
-    );
-  }
-
   return (
     <FlatList
       style={styles.container}
@@ -255,13 +245,23 @@ export default function ProfileScreen({ navigation }: Props) {
       contentContainerStyle={posts.length ? styles.list : styles.emptyList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       ListEmptyComponent={
-        <EmptyState
-          icon="images-outline"
-          title="Публикаций пока нет"
-          subtitle="Создайте первую публикацию, и она появится в профиле."
-          actionLabel="Создать"
-          onAction={() => navigation.navigate('CreatePost')}
-        />
+        loading ? (
+          <View style={styles.skeletonGrid}>
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <View key={i} style={styles.gridItem}>
+                <Skeleton style={styles.gridImage} />
+              </View>
+            ))}
+          </View>
+        ) : (
+          <EmptyState
+            icon="images-outline"
+            title="Публикаций пока нет"
+            subtitle="Создайте первую публикацию, и она появится в профиле."
+            actionLabel="Создать"
+            onAction={() => navigation.navigate('CreatePost')}
+          />
+        )
       }
     />
   );
@@ -272,6 +272,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   list: { padding: space.md, paddingBottom: space.xxl },
   emptyList: { flexGrow: 1, padding: space.md, paddingBottom: space.xxl },
+  skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   header: { gap: space.md, marginBottom: space.md },
 
   hero: { backgroundColor: colors.ink, borderRadius: radius.xl, paddingVertical: space.xl, paddingHorizontal: space.lg, alignItems: 'center', ...shadow.card },
