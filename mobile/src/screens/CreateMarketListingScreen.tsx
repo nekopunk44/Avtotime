@@ -256,10 +256,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.hero}>
-          <Text style={styles.title}>Новое объявление</Text>
-          <Text style={styles.subtitle}>Выберите раздел и заполните карточку для Avtotime Market</Text>
-        </View>
+        <Text style={styles.lead}>Выберите раздел и заполните карточку — объявление появится в Avtotime Market после проверки.</Text>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modeRow}>
           {MARKET_CATEGORIES.map((category) => {
@@ -271,7 +268,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
                 onPress={() => switchMode(category.id)}
                 activeOpacity={0.85}
               >
-                <Ionicons name={category.icon as any} size={18} color={active ? '#fff' : '#111'} />
+                <Ionicons name={category.icon as any} size={18} color={active ? colors.onAccent : colors.text} />
                 <Text style={[styles.modeText, active && styles.modeTextActive]}>{category.shortLabel}</Text>
               </TouchableOpacity>
             );
@@ -371,33 +368,31 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
-  content: { padding: 16, paddingBottom: 32 },
-  hero: { marginBottom: 14 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13, lineHeight: 19 },
-  modeRow: { gap: 8, paddingBottom: 10 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: 16, paddingBottom: 40 },
+  lead: { color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700', marginBottom: 14 },
+  modeRow: { gap: 8, paddingBottom: 12 },
   modeBtn: {
-    height: 40, borderRadius: 10, backgroundColor: colors.surfaceAlt,
-    borderWidth: 1, borderColor: colors.border, flexDirection: 'row',
-    alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 12,
+    height: 40, borderRadius: 999, backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 14,
   },
-  modeBtnActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
-  modeText: { color: colors.text, fontWeight: '800', fontSize: 13 },
-  modeTextActive: { color: '#fff' },
-  sectionTitle: { marginTop: 14, marginBottom: 8, color: colors.text, fontSize: 15, fontWeight: '900' },
+  modeBtnActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  modeText: { color: colors.textMuted, fontWeight: '800', fontSize: 13 },
+  modeTextActive: { color: colors.onAccent },
+  sectionTitle: { marginTop: 18, marginBottom: 10, color: colors.text, fontSize: 15, fontWeight: '900' },
   input: {
-    minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: 10,
-    paddingHorizontal: 12, color: colors.text, fontSize: 15, marginBottom: 10,
-    backgroundColor: colors.bg,
+    minHeight: 50, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, borderRadius: 12,
+    paddingHorizontal: 14, color: colors.text, fontSize: 15, marginBottom: 10,
+    backgroundColor: colors.surfaceAlt,
   },
   textArea: { minHeight: 110, paddingTop: 12, lineHeight: 20 },
   imageActionRow: { flexDirection: 'row', gap: 8 },
   imagePicker: {
     flex: 1,
-    height: 48, borderRadius: 10, borderWidth: 1, borderColor: colors.border,
-    backgroundColor: colors.bg, flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 12, gap: 8,
+    height: 50, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, gap: 8,
   },
   imagePickerText: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '800' },
   imagePickerCount: { color: colors.textMuted, fontWeight: '800' },

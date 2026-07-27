@@ -345,7 +345,7 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32 },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   heroIcon: {
@@ -371,14 +371,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
     marginBottom: 10,
-    backgroundColor: colors.bg,
+    backgroundColor: colors.surfaceAlt,
   },
   textArea: { minHeight: 110, paddingTop: 12, lineHeight: 20 },
   imageBlock: {
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.bg,
+    backgroundColor: colors.surfaceAlt,
     overflow: 'hidden',
   },
   previewImage: { width: '100%', aspectRatio: 1.5, backgroundColor: colors.surfaceAlt },
