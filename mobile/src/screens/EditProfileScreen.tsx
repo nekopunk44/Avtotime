@@ -99,7 +99,7 @@ export default function EditProfileScreen({ navigation }: Props) {
         <TouchableOpacity style={styles.avatarWrap} onPress={pickImage}>
           <Image source={avatar} style={styles.avatar} />
           <View style={styles.avatarBadge}>
-            <Ionicons name="camera" size={16} color="#fff" />
+            <Ionicons name="camera" size={16} color={colors.onAccent} />
           </View>
         </TouchableOpacity>
 
@@ -158,23 +158,23 @@ function Field({ label, style, multiline, ...props }: FieldProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
-  content: { padding: 18, paddingBottom: 34 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: 18, paddingBottom: 40 },
   avatarWrap: { alignSelf: 'center', marginBottom: 24, position: 'relative' },
   avatar: { width: 104, height: 104, borderRadius: 52, backgroundColor: colors.surfaceAlt },
   avatarBadge: {
     position: 'absolute', right: 2, bottom: 2,
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: colors.surfaceHi, justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2, borderColor: '#fff',
+    backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 3, borderColor: colors.bg,
   },
   avatarActions: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   avatarActionBtn: {
     flex: 1,
-    height: 42,
-    borderRadius: 10,
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: 1,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
@@ -183,11 +183,11 @@ const styles = StyleSheet.create({
   },
   avatarActionText: { color: colors.text, fontSize: 13, fontWeight: '800' },
   field: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '700', color: colors.textMuted, marginBottom: 7 },
+  label: { fontSize: 13, fontWeight: '800', color: colors.textMuted, marginBottom: 8, marginLeft: 2 },
   input: {
-    minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 10, fontSize: 15, color: colors.text,
-    backgroundColor: colors.surface,
+    minHeight: 50, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: colors.text,
+    backgroundColor: colors.surfaceAlt,
   },
   multiline: { minHeight: 94, lineHeight: 20 },
   saveBtn: {
