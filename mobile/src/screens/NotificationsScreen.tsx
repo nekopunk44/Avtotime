@@ -283,19 +283,6 @@ export default function NotificationsScreen({ navigation }: Props) {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.hero}>
-        <View style={styles.heroIcon}>
-          <Ionicons name="notifications-outline" size={27} color={colors.text} />
-        </View>
-        <View style={styles.heroText}>
-          <Text style={styles.title}>Уведомления</Text>
-          <Text style={styles.subtitle}>{unreadCount ? `${unreadCount} непрочитанных` : 'Все уведомления прочитаны'}</Text>
-        </View>
-        <TouchableOpacity style={styles.settingsBtn} onPress={() => navigation.navigate('NotificationSettings')}>
-          <Ionicons name="options-outline" size={22} color={colors.text} />
-        </TouchableOpacity>
-      </View>
-
       <View style={styles.toolbar}>
         <View style={styles.segment}>
           <TouchableOpacity
@@ -308,29 +295,32 @@ export default function NotificationsScreen({ navigation }: Props) {
             style={[styles.segmentBtn, filter === 'unread' && styles.segmentBtnActive]}
             onPress={() => setFilter('unread')}
           >
-            <Text style={[styles.segmentText, filter === 'unread' && styles.segmentTextActive]}>Непрочитанные</Text>
+            <Text style={[styles.segmentText, filter === 'unread' && styles.segmentTextActive]}>
+              Непрочитанные{unreadCount ? ` · ${unreadCount}` : ''}
+            </Text>
           </TouchableOpacity>
         </View>
+        <TouchableOpacity style={styles.settingsBtn} onPress={() => navigation.navigate('NotificationSettings')}>
+          <Ionicons name="options-outline" size={20} color={colors.text} />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.bulkRow}>
-        <TouchableOpacity
-          style={[styles.bulkBtn, unreadCount === 0 && styles.bulkBtnDisabled]}
-          onPress={handleMarkAll}
-          disabled={!unreadCount || bulkBusy}
-        >
-          {bulkBusy ? <ActivityIndicator color={colors.text} /> : <Ionicons name="checkmark-done-outline" size={17} color={colors.text} />}
-          <Text style={styles.bulkText}>Прочитать все</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.bulkBtn, !notifications.length && styles.bulkBtnDisabled]}
-          onPress={clearAll}
-          disabled={!notifications.length || bulkBusy}
-        >
-          <Ionicons name="trash-outline" size={17} color={colors.danger} />
-          <Text style={[styles.bulkText, styles.bulkTextDanger]}>Очистить</Text>
-        </TouchableOpacity>
-      </View>
+      {notifications.length ? (
+        <View style={styles.bulkRow}>
+          <TouchableOpacity
+            style={[styles.bulkBtn, unreadCount === 0 && styles.bulkBtnDisabled]}
+            onPress={handleMarkAll}
+            disabled={!unreadCount || bulkBusy}
+          >
+            {bulkBusy ? <ActivityIndicator color={colors.text} size="small" /> : <Ionicons name="checkmark-done-outline" size={16} color={colors.text} />}
+            <Text style={styles.bulkText}>Прочитать все</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.bulkBtn} onPress={clearAll} disabled={bulkBusy}>
+            <Ionicons name="trash-outline" size={16} color={colors.danger} />
+            <Text style={[styles.bulkText, styles.bulkTextDanger]}>Очистить</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   );
 
@@ -338,42 +328,32 @@ export default function NotificationsScreen({ navigation }: Props) {
     const icon = ICONS[item.type] ?? ICONS.default;
     const message = item.description || item.title || 'Уведомление';
     const avatar = item.actor?.profileImage || item.image;
-    const busy = busyId === item._id;
+    const danger = item.type === 'listing_rejected';
 
     return (
-      <View style={[styles.card, !item.isRead && styles.cardUnread]}>
-        <TouchableOpacity style={styles.cardMain} onPress={() => openNotification(item)} activeOpacity={0.86}>
-          <View style={[styles.iconWrap, { backgroundColor: `${icon.color}20` }]}>
-            <Ionicons name={icon.name} size={21} color={icon.color} />
+      <TouchableOpacity
+        style={[styles.card, !item.isRead && styles.cardUnread]}
+        onPress={() => openNotification(item)}
+        onLongPress={() => removeOne(item)}
+        activeOpacity={0.85}
+        disabled={busyId === item._id}
+      >
+        {avatar ? (
+          <Image source={{ uri: avatar }} style={styles.avatar} />
+        ) : (
+          <View style={styles.iconWrap}>
+            <Ionicons name={icon.name} size={20} color={danger ? colors.danger : colors.text} />
           </View>
-          {avatar ? (
-            <Image source={{ uri: avatar }} style={styles.avatar} />
-          ) : null}
-          <View style={styles.cardContent}>
-            <View style={styles.cardTop}>
-              <Text style={styles.cardTitle} numberOfLines={1}>{item.title || 'Avtotime'}</Text>
-              {!item.isRead ? <View style={styles.dot} /> : null}
-            </View>
-            <Text style={styles.message} numberOfLines={3}>{message}</Text>
+        )}
+        <View style={styles.cardContent}>
+          <View style={styles.cardTop}>
+            <Text style={styles.cardTitle} numberOfLines={1}>{item.title || 'Avtotime'}</Text>
             <Text style={styles.time}>{formatDate(item.createdAt)}</Text>
           </View>
-        </TouchableOpacity>
-
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => markOne(item)}
-            disabled={item.isRead || busy}
-          >
-            {busy ? <ActivityIndicator color={colors.textMuted} /> : <Ionicons name="checkmark-outline" size={17} color={item.isRead ? '#bbb' : '#555'} />}
-            <Text style={[styles.actionText, item.isRead && styles.actionTextDisabled]}>Прочитано</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => removeOne(item)} disabled={busy}>
-            <Ionicons name="trash-outline" size={17} color={colors.danger} />
-            <Text style={styles.actionTextDanger}>Удалить</Text>
-          </TouchableOpacity>
+          <Text style={styles.message} numberOfLines={2}>{message}</Text>
         </View>
-      </View>
+        {!item.isRead ? <View style={styles.dot} /> : null}
+      </TouchableOpacity>
     );
   };
 
@@ -410,40 +390,29 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
-  header: { gap: 10, marginBottom: 2 },
-  hero: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  heroText: { flex: 1 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
-  settingsBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  toolbar: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 5 },
-  segment: { flexDirection: 'row', gap: 5 },
-  segmentBtn: { flex: 1, height: 36, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-  segmentBtnActive: { backgroundColor: colors.surfaceHi },
+  header: { gap: 10, marginBottom: 4 },
+  toolbar: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  segment: { flex: 1, flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 999, padding: 4 },
+  segmentBtn: { flex: 1, height: 34, borderRadius: 999, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  segmentBtnActive: { backgroundColor: colors.accent },
   segmentText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  segmentTextActive: { color: '#fff' },
+  segmentTextActive: { color: colors.onAccent },
+  settingsBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   bulkRow: { flexDirection: 'row', gap: 8 },
-  bulkBtn: { flex: 1, height: 42, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  bulkBtn: { flex: 1, height: 42, borderRadius: 12, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   bulkBtnDisabled: { opacity: 0.52 },
   bulkText: { color: colors.text, fontSize: 13, fontWeight: '900' },
   bulkTextDanger: { color: colors.danger },
-  card: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
-  cardUnread: { borderColor: colors.border, backgroundColor: colors.surfaceAlt },
-  cardMain: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
-  iconWrap: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12 },
+  cardUnread: { backgroundColor: colors.surfaceAlt, borderColor: colors.surfaceHi },
+  iconWrap: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.surfaceHi, justifyContent: 'center', alignItems: 'center' },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surfaceAlt },
   cardContent: { flex: 1 },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   cardTitle: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '900' },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
+  time: { color: colors.textFaint, fontSize: 11, fontWeight: '700' },
   message: { marginTop: 3, color: colors.textMuted, fontSize: 13, lineHeight: 18 },
-  time: { marginTop: 5, color: colors.textFaint, fontSize: 11, fontWeight: '700' },
-  actions: { flexDirection: 'row', gap: 8, borderTopWidth: 1, borderTopColor: colors.border, padding: 8 },
-  actionBtn: { flex: 1, height: 36, borderRadius: 8, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
-  actionText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
-  actionTextDisabled: { color: colors.textFaint },
-  actionTextDanger: { color: colors.danger, fontSize: 12, fontWeight: '900' },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
