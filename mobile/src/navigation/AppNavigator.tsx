@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { NavigatorScreenParams, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -133,21 +133,17 @@ const MarketTab = createBottomTabNavigator<MarketTabParamList>();
 
 const SEG_W = 98;
 
-// Top segmented switch between the social and market experiences — a white
-// thumb springs between the two segments when you switch.
+// Top segmented switch between the social and market experiences. The thumb is
+// positioned statically by `current` — the header remounts on every tab change,
+// so animating it here would jerk on each switch; the screen transition carries
+// the motion instead.
 function ModeSwitcher({ current }: { current: 'social' | 'market' }) {
   const navigation = useNavigation<any>();
-  const target = current === 'social' ? 0 : 1;
-  // Start from the opposite side so the thumb slides into place on switch.
-  const anim = React.useRef(new Animated.Value(1 - target)).current;
-  React.useEffect(() => {
-    Animated.spring(anim, { toValue: target, useNativeDriver: true, speed: 18, bounciness: 9 }).start();
-  }, [target, anim]);
-  const translateX = anim.interpolate({ inputRange: [0, 1], outputRange: [0, SEG_W] });
+  const offset = current === 'social' ? 0 : SEG_W;
 
   return (
     <View style={styles.switcher}>
-      <Animated.View style={[styles.thumb, { transform: [{ translateX }] }]} />
+      <View style={[styles.thumb, { transform: [{ translateX: offset }] }]} />
       <TouchableOpacity style={styles.segment} activeOpacity={0.9} onPress={() => navigation.navigate('SocialTabs')}>
         <Ionicons name="people" size={15} color={current === 'social' ? colors.onAccent : colors.textMuted} />
         <Text style={[styles.segmentText, current === 'social' && styles.segmentTextActive]}>Соцсеть</Text>
@@ -173,7 +169,6 @@ function HeaderBell() {
 
 const makeTabOptions = (current: 'social' | 'market') => () => ({
   // The floating tab bar (custom `tabBar` below) handles icons/animation.
-  animation: 'shift' as const,
   // Keep scene content clear of the floating bar.
   sceneStyle: { backgroundColor: colors.bg, paddingBottom: 90 },
   headerShown: true,
@@ -236,8 +231,8 @@ export default function AppNavigator() {
         contentStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Stack.Screen name="SocialTabs" component={SocialTabs} options={{ headerShown: false, animation: 'slide_from_right' }} />
-      <Stack.Screen name="MarketTabs" component={MarketTabs} options={{ headerShown: false, animation: 'slide_from_right' }} />
+      <Stack.Screen name="SocialTabs" component={SocialTabs} options={{ headerShown: false, animation: 'fade', animationDuration: 200 }} />
+      <Stack.Screen name="MarketTabs" component={MarketTabs} options={{ headerShown: false, animation: 'fade', animationDuration: 200 }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Уведомления' }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ title: '' }} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: '' }} />
