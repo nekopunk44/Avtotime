@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Image,
   RefreshControl,
+  SectionList,
   StyleSheet,
   Text,
   TextInput,
@@ -22,7 +22,6 @@ import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
-type SearchTab = 'users' | 'posts';
 
 const fallbackAvatar = require('../../assets/icon.png');
 
@@ -34,7 +33,6 @@ const formatCount = (value: number) => {
 export default function SearchScreen({ navigation }: Props) {
   const user = useAuthStore((s) => s.user);
   const [query, setQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<SearchTab>('users');
   const [userResults, setUserResults] = useState<User[]>([]);
   const [postResults, setPostResults] = useState<Post[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
@@ -48,7 +46,6 @@ export default function SearchScreen({ navigation }: Props) {
 
   const users = hasQuery ? userResults : suggestedUsers;
   const posts = hasQuery ? postResults : suggestedPosts;
-  const currentData = activeTab === 'users' ? users : posts;
 
   const loadDiscover = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -129,10 +126,12 @@ export default function SearchScreen({ navigation }: Props) {
     }
   };
 
-  const counts = useMemo(() => ({
-    users: users.length,
-    posts: posts.length,
-  }), [posts.length, users.length]);
+  const sections = useMemo(() => {
+    const s: { key: 'users' | 'posts'; title: string; data: any[] }[] = [];
+    if (users.length) s.push({ key: 'users', title: hasQuery ? `Люди · ${users.length}` : 'Люди', data: users });
+    if (posts.length) s.push({ key: 'posts', title: hasQuery ? `Публикации · ${posts.length}` : 'Публикации', data: posts });
+    return s;
+  }, [users, posts, hasQuery]);
 
   const openChat = (item: User) => {
     navigation.navigate('Chat', {
@@ -144,15 +143,7 @@ export default function SearchScreen({ navigation }: Props) {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.hero}>
-        <View style={styles.heroIcon}>
-          <Ionicons name="search-outline" size={27} color={colors.text} />
-        </View>
-        <View style={styles.heroText}>
-          <Text style={styles.title}>Поиск</Text>
-          <Text style={styles.subtitle}>{hasQuery ? `Результаты для “${trimmedQuery}”` : 'Люди и публикации Avtotime'}</Text>
-        </View>
-      </View>
+      <Text style={styles.title}>Поиск</Text>
 
       <View style={styles.searchBar}>
         <Ionicons name="search" size={18} color={colors.textMuted} />
@@ -171,23 +162,6 @@ export default function SearchScreen({ navigation }: Props) {
             <Ionicons name="close-circle" size={18} color={colors.textFaint} />
           </TouchableOpacity>
         ) : null}
-      </View>
-
-      <View style={styles.segment}>
-        <TouchableOpacity
-          style={[styles.segmentBtn, activeTab === 'users' && styles.segmentBtnActive]}
-          onPress={() => setActiveTab('users')}
-        >
-          <Ionicons name="people-outline" size={17} color={activeTab === 'users' ? '#fff' : '#555'} />
-          <Text style={[styles.segmentText, activeTab === 'users' && styles.segmentTextActive]}>Люди · {counts.users}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.segmentBtn, activeTab === 'posts' && styles.segmentBtnActive]}
-          onPress={() => setActiveTab('posts')}
-        >
-          <Ionicons name="images-outline" size={17} color={activeTab === 'posts' ? '#fff' : '#555'} />
-          <Text style={[styles.segmentText, activeTab === 'posts' && styles.segmentTextActive]}>Посты · {counts.posts}</Text>
-        </TouchableOpacity>
       </View>
 
       {trimmedQuery && trimmedQuery.length < 2 ? (
@@ -270,7 +244,7 @@ export default function SearchScreen({ navigation }: Props) {
 
         <View style={styles.postActions}>
           <TouchableOpacity style={styles.postActionBtn} onPress={() => handleLike(item._id)}>
-            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={21} color={liked ? '#e53935' : '#555'} />
+            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={21} color={liked ? colors.danger : colors.textMuted} />
             <Text style={styles.postActionText}>{formatCount(item.likes?.length ?? 0)}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.postActionBtn} onPress={() => navigation.navigate('PostComments', { postId: item._id })}>
@@ -291,25 +265,29 @@ export default function SearchScreen({ navigation }: Props) {
   }
 
   return (
-    <FlatList
+    <SectionList
       style={styles.container}
-      data={currentData}
-      keyExtractor={(item: any) => item._id}
-      renderItem={activeTab === 'users' ? renderUser as any : renderPost as any}
+      sections={sections}
+      keyExtractor={(item: any, index) => item._id || String(index)}
+      renderItem={({ item, section }: any) => (section.key === 'users' ? renderUser({ item }) : renderPost({ item }))}
+      renderSectionHeader={({ section }: any) => <Text style={styles.sectionTitle}>{section.title}</Text>}
+      SectionSeparatorComponent={() => <View style={{ height: 10 }} />}
+      ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
       ListHeaderComponent={renderHeader}
-      contentContainerStyle={currentData.length ? styles.list : styles.emptyList}
+      stickySectionHeadersEnabled={false}
+      contentContainerStyle={sections.length ? styles.list : styles.emptyList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       keyboardShouldPersistTaps="handled"
       ListEmptyComponent={
-        <View style={styles.emptyState}>
-          <Ionicons name={activeTab === 'users' ? 'people-outline' : 'images-outline'} size={44} color={colors.textFaint} />
-          <Text style={styles.emptyTitle}>
-            {hasQuery ? 'Ничего не найдено' : activeTab === 'users' ? 'Нет рекомендаций' : 'Нет публикаций'}
-          </Text>
-          <Text style={styles.emptyText}>
-            {hasQuery ? 'Попробуйте другой запрос.' : 'Потяните экран вниз, чтобы обновить.'}
-          </Text>
-        </View>
+        searching ? null : (
+          <View style={styles.emptyState}>
+            <Ionicons name="search-outline" size={44} color={colors.textFaint} />
+            <Text style={styles.emptyTitle}>{hasQuery ? 'Ничего не найдено' : 'Начните поиск'}</Text>
+            <Text style={styles.emptyText}>
+              {hasQuery ? 'Попробуйте другой запрос.' : 'Введите имя, @ник или текст публикации — покажем людей и посты сразу.'}
+            </Text>
+          </View>
+        )
       }
     />
   );
@@ -318,22 +296,14 @@ export default function SearchScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  list: { padding: 12, paddingBottom: 28, gap: 10 },
+  list: { padding: 12, paddingBottom: 28 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
-  header: { gap: 10, marginBottom: 2 },
-  hero: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  heroText: { flex: 1 },
+  header: { gap: 12, marginBottom: 6 },
   title: { color: colors.text, fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
-  searchBar: { height: 46, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  searchBar: { height: 48, borderRadius: 14, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14 },
   input: { flex: 1, fontSize: 15, color: colors.text },
-  segment: { flexDirection: 'row', gap: 8 },
-  segmentBtn: { flex: 1, height: 40, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  segmentBtnActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
-  segmentText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  segmentTextActive: { color: '#fff' },
-  hint: { flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 10 },
+  sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '900', paddingHorizontal: 2, marginTop: 4 },
+  hint: { flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 12, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 10 },
   hintText: { flex: 1, color: colors.textMuted, fontSize: 13, fontWeight: '700' },
   searchingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', paddingVertical: 8 },
   searchingText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
