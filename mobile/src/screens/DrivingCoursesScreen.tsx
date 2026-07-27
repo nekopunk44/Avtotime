@@ -136,16 +136,13 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
       <View style={styles.header}>
-        <View style={styles.headerIcon}>
-          <Ionicons name="school-outline" size={28} color={colors.text} />
-        </View>
         <Text style={styles.title}>Автокурсы</Text>
         <Text style={styles.subtitle}>Билеты, тренировка и экзамен по вопросам ПДД</Text>
       </View>
 
       {error ? (
         <View style={styles.errorBox}>
-          <Ionicons name="alert-circle-outline" size={22} color="#b91c1c" />
+          <Ionicons name="alert-circle-outline" size={22} color={colors.danger} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : null}
@@ -273,12 +270,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 28 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
-  header: { alignItems: 'center', paddingTop: 14, paddingBottom: 20 },
-  headerIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  title: { marginTop: 12, color: colors.text, fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderColor: '#fee2e2', borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 12 },
-  errorText: { flex: 1, color: '#991b1b', fontSize: 13, fontWeight: '700' },
+  header: { paddingTop: 6, paddingBottom: 16 },
+  title: { color: colors.text, fontSize: 25, fontWeight: '900' },
+  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13, fontWeight: '700', lineHeight: 19 },
+  errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderColor: 'rgba(255,90,95,0.25)', borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 12, marginBottom: 12 },
+  errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '700' },
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 18 },
   statCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 8, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   statValue: { color: colors.text, fontSize: 20, fontWeight: '900' },

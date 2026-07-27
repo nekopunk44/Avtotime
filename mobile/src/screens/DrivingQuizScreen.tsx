@@ -52,6 +52,9 @@ export default function DrivingQuizScreen({ navigation, route }: Props) {
   const [timeLeft, setTimeLeft] = useState(mode === 'exam' ? 20 * 60 : 0);
   const [finished, setFinished] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Backend attaches a constructed image URL to every question even when no
+  // file exists, so remember which ones 404 and drop the empty image block.
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   const loadQuestions = useCallback(async () => {
     setLoading(true);
@@ -232,8 +235,13 @@ export default function DrivingQuizScreen({ navigation, route }: Props) {
           <View style={[styles.progressFill, { width: `${((currentIndex + 1) / questions.length) * 100}%` }]} />
         </View>
 
-        {currentQuestion.imageUrl ? (
-          <Image source={{ uri: currentQuestion.imageUrl }} style={styles.questionImage} resizeMode="cover" />
+        {currentQuestion.imageUrl && !failedImages.has(currentQuestion.imageUrl) ? (
+          <Image
+            source={{ uri: currentQuestion.imageUrl }}
+            style={styles.questionImage}
+            resizeMode="cover"
+            onError={() => setFailedImages((prev) => new Set(prev).add(currentQuestion.imageUrl!))}
+          />
         ) : null}
 
         <View style={styles.questionCard}>
