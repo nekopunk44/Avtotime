@@ -45,10 +45,10 @@ const PLAN_LABEL: Record<string, string> = {
 };
 
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
-  succeeded: { label: 'Оплачен', color: '#14843b', bg: '#eaf8ef' },
-  pending: { label: 'В обработке', color: '#9a5a00', bg: '#fff6df' },
-  failed: { label: 'Ошибка', color: colors.danger, bg: '#fff0f0' },
-  refunded: { label: 'Возврат', color: colors.textMuted, bg: '#f0f0f0' },
+  succeeded: { label: 'Оплачен', color: colors.success, bg: 'rgba(61,214,140,0.15)' },
+  pending: { label: 'В обработке', color: colors.warning, bg: 'rgba(246,178,61,0.15)' },
+  failed: { label: 'Ошибка', color: colors.danger, bg: 'rgba(255,90,95,0.14)' },
+  refunded: { label: 'Возврат', color: colors.textMuted, bg: colors.surfaceAlt },
 };
 
 const PLANS: PlanCard[] = [
@@ -234,49 +234,40 @@ export default function BillingScreen({ navigation }: Props) {
   const renderPlan = (plan: PlanCard) => {
     const isCurrent = activePlan === plan.key;
     const isFree = plan.key === 'free';
-    const bg = plan.dark ? '#111' : '#fff';
-    const text = plan.dark ? '#fff' : '#111';
-    const muted = plan.dark ? 'rgba(255,255,255,0.68)' : '#666';
 
     return (
-      <View key={plan.key} style={[styles.planCard, { backgroundColor: bg, borderColor: isCurrent ? '#d92323' : '#ececec' }]}>
+      <View key={plan.key} style={[styles.planCard, plan.dark && styles.planCardHi, isCurrent && styles.planCardCurrent]}>
         <View style={styles.planHeader}>
-          <View style={[styles.planIcon, { backgroundColor: plan.dark ? 'rgba(255,255,255,0.1)' : '#fff0f0' }]}>
-            <Ionicons name={plan.icon as any} size={23} color={plan.dark ? '#fff' : '#d92323'} />
+          <View style={styles.planIcon}>
+            <Ionicons name={plan.icon as any} size={22} color={colors.text} />
           </View>
           {isCurrent ? <Text style={styles.activePill}>Активен</Text> : null}
         </View>
 
-        <Text style={[styles.planEyebrow, { color: plan.dark ? 'rgba(255,255,255,0.52)' : '#d92323' }]}>{plan.eyebrow}</Text>
-        <Text style={[styles.planName, { color: text }]}>{plan.name}</Text>
-        <Text style={[styles.planPrice, { color: text }]}>{plan.price}</Text>
-        <Text style={[styles.planSummary, { color: muted }]}>{plan.summary}</Text>
+        <Text style={styles.planEyebrow}>{plan.eyebrow}</Text>
+        <Text style={styles.planName}>{plan.name}</Text>
+        <Text style={styles.planPrice}>{plan.price}</Text>
+        <Text style={styles.planSummary}>{plan.summary}</Text>
 
         <View style={styles.featureList}>
           {plan.features.map((feature) => (
             <View key={feature} style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={17} color={plan.dark ? '#fff' : '#d92323'} />
-              <Text style={[styles.featureText, { color: muted }]}>{feature}</Text>
+              <Ionicons name="checkmark-circle" size={17} color={colors.success} />
+              <Text style={styles.featureText}>{feature}</Text>
             </View>
           ))}
         </View>
 
         <TouchableOpacity
-          style={[
-            styles.planBtn,
-            isCurrent ? styles.planBtnDisabled : plan.dark ? styles.planBtnLight : styles.planBtnDark,
-          ]}
+          style={[styles.planBtn, isCurrent ? styles.planBtnDisabled : styles.planBtnActive]}
           onPress={isFree ? selectFreePlan : openWebCheckout}
           disabled={isCurrent || saving}
-          activeOpacity={0.85}
+          activeOpacity={0.9}
         >
           {saving && isFree ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.onAccent} size="small" />
           ) : (
-            <Text style={[
-              styles.planBtnText,
-              isCurrent ? styles.planBtnTextDisabled : plan.dark ? styles.planBtnTextDark : styles.planBtnTextLight,
-            ]}>
+            <Text style={[styles.planBtnText, isCurrent ? styles.planBtnTextDisabled : styles.planBtnTextActive]}>
               {isCurrent ? 'Текущий тариф' : isFree ? 'Выбрать базовый' : 'Открыть оплату'}
             </Text>
           )}
@@ -286,7 +277,7 @@ export default function BillingScreen({ navigation }: Props) {
   };
 
   const renderPayment = (payment: PaymentRow, index: number) => {
-    const statusInfo = STATUS_LABEL[payment.status] || { label: payment.status, color: colors.textMuted, bg: '#f0f0f0' };
+    const statusInfo = STATUS_LABEL[payment.status] || { label: payment.status, color: colors.textMuted, bg: colors.surfaceAlt };
     const planLabel = PLAN_LABEL[payment.plan] || payment.plan;
 
     return (
@@ -428,24 +419,24 @@ const styles = StyleSheet.create({
   noticeBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
   noticeText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700' },
   planList: { gap: 10 },
-  planCard: { borderRadius: 8, borderWidth: 1, padding: 15 },
+  planCard: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, backgroundColor: colors.surface, padding: 16 },
+  planCardHi: { backgroundColor: colors.surfaceHi },
+  planCardCurrent: { borderColor: colors.accent, borderWidth: 1.5 },
   planHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  planIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  activePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: colors.danger, color: '#fff', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  planEyebrow: { marginTop: 15, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  planName: { marginTop: 7, fontSize: 24, fontWeight: '900' },
-  planPrice: { marginTop: 5, fontSize: 18, fontWeight: '900' },
-  planSummary: { marginTop: 7, fontSize: 14, lineHeight: 20, fontWeight: '600' },
+  planIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  activePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 5, backgroundColor: colors.accent, color: colors.onAccent, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  planEyebrow: { marginTop: 15, color: colors.textMuted, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  planName: { marginTop: 7, color: colors.text, fontSize: 24, fontWeight: '900' },
+  planPrice: { marginTop: 5, color: colors.text, fontSize: 18, fontWeight: '900' },
+  planSummary: { marginTop: 7, color: colors.textMuted, fontSize: 14, lineHeight: 20, fontWeight: '600' },
   featureList: { gap: 8, marginTop: 14 },
   featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  featureText: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  planBtn: { height: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
-  planBtnDark: { backgroundColor: colors.accent },
-  planBtnLight: { backgroundColor: colors.surfaceAlt },
+  featureText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  planBtn: { height: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
+  planBtnActive: { backgroundColor: colors.accent },
   planBtnDisabled: { backgroundColor: colors.surfaceHi },
   planBtnText: { fontSize: 14, fontWeight: '900' },
-  planBtnTextLight: { color: colors.text },
-  planBtnTextDark: { color: colors.onAccent },
+  planBtnTextActive: { color: colors.onAccent },
   planBtnTextDisabled: { color: colors.textMuted },
   historyBlock: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 14 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
