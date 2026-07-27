@@ -9,14 +9,21 @@ import { navigationRef } from '../navigation/navigationRef';
 
 const PUSH_TOKEN_KEY = 'expo_push_token';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Expo Go (SDK 53+) removed remote-push support from expo-notifications, and
+// even touching its APIs at load time throws "runtime not ready". Keep the
+// whole module inert in Expo Go — push needs a development/production build.
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+if (!isExpoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export interface PushData {
   type?: string;
@@ -37,14 +44,12 @@ function getProjectId(): string | undefined {
 
 export async function registerPushNotifications(): Promise<void> {
   try {
-    if (!Device.isDevice) return;
-
-    // Удалённые пуши не работают в Expo Go на Android начиная с SDK 53
-    const isExpoGo = Constants.executionEnvironment === 'storeClient';
-    if (isExpoGo && Platform.OS === 'android') {
-      console.log('[push] Expo Go на Android не поддерживает пуши — нужен dev build');
+    // Удалённые пуши не работают в Expo Go начиная с SDK 53 — нужен dev build
+    if (isExpoGo) {
+      console.log('[push] Expo Go не поддерживает удалённые пуши — нужен dev build');
       return;
     }
+    if (!Device.isDevice) return;
 
     const projectId = getProjectId();
     if (!projectId) {
@@ -190,7 +195,7 @@ function queuePush(response: Notifications.NotificationResponse) {
 // Регистрирует токен и обрабатывает тапы по пушам, пока пользователь залогинен
 export function usePushNotifications(loggedIn: boolean) {
   useEffect(() => {
-    if (!loggedIn) return;
+    if (!loggedIn || isExpoGo) return;
 
     registerPushNotifications();
 
