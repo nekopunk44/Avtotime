@@ -275,7 +275,7 @@ export default function AppNavigator() {
       <Stack.Screen
         name="CreatePost"
         component={CreatePostScreen}
-        options={{ title: 'Новая публикация', presentation: 'modal' }}
+        options={{ headerShown: false, presentation: 'modal' }}
       />
     </Stack.Navigator>
   );
