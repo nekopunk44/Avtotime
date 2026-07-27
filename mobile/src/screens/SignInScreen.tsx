@@ -132,6 +132,10 @@ export default function SignInScreen({ navigation }: Props) {
               onChangeText={setIdentifier}
               autoCapitalize="none"
               autoCorrect={false}
+              autoComplete="username"
+              textContentType="username"
+              keyboardType="email-address"
+              selectionColor={colors.accent}
             />
             <TextInput
               style={styles.input}
@@ -140,6 +144,9 @@ export default function SignInScreen({ navigation }: Props) {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              autoComplete="password"
+              textContentType="password"
+              selectionColor={colors.accent}
             />
 
             <TouchableOpacity style={styles.forgotBtn} onPress={() => navigation.navigate('ForgotPassword')}>
@@ -152,7 +159,7 @@ export default function SignInScreen({ navigation }: Props) {
               disabled={loading}
               activeOpacity={0.9}
             >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Войти</Text>}
+              {loading ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Войти</Text>}
             </TouchableOpacity>
 
             <View style={styles.divider}>

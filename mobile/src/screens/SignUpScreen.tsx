@@ -81,6 +81,7 @@ export default function SignUpScreen({ navigation }: Props) {
                 secureTextEntry={field.secure}
                 autoCapitalize={field.lower ? 'none' : 'words'}
                 autoCorrect={false}
+                selectionColor={colors.accent}
               />
             ))}
 
@@ -90,7 +91,7 @@ export default function SignUpScreen({ navigation }: Props) {
               disabled={loading}
               activeOpacity={0.9}
             >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Создать аккаунт</Text>}
+              {loading ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.btnText}>Создать аккаунт</Text>}
             </TouchableOpacity>
 
             <Text style={styles.privacyText}>
