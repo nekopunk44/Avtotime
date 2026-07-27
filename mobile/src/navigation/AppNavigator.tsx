@@ -231,6 +231,7 @@ export default function AppNavigator() {
         headerTintColor: colors.text,
         headerTitleStyle: { fontWeight: '900' },
         contentStyle: { backgroundColor: colors.bg },
+        animation: 'slide_from_right',
       }}
     >
       <Stack.Screen name="SocialTabs" component={SocialTabs} options={{ headerShown: false, animation: 'fade', animationDuration: 200 }} />
