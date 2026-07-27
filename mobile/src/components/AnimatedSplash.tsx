@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import SpeedLines from './SpeedLines';
+import LottieLogo, { lottieAvailable } from './LottieLogo';
 
 function Dot({ delay }: { delay: number }) {
   const v = useRef(new Animated.Value(0.25)).current;
@@ -44,12 +45,18 @@ export default function AnimatedSplash() {
     <View style={styles.container}>
       <Animated.View style={[styles.halo, { opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
       <View style={styles.stage}>
-        <SpeedLines />
-        <Animated.Image
-          source={require('../../assets/splash-icon.png')}
-          style={[styles.logo, { opacity, transform: [{ scale }] }]}
-          resizeMode="contain"
-        />
+        {lottieAvailable ? (
+          <LottieLogo style={styles.logo} loop={false} />
+        ) : (
+          <>
+            <SpeedLines />
+            <Animated.Image
+              source={require('../../assets/splash-icon.png')}
+              style={[styles.logo, { opacity, transform: [{ scale }] }]}
+              resizeMode="contain"
+            />
+          </>
+        )}
       </View>
       <View style={styles.dots}>
         <Dot delay={0} />

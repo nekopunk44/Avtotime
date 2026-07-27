@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '../theme';
+import FloatingTabBar from './FloatingTabBar';
 import FeedScreen from '../screens/FeedScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SearchScreen from '../screens/SearchScreen';
@@ -130,19 +131,6 @@ const Stack = createNativeStackNavigator<AppStackParamList>();
 const SocialTab = createBottomTabNavigator<SocialTabParamList>();
 const MarketTab = createBottomTabNavigator<MarketTabParamList>();
 
-const TAB_ICONS: Record<string, { on: string; off: string }> = {
-  Feed:          { on: 'home',                    off: 'home-outline' },
-  Search:        { on: 'search',                  off: 'search-outline' },
-  Loops:         { on: 'play-circle',             off: 'play-circle-outline' },
-  Market:        { on: 'car-sport',               off: 'car-sport-outline' },
-  Favorites:     { on: 'heart',                   off: 'heart-outline' },
-  MyListings:    { on: 'pricetags',               off: 'pricetags-outline' },
-  Driving:       { on: 'school',                  off: 'school-outline' },
-  Messages:      { on: 'chatbubbles',             off: 'chatbubbles-outline' },
-  Notifications: { on: 'notifications',           off: 'notifications-outline' },
-  Profile:       { on: 'person',                  off: 'person-outline' },
-};
-
 // Top segmented switch between the social and market experiences.
 function ModeSwitcher({ current }: { current: 'social' | 'market' }) {
   const navigation = useNavigation<any>();
@@ -177,31 +165,11 @@ function HeaderBell() {
   );
 }
 
-const makeTabOptions = (current: 'social' | 'market') => ({ route }: any) => ({
-  tabBarIcon: ({ focused }: any) => {
-    const icon = TAB_ICONS[route.name];
-    return (
-      <View style={[styles.tabIcon, focused && styles.tabIconActive]}>
-        <Ionicons
-          name={(focused ? icon.on : icon.off) as any}
-          size={22}
-          color={focused ? colors.onAccent : colors.textFaint}
-        />
-      </View>
-    );
-  },
-  tabBarActiveTintColor: colors.text,
-  tabBarInactiveTintColor: colors.textFaint,
-  tabBarShowLabel: false,
-  tabBarStyle: {
-    backgroundColor: colors.surface,
-    borderTopColor: colors.border,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    height: 66,
-    paddingTop: 10,
-    paddingBottom: 12,
-  },
-  tabBarItemStyle: { height: 44 },
+const makeTabOptions = (current: 'social' | 'market') => () => ({
+  // The floating tab bar (custom `tabBar` below) handles icons/animation.
+  animation: 'shift' as const,
+  // Keep scene content clear of the floating bar.
+  sceneStyle: { backgroundColor: colors.bg, paddingBottom: 90 },
   headerShown: true,
   headerStyle: { backgroundColor: colors.bg },
   headerShadowVisible: false,
@@ -214,12 +182,15 @@ const makeTabOptions = (current: 'social' | 'market') => ({ route }: any) => ({
 function SocialTabs() {
   const unreadMessages = useBadgeStore((s) => s.unreadMessages);
   return (
-    <SocialTab.Navigator screenOptions={makeTabOptions('social')}>
+    <SocialTab.Navigator
+      screenOptions={makeTabOptions('social')}
+      tabBar={(props) => <FloatingTabBar {...props} />}
+    >
       <SocialTab.Screen name="Feed" component={FeedScreen} />
       <SocialTab.Screen
         name="Loops"
         component={LoopsScreen}
-        options={{ headerShown: false, tabBarStyle: { backgroundColor: '#000', borderTopColor: '#111' } }}
+        options={{ headerShown: false }}
       />
       <SocialTab.Screen name="Search" component={SearchScreen} />
       <SocialTab.Screen
@@ -234,7 +205,10 @@ function SocialTabs() {
 
 function MarketTabs() {
   return (
-    <MarketTab.Navigator screenOptions={makeTabOptions('market')}>
+    <MarketTab.Navigator
+      screenOptions={makeTabOptions('market')}
+      tabBar={(props) => <FloatingTabBar {...props} />}
+    >
       <MarketTab.Screen name="Market" component={MarketScreen} />
       <MarketTab.Screen name="Favorites" component={FavoritesScreen} />
       <MarketTab.Screen name="MyListings" component={MyListingsScreen} />
@@ -256,8 +230,8 @@ export default function AppNavigator() {
         contentStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Stack.Screen name="SocialTabs" component={SocialTabs} options={{ headerShown: false }} />
-      <Stack.Screen name="MarketTabs" component={MarketTabs} options={{ headerShown: false }} />
+      <Stack.Screen name="SocialTabs" component={SocialTabs} options={{ headerShown: false, animation: 'fade' }} />
+      <Stack.Screen name="MarketTabs" component={MarketTabs} options={{ headerShown: false, animation: 'fade' }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Уведомления' }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ title: '' }} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: '' }} />
@@ -312,8 +286,6 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: colors.accent },
   segmentText: { fontSize: 13, fontWeight: '800', color: colors.textMuted },
   segmentTextActive: { color: colors.onAccent },
-  tabIcon: { width: 52, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  tabIconActive: { backgroundColor: colors.accent },
   bell: { marginRight: 14, padding: 4 },
   bellDot: { position: 'absolute', top: 3, right: 3, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.danger, borderWidth: 1.5, borderColor: colors.bg },
 });

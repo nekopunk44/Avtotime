@@ -6,6 +6,7 @@ import {
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import SpeedLines from '../components/SpeedLines';
+import LottieLogo, { lottieAvailable } from '../components/LottieLogo';
 import { colors, font, radius, shadow, space } from '../theme';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { signIn, signInWithGoogleCredential } from '../api/auth';
@@ -111,12 +112,8 @@ export default function SignInScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.hero}>
-        <SpeedLines style={styles.heroSpeed} />
-        <Animated.Image
-          source={require('../../assets/splash-icon.png')}
-          style={[styles.heroCar, { transform: [{ scale: carScale }] }]}
-          resizeMode="contain"
-        />
+        {!lottieAvailable ? <SpeedLines style={styles.heroSpeed} /> : null}
+        <LottieLogo style={styles.heroCar} />
       </View>
 
       <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetY }] }]}>

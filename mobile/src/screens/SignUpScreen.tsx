@@ -9,6 +9,7 @@ import { signUp } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 import SpeedLines from '../components/SpeedLines';
+import LottieLogo, { lottieAvailable } from '../components/LottieLogo';
 import { colors, font, radius, shadow, space } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'SignUp'> };
@@ -57,12 +58,8 @@ export default function SignUpScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.hero}>
-        <SpeedLines />
-        <Animated.Image
-          source={require('../../assets/splash-icon.png')}
-          style={[styles.heroCar, { transform: [{ scale: carScale }] }]}
-          resizeMode="contain"
-        />
+        {!lottieAvailable ? <SpeedLines /> : null}
+        <LottieLogo style={styles.heroCar} />
       </View>
 
       <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetY }] }]}>

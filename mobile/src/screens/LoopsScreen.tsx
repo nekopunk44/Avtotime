@@ -483,7 +483,7 @@ export default function LoopsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surfaceHi },
+  container: { flex: 1, backgroundColor: colors.bg },
   centerDark: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceHi },
   loopCard: { width: '100%', backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   video: { width: '100%', height: '100%' },
