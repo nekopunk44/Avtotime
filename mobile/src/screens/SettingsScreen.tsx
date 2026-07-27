@@ -327,14 +327,6 @@ export default function SettingsScreen({ navigation }: Props) {
           <RefreshControl refreshing={refreshing} onRefresh={refresh} />
         }
       >
-        <View style={styles.hero}>
-          <View style={styles.heroIcon}>
-            <Ionicons name="settings-outline" size={27} color={colors.text} />
-          </View>
-          <Text style={styles.title}>Настройки</Text>
-          <Text style={styles.subtitle}>Профиль, безопасность и управление аккаунтом</Text>
-        </View>
-
         {error ? (
           <View style={styles.errorBox}>
             <Ionicons name="alert-circle-outline" size={22} color={colors.danger} />
@@ -608,8 +600,8 @@ const styles = StyleSheet.create({
   planBtnText: { color: colors.onAccent, fontSize: 13, fontWeight: '900' },
   section: { marginTop: 12, borderRadius: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 12, paddingTop: 14, paddingBottom: 4 },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 6 },
-  actionRow: { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 11, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingVertical: 12 },
-  actionIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  actionRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 11, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingVertical: 10 },
+  actionIcon: { width: 38, height: 38, borderRadius: 11, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   actionIconDanger: { backgroundColor: 'rgba(255,90,95,0.12)' },
   actionBody: { flex: 1 },
   actionTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },

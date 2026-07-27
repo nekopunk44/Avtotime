@@ -94,13 +94,8 @@ export default function MessagesScreen({ navigation }: Props) {
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.hero}>
-        <View style={styles.heroIcon}>
-          <Ionicons name="chatbubbles" size={24} color={colors.accent} />
-        </View>
-        <View style={styles.heroText}>
-          <Text style={styles.title}>Сообщения</Text>
-          <Text style={styles.subtitle}>{chats.length ? `${chats.length} диалогов` : 'Диалогов пока нет'}</Text>
-        </View>
+        <Text style={styles.title}>Сообщения</Text>
+        <Text style={styles.subtitle}>{chats.length ? `${chats.length} диалогов` : 'Диалогов пока нет'}</Text>
       </View>
 
       <View style={styles.searchBox}>
@@ -197,10 +192,8 @@ const styles = StyleSheet.create({
   list: { padding: space.md, paddingBottom: space.xxl, gap: space.sm },
   emptyList: { flexGrow: 1, padding: space.md },
   header: { paddingHorizontal: space.md, paddingTop: space.md, gap: space.md },
-  hero: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  heroIcon: { width: 52, height: 52, borderRadius: radius.md, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
-  heroText: { flex: 1 },
-  title: { color: colors.text, fontSize: font.display, fontWeight: '900' },
+  hero: { paddingTop: 2 },
+  title: { color: colors.text, fontSize: font.h1, fontWeight: '900' },
   subtitle: { marginTop: 2, color: colors.textMuted, fontSize: font.small, fontWeight: '700' },
   searchBox: { height: 46, borderRadius: radius.md, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, ...shadow.card },
   searchInput: { flex: 1, color: colors.text, fontSize: font.body },

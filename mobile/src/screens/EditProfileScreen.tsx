@@ -96,37 +96,24 @@ export default function EditProfileScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity style={styles.avatarWrap} onPress={pickImage}>
+        <TouchableOpacity style={styles.avatarWrap} onPress={pickImage} activeOpacity={0.85}>
           <Image source={avatar} style={styles.avatar} />
           <View style={styles.avatarBadge}>
             <Ionicons name="camera" size={16} color={colors.onAccent} />
           </View>
         </TouchableOpacity>
+        <Text style={styles.avatarHint}>Нажмите на фото, чтобы изменить</Text>
 
-        <View style={styles.avatarActions}>
-          <TouchableOpacity style={styles.avatarActionBtn} onPress={takePhoto} disabled={saving}>
-            <Ionicons name="camera-outline" size={18} color={colors.text} />
-            <Text style={styles.avatarActionText}>Камера</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.avatarActionBtn} onPress={pickImage} disabled={saving}>
-            <Ionicons name="image-outline" size={18} color={colors.text} />
-            <Text style={styles.avatarActionText}>Галерея</Text>
-          </TouchableOpacity>
-          {imageUri ? (
-            <TouchableOpacity style={styles.avatarActionBtn} onPress={() => setImageUri(undefined)} disabled={saving}>
-              <Ionicons name="refresh-outline" size={18} color={colors.text} />
-              <Text style={styles.avatarActionText}>Сброс</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
+        <Text style={styles.sectionHeader}>Основное</Text>
+        <Field label="Имя" icon="person-outline" value={name} onChangeText={setName} />
+        <Field label="Username" icon="at-outline" value={userName} onChangeText={setUserName} autoCapitalize="none" />
+        <Field label="О себе" icon="document-text-outline" value={bio} onChangeText={setBio} multiline maxLength={160} />
+        <Field label="Город" icon="location-outline" value={location} onChangeText={setLocation} />
 
-        <Field label="Имя" value={name} onChangeText={setName} />
-        <Field label="Username" value={userName} onChangeText={setUserName} autoCapitalize="none" />
-        <Field label="О себе" value={bio} onChangeText={setBio} multiline maxLength={160} />
-        <Field label="Город" value={location} onChangeText={setLocation} />
-        <Field label="Сайт" value={website} onChangeText={setWebsite} autoCapitalize="none" keyboardType="url" />
-        <Field label="Instagram" value={instagram} onChangeText={setInstagram} autoCapitalize="none" />
-        <Field label="Telegram" value={telegram} onChangeText={setTelegram} autoCapitalize="none" />
+        <Text style={styles.sectionHeader}>Ссылки</Text>
+        <Field label="Сайт" icon="link-outline" value={website} onChangeText={setWebsite} autoCapitalize="none" keyboardType="url" />
+        <Field label="Instagram" icon="logo-instagram" value={instagram} onChangeText={setInstagram} autoCapitalize="none" />
+        <Field label="Telegram" icon="paper-plane-outline" value={telegram} onChangeText={setTelegram} autoCapitalize="none" />
 
         <TouchableOpacity
           style={[styles.saveBtn, saving && styles.disabled]}
@@ -140,19 +127,25 @@ export default function EditProfileScreen({ navigation }: Props) {
   );
 }
 
-type FieldProps = React.ComponentProps<typeof TextInput> & { label: string };
+type FieldProps = React.ComponentProps<typeof TextInput> & {
+  label: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+};
 
-function Field({ label, style, multiline, ...props }: FieldProps) {
+function Field({ label, icon, style, multiline, ...props }: FieldProps) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
-        {...props}
-        style={[styles.input, multiline && styles.multiline, style]}
-        placeholderTextColor={colors.textFaint}
-        multiline={multiline}
-        textAlignVertical={multiline ? 'top' : 'center'}
-      />
+      <View style={[styles.inputRow, multiline && styles.inputRowMultiline]}>
+        {icon ? <Ionicons name={icon} size={18} color={colors.textFaint} style={styles.inputIcon} /> : null}
+        <TextInput
+          {...props}
+          style={[styles.input, multiline && styles.multiline, style]}
+          placeholderTextColor={colors.textFaint}
+          multiline={multiline}
+          textAlignVertical={multiline ? 'top' : 'center'}
+        />
+      </View>
     </View>
   );
 }
@@ -160,7 +153,8 @@ function Field({ label, style, multiline, ...props }: FieldProps) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 18, paddingBottom: 40 },
-  avatarWrap: { alignSelf: 'center', marginBottom: 24, position: 'relative' },
+  avatarWrap: { alignSelf: 'center', marginBottom: 8, position: 'relative' },
+  avatarHint: { alignSelf: 'center', color: colors.textMuted, fontSize: 12, fontWeight: '700', marginBottom: 22 },
   avatar: { width: 104, height: 104, borderRadius: 52, backgroundColor: colors.surfaceAlt },
   avatarBadge: {
     position: 'absolute', right: 2, bottom: 2,
@@ -182,14 +176,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   avatarActionText: { color: colors.text, fontSize: 13, fontWeight: '800' },
-  field: { marginBottom: 14 },
+  sectionHeader: { color: colors.text, fontSize: 12, fontWeight: '900', letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 10, marginBottom: 12, marginLeft: 2 },
+  field: { marginBottom: 12 },
   label: { fontSize: 13, fontWeight: '800', color: colors.textMuted, marginBottom: 8, marginLeft: 2 },
-  input: {
-    minHeight: 50, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: colors.text,
-    backgroundColor: colors.surfaceAlt,
+  inputRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52,
+    borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt, paddingHorizontal: 14,
   },
-  multiline: { minHeight: 94, lineHeight: 20 },
+  inputRowMultiline: { alignItems: 'flex-start', paddingVertical: 12 },
+  inputIcon: { marginTop: 1 },
+  input: { flex: 1, paddingVertical: 12, fontSize: 15, color: colors.text },
+  multiline: { minHeight: 72, paddingVertical: 0, lineHeight: 20 },
   saveBtn: {
     height: 52, borderRadius: 14, backgroundColor: colors.accent,
     justifyContent: 'center', alignItems: 'center', marginTop: 10,
