@@ -142,10 +142,57 @@ export default function CreatePostScreen({ navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View style={styles.card}>
+        {!mediaUris.length ? (
+          <TouchableOpacity style={styles.dropzone} onPress={pickImages} activeOpacity={0.9}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="images-outline" size={34} color={colors.text} />
+            </View>
+            <Text style={styles.emptyTitle}>Добавьте фото или видео</Text>
+            <Text style={styles.emptySub}>До {MEDIA_LIMIT} фото или одно видео</Text>
+          </TouchableOpacity>
+        ) : isVideo ? (
+          <View style={styles.videoPreview}>
+            <View style={styles.videoPlayCircle}>
+              <Ionicons name="play" size={28} color={colors.text} />
+            </View>
+            <Text style={styles.videoPreviewText}>Видео готово к публикации</Text>
+            <TouchableOpacity style={styles.removeBtn} onPress={() => removeMedia(mediaUris[0])}>
+              <Ionicons name="close" size={15} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.previewGrid}>
+            {mediaUris.map((uri, index) => (
+              <View key={uri} style={styles.previewItem}>
+                <Image source={{ uri }} style={styles.previewImage} />
+                <Text style={styles.previewIndex}>{index + 1}</Text>
+                <TouchableOpacity style={styles.removeBtn} onPress={() => removeMedia(uri)}>
+                  <Ionicons name="close" size={15} color={colors.white} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.mediaButtons}>
+          <TouchableOpacity style={styles.mediaBtn} onPress={takePhoto} disabled={loading || (!isVideo && mediaUris.length >= MEDIA_LIMIT)}>
+            <Ionicons name="camera-outline" size={20} color={colors.text} />
+            <Text style={styles.mediaBtnText}>Камера</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.mediaBtn} onPress={pickImages} disabled={loading || (!isVideo && mediaUris.length >= MEDIA_LIMIT)}>
+            <Ionicons name="image-outline" size={20} color={colors.text} />
+            <Text style={styles.mediaBtnText}>Фото</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.mediaBtn} onPress={pickVideo} disabled={loading}>
+            <Ionicons name="videocam-outline" size={20} color={colors.text} />
+            <Text style={styles.mediaBtnText}>Видео</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.captionField}>
           <TextInput
             style={styles.input}
-            placeholder="О чём расскажете?"
+            placeholder="Добавьте подпись…"
             placeholderTextColor={colors.textFaint}
             multiline
             value={caption}
@@ -154,60 +201,6 @@ export default function CreatePostScreen({ navigation }: Props) {
             textAlignVertical="top"
           />
           <Text style={styles.charCount}>{caption.length}/500</Text>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.mediaHeader}>
-            <Text style={styles.sectionTitle}>Медиа</Text>
-            <Text style={styles.mediaCount}>{isVideo ? 'видео' : `${mediaUris.length} / ${MEDIA_LIMIT}`}</Text>
-          </View>
-
-          {!mediaUris.length ? (
-            <TouchableOpacity style={styles.emptyMedia} onPress={pickImages} activeOpacity={0.85}>
-              <View style={styles.emptyIcon}>
-                <Ionicons name="images-outline" size={30} color={colors.text} />
-              </View>
-              <Text style={styles.emptyTitle}>Добавьте фото или видео</Text>
-              <Text style={styles.emptySub}>До {MEDIA_LIMIT} фото или одно видео</Text>
-            </TouchableOpacity>
-          ) : isVideo ? (
-            <View style={styles.videoPreview}>
-              <View style={styles.videoPlayCircle}>
-                <Ionicons name="play" size={26} color={colors.text} />
-              </View>
-              <Text style={styles.videoPreviewText}>Видео готово к публикации</Text>
-              <TouchableOpacity style={styles.removeBtn} onPress={() => removeMedia(mediaUris[0])}>
-                <Ionicons name="close" size={15} color={colors.white} />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.previewGrid}>
-              {mediaUris.map((uri, index) => (
-                <View key={uri} style={styles.previewItem}>
-                  <Image source={{ uri }} style={styles.previewImage} />
-                  <Text style={styles.previewIndex}>{index + 1}</Text>
-                  <TouchableOpacity style={styles.removeBtn} onPress={() => removeMedia(uri)}>
-                    <Ionicons name="close" size={15} color={colors.white} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          )}
-
-          <View style={styles.mediaButtons}>
-            <TouchableOpacity style={styles.mediaBtn} onPress={takePhoto} disabled={loading || (!isVideo && mediaUris.length >= MEDIA_LIMIT)}>
-              <Ionicons name="camera-outline" size={20} color={colors.text} />
-              <Text style={styles.mediaBtnText}>Камера</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.mediaBtn} onPress={pickImages} disabled={loading || (!isVideo && mediaUris.length >= MEDIA_LIMIT)}>
-              <Ionicons name="image-outline" size={20} color={colors.text} />
-              <Text style={styles.mediaBtnText}>Фото</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.mediaBtn} onPress={pickVideo} disabled={loading}>
-              <Ionicons name="videocam-outline" size={20} color={colors.text} />
-              <Text style={styles.mediaBtnText}>Видео</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </ScrollView>
     </View>
@@ -228,27 +221,24 @@ const styles = StyleSheet.create({
   postBtnText: { fontSize: 14, fontWeight: '900', color: colors.onAccent },
   postBtnTextDisabled: { color: colors.textFaint },
 
-  content: { padding: 16, gap: 14, paddingBottom: 40 },
-  card: { borderRadius: 18, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14 },
-  input: { fontSize: 16, color: colors.text, lineHeight: 24, minHeight: 110 },
+  content: { padding: 16, gap: 12, paddingBottom: 40 },
+  input: { fontSize: 16, color: colors.text, lineHeight: 24, minHeight: 90 },
   charCount: { textAlign: 'right', marginTop: 6, color: colors.textFaint, fontSize: 12, fontWeight: '700' },
+  captionField: { marginTop: 2, borderRadius: 16, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14 },
 
-  mediaHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
-  mediaCount: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
   previewGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   previewItem: { width: '31.6%', aspectRatio: 1, borderRadius: 12, overflow: 'hidden', backgroundColor: colors.surfaceAlt },
   previewImage: { width: '100%', height: '100%' },
   previewIndex: { position: 'absolute', left: 6, bottom: 6, overflow: 'hidden', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: 'rgba(0,0,0,0.65)', color: colors.white, fontSize: 10, fontWeight: '900' },
   removeBtn: { position: 'absolute', top: 5, right: 5, width: 23, height: 23, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' },
-  emptyMedia: { minHeight: 160, borderRadius: 14, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 6 },
-  emptyIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  emptyTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  dropzone: { minHeight: 300, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  emptyIcon: { width: 68, height: 68, borderRadius: 34, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
   emptySub: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  videoPreview: { minHeight: 160, borderRadius: 14, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  videoPlayCircle: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingLeft: 4 },
+  videoPreview: { minHeight: 300, borderRadius: 18, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  videoPlayCircle: { width: 58, height: 58, borderRadius: 29, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingLeft: 4 },
   videoPreviewText: { color: colors.textMuted, fontSize: 14, fontWeight: '900' },
-  mediaButtons: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  mediaButtons: { flexDirection: 'row', gap: 8, marginTop: 2 },
   mediaBtn: { flex: 1, height: 46, borderRadius: 12, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   mediaBtnText: { color: colors.text, fontSize: 13, fontWeight: '900' },
 });
