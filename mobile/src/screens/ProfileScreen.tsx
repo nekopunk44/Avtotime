@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,8 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { getMe } from '../api/auth';
-import { getPostThumb, getUserPosts, Post } from '../api/posts';
-import { getUserRatingStats, ReviewStats } from '../api/reviews';
+import { getPostThumb, getSavedPosts, getUserPosts, Post } from '../api/posts';
+import { getReviews, getUserRatingStats, ReviewItem, ReviewStats } from '../api/reviews';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, font, radius, shadow, space } from '../theme';
@@ -50,13 +50,43 @@ function Stars({ value }: { value: number }) {
   );
 }
 
+type ProfileTab = 'posts' | 'saved' | 'reviews';
+
+const TABS: { key: ProfileTab; label: string }[] = [
+  { key: 'posts', label: 'Публикации' },
+  { key: 'saved', label: 'Сохранённые' },
+  { key: 'reviews', label: 'Отзывы' },
+];
+
 export default function ProfileScreen({ navigation }: Props) {
-  const { user, setUser, logout } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsTotal, setPostsTotal] = useState(0);
   const [ratingStats, setRatingStats] = useState<ReviewStats>(emptyRatingStats);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [tab, setTab] = useState<ProfileTab>('posts');
+  const [saved, setSaved] = useState<Post[]>([]);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const savedLoaded = useRef(false);
+  const reviewsLoaded = useRef(false);
+
+  const selectTab = useCallback((next: ProfileTab) => {
+    setTab(next);
+    if (next === 'saved' && !savedLoaded.current) {
+      savedLoaded.current = true;
+      setSavedLoading(true);
+      getSavedPosts().then(setSaved).catch(() => {}).finally(() => setSavedLoading(false));
+    }
+    if (next === 'reviews' && !reviewsLoaded.current && user?._id) {
+      reviewsLoaded.current = true;
+      setReviewsLoading(true);
+      getReviews({ targetUserId: user._id }).then((r) => setReviews(r.reviews)).catch(() => {}).finally(() => setReviewsLoading(false));
+    }
+  }, [user?._id]);
 
   const load = useCallback(async (silent = false) => {
     if (!user?._id) {
@@ -107,13 +137,6 @@ export default function ProfileScreen({ navigation }: Props) {
       mode,
       title: mode === 'followers' ? 'Подписчики' : 'Подписки',
     });
-  };
-
-  const confirmLogout = () => {
-    Alert.alert('Выйти?', 'Вы выйдете из мобильного приложения.', [
-      { text: 'Отмена', style: 'cancel' },
-      { text: 'Выйти', style: 'destructive', onPress: () => void logout() },
-    ]);
   };
 
   const renderHeader = () => (
@@ -176,37 +199,43 @@ export default function ProfileScreen({ navigation }: Props) {
         <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
       </PressableScale>
 
-      <View style={styles.mainActions}>
-        <PressableScale style={styles.primaryBtn} onPress={() => navigation.navigate('CreatePost')}>
-          <Ionicons name="add" size={18} color={colors.onAccent} />
-          <Text style={styles.primaryText}>Публикация</Text>
-        </PressableScale>
-        <PressableScale style={styles.secondaryBtn} onPress={() => navigation.navigate('EditProfile')}>
-          <Ionicons name="create-outline" size={18} color={colors.text} />
-          <Text style={styles.secondaryText}>Профиль</Text>
+      <View style={styles.tabsRow}>
+        <View style={styles.tabs}>
+          {TABS.map((t) => (
+            <PressableScale
+              key={t.key}
+              scaleTo={0.97}
+              style={[styles.tabBtn, tab === t.key && styles.tabBtnActive]}
+              onPress={() => selectTab(t.key)}
+            >
+              <Text style={[styles.tabText, tab === t.key && styles.tabTextActive]} numberOfLines={1}>{t.label}</Text>
+            </PressableScale>
+          ))}
+        </View>
+        <PressableScale style={styles.addBtn} onPress={() => navigation.navigate('CreatePost')}>
+          <Ionicons name="add" size={24} color={colors.onAccent} />
         </PressableScale>
       </View>
+    </View>
+  );
 
-      <View style={styles.quickGrid}>
-        {[
-          { icon: 'bookmarks-outline', label: 'Сохранённые посты', go: () => navigation.navigate('SavedPosts') },
-          { icon: 'star-outline', label: 'Отзывы обо мне', go: () => navigation.navigate('MyReviews') },
-        ].map((q) => (
-          <PressableScale key={q.label} style={styles.quickCard} onPress={q.go}>
-            <View style={styles.quickIcon}>
-              <Ionicons name={q.icon as any} size={19} color={colors.text} />
-            </View>
-            <Text style={styles.quickTitle} numberOfLines={2}>{q.label}</Text>
-          </PressableScale>
-        ))}
+  const renderReview = ({ item }: { item: ReviewItem }) => (
+    <View style={styles.reviewCard}>
+      <View style={styles.reviewTop}>
+        {item.reviewer?.profileImage ? (
+          <Image source={{ uri: item.reviewer.profileImage }} style={styles.reviewAvatar} />
+        ) : (
+          <View style={[styles.reviewAvatar, styles.reviewAvatarFallback]}>
+            <Text style={styles.reviewAvatarText}>{(item.reviewer?.name || 'A').slice(0, 1).toUpperCase()}</Text>
+          </View>
+        )}
+        <View style={styles.reviewAuthor}>
+          <Text style={styles.reviewName} numberOfLines={1}>{item.reviewer?.name || 'Пользователь'}</Text>
+          <Stars value={item.rating} />
+        </View>
       </View>
-
-      <View style={styles.sectionTitleRow}>
-        <Text style={styles.sectionTitle}>Публикации</Text>
-        <PressableScale onPress={confirmLogout}>
-          <Text style={styles.logoutText}>Выйти</Text>
-        </PressableScale>
-      </View>
+      {item.title ? <Text style={styles.reviewTitle}>{item.title}</Text> : null}
+      {item.comment ? <Text style={styles.reviewComment}>{item.comment}</Text> : null}
     </View>
   );
 
@@ -234,33 +263,43 @@ export default function ProfileScreen({ navigation }: Props) {
     </PressableScale>
   );
 
+  const isGrid = tab !== 'reviews';
+  const data: any[] = tab === 'posts' ? posts : tab === 'saved' ? saved : reviews;
+  const tabLoading = tab === 'posts' ? loading : tab === 'saved' ? savedLoading : reviewsLoading;
+  const empty = tab === 'posts'
+    ? { icon: 'images-outline' as const, title: 'Публикаций пока нет', subtitle: 'Нажмите + вверху, чтобы создать первую публикацию.' }
+    : tab === 'saved'
+      ? { icon: 'bookmark-outline' as const, title: 'Нет сохранённых постов', subtitle: 'Сохраняйте понравившиеся посты, чтобы вернуться к ним позже.' }
+      : { icon: 'star-outline' as const, title: 'Отзывов пока нет', subtitle: 'Отзывы по вашим объявлениям появятся здесь.' };
+
   return (
     <FlatList
+      key={isGrid ? 'grid' : 'list'}
       style={styles.container}
-      data={posts}
-      keyExtractor={(item) => item._id}
-      renderItem={renderPost}
-      numColumns={3}
+      data={data}
+      keyExtractor={(item: any) => item._id}
+      renderItem={(isGrid ? renderPost : renderReview) as any}
+      numColumns={isGrid ? 3 : 1}
       ListHeaderComponent={renderHeader}
-      contentContainerStyle={posts.length ? styles.list : styles.emptyList}
+      contentContainerStyle={data.length ? styles.list : styles.emptyList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       ListEmptyComponent={
-        loading ? (
-          <View style={styles.skeletonGrid}>
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <View key={i} style={styles.gridItem}>
-                <Skeleton style={styles.gridImage} />
-              </View>
-            ))}
-          </View>
+        tabLoading ? (
+          isGrid ? (
+            <View style={styles.skeletonGrid}>
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <View key={i} style={styles.gridItem}>
+                  <Skeleton style={styles.gridImage} />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.tabLoading}>
+              <ActivityIndicator color={colors.accent} />
+            </View>
+          )
         ) : (
-          <EmptyState
-            icon="images-outline"
-            title="Публикаций пока нет"
-            subtitle="Создайте первую публикацию, и она появится в профиле."
-            actionLabel="Создать"
-            onAction={() => navigation.navigate('CreatePost')}
-          />
+          <EmptyState icon={empty.icon} title={empty.title} subtitle={empty.subtitle} />
         )
       }
     />
@@ -305,20 +344,24 @@ const styles = StyleSheet.create({
   ratingCount: { color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
   stars: { flexDirection: 'row', alignItems: 'center', gap: 2 },
 
-  mainActions: { flexDirection: 'row', gap: space.sm },
-  primaryBtn: { flex: 1, height: 50, borderRadius: radius.md, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, ...shadow.card },
-  primaryText: { color: colors.onAccent, fontSize: font.body, fontWeight: '900' },
-  secondaryBtn: { flex: 1, height: 50, borderRadius: radius.md, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, ...shadow.card },
-  secondaryText: { color: colors.text, fontSize: font.body, fontWeight: '900' },
+  tabsRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.xs },
+  tabs: { flex: 1, flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: radius.pill, padding: 4 },
+  tabBtn: { flex: 1, height: 36, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  tabBtnActive: { backgroundColor: colors.accent },
+  tabText: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '900' },
+  tabTextActive: { color: colors.onAccent },
+  addBtn: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', ...shadow.card },
+  tabLoading: { paddingVertical: space.xxl, alignItems: 'center' },
 
-  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  quickCard: { width: '48.5%', minHeight: 92, borderRadius: radius.lg, backgroundColor: colors.surface, padding: space.md, justifyContent: 'space-between', gap: 12, ...shadow.card },
-  quickIcon: { width: 38, height: 38, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  quickTitle: { color: colors.text, fontSize: font.small, fontWeight: '900', lineHeight: 18 },
-
-  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2, marginTop: space.xs },
-  sectionTitle: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
-  logoutText: { color: colors.danger, fontSize: font.small, fontWeight: '900' },
+  reviewCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.sm, ...shadow.card },
+  reviewTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  reviewAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surfaceAlt },
+  reviewAvatarFallback: { alignItems: 'center', justifyContent: 'center' },
+  reviewAvatarText: { color: colors.text, fontSize: font.body, fontWeight: '900' },
+  reviewAuthor: { flex: 1, gap: 3 },
+  reviewName: { color: colors.text, fontSize: font.small, fontWeight: '900' },
+  reviewTitle: { marginTop: 10, color: colors.text, fontSize: font.body, fontWeight: '900' },
+  reviewComment: { marginTop: 6, color: colors.textMuted, fontSize: font.small, lineHeight: 19, fontWeight: '600' },
 
   gridItem: { width: '33.333%', aspectRatio: 1, padding: 2 },
   gridImage: { width: '100%', height: '100%', borderRadius: radius.sm, backgroundColor: colors.surfaceAlt },
