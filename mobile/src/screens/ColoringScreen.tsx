@@ -164,21 +164,28 @@ export default function ColoringScreen({ navigation }: Props) {
           </View>
           <Text style={styles.cardTitle}>{template.title}</Text>
           {template.subtitle ? <Text style={styles.cardText}>{template.subtitle}</Text> : null}
-          <TouchableOpacity
-            style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
-            onPress={() => autoColorAndSave(template)}
-            disabled={!!savingTemplateId}
-            activeOpacity={0.86}
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="sparkles-outline" size={18} color="#fff" />
-                <Text style={styles.saveText}>Автораскрасить</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={styles.paintBtn}
+              onPress={() => navigation.navigate('ColoringCanvas', { template })}
+              activeOpacity={0.86}
+            >
+              <Ionicons name="brush-outline" size={18} color={colors.onAccent} />
+              <Text style={styles.paintText}>Раскрасить</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.autoBtn, saving && styles.saveBtnDisabled]}
+              onPress={() => autoColorAndSave(template)}
+              disabled={!!savingTemplateId}
+              activeOpacity={0.86}
+            >
+              {saving ? (
+                <ActivityIndicator color={colors.text} size="small" />
+              ) : (
+                <Ionicons name="sparkles-outline" size={18} color={colors.text} />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -332,6 +339,10 @@ const styles = StyleSheet.create({
   saveBtn: { marginTop: 13, height: 44, borderRadius: 10, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   saveBtnDisabled: { opacity: 0.7 },
   saveText: { color: '#fff', fontSize: 14, fontWeight: '900' },
+  actionRow: { marginTop: 13, flexDirection: 'row', gap: 8 },
+  paintBtn: { flex: 1, height: 44, borderRadius: 10, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  paintText: { color: colors.onAccent, fontSize: 14, fontWeight: '900' },
+  autoBtn: { width: 48, height: 44, borderRadius: 10, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
   drawingCard: { flexDirection: 'row', gap: 12, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 13 },
   drawingIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center' },
   drawingInfo: { flex: 1 },

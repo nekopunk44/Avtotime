@@ -32,6 +32,8 @@ import HelpRequestsScreen from '../screens/HelpRequestsScreen';
 import EcoTipsScreen from '../screens/EcoTipsScreen';
 import KidsGamesScreen from '../screens/KidsGamesScreen';
 import ColoringScreen from '../screens/ColoringScreen';
+import ColoringCanvasScreen from '../screens/ColoringCanvasScreen';
+import { ColoringTemplate } from '../api/kidsGames';
 import CarJumpGameScreen from '../screens/CarJumpGameScreen';
 import RoadFighterGameScreen from '../screens/RoadFighterGameScreen';
 import PuzzleGameScreen from '../screens/PuzzleGameScreen';
@@ -85,6 +87,7 @@ export type AppStackParamList = {
   EcoTips: undefined;
   KidsGames: undefined;
   Coloring: undefined;
+  ColoringCanvas: { template: ColoringTemplate };
   CarJumpGame: undefined;
   RoadFighterGame: undefined;
   PuzzleGame: undefined;
@@ -252,6 +255,7 @@ export default function AppNavigator() {
       <Stack.Screen name="EcoTips" component={EcoTipsScreen} options={{ title: 'Эко советы' }} />
       <Stack.Screen name="KidsGames" component={KidsGamesScreen} options={{ title: 'Детям и игры' }} />
       <Stack.Screen name="Coloring" component={ColoringScreen} options={{ title: 'Раскраски' }} />
+      <Stack.Screen name="ColoringCanvas" component={ColoringCanvasScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CarJumpGame" component={CarJumpGameScreen} options={{ title: 'Car Jump' }} />
       <Stack.Screen name="RoadFighterGame" component={RoadFighterGameScreen} options={{ title: 'Road Fighter' }} />
       <Stack.Screen name="PuzzleGame" component={PuzzleGameScreen} options={{ title: 'Пазлы' }} />
