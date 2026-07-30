@@ -246,6 +246,7 @@ export default function CarJumpGameScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
+      scrollEnabled={status !== 'running'}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
       <View style={styles.hero}>

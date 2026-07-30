@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme';
+import { useSwipe } from '../components/useSwipe';
 import {
   GameProgress,
   getGameLeaderboard,
@@ -344,6 +345,13 @@ export default function TetrisGameScreen() {
     tick();
   };
 
+  const swipe = useSwipe((dir) => {
+    if (dir === 'left') movePiece(-1);
+    else if (dir === 'right') movePiece(1);
+    else if (dir === 'down') softDrop();
+    else rotatePiece();
+  });
+
   const refresh = () => {
     setRefreshing(true);
     loadData(true);
@@ -363,6 +371,7 @@ export default function TetrisGameScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
+      scrollEnabled={status !== 'running'}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
       <View style={styles.hero}>
@@ -391,7 +400,7 @@ export default function TetrisGameScreen() {
       </View>
 
       <View style={styles.gameRow}>
-        <View style={styles.board}>
+        <View style={styles.board} {...swipe}>
           {displayBoard.map((cell, index) => (
             <View
               key={`${index}-${cell || 'empty'}`}

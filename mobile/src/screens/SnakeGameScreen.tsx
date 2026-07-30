@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme';
+import { useSwipe } from '../components/useSwipe';
 import {
   GameProgress,
   getGameLeaderboard,
@@ -258,6 +259,8 @@ export default function SnakeGameScreen() {
     runtimeRef.current = { ...current, pendingDirection: direction };
   };
 
+  const swipe = useSwipe(changeDirection);
+
   const refresh = () => {
     setRefreshing(true);
     loadData(true);
@@ -280,6 +283,7 @@ export default function SnakeGameScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
+      scrollEnabled={status !== 'running'}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
       <View style={styles.hero}>
@@ -307,7 +311,7 @@ export default function SnakeGameScreen() {
         </View>
       </View>
 
-      <View style={styles.board}>
+      <View style={styles.board} {...swipe}>
         {Array.from({ length: CELL_COUNT }, (_, index) => {
           const point = { x: index % GRID_SIZE, y: Math.floor(index / GRID_SIZE) };
           const key = pointKey(point);

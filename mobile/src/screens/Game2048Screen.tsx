@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme';
+import { useSwipe } from '../components/useSwipe';
 import {
   GameProgress,
   getGameLeaderboard,
@@ -135,15 +136,19 @@ const hasMoves = (board: Board) => {
   return false;
 };
 
-const getTileStyle = (value: number) => {
-  if (!value) return styles.tileEmpty;
-  if (value <= 4) return styles.tileLow;
-  if (value <= 32) return styles.tileWarm;
-  if (value <= 256) return styles.tileStrong;
-  return styles.tileHot;
+// Distinct colour per tile value (warm 2048 progression on a dark board).
+const TILE_BG: Record<number, string> = {
+  2: '#3a3a40', 4: '#55503e', 8: '#8a5a2c', 16: '#a55d24', 32: '#c15628',
+  64: '#d94b3a', 128: '#e0a92c', 256: '#e6b626', 512: '#ecc424', 1024: '#f0d01f', 2048: '#f5c518',
 };
 
-const getTileTextStyle = (value: number) => (value <= 4 ? styles.tileTextDark : styles.tileTextLight);
+const getTileStyle = (value: number) => ({
+  backgroundColor: value ? TILE_BG[value] ?? '#f5c518' : '#3a3a3a',
+});
+
+const getTileTextStyle = (value: number) => ({
+  color: value <= 4 ? colors.text : value >= 128 ? '#1a1a1a' : '#ffffff',
+});
 
 const getPlayerName = (item: GameProgress) => {
   if (!item.userId || typeof item.userId === 'string') return 'Игрок';
@@ -279,6 +284,8 @@ export default function Game2048Screen() {
     loadData(true);
   };
 
+  const swipe = useSwipe(move);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -293,6 +300,7 @@ export default function Game2048Screen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
+      scrollEnabled={status !== 'running'}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
       <View style={styles.hero}>
@@ -320,7 +328,7 @@ export default function Game2048Screen() {
         </View>
       </View>
 
-      <View style={styles.board}>
+      <View style={styles.board} {...swipe}>
         {board.map((value, index) => (
           <View key={`${index}-${value}`} style={[styles.tile, getTileStyle(value)]}>
             {value ? <Text style={[styles.tileText, getTileTextStyle(value)]}>{value}</Text> : null}
