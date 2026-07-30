@@ -27,11 +27,6 @@ const MAX_MISTAKES = 3;
 
 type GameStatus = 'idle' | 'running' | 'finished';
 
-type SudokuPuzzle = {
-  puzzle: string;
-  solution: string;
-};
-
 type SaveSnapshot = {
   values: number[];
   score: number;
@@ -40,27 +35,57 @@ type SaveSnapshot = {
   won: boolean;
 };
 
-const PUZZLES: SudokuPuzzle[] = [
-  {
-    puzzle: '530070000600195000098000060800060003400803001700020006060000280000419005000080079',
-    solution: '534678912672195348198342567859761423426853791713924856961537284287419635345286179',
-  },
-  {
-    puzzle: '000260701680070090190004500820100040004602900050003028009300074040050036703018000',
-    solution: '435269781682571493197834562826195347374682915951743628519326874248957136763418259',
-  },
-  {
-    puzzle: '302609005000000700000800000200000009008203100700000004000006000005000000600407302',
-    solution: '372619845986542713451873926263154789548293167719768234837926451125381678694457392',
-  },
-];
+const HOLES = 44; // cells removed from the solved grid to form the puzzle
 
-const parseBoard = (value: string) => value.split('').map((item) => Number(item));
+const shuffle = <T,>(input: T[]): T[] => {
+  const arr = [...input];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
+const canPlaceNumber = (grid: number[], pos: number, num: number) => {
+  const row = Math.floor(pos / SIZE);
+  const col = pos % SIZE;
+  const boxRow = Math.floor(row / 3) * 3;
+  const boxCol = Math.floor(col / 3) * 3;
+  for (let i = 0; i < SIZE; i += 1) {
+    if (grid[row * SIZE + i] === num) return false;
+    if (grid[i * SIZE + col] === num) return false;
+  }
+  for (let r = 0; r < 3; r += 1) {
+    for (let c = 0; c < 3; c += 1) {
+      if (grid[(boxRow + r) * SIZE + (boxCol + c)] === num) return false;
+    }
+  }
+  return true;
+};
+
+// Backtracking generator: fills a valid complete grid, then removes cells.
+const generateSolved = (): number[] => {
+  const grid = new Array(CELL_COUNT).fill(0);
+  const fill = (pos: number): boolean => {
+    if (pos === CELL_COUNT) return true;
+    for (const num of shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9])) {
+      if (canPlaceNumber(grid, pos, num)) {
+        grid[pos] = num;
+        if (fill(pos + 1)) return true;
+        grid[pos] = 0;
+      }
+    }
+    return false;
+  };
+  fill(0);
+  return grid;
+};
 
 const createGame = () => {
-  const puzzle = PUZZLES[Math.floor(Math.random() * PUZZLES.length)];
-  const values = parseBoard(puzzle.puzzle);
-  const solution = parseBoard(puzzle.solution);
+  const solution = generateSolved();
+  const values = [...solution];
+  const order = shuffle(Array.from({ length: CELL_COUNT }, (_, index) => index));
+  for (let i = 0; i < HOLES; i += 1) values[order[i]] = 0;
   return {
     values,
     solution,

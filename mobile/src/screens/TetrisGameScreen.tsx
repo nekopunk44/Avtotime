@@ -26,6 +26,8 @@ const COLS = 10;
 const ROWS = 18;
 const CELL_COUNT = COLS * ROWS;
 const TICK_MS = 520;
+// The well speeds up with each level, down to a floor.
+const speedFor = (level: number) => Math.max(120, TICK_MS - (level - 1) * 40);
 
 type GameStatus = 'idle' | 'running' | 'finished';
 type Matrix = number[][];
@@ -174,6 +176,7 @@ export default function TetrisGameScreen() {
   const runtimeRef = useRef<RuntimeState>(createRuntime());
   const loopRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const savingRef = useRef(false);
+  const tickRef = useRef<() => void>(() => {});
 
   const [status, setStatus] = useState<GameStatus>('idle');
   const [board, setBoard] = useState<Board>(runtimeRef.current.board);
@@ -306,6 +309,12 @@ export default function TetrisGameScreen() {
     }
 
     syncRuntime(next);
+
+    // Speed up when the level increases.
+    if (nextLevel !== current.level && loopRef.current) {
+      clearInterval(loopRef.current);
+      loopRef.current = setInterval(() => tickRef.current(), speedFor(nextLevel));
+    }
   }, [finishGame, syncRuntime]);
 
   const tick = useCallback(() => {
@@ -317,13 +326,14 @@ export default function TetrisGameScreen() {
     }
     lockPiece(current);
   }, [lockPiece, syncRuntime]);
+  tickRef.current = tick;
 
   const startGame = () => {
     clearTimers();
     const next = createRuntime();
     syncRuntime(next);
     setStatus('running');
-    loopRef.current = setInterval(tick, TICK_MS);
+    loopRef.current = setInterval(() => tickRef.current(), speedFor(1));
   };
 
   const movePiece = (delta: -1 | 1) => {
@@ -336,8 +346,15 @@ export default function TetrisGameScreen() {
   const rotatePiece = () => {
     if (status !== 'running') return;
     const current = runtimeRef.current;
-    const rotated = { ...current.piece, matrix: rotateMatrix(current.piece.matrix) };
-    if (canPlace(current.board, rotated)) syncRuntime({ ...current, piece: rotated });
+    const matrix = rotateMatrix(current.piece.matrix);
+    // Wall kicks: try the rotation shifted a little if it clips a wall/floor.
+    for (const dx of [0, -1, 1, -2, 2]) {
+      const candidate = { ...current.piece, matrix, x: current.piece.x + dx };
+      if (canPlace(current.board, candidate)) {
+        syncRuntime({ ...current, piece: candidate });
+        return;
+      }
+    }
   };
 
   const softDrop = () => {
@@ -345,10 +362,23 @@ export default function TetrisGameScreen() {
     tick();
   };
 
+  const hardDrop = () => {
+    if (status !== 'running') return;
+    const current = runtimeRef.current;
+    let piece = current.piece;
+    let dropped = 0;
+    while (canPlace(current.board, { ...piece, y: piece.y + 1 })) {
+      piece = { ...piece, y: piece.y + 1 };
+      dropped += 1;
+    }
+    runtimeRef.current = { ...current, piece, score: current.score + dropped * 2 };
+    lockPiece(runtimeRef.current);
+  };
+
   const swipe = useSwipe((dir) => {
     if (dir === 'left') movePiece(-1);
     else if (dir === 'right') movePiece(1);
-    else if (dir === 'down') softDrop();
+    else if (dir === 'down') hardDrop();
     else rotatePiece();
   });
 
@@ -461,7 +491,7 @@ export default function TetrisGameScreen() {
             </TouchableOpacity>
           </View>
           <View style={styles.controlRow}>
-            <TouchableOpacity style={styles.downBtn} onPress={softDrop} activeOpacity={0.85}>
+            <TouchableOpacity style={styles.downBtn} onPress={softDrop} onLongPress={hardDrop} delayLongPress={160} activeOpacity={0.85}>
               <Ionicons name="chevron-down" size={23} color={colors.text} />
               <Text style={styles.downText}>Вниз</Text>
             </TouchableOpacity>

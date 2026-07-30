@@ -25,6 +25,8 @@ const GAME_NAME = 'Змейка';
 const GRID_SIZE = 12;
 const CELL_COUNT = GRID_SIZE * GRID_SIZE;
 const TICK_MS = 170;
+// Snake speeds up as the level rises (down to a floor).
+const speedFor = (level: number) => Math.max(80, TICK_MS - (level - 1) * 9);
 
 type GameStatus = 'idle' | 'running' | 'finished';
 type Direction = 'up' | 'right' | 'down' | 'left';
@@ -109,6 +111,7 @@ export default function SnakeGameScreen() {
   const runtimeRef = useRef<RuntimeState>(createRuntime());
   const loopRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const savingRef = useRef(false);
+  const tickRef = useRef<() => void>(() => {});
 
   const [status, setStatus] = useState<GameStatus>('idle');
   const [snake, setSnake] = useState<Point[]>(initialSnake);
@@ -242,14 +245,21 @@ export default function SnakeGameScreen() {
       level: nextLevel,
       startedAt: current.startedAt,
     });
+
+    // Speed up when the level increases by rescheduling the loop.
+    if (nextLevel !== current.level && loopRef.current) {
+      clearInterval(loopRef.current);
+      loopRef.current = setInterval(() => tickRef.current(), speedFor(nextLevel));
+    }
   }, [finishGame, syncRuntime]);
+  tickRef.current = tick;
 
   const startGame = () => {
     clearTimers();
     const next = createRuntime();
     syncRuntime(next);
     setStatus('running');
-    loopRef.current = setInterval(tick, TICK_MS);
+    loopRef.current = setInterval(() => tickRef.current(), speedFor(1));
   };
 
   const changeDirection = (direction: Direction) => {
