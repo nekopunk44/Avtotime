@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -15,8 +15,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   filterMarketListings,
-  getDistinctBrands,
-  getDistinctModels,
   getListingImage,
   getListingPrice,
   getListingTitle,
@@ -25,6 +23,7 @@ import {
   MARKET_CATEGORIES,
   MarketCategoryId,
   MarketListing,
+  MarketSearchOptions,
   MarketSort,
   searchMarketListings,
 } from '../api/market';
@@ -33,6 +32,25 @@ import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'MarketSearch'> };
 
+type CategoryKey = 'all' | MarketCategoryId;
+type FieldKey = 'brand' | 'model' | 'partGroup' | 'year' | 'price' | 'mileage' | 'fuel' | 'gearbox' | 'bodyType' | 'driveType' | 'region';
+
+// Filter fields shown per category (mirrors the backend filter clauses).
+const FIELDS: Record<CategoryKey, FieldKey[]> = {
+  all: ['price', 'region'],
+  cars: ['brand', 'model', 'year', 'price', 'mileage', 'fuel', 'gearbox', 'bodyType', 'driveType', 'region'],
+  parts: ['brand', 'model', 'partGroup', 'year', 'price', 'region'],
+  'car-services': ['price', 'region'],
+  'auto-tuning': ['brand', 'model', 'price', 'region'],
+  consultations: ['price', 'region'],
+  'dry-cleaning': ['price', 'region'],
+};
+
+const FUEL = ['Бензин', 'Дизель', 'Газ', 'Гибрид', 'Электро'];
+const GEARBOX = ['Механика', 'Автомат', 'Робот', 'Вариатор'];
+const BODY = ['Седан', 'Хэтчбек', 'Универсал', 'Кроссовер', 'Внедорожник', 'Купе', 'Минивэн', 'Пикап', 'Кабриолет'];
+const DRIVE = ['Передний', 'Задний', 'Полный'];
+
 const SORTS: Array<{ value: MarketSort; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
   { value: 'newest', label: 'Новые', icon: 'time-outline' },
   { value: 'price_asc', label: 'Дешевле', icon: 'arrow-down-outline' },
@@ -40,71 +58,48 @@ const SORTS: Array<{ value: MarketSort; label: string; icon: keyof typeof Ionico
   { value: 'oldest', label: 'Старые', icon: 'calendar-outline' },
 ];
 
-const typeOptions: Array<{ id: 'all' | MarketCategoryId; label: string; icon: string }> = [
+const TYPES: Array<{ id: CategoryKey; label: string; icon: string }> = [
   { id: 'all', label: 'Все', icon: 'apps-outline' },
   ...MARKET_CATEGORIES.map((item) => ({ id: item.id, label: item.shortLabel, icon: item.icon })),
 ];
 
+const emptyForm = {
+  brand: '', model: '', partGroup: '', region: '',
+  priceMin: '', priceMax: '', yearFrom: '', yearTo: '', mileageMin: '', mileageMax: '',
+  fuel: '', gearbox: '', bodyType: '', driveType: '',
+};
+type Form = typeof emptyForm;
+
+const digits = (value: string) => value.replace(/[^0-9]/g, '').slice(0, 9);
 const getResultCategoryId = (listing: MarketListing): MarketCategoryId =>
   getMarketCategoryFromListingType(listing.listingType);
 
-const onlyDigits = (value: string) => value.replace(/[^0-9]/g, '').slice(0, 9);
-
 export default function MarketSearchScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
-  const [type, setType] = useState<'all' | MarketCategoryId>('all');
-  const [location, setLocation] = useState('');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
+  const [type, setType] = useState<CategoryKey>('all');
   const [sortBy, setSortBy] = useState<MarketSort>('newest');
-  const [brand, setBrand] = useState('');
-  const [model, setModel] = useState('');
-  const [brands, setBrands] = useState<string[]>([]);
-  const [models, setModels] = useState<string[]>([]);
+  const [form, setForm] = useState<Form>(emptyForm);
   const [results, setResults] = useState<MarketListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [metaLoading, setMetaLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const effectiveQuery = useMemo(() => {
-    if (query.trim()) return query.trim();
-    return model.trim() || brand.trim();
-  }, [brand, model, query]);
-
-  const loadMeta = useCallback(async () => {
-    setMetaLoading(true);
-    try {
-      const [brandData, modelData] = await Promise.all([
-        getDistinctBrands(type),
-        getDistinctModels(brand, type),
-      ]);
-      setBrands(brandData.slice(0, 40));
-      setModels(modelData.slice(0, 40));
-    } catch {
-      setBrands([]);
-      setModels([]);
-    } finally {
-      setMetaLoading(false);
-    }
-  }, [brand, type]);
+  const set = (key: keyof Form, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  const fields = FIELDS[type];
 
   const loadResults = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError('');
     try {
-      const options = {
-        q: effectiveQuery,
-        type,
-        minPrice,
-        maxPrice,
-        location,
-        category: brand || model,
-        sortBy,
+      const options: MarketSearchOptions = {
+        q: query, type, sortBy,
+        brand: form.brand, model: form.model, partGroup: form.partGroup, region: form.region,
+        priceMin: form.priceMin, priceMax: form.priceMax,
+        yearFrom: form.yearFrom, yearTo: form.yearTo,
+        mileageMin: form.mileageMin, mileageMax: form.mileageMax,
+        fuel: form.fuel, gearbox: form.gearbox, bodyType: form.bodyType, driveType: form.driveType,
       };
-      const data = effectiveQuery
-        ? await searchMarketListings(options)
-        : await filterMarketListings(options);
+      const data = query.trim() ? await searchMarketListings(options) : await filterMarketListings(options);
       setResults(data);
     } catch (e: any) {
       setError(e.response?.data?.message || 'Не удалось выполнить поиск');
@@ -113,11 +108,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [brand, effectiveQuery, location, maxPrice, minPrice, model, sortBy, type]);
-
-  useEffect(() => {
-    loadMeta();
-  }, [loadMeta]);
+  }, [query, type, sortBy, form]);
 
   useEffect(() => {
     const id = setTimeout(() => loadResults(), 350);
@@ -127,40 +118,101 @@ export default function MarketSearchScreen({ navigation }: Props) {
   const refresh = () => {
     setRefreshing(true);
     loadResults(true);
-    loadMeta();
   };
 
-  const clearFilters = () => {
+  const reset = () => {
     setQuery('');
-    setType('all');
-    setLocation('');
-    setMinPrice('');
-    setMaxPrice('');
-    setBrand('');
-    setModel('');
     setSortBy('newest');
+    setForm(emptyForm);
   };
 
   const openListing = (listing: MarketListing) => {
-    const categoryId = getResultCategoryId(listing);
-    navigation.navigate('MarketListingDetails', { listing, categoryId });
+    navigation.navigate('MarketListingDetails', { listing, categoryId: getResultCategoryId(listing) });
+  };
+
+  const renderRange = (label: string, minKey: keyof Form, maxKey: keyof Form) => (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.rangeRow}>
+        <TextInput
+          style={styles.rangeInput}
+          placeholder="от"
+          placeholderTextColor={colors.textFaint}
+          value={form[minKey]}
+          onChangeText={(v) => set(minKey, digits(v))}
+          keyboardType="number-pad"
+        />
+        <TextInput
+          style={styles.rangeInput}
+          placeholder="до"
+          placeholderTextColor={colors.textFaint}
+          value={form[maxKey]}
+          onChangeText={(v) => set(maxKey, digits(v))}
+          keyboardType="number-pad"
+        />
+      </View>
+    </View>
+  );
+
+  const renderText = (label: string, key: keyof Form, placeholder: string) => (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textFaint}
+        value={form[key]}
+        onChangeText={(v) => set(key, v)}
+        autoCapitalize="none"
+      />
+    </View>
+  );
+
+  const renderSelect = (label: string, key: keyof Form, options: string[]) => (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectRow}>
+        {options.map((opt) => {
+          const active = form[key] === opt;
+          return (
+            <TouchableOpacity
+              key={opt}
+              style={[styles.selectChip, active && styles.selectChipActive]}
+              onPress={() => set(key, active ? '' : opt)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.selectText, active && styles.selectTextActive]}>{opt}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+
+  const renderField = (key: FieldKey) => {
+    switch (key) {
+      case 'brand': return renderText('Марка', 'brand', 'Напр. BMW');
+      case 'model': return renderText('Модель', 'model', 'Напр. X5');
+      case 'partGroup': return renderText('Группа запчастей', 'partGroup', 'Напр. Тормоза');
+      case 'region': return renderText('Регион / город', 'region', 'Город');
+      case 'price': return renderRange('Цена, €', 'priceMin', 'priceMax');
+      case 'year': return renderRange('Год', 'yearFrom', 'yearTo');
+      case 'mileage': return renderRange('Пробег, км', 'mileageMin', 'mileageMax');
+      case 'fuel': return renderSelect('Топливо', 'fuel', FUEL);
+      case 'gearbox': return renderSelect('Коробка', 'gearbox', GEARBOX);
+      case 'bodyType': return renderSelect('Кузов', 'bodyType', BODY);
+      case 'driveType': return renderSelect('Привод', 'driveType', DRIVE);
+      default: return null;
+    }
   };
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.hero}>
-        <View style={styles.heroIcon}>
-          <Ionicons name="options-outline" size={27} color={colors.text} />
-        </View>
-        <Text style={styles.title}>Поиск маркета</Text>
-        <Text style={styles.subtitle}>Все объявления, фильтры, бренды и сортировка</Text>
-      </View>
-
       <View style={styles.searchBox}>
         <Ionicons name="search-outline" size={18} color={colors.textMuted} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Марка, модель, услуга или запчасть"
+          placeholder="Название, марка или услуга"
           placeholderTextColor={colors.textFaint}
           value={query}
           onChangeText={setQuery}
@@ -175,125 +227,47 @@ export default function MarketSearchScreen({ navigation }: Props) {
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {typeOptions.map((item) => {
+        {TYPES.map((item) => {
           const active = type === item.id;
           return (
             <TouchableOpacity
               key={item.id}
               style={[styles.typeChip, active && styles.typeChipActive]}
-              onPress={() => {
-                setType(item.id);
-                setBrand('');
-                setModel('');
-              }}
+              onPress={() => { setType(item.id); setForm(emptyForm); }}
               activeOpacity={0.86}
             >
-              <Ionicons name={item.icon as any} size={16} color={active ? '#fff' : '#555'} />
+              <Ionicons name={item.icon as any} size={16} color={active ? colors.onAccent : colors.textMuted} />
               <Text style={[styles.typeChipText, active && styles.typeChipTextActive]}>{item.label}</Text>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
 
-      <View style={styles.filterGrid}>
-        <View style={styles.filterInputWrap}>
-          <Text style={styles.inputLabel}>Локация</Text>
-          <TextInput
-            style={styles.filterInput}
-            placeholder="Город"
-            placeholderTextColor={colors.textFaint}
-            value={location}
-            onChangeText={setLocation}
-          />
-        </View>
-        <View style={styles.filterInputWrap}>
-          <Text style={styles.inputLabel}>Цена от</Text>
-          <TextInput
-            style={styles.filterInput}
-            placeholder="0"
-            placeholderTextColor={colors.textFaint}
-            value={minPrice}
-            onChangeText={(value) => setMinPrice(onlyDigits(value))}
-            keyboardType="number-pad"
-          />
-        </View>
-        <View style={styles.filterInputWrap}>
-          <Text style={styles.inputLabel}>Цена до</Text>
-          <TextInput
-            style={styles.filterInput}
-            placeholder="Любая"
-            placeholderTextColor={colors.textFaint}
-            value={maxPrice}
-            onChangeText={(value) => setMaxPrice(onlyDigits(value))}
-            keyboardType="number-pad"
-          />
-        </View>
-      </View>
+      {fields.map((key) => <View key={key}>{renderField(key)}</View>)}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {SORTS.map((item) => {
-          const active = sortBy === item.value;
-          return (
-            <TouchableOpacity
-              key={item.value}
-              style={[styles.sortChip, active && styles.sortChipActive]}
-              onPress={() => setSortBy(item.value)}
-              activeOpacity={0.86}
-            >
-              <Ionicons name={item.icon} size={15} color={active ? '#fff' : '#555'} />
-              <Text style={[styles.sortChipText, active && styles.sortChipTextActive]}>{item.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      <View style={styles.metaBlock}>
-        <View style={styles.metaTitleRow}>
-          <Text style={styles.metaTitle}>Бренды и модели</Text>
-          {metaLoading ? <ActivityIndicator color={colors.text} /> : null}
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-          {brands.length ? brands.slice(0, 18).map((item) => {
-            const active = brand === item;
+      <View style={styles.field}>
+        <Text style={styles.label}>Сортировка</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectRow}>
+          {SORTS.map((s) => {
+            const active = sortBy === s.value;
             return (
               <TouchableOpacity
-                key={item}
-                style={[styles.metaChip, active && styles.metaChipActive]}
-                onPress={() => {
-                  setBrand(active ? '' : item);
-                  setModel('');
-                  if (!query.trim()) setQuery(active ? '' : item);
-                }}
+                key={s.value}
+                style={[styles.selectChip, active && styles.selectChipActive]}
+                onPress={() => setSortBy(s.value)}
+                activeOpacity={0.85}
               >
-                <Text style={[styles.metaChipText, active && styles.metaChipTextActive]}>{item}</Text>
+                <Ionicons name={s.icon} size={14} color={active ? colors.onAccent : colors.textMuted} />
+                <Text style={[styles.selectText, active && styles.selectTextActive]}>{s.label}</Text>
               </TouchableOpacity>
             );
-          }) : <Text style={styles.emptyMetaText}>Брендов пока нет</Text>}
+          })}
         </ScrollView>
-        {brand ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-            {models.length ? models.slice(0, 18).map((item) => {
-              const active = model === item;
-              return (
-                <TouchableOpacity
-                  key={item}
-                  style={[styles.metaChip, active && styles.metaChipActive]}
-                  onPress={() => {
-                    setModel(active ? '' : item);
-                    if (!query.trim()) setQuery(active ? brand : item);
-                  }}
-                >
-                  <Text style={[styles.metaChipText, active && styles.metaChipTextActive]}>{item}</Text>
-                </TouchableOpacity>
-              );
-            }) : <Text style={styles.emptyMetaText}>Моделей для бренда пока нет</Text>}
-          </ScrollView>
-        ) : null}
       </View>
 
       <View style={styles.summaryRow}>
         <Text style={styles.resultCount}>{results.length} результатов</Text>
-        <TouchableOpacity onPress={clearFilters} style={styles.clearBtn}>
+        <TouchableOpacity onPress={reset} style={styles.clearBtn}>
           <Ionicons name="refresh-outline" size={15} color={colors.text} />
           <Text style={styles.clearText}>Сбросить</Text>
         </TouchableOpacity>
@@ -328,8 +302,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
           <View style={styles.specRow}>
             {item.brand ? <Text style={styles.spec}>{item.brand}</Text> : null}
             {item.model ? <Text style={styles.spec}>{item.model}</Text> : null}
-            {item.category ? <Text style={styles.spec}>{item.category}</Text> : null}
-            {item.partCategory ? <Text style={styles.spec}>{item.partCategory}</Text> : null}
+            {item.fuel ? <Text style={styles.spec}>{item.fuel}</Text> : null}
           </View>
         </View>
       </TouchableOpacity>
@@ -345,6 +318,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
       ListHeaderComponent={renderHeader}
       contentContainerStyle={results.length ? styles.list : styles.emptyList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      keyboardShouldPersistTaps="handled"
       ListEmptyComponent={
         loading ? (
           <View style={styles.loadingBox}>
@@ -355,7 +329,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
             <Ionicons name={error ? 'alert-circle-outline' : 'search-outline'} size={38} color={colors.textFaint} />
             <Text style={styles.emptyTitle}>{error || 'Ничего не найдено'}</Text>
             <Text style={styles.emptyText}>
-              {error ? 'Потяните экран вниз, чтобы повторить запрос.' : 'Измените запрос, категорию или ценовой диапазон.'}
+              {error ? 'Потяните экран вниз, чтобы повторить.' : 'Измените фильтры или категорию.'}
             </Text>
           </View>
         )
@@ -368,39 +342,32 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
-  header: { gap: 10, marginBottom: 2 },
-  hero: { alignItems: 'center', paddingVertical: 12 },
-  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, textAlign: 'center' },
-  searchBox: { height: 46, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  header: { gap: 12, marginBottom: 4 },
+  searchBox: { height: 48, borderRadius: 14, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, marginTop: 4 },
   searchInput: { flex: 1, color: colors.text, fontSize: 15 },
   chipRow: { gap: 8, paddingVertical: 2 },
-  typeChip: { height: 38, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  typeChipActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
+  typeChip: { height: 38, borderRadius: 999, paddingHorizontal: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  typeChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   typeChipText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  typeChipTextActive: { color: '#fff' },
-  filterGrid: { flexDirection: 'row', gap: 8 },
-  filterInputWrap: { flex: 1 },
-  inputLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '800', marginBottom: 6 },
-  filterInput: { height: 42, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 10, color: colors.text, fontSize: 14 },
-  sortChip: { height: 36, borderRadius: 10, paddingHorizontal: 11, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  sortChipActive: { backgroundColor: colors.danger, borderColor: colors.danger },
-  sortChipText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
-  sortChipTextActive: { color: '#fff' },
-  metaBlock: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 8 },
-  metaTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  metaTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  metaChip: { height: 34, borderRadius: 10, paddingHorizontal: 11, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' },
-  metaChipActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
-  metaChipText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
-  metaChipTextActive: { color: '#fff' },
-  emptyMetaText: { color: colors.textFaint, fontSize: 12, fontWeight: '700' },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  typeChipTextActive: { color: colors.onAccent },
+
+  field: { gap: 8 },
+  label: { color: colors.textMuted, fontSize: 12, fontWeight: '900', marginLeft: 2, textTransform: 'uppercase', letterSpacing: 0.4 },
+  input: { height: 46, borderRadius: 12, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 14, color: colors.text, fontSize: 15 },
+  rangeRow: { flexDirection: 'row', gap: 8 },
+  rangeInput: { flex: 1, height: 46, borderRadius: 12, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 14, color: colors.text, fontSize: 15 },
+  selectRow: { gap: 8, paddingVertical: 1 },
+  selectChip: { height: 38, borderRadius: 999, paddingHorizontal: 14, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 5, justifyContent: 'center' },
+  selectChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  selectText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  selectTextActive: { color: colors.onAccent },
+
+  summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 },
   resultCount: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  clearBtn: { height: 34, borderRadius: 10, paddingHorizontal: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  clearBtn: { height: 36, borderRadius: 999, paddingHorizontal: 12, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 5 },
   clearText: { color: colors.text, fontSize: 12, fontWeight: '900' },
-  card: { backgroundColor: colors.surface, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
+
+  card: { backgroundColor: colors.surface, borderRadius: 16, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   cardImage: { width: '100%', height: 170, backgroundColor: colors.surfaceAlt },
   noImage: { alignItems: 'center', justifyContent: 'center' },
   cardBody: { padding: 12 },

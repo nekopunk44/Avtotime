@@ -76,11 +76,21 @@ export type MarketSort = 'newest' | 'oldest' | 'price_asc' | 'price_desc';
 export interface MarketSearchOptions {
   q?: string;
   type?: MarketCategoryId | 'all';
-  minPrice?: string;
-  maxPrice?: string;
-  location?: string;
-  category?: string;
   sortBy?: MarketSort;
+  brand?: string;
+  model?: string;
+  region?: string;
+  priceMin?: string;
+  priceMax?: string;
+  yearFrom?: string;
+  yearTo?: string;
+  mileageMin?: string;
+  mileageMax?: string;
+  fuel?: string;
+  gearbox?: string;
+  bodyType?: string;
+  driveType?: string;
+  partGroup?: string;
 }
 
 export interface MyMarketListing {
@@ -180,13 +190,26 @@ export async function loadMarketListings(
 
 const marketSearchParams = (options: MarketSearchOptions) => {
   const params: Record<string, string> = {};
-  if (options.q?.trim()) params.q = options.q.trim();
+  const add = (key: string, value?: string) => {
+    if (value && value.trim()) params[key] = value.trim();
+  };
+  add('q', options.q);
   if (options.type && options.type !== 'all') params.type = options.type;
-  if (options.minPrice?.trim()) params.minPrice = options.minPrice.trim();
-  if (options.maxPrice?.trim()) params.maxPrice = options.maxPrice.trim();
-  if (options.location?.trim()) params.location = options.location.trim();
-  if (options.category?.trim()) params.category = options.category.trim();
   if (options.sortBy) params.sortBy = options.sortBy;
+  add('brand', options.brand);
+  add('model', options.model);
+  add('region', options.region);
+  add('priceMin', options.priceMin);
+  add('priceMax', options.priceMax);
+  add('yearFrom', options.yearFrom);
+  add('yearTo', options.yearTo);
+  add('mileageMin', options.mileageMin);
+  add('mileageMax', options.mileageMax);
+  add('fuel', options.fuel);
+  add('gearbox', options.gearbox);
+  add('bodyType', options.bodyType);
+  add('driveType', options.driveType);
+  add('partGroup', options.partGroup);
   return params;
 };
 

@@ -241,7 +241,7 @@ export default function AppNavigator() {
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: '' }} />
       <Stack.Screen name="PostComments" component={PostCommentsScreen} options={{ title: 'Комментарии' }} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Редактировать профиль' }} />
-      <Stack.Screen name="MarketSearch" component={MarketSearchScreen} options={{ title: 'Поиск маркета' }} />
+      <Stack.Screen name="MarketSearch" component={MarketSearchScreen} options={{ title: 'Фильтры' }} />
       <Stack.Screen name="MarketListingDetails" component={MarketListingDetailsScreen} options={{ title: 'Объявление' }} />
       <Stack.Screen name="CreateMarketListing" component={CreateMarketListingScreen} options={{ title: 'Новое объявление' }} />
       <Stack.Screen name="Compare" component={CompareScreen} options={{ title: 'Сравнение' }} />
