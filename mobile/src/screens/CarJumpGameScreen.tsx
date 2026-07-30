@@ -2,6 +2,8 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  DimensionValue,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -25,12 +27,14 @@ const TICK_MS = 70;
 const JUMP_MS = 620;
 
 type GameStatus = 'idle' | 'running' | 'finished';
+type Bar = { id: number; x: number };
 
 type RuntimeState = {
   score: number;
   level: number;
   lives: number;
-  obstacleX: number;
+  bars: Bar[];
+  nextId: number;
   jumping: boolean;
   startedAt: number;
   obstacles: number;
@@ -40,7 +44,8 @@ const initialRuntime: RuntimeState = {
   score: 0,
   level: 1,
   lives: 3,
-  obstacleX: 108,
+  bars: [],
+  nextId: 1,
   jumping: false,
   startedAt: 0,
   obstacles: 0,
@@ -69,7 +74,7 @@ export default function CarJumpGameScreen() {
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
   const [lives, setLives] = useState(3);
-  const [obstacleX, setObstacleX] = useState(108);
+  const [bars, setBars] = useState<Bar[]>([]);
   const [jumping, setJumping] = useState(false);
   const [progress, setProgress] = useState<GameProgress | null>(null);
   const [leaderboard, setLeaderboard] = useState<GameProgress[]>([]);
@@ -93,7 +98,7 @@ export default function CarJumpGameScreen() {
     setScore(next.score);
     setLevel(next.level);
     setLives(next.lives);
-    setObstacleX(next.obstacleX);
+    setBars(next.bars);
     setJumping(next.jumping);
   }, []);
 
@@ -173,42 +178,48 @@ export default function CarJumpGameScreen() {
     const current = runtimeRef.current;
     const nextLevel = Math.min(12, Math.floor(current.score / 120) + 1);
     const speed = 4.2 + nextLevel * 0.35;
-    let nextObstacleX = current.obstacleX - speed;
-    let nextScore = current.score;
+    let nextScore = current.score + 1;
     let nextLives = current.lives;
-    let nextObstacles = current.obstacles;
+    let nextCleared = current.obstacles;
+    let nextId = current.nextId;
 
-    if (nextObstacleX <= 18) {
-      if (current.jumping) {
-        nextScore += 18 + nextLevel * 3;
-        nextObstacles += 1;
+    // Move every obstacle left; resolve those reaching the car.
+    const advanced: Bar[] = [];
+    for (const bar of current.bars) {
+      const x = bar.x - speed;
+      if (x <= 16) {
+        if (current.jumping) { nextScore += 16 + nextLevel * 2; nextCleared += 1; }
+        else nextLives -= 1;
       } else {
-        nextLives -= 1;
+        advanced.push({ ...bar, x });
       }
-      nextObstacleX = 106 + Math.random() * 18;
-    } else {
-      nextScore += 1;
     }
 
-    const next: RuntimeState = {
+    // Spawn a new obstacle once the last one is far enough left (denser at
+    // higher levels), keeping a jumpable gap.
+    const spawnAt = Math.min(80, 58 + nextLevel * 2);
+    const rightmost = advanced.length ? Math.max(...advanced.map((b) => b.x)) : 0;
+    if (!advanced.length || rightmost <= spawnAt) {
+      advanced.push({ id: nextId, x: 106 + Math.random() * 14 });
+      nextId += 1;
+    }
+
+    syncRuntime({
       ...current,
       score: nextScore,
       level: nextLevel,
       lives: nextLives,
-      obstacleX: nextObstacleX,
-      obstacles: nextObstacles,
-    };
+      bars: advanced,
+      obstacles: nextCleared,
+      nextId,
+    });
 
-    syncRuntime(next);
-
-    if (nextLives <= 0) {
-      finishGame('finish');
-    }
+    if (nextLives <= 0) finishGame('finish');
   }, [finishGame, syncRuntime]);
 
   const startGame = () => {
     clearTimers();
-    const next = { ...initialRuntime, startedAt: Date.now() };
+    const next: RuntimeState = { ...initialRuntime, bars: [{ id: 1, x: 106 }], nextId: 2, startedAt: Date.now() };
     syncRuntime(next);
     setStatus('running');
     loopRef.current = setInterval(tick, TICK_MS);
@@ -274,20 +285,22 @@ export default function CarJumpGameScreen() {
         </View>
       </View>
 
-      <View style={styles.track}>
+      <Pressable style={styles.track} onPress={jump}>
         <View style={styles.skyLine}>
           <Text style={styles.trackMeta}>Уровень {level}</Text>
-          <Text style={styles.trackMeta}>{status === 'running' ? 'Игра идет' : status === 'finished' ? 'Финиш' : 'Готово'}</Text>
+          <Text style={styles.trackMeta}>{status === 'running' ? 'Тап — прыжок' : status === 'finished' ? 'Финиш' : 'Готово'}</Text>
         </View>
         <View style={styles.roadLine} />
         <View style={styles.roadDash} />
-        <View style={[styles.obstacle, { left: `${obstacleX}%` }]}>
-          <Ionicons name="alert" size={20} color="#fff" />
-        </View>
+        {bars.map((bar) => (
+          <View key={bar.id} style={[styles.obstacle, { left: `${bar.x}%` as DimensionValue }]}>
+            <Ionicons name="alert" size={20} color="#fff" />
+          </View>
+        ))}
         <View style={[styles.car, jumping && styles.carJumping]}>
           <Ionicons name="car-sport" size={38} color="#fff" />
         </View>
-      </View>
+      </Pressable>
 
       <View style={styles.progressBlock}>
         <View style={styles.progressHeader}>

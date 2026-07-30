@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme';
+import { useSwipe } from '../components/useSwipe';
 import {
   GameProgress,
   getGameLeaderboard,
@@ -28,14 +29,15 @@ const LANE_LEFT: DimensionValue[] = ['15%', '42%', '69%'];
 
 type GameStatus = 'idle' | 'running' | 'finished';
 type Lane = typeof LANES[number];
+type Obstacle = { id: number; lane: Lane; y: number };
 
 type RuntimeState = {
   score: number;
   level: number;
   lives: number;
   playerLane: Lane;
-  obstacleLane: Lane;
-  obstacleY: number;
+  obstacles: Obstacle[];
+  nextId: number;
   dodges: number;
   startedAt: number;
 };
@@ -45,8 +47,8 @@ const initialRuntime: RuntimeState = {
   level: 1,
   lives: 3,
   playerLane: 1,
-  obstacleLane: 0,
-  obstacleY: -10,
+  obstacles: [],
+  nextId: 1,
   dodges: 0,
   startedAt: 0,
 };
@@ -76,8 +78,7 @@ export default function RoadFighterGameScreen() {
   const [level, setLevel] = useState(1);
   const [lives, setLives] = useState(3);
   const [playerLane, setPlayerLane] = useState<Lane>(1);
-  const [obstacleLane, setObstacleLane] = useState<Lane>(0);
-  const [obstacleY, setObstacleY] = useState(-10);
+  const [obstacles, setObstacles] = useState<Obstacle[]>([]);
   const [progress, setProgress] = useState<GameProgress | null>(null);
   const [leaderboard, setLeaderboard] = useState<GameProgress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,8 +98,7 @@ export default function RoadFighterGameScreen() {
     setLevel(next.level);
     setLives(next.lives);
     setPlayerLane(next.playerLane);
-    setObstacleLane(next.obstacleLane);
-    setObstacleY(next.obstacleY);
+    setObstacles(next.obstacles);
   }, []);
 
   const loadData = useCallback(async (silent = false) => {
@@ -178,45 +178,51 @@ export default function RoadFighterGameScreen() {
     const current = runtimeRef.current;
     const nextLevel = Math.min(12, Math.floor(current.score / 150) + 1);
     const speed = 2.8 + nextLevel * 0.4;
-    let nextY = current.obstacleY + speed;
     let nextScore = current.score + 1;
     let nextLives = current.lives;
     let nextDodges = current.dodges;
-    let nextObstacleLane = current.obstacleLane;
+    let nextId = current.nextId;
 
-    if (nextY >= 75) {
-      if (current.obstacleLane === current.playerLane) {
-        nextLives -= 1;
+    // Advance every car; resolve those that reach the player row.
+    const advanced: Obstacle[] = [];
+    for (const ob of current.obstacles) {
+      const y = ob.y + speed;
+      if (y >= 78) {
+        if (ob.lane === current.playerLane) nextLives -= 1;
+        else { nextScore += 20 + nextLevel * 2; nextDodges += 1; }
       } else {
-        nextScore += 24 + nextLevel * 3;
-        nextDodges += 1;
+        advanced.push({ ...ob, y });
       }
-      nextY = -12;
-      nextObstacleLane = randomLane();
     }
 
-    const next: RuntimeState = {
+    // Keep a level-based number of cars on the road, spaced far enough apart
+    // that there's always a free lane to dodge into.
+    const target = Math.min(4, 1 + Math.floor(nextLevel / 2));
+    const topY = advanced.length ? Math.min(...advanced.map((o) => o.y)) : 100;
+    if (advanced.length < target && topY > 26) {
+      advanced.push({ id: nextId, lane: randomLane(), y: -10 });
+      nextId += 1;
+    }
+
+    syncRuntime({
       ...current,
       score: nextScore,
       level: nextLevel,
       lives: nextLives,
-      obstacleY: nextY,
-      obstacleLane: nextObstacleLane,
+      obstacles: advanced,
       dodges: nextDodges,
-    };
+      nextId,
+    });
 
-    syncRuntime(next);
-
-    if (nextLives <= 0) {
-      finishGame('finish');
-    }
+    if (nextLives <= 0) finishGame('finish');
   }, [finishGame, syncRuntime]);
 
   const startGame = () => {
     clearTimers();
-    const next = {
+    const next: RuntimeState = {
       ...initialRuntime,
-      obstacleLane: randomLane(),
+      obstacles: [{ id: 1, lane: randomLane(), y: -10 }],
+      nextId: 2,
       startedAt: Date.now(),
     };
     syncRuntime(next);
@@ -230,6 +236,11 @@ export default function RoadFighterGameScreen() {
     const nextLane = Math.max(0, Math.min(2, current.playerLane + direction)) as Lane;
     syncRuntime({ ...current, playerLane: nextLane });
   };
+
+  const swipe = useSwipe((dir) => {
+    if (dir === 'left') move(-1);
+    else if (dir === 'right') move(1);
+  });
 
   const refresh = () => {
     setRefreshing(true);
@@ -278,16 +289,18 @@ export default function RoadFighterGameScreen() {
         </View>
       </View>
 
-      <View style={styles.road}>
+      <View style={styles.road} {...swipe}>
         <View style={styles.roadHeader}>
           <Text style={styles.roadMeta}>Уровень {level}</Text>
           <Text style={styles.roadMeta}>{status === 'running' ? 'Заезд' : status === 'finished' ? 'Финиш' : 'Готово'}</Text>
         </View>
         <View style={[styles.laneLine, styles.laneLineLeft]} />
         <View style={[styles.laneLine, styles.laneLineRight]} />
-        <View style={[styles.opponentCar, { left: LANE_LEFT[obstacleLane], top: `${obstacleY}%` as DimensionValue }]}>
-          <Ionicons name="car" size={34} color={colors.text} />
-        </View>
+        {obstacles.map((ob) => (
+          <View key={ob.id} style={[styles.opponentCar, { left: LANE_LEFT[ob.lane], top: `${ob.y}%` as DimensionValue }]}>
+            <Ionicons name="car" size={34} color={colors.text} />
+          </View>
+        ))}
         <View style={[styles.playerCar, { left: LANE_LEFT[playerLane] }]}>
           <Ionicons name="car-sport" size={40} color="#fff" />
         </View>
