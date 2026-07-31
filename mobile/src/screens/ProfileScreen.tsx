@@ -145,12 +145,16 @@ export default function ProfileScreen({ navigation }: Props) {
         <PressableScale style={styles.heroSettings} onPress={() => navigation.navigate('Settings')}>
           <Ionicons name="settings-outline" size={20} color="#fff" />
         </PressableScale>
-        <Image source={avatar} style={styles.avatar} />
-        <Text style={styles.name}>{user.name || 'Пользователь'}</Text>
-        <Text style={styles.username}>@{user.userName || 'avtotime'}</Text>
-        <View style={styles.badgeRow}>
-          <Text style={styles.planBadge}>{planLabel(activePlan)}</Text>
-          {user.location ? <Text style={styles.locationBadge} numberOfLines={1}>{user.location}</Text> : null}
+        <View style={styles.heroRow}>
+          <Image source={avatar} style={styles.avatar} />
+          <View style={styles.heroInfo}>
+            <Text style={styles.name} numberOfLines={1}>{user.name || 'Пользователь'}</Text>
+            <Text style={styles.username} numberOfLines={1}>@{user.userName || 'avtotime'}</Text>
+            <View style={styles.badgeRow}>
+              <Text style={styles.planBadge}>{planLabel(activePlan)}</Text>
+              {user.location ? <Text style={styles.locationBadge} numberOfLines={1}>{user.location}</Text> : null}
+            </View>
+          </View>
         </View>
       </View>
 
@@ -174,10 +178,12 @@ export default function ProfileScreen({ navigation }: Props) {
           <Text style={styles.statNum}>{postsTotal}</Text>
           <Text style={styles.statLabel}>Публикации</Text>
         </View>
+        <View style={styles.statDivider} />
         <PressableScale style={styles.stat} onPress={() => openFollowList('followers')}>
           <Text style={styles.statNum}>{user.followers?.length ?? 0}</Text>
           <Text style={styles.statLabel}>Подписчики</Text>
         </PressableScale>
+        <View style={styles.statDivider} />
         <PressableScale style={styles.stat} onPress={() => openFollowList('following')}>
           <Text style={styles.statNum}>{user.following?.length ?? 0}</Text>
           <Text style={styles.statLabel}>Подписки</Text>
@@ -314,12 +320,14 @@ const styles = StyleSheet.create({
   skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   header: { gap: space.md, marginBottom: space.md },
 
-  hero: { backgroundColor: colors.ink, borderRadius: radius.xl, paddingVertical: space.xl, paddingHorizontal: space.lg, alignItems: 'center', ...shadow.card },
-  heroSettings: { position: 'absolute', top: space.md, right: space.md, width: 40, height: 40, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-  avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.surfaceAlt, borderWidth: 3, borderColor: 'rgba(255,255,255,0.9)' },
-  name: { color: colors.white, fontSize: font.h1, fontWeight: '900', marginTop: space.md },
+  hero: { backgroundColor: colors.ink, borderRadius: radius.xl, padding: space.lg, ...shadow.card },
+  heroSettings: { position: 'absolute', top: space.md, right: space.md, width: 40, height: 40, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
+  heroInfo: { flex: 1, paddingRight: 36 },
+  avatar: { width: 76, height: 76, borderRadius: 38, backgroundColor: colors.surfaceAlt, borderWidth: 3, borderColor: 'rgba(255,255,255,0.9)' },
+  name: { color: colors.white, fontSize: font.h2, fontWeight: '900' },
   username: { marginTop: 2, color: 'rgba(255,255,255,0.65)', fontSize: font.small, fontWeight: '800' },
-  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: space.md, justifyContent: 'center' },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: space.sm, justifyContent: 'flex-start' },
   planBadge: { overflow: 'hidden', borderRadius: radius.pill, backgroundColor: colors.accent, color: colors.onAccent, paddingHorizontal: 11, paddingVertical: 5, fontSize: font.tiny, fontWeight: '900' },
   locationBadge: { overflow: 'hidden', borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.14)', color: colors.white, paddingHorizontal: 11, paddingVertical: 5, fontSize: font.tiny, fontWeight: '900' },
 
@@ -330,10 +338,11 @@ const styles = StyleSheet.create({
   verifyTitle: { color: colors.text, fontSize: font.body, fontWeight: '900' },
   verifyText: { marginTop: 3, color: colors.textMuted, fontSize: font.tiny, lineHeight: 17, fontWeight: '700' },
 
-  stats: { flexDirection: 'row', gap: space.sm },
-  stat: { flex: 1, borderRadius: radius.lg, backgroundColor: colors.surface, alignItems: 'center', paddingVertical: space.md, ...shadow.card },
-  statNum: { color: colors.text, fontSize: font.h2, fontWeight: '900' },
-  statLabel: { marginTop: 2, color: colors.textMuted, fontSize: font.tiny, fontWeight: '800' },
+  stats: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: radius.lg, paddingVertical: space.sm, ...shadow.card },
+  stat: { flex: 1, alignItems: 'center', paddingVertical: space.xs },
+  statDivider: { width: StyleSheet.hairlineWidth, height: 28, backgroundColor: colors.border },
+  statNum: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
+  statLabel: { marginTop: 3, color: colors.textMuted, fontSize: font.tiny, fontWeight: '800', letterSpacing: 0.2 },
 
   ratingCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md, ...shadow.card },
   ratingIcon: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: 'rgba(245,197,24,0.15)', alignItems: 'center', justifyContent: 'center' },
