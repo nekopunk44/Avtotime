@@ -143,8 +143,6 @@ export default function SearchScreen({ navigation }: Props) {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.title}>Поиск</Text>
-
       <View style={styles.searchBar}>
         <Ionicons name="search" size={18} color={colors.textMuted} />
         <TextInput
@@ -284,7 +282,7 @@ export default function SearchScreen({ navigation }: Props) {
             <Ionicons name="search-outline" size={44} color={colors.textFaint} />
             <Text style={styles.emptyTitle}>{hasQuery ? 'Ничего не найдено' : 'Начните поиск'}</Text>
             <Text style={styles.emptyText}>
-              {hasQuery ? 'Попробуйте другой запрос.' : 'Введите имя, @ник или текст публикации — покажем людей и посты сразу.'}
+              {hasQuery ? 'Попробуйте другой запрос.' : 'Введите имя, @ник или текст публикации'}
             </Text>
           </View>
         )

@@ -93,11 +93,6 @@ export default function MessagesScreen({ navigation }: Props) {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.hero}>
-        <Text style={styles.title}>Сообщения</Text>
-        <Text style={styles.subtitle}>{chats.length ? `${chats.length} диалогов` : 'Диалогов пока нет'}</Text>
-      </View>
-
       <View style={styles.searchBox}>
         <Ionicons name="search-outline" size={18} color={colors.textMuted} />
         <TextInput
