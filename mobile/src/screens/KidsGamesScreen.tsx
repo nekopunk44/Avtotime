@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -197,6 +197,16 @@ export default function KidsGamesScreen({ navigation }: Props) {
     load();
   }, [load]));
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity style={styles.headerAdd} onPress={() => setCreateOpen(true)} activeOpacity={0.85} hitSlop={8}>
+          <Ionicons name="add" size={22} color={colors.onAccent} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
   const categories = useMemo(() => {
     const values = new Set<string>();
     games.forEach((game) => {
@@ -358,7 +368,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
             onPress={() => setActiveTab(tab.id)}
             activeOpacity={0.85}
           >
-            <Ionicons name={tab.icon as any} size={17} color={active ? '#fff' : '#777'} />
+            <Ionicons name={tab.icon as any} size={17} color={active ? colors.onAccent : colors.textMuted} />
             <Text style={[styles.tabText, active && styles.tabTextActive]}>{tab.label}</Text>
           </TouchableOpacity>
         );
@@ -374,7 +384,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
           <Image source={{ uri: activity.image }} style={styles.activityImage} />
         ) : (
           <View style={[styles.activityImage, styles.activityImageFallback]}>
-            <Ionicons name={getActivityIcon(activity.type) as any} size={30} color={colors.danger} />
+            <Ionicons name={getActivityIcon(activity.type) as any} size={30} color={colors.text} />
           </View>
         )}
         <View style={styles.activityBody}>
@@ -572,7 +582,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
             activeOpacity={0.85}
           >
             <View style={styles.progressIcon}>
-              <Ionicons name={(getBuiltInGame(item.gameId)?.icon || 'game-controller-outline') as any} size={22} color={colors.danger} />
+              <Ionicons name={(getBuiltInGame(item.gameId)?.icon || 'game-controller-outline') as any} size={22} color={colors.text} />
             </View>
             <View style={styles.progressInfo}>
               <Text style={styles.progressTitle}>{item.gameName || getBuiltInGame(item.gameId)?.title || item.gameId}</Text>
@@ -599,15 +609,6 @@ export default function KidsGamesScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.top}>
-        <View style={styles.titleRow}>
-          <View style={styles.titleBlock}>
-            <Text style={styles.title}>Детям и игры</Text>
-            <Text style={styles.subtitle}>Активности, игры и результаты Avtotime</Text>
-          </View>
-          <TouchableOpacity style={styles.addBtn} onPress={() => setCreateOpen(true)} activeOpacity={0.85}>
-            <Ionicons name="add" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
         {renderTabs()}
       </View>
 
@@ -730,7 +731,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
                 <Text style={styles.cancelText}>Отмена</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={saveGame} disabled={saving}>
-                {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>Добавить</Text>}
+                {saving ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.saveText}>Добавить</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -742,17 +743,13 @@ export default function KidsGamesScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  titleBlock: { flex: 1 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13 },
-  addBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
-  tabs: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3, marginTop: 14 },
+  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  headerAdd: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  tabs: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3 },
   tabBtn: { flex: 1, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 5 },
-  tabBtnActive: { backgroundColor: colors.surfaceHi },
+  tabBtnActive: { backgroundColor: colors.accent },
   tabText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
-  tabTextActive: { color: '#fff' },
+  tabTextActive: { color: colors.onAccent },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { padding: 12, paddingBottom: 28 },
   section: { gap: 10 },
@@ -764,17 +761,17 @@ const styles = StyleSheet.create({
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 4 },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   rankRow: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 8, backgroundColor: colors.bg, paddingHorizontal: 10, paddingVertical: 7 },
-  rankNumber: { width: 22, color: colors.danger, fontSize: 14, fontWeight: '900', textAlign: 'center' },
+  rankNumber: { width: 22, color: colors.text, fontSize: 14, fontWeight: '900', textAlign: 'center' },
   rankAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
   rankInitial: { color: '#fff', fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   rankName: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '800' },
   rankScore: { color: colors.text, fontSize: 14, fontWeight: '900' },
   activityCard: { backgroundColor: colors.surface, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
-  activityImage: { width: '100%', height: 154, backgroundColor: 'rgba(255,90,95,0.12)' },
+  activityImage: { width: '100%', height: 154, backgroundColor: colors.surfaceAlt },
   activityImageFallback: { alignItems: 'center', justifyContent: 'center' },
   activityBody: { padding: 14 },
   cardMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  typePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: 'rgba(255,90,95,0.12)', color: colors.danger, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  typePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: colors.accentSoft, color: colors.textMuted, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   sourcePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: colors.surfaceAlt, color: colors.textMuted, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   dateText: { color: colors.textFaint, fontSize: 12, fontWeight: '800' },
   cardTitle: { marginTop: 11, color: colors.text, fontSize: 18, lineHeight: 23, fontWeight: '900' },
@@ -784,7 +781,7 @@ const styles = StyleSheet.create({
   progressLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   progressValue: { color: colors.text, fontSize: 12, fontWeight: '900' },
   progressTrack: { height: 7, borderRadius: 4, backgroundColor: colors.surfaceHi, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 4, backgroundColor: colors.danger },
+  progressFill: { height: '100%', borderRadius: 4, backgroundColor: colors.accent },
   searchBox: { height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
   searchInput: { flex: 1, color: colors.text, fontSize: 15 },
   categoryList: { gap: 8, paddingTop: 4, paddingBottom: 2 },
@@ -802,9 +799,9 @@ const styles = StyleSheet.create({
   leaderBtn: { width: 42, height: 42, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   achievementsBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 14 },
   achievementList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  achievementPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'rgba(255,90,95,0.12)', color: colors.danger, fontSize: 12, fontWeight: '900' },
+  achievementPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: colors.surfaceAlt, color: colors.text, fontSize: 12, fontWeight: '900' },
   progressCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12 },
-  progressIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center' },
+  progressIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   progressInfo: { flex: 1 },
   progressTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
   progressSub: { marginTop: 3, marginBottom: 8, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
@@ -831,6 +828,6 @@ const styles = StyleSheet.create({
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   cancelBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   cancelText: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  saveBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
-  saveText: { color: '#fff', fontSize: 15, fontWeight: '900' },
+  saveBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  saveText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
 });
