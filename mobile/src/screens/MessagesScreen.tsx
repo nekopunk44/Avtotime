@@ -172,11 +172,13 @@ export default function MessagesScreen({ navigation }: Props) {
       contentContainerStyle={filtered.length ? styles.list : styles.emptyList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       ListEmptyComponent={
-        <EmptyState
-          icon="chatbubbles-outline"
-          title={query ? 'Ничего не найдено' : 'Нет диалогов'}
-          subtitle={query ? 'Попробуйте изменить запрос.' : 'Откройте профиль пользователя и напишите ему, чтобы начать чат.'}
-        />
+        <View style={styles.emptyWrap}>
+          <EmptyState
+            icon="chatbubbles-outline"
+            title={query ? 'Ничего не найдено' : 'Нет диалогов'}
+            subtitle={query ? 'Попробуйте изменить запрос.' : 'Откройте профиль пользователя и напишите ему, чтобы начать чат.'}
+          />
+        </View>
       }
     />
   );
@@ -186,6 +188,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   list: { padding: space.md, paddingBottom: space.xxl, gap: space.sm },
   emptyList: { flexGrow: 1, padding: space.md },
+  emptyWrap: { flex: 1, justifyContent: 'center' },
   header: { paddingHorizontal: space.md, paddingTop: space.md, gap: space.md },
   hero: { paddingTop: 2 },
   title: { color: colors.text, fontSize: font.h1, fontWeight: '900' },
