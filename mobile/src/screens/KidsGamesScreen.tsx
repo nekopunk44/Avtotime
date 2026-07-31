@@ -33,6 +33,7 @@ import {
   MarketGame,
 } from '../api/kidsGames';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import GamePreview from '../components/GamePreview';
 import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'KidsGames'> };
@@ -486,6 +487,8 @@ export default function KidsGamesScreen({ navigation }: Props) {
         <View key={game.key} style={styles.gameCard}>
           {game.image ? (
             <Image source={{ uri: game.image }} style={styles.gameImage} />
+          ) : game.kind === 'built-in' ? (
+            <GamePreview gameId={game.gameId} style={styles.gameImage} />
           ) : (
             <View style={[styles.gameImage, styles.gameImageFallback]}>
               <Ionicons name={game.icon as any} size={34} color={colors.text} />
