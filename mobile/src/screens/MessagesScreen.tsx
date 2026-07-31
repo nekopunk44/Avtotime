@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   list: { padding: space.md, paddingBottom: space.xxl, gap: space.sm },
   emptyList: { flexGrow: 1, padding: space.md },
   emptyWrap: { flex: 1, justifyContent: 'center' },
-  header: { paddingHorizontal: space.md, paddingTop: space.md, gap: space.md },
+  header: { gap: space.md },
   hero: { paddingTop: 2 },
   title: { color: colors.text, fontSize: font.h1, fontWeight: '900' },
   subtitle: { marginTop: 2, color: colors.textMuted, fontSize: font.small, fontWeight: '700' },

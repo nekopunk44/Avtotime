@@ -32,6 +32,10 @@ type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
 const LOOPS_PAGE_SIZE = 10;
 
+// Matches @react-navigation's default header content height so the overlaid
+// switcher/search line up with the native header on Feed/Search/Messages.
+const HEADER_CONTENT = Platform.OS === 'ios' ? 44 : 56;
+
 type LoopCardProps = {
   loop: Loop;
   active: boolean;
@@ -435,7 +439,7 @@ export default function LoopsScreen({ navigation }: Props) {
         }
       />
 
-      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
+      <View style={[styles.topBar, { paddingTop: insets.top }]} pointerEvents="box-none">
         <View style={styles.switcherRow} pointerEvents="box-none">
           <ModeSwitcher current="social" />
         </View>
@@ -568,9 +572,9 @@ const styles = StyleSheet.create({
   loopCard: { width: '100%', backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   video: { width: '100%', height: '100%' },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: space.lg, paddingBottom: 10, zIndex: 20 },
-  switcherRow: { alignItems: 'center' },
+  switcherRow: { height: HEADER_CONTENT, alignItems: 'center', justifyContent: 'center' },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md },
-  searchBar: { flex: 1, height: 44, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  searchBar: { flex: 1, height: 46, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
   searchInput: { flex: 1, color: colors.text, fontSize: 15 },
   addReelBtn: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
   actionsRail: { position: 'absolute', right: 12, bottom: 120, alignItems: 'center', gap: 20 },
