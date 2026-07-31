@@ -21,10 +21,12 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { RouteProp, useFocusEffect, useIsFocused, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { commentLoop, getLoops, likeLoop, Loop, uploadLoop } from '../api/loops';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList, AppTabParamList } from '../navigation/AppNavigator';
-import { colors } from '../theme';
+import ModeSwitcher from '../components/ModeSwitcher';
+import { colors, radius, space } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
@@ -86,26 +88,17 @@ function LoopCard({ loop, active, height, onLike, onCommentOpen, onAuthorPress }
         surfaceType="textureView"
       />
 
-      <View style={styles.topOverlay}>
-        <Text style={styles.screenTitle}>Короткие видео</Text>
-      </View>
-
-      <TouchableOpacity
-        style={styles.soundBtn}
-        onPress={() => setMuted((prev) => !prev)}
-        activeOpacity={0.85}
-      >
-        <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={20} color="#fff" />
-      </TouchableOpacity>
-
       <View style={styles.actionsRail}>
         <TouchableOpacity style={styles.railButton} onPress={() => onLike(loop._id)} activeOpacity={0.85}>
-          <Ionicons name={liked ? 'heart' : 'heart-outline'} size={30} color={liked ? '#ff335f' : '#fff'} />
+          <Ionicons name={liked ? 'heart' : 'heart-outline'} size={30} color={liked ? colors.danger : '#fff'} />
           <Text style={styles.railText}>{loop.likes?.length || 0}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.railButton} onPress={() => onCommentOpen(loop)} activeOpacity={0.85}>
           <Ionicons name="chatbubble-outline" size={28} color="#fff" />
           <Text style={styles.railText}>{commentsCount}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.railButton} onPress={() => setMuted((prev) => !prev)} activeOpacity={0.85}>
+          <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={26} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -136,6 +129,77 @@ function LoopCard({ loop, active, height, onLike, onCommentOpen, onAuthorPress }
   );
 }
 
+type UploadSheetProps = {
+  video: { uri: string; mimeType?: string };
+  caption: string;
+  onChangeCaption: (value: string) => void;
+  onCancel: () => void;
+  onPublish: () => void;
+  uploading: boolean;
+};
+
+// Live, muted, looping preview of the picked clip so the author sees what they
+// are about to publish before writing a caption.
+function UploadSheet({ video, caption, onChangeCaption, onCancel, onPublish, uploading }: UploadSheetProps) {
+  const insets = useSafeAreaInsets();
+  const player = useVideoPlayer(video.uri, (p) => {
+    p.loop = true;
+    p.muted = true;
+    p.play();
+  });
+
+  return (
+    <View style={[styles.uploadSheet, { paddingBottom: insets.bottom + space.lg }]}>
+      <View style={styles.sheetHandle} />
+      <Text style={styles.uploadTitle}>Новое видео</Text>
+      <Text style={styles.uploadHint}>Проверьте превью и добавьте описание</Text>
+
+      <View style={styles.uploadRow}>
+        <View style={styles.previewCard}>
+          <VideoView
+            player={player}
+            style={styles.previewVideo}
+            nativeControls={false}
+            contentFit="cover"
+            allowsPictureInPicture={false}
+          />
+          <View style={styles.previewChip}>
+            <Ionicons name="play" size={11} color={colors.onAccent} />
+            <Text style={styles.previewChipText}>Превью</Text>
+          </View>
+        </View>
+
+        <View style={styles.uploadFields}>
+          <TextInput
+            style={styles.uploadCaptionInput}
+            placeholder="Добавьте описание…"
+            placeholderTextColor={colors.textFaint}
+            value={caption}
+            onChangeText={(value) => onChangeCaption(value.slice(0, 280))}
+            multiline
+            textAlignVertical="top"
+          />
+          <Text style={styles.captionCounter}>{caption.length}/280</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity style={styles.publishBtn} onPress={onPublish} disabled={uploading} activeOpacity={0.9}>
+        {uploading ? (
+          <ActivityIndicator color={colors.onAccent} />
+        ) : (
+          <>
+            <Ionicons name="cloud-upload-outline" size={19} color={colors.onAccent} />
+            <Text style={styles.publishText}>Опубликовать</Text>
+          </>
+        )}
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.cancelUploadBtn} onPress={onCancel} disabled={uploading} activeOpacity={0.9}>
+        <Text style={styles.cancelUploadText}>Отмена</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function LoopsScreen({ navigation }: Props) {
   const route = useRoute<RouteProp<AppTabParamList, 'Loops'>>();
   const [loops, setLoops] = useState<Loop[]>([]);
@@ -154,6 +218,7 @@ export default function LoopsScreen({ navigation }: Props) {
   const [error, setError] = useState('');
   const { height } = useWindowDimensions();
   const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const listHeight = Math.max(320, height - tabBarHeight);
 
@@ -357,61 +422,45 @@ export default function LoopsScreen({ navigation }: Props) {
         }
       />
 
-      <TouchableOpacity
-        style={styles.uploadBtn}
-        onPress={pickVideo}
-        disabled={uploading}
-        activeOpacity={0.85}
-      >
-        {uploading ? (
-          <ActivityIndicator color={colors.text} />
-        ) : (
-          <Ionicons name="add" size={26} color={colors.text} />
-        )}
-      </TouchableOpacity>
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
+        <View style={styles.topBarSide} pointerEvents="none" />
+        <ModeSwitcher current="social" />
+        <View style={styles.topBarRight} pointerEvents="box-none">
+          <TouchableOpacity
+            style={styles.addReelBtn}
+            onPress={pickVideo}
+            disabled={uploading}
+            activeOpacity={0.85}
+          >
+            {uploading ? (
+              <ActivityIndicator color={colors.onAccent} size="small" />
+            ) : (
+              <Ionicons name="add" size={24} color={colors.onAccent} />
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
 
-      <Modal visible={!!pendingVideo} transparent animationType="fade" onRequestClose={() => setPendingVideo(null)}>
+      <Modal visible={!!pendingVideo} transparent animationType="slide" onRequestClose={() => !uploading && setPendingVideo(null)}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.uploadModalRoot}
+          style={styles.modalRoot}
         >
           <TouchableOpacity
-            style={styles.uploadModalBackdrop}
+            style={styles.modalBackdrop}
             activeOpacity={1}
             onPress={() => !uploading && setPendingVideo(null)}
           />
-          <View style={styles.uploadDialog}>
-            <Text style={styles.uploadTitle}>Новое видео</Text>
-            <TextInput
-              style={styles.uploadCaptionInput}
-              placeholder="Описание..."
-              placeholderTextColor={colors.textFaint}
-              value={uploadCaption}
-              onChangeText={(value) => setUploadCaption(value.slice(0, 280))}
-              multiline
+          {pendingVideo ? (
+            <UploadSheet
+              video={pendingVideo}
+              caption={uploadCaption}
+              onChangeCaption={setUploadCaption}
+              onCancel={() => setPendingVideo(null)}
+              onPublish={publishPendingVideo}
+              uploading={uploading}
             />
-            <Text style={styles.captionCounter}>{uploadCaption.length}/280</Text>
-            <View style={styles.uploadActions}>
-              <TouchableOpacity
-                style={styles.cancelUploadBtn}
-                onPress={() => setPendingVideo(null)}
-                disabled={uploading}
-              >
-                <Text style={styles.cancelUploadText}>Отмена</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.publishBtn}
-                onPress={publishPendingVideo}
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <ActivityIndicator color={colors.onAccent} />
-                ) : (
-                  <Text style={styles.publishText}>Опубликовать</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
+          ) : null}
         </KeyboardAvoidingView>
       </Modal>
 
@@ -487,9 +536,10 @@ const styles = StyleSheet.create({
   centerDark: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceHi },
   loopCard: { width: '100%', backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   video: { width: '100%', height: '100%' },
-  topOverlay: { position: 'absolute', top: 14, left: 0, right: 0, alignItems: 'center' },
-  screenTitle: { color: '#fff', fontSize: 17, fontWeight: '900', textShadowColor: 'rgba(0,0,0,0.55)', textShadowRadius: 8 },
-  soundBtn: { position: 'absolute', top: 14, right: 14, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
+  topBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, paddingBottom: 10, zIndex: 20 },
+  topBarSide: { flex: 1 },
+  topBarRight: { flex: 1, alignItems: 'flex-end' },
+  addReelBtn: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
   actionsRail: { position: 'absolute', right: 12, bottom: 120, alignItems: 'center', gap: 20 },
   railButton: { alignItems: 'center', gap: 4 },
   railText: { color: '#fff', fontSize: 12, fontWeight: '900', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
@@ -501,7 +551,6 @@ const styles = StyleSheet.create({
   caption: { marginTop: 10, color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
   progressTrack: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.18)' },
   progressFill: { height: '100%', backgroundColor: '#ff335f' },
-  uploadBtn: { position: 'absolute', top: 14, left: 14, width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   emptyTitle: { marginTop: 12, color: '#fff', fontSize: 18, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 8, color: colors.textFaint, fontSize: 14, textAlign: 'center', lineHeight: 20 },
@@ -525,15 +574,19 @@ const styles = StyleSheet.create({
   commentInput: { flex: 1, minHeight: 42, borderRadius: 12, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 14 },
   sendBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
   sendBtnDisabled: { opacity: 0.45 },
-  uploadModalRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
-  uploadModalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.62)' },
-  uploadDialog: { width: '100%', maxWidth: 420, borderRadius: 8, backgroundColor: colors.surface, padding: 16 },
-  uploadTitle: { color: colors.text, fontSize: 20, fontWeight: '900' },
-  uploadCaptionInput: { minHeight: 112, marginTop: 14, borderRadius: 8, backgroundColor: colors.surfaceAlt, padding: 12, color: colors.text, fontSize: 15, lineHeight: 21, textAlignVertical: 'top' },
+  uploadSheet: { backgroundColor: colors.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, paddingHorizontal: space.lg, paddingTop: space.sm },
+  uploadTitle: { color: colors.text, fontSize: 21, fontWeight: '900', textAlign: 'center' },
+  uploadHint: { marginTop: 3, color: colors.textMuted, fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  uploadRow: { flexDirection: 'row', gap: space.md, marginTop: space.lg },
+  previewCard: { width: 104, aspectRatio: 9 / 16, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.surfaceHi, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  previewVideo: { width: '100%', height: '100%' },
+  previewChip: { position: 'absolute', left: 6, bottom: 6, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.accent, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 },
+  previewChipText: { color: colors.onAccent, fontSize: 10, fontWeight: '900' },
+  uploadFields: { flex: 1 },
+  uploadCaptionInput: { flex: 1, minHeight: 130, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, padding: 12, color: colors.text, fontSize: 15, lineHeight: 21, textAlignVertical: 'top' },
   captionCounter: { marginTop: 6, color: colors.textMuted, fontSize: 12, textAlign: 'right', fontWeight: '700' },
-  uploadActions: { marginTop: 16, flexDirection: 'row', gap: 10 },
-  cancelUploadBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  publishBtn: { marginTop: space.lg, height: 52, borderRadius: radius.pill, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  publishText: { color: colors.onAccent, fontSize: 16, fontWeight: '900' },
+  cancelUploadBtn: { marginTop: space.sm, height: 48, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   cancelUploadText: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  publishBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  publishText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
 });

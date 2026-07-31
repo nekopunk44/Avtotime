@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { NavigatorScreenParams, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '../theme';
 import FloatingTabBar from './FloatingTabBar';
+import ModeSwitcher from '../components/ModeSwitcher';
 import FeedScreen from '../screens/FeedScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SearchScreen from '../screens/SearchScreen';
@@ -135,31 +136,6 @@ export type AppTabParamList = SocialTabParamList & MarketTabParamList;
 const Stack = createNativeStackNavigator<AppStackParamList>();
 const SocialTab = createBottomTabNavigator<SocialTabParamList>();
 const MarketTab = createBottomTabNavigator<MarketTabParamList>();
-
-const SEG_W = 98;
-
-// Top segmented switch between the social and market experiences. The thumb is
-// positioned statically by `current` — the header remounts on every tab change,
-// so animating it here would jerk on each switch; the screen transition carries
-// the motion instead.
-function ModeSwitcher({ current }: { current: 'social' | 'market' }) {
-  const navigation = useNavigation<any>();
-  const offset = current === 'social' ? 0 : SEG_W;
-
-  return (
-    <View style={styles.switcher}>
-      <View style={[styles.thumb, { transform: [{ translateX: offset }] }]} />
-      <TouchableOpacity style={styles.segment} activeOpacity={0.9} onPress={() => navigation.navigate('SocialTabs')}>
-        <Ionicons name="people" size={15} color={current === 'social' ? colors.onAccent : colors.textMuted} />
-        <Text style={[styles.segmentText, current === 'social' && styles.segmentTextActive]}>Соцсеть</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.segment} activeOpacity={0.9} onPress={() => navigation.navigate('MarketTabs')}>
-        <Ionicons name="storefront" size={15} color={current === 'market' ? colors.onAccent : colors.textMuted} />
-        <Text style={[styles.segmentText, current === 'market' && styles.segmentTextActive]}>Маркет</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
 
 function HeaderBell() {
   const navigation = useNavigation<any>();
@@ -290,11 +266,6 @@ export default function AppNavigator() {
 }
 
 const styles = StyleSheet.create({
-  switcher: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 999, padding: 4, height: 40 },
-  thumb: { position: 'absolute', top: 4, left: 4, width: SEG_W, height: 32, borderRadius: 999, backgroundColor: colors.accent },
-  segment: { width: SEG_W, height: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
-  segmentText: { fontSize: 13, fontWeight: '800', color: colors.textMuted },
-  segmentTextActive: { color: colors.onAccent },
   bell: { marginRight: 14, padding: 4 },
   bellDot: { position: 'absolute', top: 3, right: 3, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.danger, borderWidth: 1.5, borderColor: colors.bg },
 });
