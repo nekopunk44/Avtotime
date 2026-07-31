@@ -18,8 +18,12 @@ export const useLockStore = create<LockState>((set) => ({
   unlocked: true,
   hydrated: false,
   hydrate: async () => {
-    const enabled = await isLockEnabled();
-    set({ enabled, unlocked: !enabled, hydrated: true });
+    try {
+      const enabled = await isLockEnabled();
+      set({ enabled, unlocked: !enabled, hydrated: true });
+    } catch {
+      set({ enabled: false, unlocked: true, hydrated: true });
+    }
   },
   setEnabled: async (enabled) => {
     await persistLockEnabled(enabled);

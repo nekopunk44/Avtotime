@@ -53,7 +53,7 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Приложение использует Face ID для входа в аккаунт."
+          "faceIDPermission": "Face ID используется для быстрой разблокировки приложения."
         }
       ],
       [
