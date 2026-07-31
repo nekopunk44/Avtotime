@@ -216,6 +216,7 @@ export default function LoopsScreen({ navigation }: Props) {
   const [pendingVideo, setPendingVideo] = useState<{ uri: string; mimeType?: string } | null>(null);
   const [uploadCaption, setUploadCaption] = useState('');
   const [error, setError] = useState('');
+  const [query, setQuery] = useState('');
   const { height } = useWindowDimensions();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
@@ -234,6 +235,14 @@ export default function LoopsScreen({ navigation }: Props) {
     () => commentTarget ? loops.find((loop) => loop._id === commentTarget._id) || commentTarget : null,
     [commentTarget, loops],
   );
+
+  const filteredLoops = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return loops;
+    return loops.filter((loop) =>
+      (loop.caption || '').toLowerCase().includes(q) ||
+      (loop.author?.userName || '').toLowerCase().includes(q));
+  }, [loops, query]);
 
   useEffect(() => {
     if (!targetLoopId || !loops.length) return;
@@ -391,7 +400,7 @@ export default function LoopsScreen({ navigation }: Props) {
     <View style={styles.container}>
       <FlatList
         ref={listRef}
-        data={loops}
+        data={filteredLoops}
         keyExtractor={(item) => item._id}
         renderItem={renderLoop}
         pagingEnabled
@@ -413,19 +422,41 @@ export default function LoopsScreen({ navigation }: Props) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#fff" />}
         ListEmptyComponent={
           <View style={[styles.emptyState, { height: listHeight }]}>
-            <Ionicons name={error ? 'alert-circle-outline' : 'play-circle-outline'} size={48} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>{error || 'Пока нет видео'}</Text>
+            <Ionicons name={error ? 'alert-circle-outline' : query ? 'search-outline' : 'play-circle-outline'} size={48} color={colors.textMuted} />
+            <Text style={styles.emptyTitle}>{error || (query ? 'Ничего не найдено' : 'Пока нет видео')}</Text>
             <Text style={styles.emptyText}>
-              {error ? 'Потяните вниз, чтобы попробовать снова.' : 'Загрузите первое короткое видео для Avtotime.'}
+              {error
+                ? 'Потяните вниз, чтобы попробовать снова.'
+                : query
+                  ? 'Попробуйте другой запрос.'
+                  : 'Загрузите первое короткое видео для Avtotime.'}
             </Text>
           </View>
         }
       />
 
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
-        <View style={styles.topBarSide} pointerEvents="none" />
-        <ModeSwitcher current="social" />
-        <View style={styles.topBarRight} pointerEvents="box-none">
+        <View style={styles.switcherRow} pointerEvents="box-none">
+          <ModeSwitcher current="social" />
+        </View>
+        <View style={styles.searchRow} pointerEvents="box-none">
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={18} color={colors.textMuted} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Поиск видео"
+              placeholderTextColor={colors.textFaint}
+              value={query}
+              onChangeText={setQuery}
+              autoCapitalize="none"
+              returnKeyType="search"
+            />
+            {query ? (
+              <TouchableOpacity onPress={() => setQuery('')} hitSlop={8}>
+                <Ionicons name="close-circle" size={18} color={colors.textFaint} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
           <TouchableOpacity
             style={styles.addReelBtn}
             onPress={pickVideo}
@@ -536,9 +567,11 @@ const styles = StyleSheet.create({
   centerDark: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceHi },
   loopCard: { width: '100%', backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   video: { width: '100%', height: '100%' },
-  topBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, paddingBottom: 10, zIndex: 20 },
-  topBarSide: { flex: 1 },
-  topBarRight: { flex: 1, alignItems: 'flex-end' },
+  topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: space.lg, paddingBottom: 10, zIndex: 20 },
+  switcherRow: { alignItems: 'center' },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md },
+  searchBar: { flex: 1, height: 44, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  searchInput: { flex: 1, color: colors.text, fontSize: 15 },
   addReelBtn: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
   actionsRail: { position: 'absolute', right: 12, bottom: 120, alignItems: 'center', gap: 20 },
   railButton: { alignItems: 'center', gap: 4 },
