@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "884055313991",
+    "project_id": "avtotime-702e2",
+    "storage_bucket": "avtotime-702e2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:884055313991:android:6701fffd94ae69ed25ab62",
+        "android_client_info": {
+          "package_name": "org.avtotime.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwt77xfhSIf1iCgbCfhlPwORcHb6PB3L4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

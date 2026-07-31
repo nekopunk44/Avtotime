@@ -18,6 +18,10 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Firebase service account (secret — never commit; upload via `eas credentials`)
+*firebase-adminsdk*.json
+firebase-service-account*.json
+
 # Metro
 .metro-health-check*
 
