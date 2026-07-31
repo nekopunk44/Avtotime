@@ -1,4 +1,7 @@
 import React from 'react';
+import { TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from '../theme';
 import SignInScreen from '../screens/SignInScreen';
@@ -15,6 +18,16 @@ export type AuthStackParamList = {
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
+function HeaderBack() {
+  const navigation = useNavigation<any>();
+  if (!navigation.canGoBack()) return null;
+  return (
+    <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={12} activeOpacity={0.7} style={{ paddingRight: 6, paddingVertical: 4 }}>
+      <Ionicons name="chevron-back" size={26} color={colors.text} />
+    </TouchableOpacity>
+  );
+}
+
 export default function AuthNavigator() {
   return (
     <Stack.Navigator
@@ -23,6 +36,9 @@ export default function AuthNavigator() {
         headerStyle: { backgroundColor: colors.bg },
         headerShadowVisible: false,
         headerTintColor: colors.text,
+        headerTitleAlign: 'center',
+        headerBackVisible: false,
+        headerLeft: () => <HeaderBack />,
         contentStyle: { backgroundColor: colors.bg },
       }}
     >

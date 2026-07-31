@@ -148,6 +148,17 @@ function HeaderBell() {
   );
 }
 
+// Global chevron back button ("<") shown on every pushed screen.
+function HeaderBack() {
+  const navigation = useNavigation<any>();
+  if (!navigation.canGoBack()) return null;
+  return (
+    <TouchableOpacity style={styles.headerBack} onPress={() => navigation.goBack()} hitSlop={12} activeOpacity={0.7}>
+      <Ionicons name="chevron-back" size={26} color={colors.text} />
+    </TouchableOpacity>
+  );
+}
+
 const makeTabOptions = (current: 'social' | 'market') => () => ({
   // The floating tab bar (custom `tabBar` below) handles icons/animation.
   // Keep scene content clear of the floating bar.
@@ -209,6 +220,9 @@ export default function AppNavigator() {
         headerShadowVisible: false,
         headerTintColor: colors.text,
         headerTitleStyle: { fontWeight: '900' },
+        headerTitleAlign: 'center',
+        headerBackVisible: false,
+        headerLeft: () => <HeaderBack />,
         contentStyle: { backgroundColor: colors.bg },
         animation: 'slide_from_right',
       }}
@@ -266,6 +280,7 @@ export default function AppNavigator() {
 }
 
 const styles = StyleSheet.create({
+  headerBack: { paddingRight: 6, paddingVertical: 4 },
   bell: { marginRight: 14, padding: 4 },
   bellDot: { position: 'absolute', top: 3, right: 3, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.danger, borderWidth: 1.5, borderColor: colors.bg },
 });

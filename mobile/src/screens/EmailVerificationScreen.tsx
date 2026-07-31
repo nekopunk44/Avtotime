@@ -206,7 +206,7 @@ export default function EmailVerificationScreen({ navigation }: Props) {
           </>
         ) : (
           <TouchableOpacity style={styles.doneBtn} onPress={() => navigation.goBack()} activeOpacity={0.86}>
-            <Ionicons name="arrow-back-outline" size={18} color={colors.text} />
+            <Ionicons name="chevron-back" size={18} color={colors.text} />
             <Text style={styles.doneText}>Вернуться назад</Text>
           </TouchableOpacity>
         )}
