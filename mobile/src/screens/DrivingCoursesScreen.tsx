@@ -29,7 +29,7 @@ const modes: Array<{
   hint: string;
   icon: string;
 }> = [
-  { mode: 'exam', title: 'Экзамен', hint: '20 вопросов', icon: 'timer-outline' },
+  { mode: 'exam', title: 'Экзамен', hint: '20 вопросов', icon: 'document-text-outline' },
   { mode: 'practice', title: 'Тренировка', hint: 'С ответами', icon: 'book-outline' },
   { mode: 'marathon', title: 'Марафон', hint: '100 вопросов', icon: 'flash-outline' },
 ];
@@ -135,11 +135,11 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
 
       <View style={styles.bento}>
         <TouchableOpacity style={styles.examBig} onPress={() => startMode('exam')} activeOpacity={0.9}>
-          <Ionicons name={modes[0].icon as any} size={40} color={colors.text} />
           <View>
+            <Ionicons name={modes[0].icon as any} size={46} color={colors.text} style={styles.examIcon} />
             <Text style={styles.examTitle}>Экзамен</Text>
-            <Text style={styles.examHint}>20 вопросов на время. Чтобы сдать, нужно ответить верно минимум на 70%.</Text>
           </View>
+          <Text style={styles.examHint}>20 вопросов на время. Чтобы сдать, нужно ответить верно минимум на 70%.</Text>
         </TouchableOpacity>
 
         <View style={styles.sideCol}>
@@ -223,6 +223,7 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 10 },
   bento: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   examBig: { flex: 1, borderRadius: 18, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 18, justifyContent: 'space-between' },
+  examIcon: { marginBottom: 6 },
   examTitle: { color: colors.text, fontSize: 21, fontWeight: '900' },
   examHint: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '600' },
   sideCol: { width: 132, gap: 12 },
