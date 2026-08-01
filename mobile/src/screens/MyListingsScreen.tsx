@@ -281,16 +281,16 @@ export default function MyListingsScreen({ navigation }: Props) {
             <Text style={[styles.filterText, categoryId === category.id && styles.filterTextActive]}>{category.shortLabel}</Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+        <View style={styles.filterDivider} />
+
         {statusFilters.map((item) => (
           <TouchableOpacity
             key={item}
-            style={[styles.statusFilterBtn, status === item && styles.statusFilterBtnActive]}
+            style={[styles.filterBtn, status === item && styles.filterBtnActive]}
             onPress={() => setStatus(item)}
           >
-            <Text style={[styles.statusFilterText, status === item && styles.statusFilterTextActive]}>
+            <Text style={[styles.filterText, status === item && styles.filterTextActive]}>
               {STATUS_LABEL[item]}
             </Text>
           </TouchableOpacity>
@@ -446,9 +446,9 @@ const styles = StyleSheet.create({
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   header: { gap: 12, marginBottom: 2 },
-  hero: { paddingTop: 6, paddingBottom: 2 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13, fontWeight: '700' },
+  hero: { paddingTop: 6, paddingBottom: 2, alignItems: 'center' },
+  title: { color: colors.text, fontSize: 28, fontWeight: '900', textAlign: 'center' },
+  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13, fontWeight: '700', textAlign: 'center' },
   statsRow: { flexDirection: 'row', gap: 8 },
   statCard: { flex: 1, borderRadius: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12 },
   statValue: { color: colors.text, fontSize: 23, fontWeight: '900' },
@@ -457,15 +457,12 @@ const styles = StyleSheet.create({
   statLabel: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   searchBox: { height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
   searchInput: { flex: 1, color: colors.text, fontSize: 15 },
-  filterRow: { gap: 8, paddingVertical: 2 },
+  filterRow: { gap: 8, paddingVertical: 2, alignItems: 'center' },
   filterBtn: { height: 36, borderRadius: 999, paddingHorizontal: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, justifyContent: 'center' },
   filterBtnActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   filterText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   filterTextActive: { color: colors.onAccent },
-  statusFilterBtn: { height: 34, borderRadius: 999, paddingHorizontal: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, justifyContent: 'center' },
-  statusFilterBtnActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  statusFilterText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
-  statusFilterTextActive: { color: colors.onAccent },
+  filterDivider: { width: StyleSheet.hairlineWidth, height: 22, backgroundColor: colors.border, marginHorizontal: 2 },
   card: { borderRadius: 16, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
   cardImage: { width: '100%', height: 170, backgroundColor: colors.surfaceAlt },
   cardImageFallback: { alignItems: 'center', justifyContent: 'center' },
