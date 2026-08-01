@@ -29,7 +29,7 @@ const modes: Array<{
   hint: string;
   icon: string;
 }> = [
-  { mode: 'exam', title: 'Экзамен', hint: '20 вопросов', icon: 'document-text-outline' },
+  { mode: 'exam', title: 'Экзамен', hint: '20 вопросов', icon: 'clipboard-outline' },
   { mode: 'practice', title: 'Тренировка', hint: 'С ответами', icon: 'book-outline' },
   { mode: 'marathon', title: 'Марафон', hint: '100 вопросов', icon: 'flash-outline' },
 ];
