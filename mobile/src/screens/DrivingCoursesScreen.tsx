@@ -9,7 +9,6 @@ import {
   View,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import Svg, { Defs, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -48,24 +47,14 @@ const formatDate = (value?: string) => {
   return date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
 };
 
-// Monochrome card backdrop: a soft top→bottom gradient plus a faint radial glow
-// behind the top-left icon. Sits absolutely behind the card content.
-function CardBackground({ id }: { id: string }) {
+// Faint top-left glow behind the icon. Kept as plain Views (no react-native-svg)
+// so it renders on any build; a large soft circle lightens the corner.
+function CardBackground() {
   return (
-    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-      <Defs>
-        <LinearGradient id={`lin-${id}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="26" y2="100">
-          <Stop offset="0" stopColor="#23252C" />
-          <Stop offset="1" stopColor="#131318" />
-        </LinearGradient>
-        <RadialGradient id={`glow-${id}`} gradientUnits="userSpaceOnUse" cx="24" cy="18" rx="74" ry="74" fx="24" fy="18">
-          <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.09" />
-          <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
-        </RadialGradient>
-      </Defs>
-      <Rect x="0" y="0" width="100" height="100" fill={`url(#lin-${id})`} />
-      <Rect x="0" y="0" width="100" height="100" fill={`url(#glow-${id})`} />
-    </Svg>
+    <>
+      <View style={styles.cardGlow} pointerEvents="none" />
+      <View style={styles.cardGlowInner} pointerEvents="none" />
+    </>
   );
 }
 
@@ -157,7 +146,7 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
 
       <View style={styles.bento}>
         <TouchableOpacity style={styles.examBig} onPress={() => startMode('exam')} activeOpacity={0.9}>
-          <CardBackground id="exam" />
+          <CardBackground />
           <MaterialCommunityIcons name="clipboard-check-outline" size={50} color={colors.text} style={styles.examIcon} />
           <Text style={styles.examTitle}>Экзамен</Text>
           <Text style={styles.examHint}>20 вопросов на время. Чтобы сдать, нужно ответить верно минимум на 70%.</Text>
@@ -166,7 +155,7 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
         <View style={styles.sideCol}>
           {[modes[2], modes[1]].map((item) => (
             <TouchableOpacity key={item.mode} style={styles.sideCard} onPress={() => startMode(item.mode)} activeOpacity={0.9}>
-              <CardBackground id={item.mode} />
+              <CardBackground />
               <Ionicons name={item.icon as any} size={26} color={colors.text} />
               <Text style={styles.sideTitle} numberOfLines={1}>{item.title}</Text>
               <Text style={styles.sideHint} numberOfLines={1}>{item.hint}</Text>
@@ -244,6 +233,8 @@ const styles = StyleSheet.create({
   errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '700' },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 10 },
   bento: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  cardGlow: { position: 'absolute', top: -70, left: -50, width: 210, height: 210, borderRadius: 105, backgroundColor: 'rgba(255,255,255,0.035)' },
+  cardGlowInner: { position: 'absolute', top: -28, left: -18, width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(255,255,255,0.045)' },
   examBig: { flex: 1, borderRadius: 18, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 18, justifyContent: 'center', overflow: 'hidden' },
   examIcon: { marginBottom: 8 },
   examTitle: { color: colors.text, fontSize: 21, fontWeight: '900' },
