@@ -26,35 +26,12 @@ type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 const modes: Array<{
   mode: DrivingMode;
   title: string;
-  short: string;
+  hint: string;
   icon: string;
-  color: string;
-  backgroundColor: string;
 }> = [
-  {
-    mode: 'exam',
-    title: 'Экзамен',
-    short: '20 вопросов · таймер',
-    icon: 'timer-outline',
-    color: '#4D96FF',
-    backgroundColor: 'rgba(77,150,255,0.14)',
-  },
-  {
-    mode: 'practice',
-    title: 'Тренировка',
-    short: 'Без таймера, с ответами',
-    icon: 'book-outline',
-    color: '#F6B23D',
-    backgroundColor: 'rgba(246,178,61,0.14)',
-  },
-  {
-    mode: 'marathon',
-    title: 'Марафон',
-    short: '100 случайных вопросов',
-    icon: 'flash-outline',
-    color: '#9D4EDD',
-    backgroundColor: 'rgba(157,78,221,0.16)',
-  },
+  { mode: 'exam', title: 'Экзамен', hint: '20 вопросов', icon: 'timer-outline' },
+  { mode: 'practice', title: 'Тренировка', hint: 'С ответами', icon: 'book-outline' },
+  { mode: 'marathon', title: 'Марафон', hint: '100 вопросов', icon: 'flash-outline' },
 ];
 
 const modeLabels: Record<DrivingMode, string> = {
@@ -156,28 +133,14 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
         </View>
       ) : null}
 
-      <Text style={styles.sectionTitle}>Режим</Text>
-      <TouchableOpacity style={styles.heroCard} onPress={() => startMode('exam')} activeOpacity={0.9}>
-        <Ionicons name="speedometer-outline" size={150} color={modes[0].color} style={styles.heroWatermark} />
-        <View style={[styles.heroIcon, { backgroundColor: modes[0].backgroundColor }]}>
-          <Ionicons name={modes[0].icon as any} size={24} color={modes[0].color} />
-        </View>
-        <Text style={styles.heroTitle}>Экзамен</Text>
-        <Text style={styles.heroDesc}>20 вопросов · таймер · проходной балл 70%</Text>
-        <View style={styles.heroStart}>
-          <Text style={styles.heroStartText}>Начать</Text>
-          <Ionicons name="arrow-forward" size={16} color={colors.onAccent} />
-        </View>
-      </TouchableOpacity>
-
-      <View style={styles.duoRow}>
-        {[modes[1], modes[2]].map((item) => (
-          <TouchableOpacity key={item.mode} style={styles.duoCard} onPress={() => startMode(item.mode)} activeOpacity={0.9}>
-            <View style={[styles.duoIcon, { backgroundColor: item.backgroundColor }]}>
-              <Ionicons name={item.icon as any} size={22} color={item.color} />
+      <View style={styles.modeRow}>
+        {modes.map((item) => (
+          <TouchableOpacity key={item.mode} style={styles.modeCard} onPress={() => startMode(item.mode)} activeOpacity={0.9}>
+            <View style={styles.modeIcon}>
+              <Ionicons name={item.icon as any} size={22} color={colors.text} />
             </View>
-            <Text style={styles.duoTitle}>{item.title}</Text>
-            <Text style={styles.duoDesc} numberOfLines={2}>{item.short}</Text>
+            <Text style={styles.modeTitle} numberOfLines={1}>{item.title}</Text>
+            <Text style={styles.modeHint} numberOfLines={1}>{item.hint}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -250,18 +213,11 @@ const styles = StyleSheet.create({
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderColor: 'rgba(255,90,95,0.25)', borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 12, marginBottom: 12 },
   errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '700' },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 10 },
-  heroCard: { borderRadius: 20, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 18, marginBottom: 12, overflow: 'hidden' },
-  heroWatermark: { position: 'absolute', right: -22, bottom: -26, opacity: 0.1 },
-  heroIcon: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  heroTitle: { marginTop: 14, color: colors.text, fontSize: 22, fontWeight: '900' },
-  heroDesc: { marginTop: 5, color: colors.textMuted, fontSize: 13, fontWeight: '600' },
-  heroStart: { marginTop: 16, alignSelf: 'flex-start', height: 42, paddingHorizontal: 20, borderRadius: 999, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  heroStartText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
-  duoRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  duoCard: { flex: 1, minHeight: 128, borderRadius: 18, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14 },
-  duoIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  duoTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
-  duoDesc: { marginTop: 4, color: colors.textMuted, fontSize: 12, lineHeight: 16 },
+  modeRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  modeCard: { flex: 1, borderRadius: 16, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingVertical: 16, paddingHorizontal: 6, alignItems: 'center' },
+  modeIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  modeTitle: { color: colors.text, fontSize: 13, fontWeight: '900', textAlign: 'center' },
+  modeHint: { marginTop: 3, color: colors.textMuted, fontSize: 11, fontWeight: '700', textAlign: 'center' },
   linksCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 12, marginBottom: 18 },
   linkRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 },
   linkIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
