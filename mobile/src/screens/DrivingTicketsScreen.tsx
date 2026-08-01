@@ -66,24 +66,21 @@ export default function DrivingTicketsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.modeSwitch}>
+      <View style={styles.segment}>
         {runModes.map((item) => {
           const active = mode === item.mode;
           return (
             <TouchableOpacity
               key={item.mode}
-              style={[styles.modeChip, active && styles.modeChipActive]}
+              style={[styles.segmentBtn, active && styles.segmentBtnActive]}
               onPress={() => setMode(item.mode)}
               activeOpacity={0.85}
             >
-              <Text style={[styles.modeChipText, active && styles.modeChipTextActive]}>{item.label}</Text>
+              <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{item.label}</Text>
             </TouchableOpacity>
           );
         })}
       </View>
-      <Text style={styles.hint}>
-        Нажмите на билет, чтобы пройти его в режиме «{mode === 'exam' ? 'Экзамен' : 'Тренировка'}».
-      </Text>
 
       <FlatList
         data={data}
@@ -115,12 +112,11 @@ export default function DrivingTicketsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  modeSwitch: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 14 },
-  modeChip: { flex: 1, height: 40, borderRadius: 999, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  modeChipActive: { backgroundColor: colors.accent },
-  modeChipText: { color: colors.textMuted, fontSize: 14, fontWeight: '900' },
-  modeChipTextActive: { color: colors.onAccent },
-  hint: { color: colors.textMuted, fontSize: 12, fontWeight: '700', paddingHorizontal: 16, paddingTop: 10 },
+  segment: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 999, padding: 4, marginHorizontal: 16, marginTop: 14 },
+  segmentBtn: { flex: 1, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  segmentBtnActive: { backgroundColor: colors.accent },
+  segmentText: { color: colors.textMuted, fontSize: 14, fontWeight: '900' },
+  segmentTextActive: { color: colors.onAccent },
   grid: { padding: 16, paddingBottom: 28 },
   row: { gap: 8, marginBottom: 8 },
   ticket: { flex: 1, aspectRatio: 1, borderRadius: 12, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
