@@ -137,7 +137,7 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
         {modes.map((item) => (
           <TouchableOpacity key={item.mode} style={styles.modeCard} onPress={() => startMode(item.mode)} activeOpacity={0.9}>
             <View style={styles.modeIcon}>
-              <Ionicons name={item.icon as any} size={22} color={colors.text} />
+              <Ionicons name={item.icon as any} size={34} color={colors.text} />
             </View>
             <Text style={styles.modeTitle} numberOfLines={1}>{item.title}</Text>
             <Text style={styles.modeHint} numberOfLines={1}>{item.hint}</Text>
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 10 },
   modeRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   modeCard: { flex: 1, borderRadius: 16, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingVertical: 16, paddingHorizontal: 6, alignItems: 'center' },
-  modeIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  modeIcon: { alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   modeTitle: { color: colors.text, fontSize: 13, fontWeight: '900', textAlign: 'center' },
   modeHint: { marginTop: 3, color: colors.textMuted, fontSize: 11, fontWeight: '700', textAlign: 'center' },
   linksCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 12, marginBottom: 18 },
