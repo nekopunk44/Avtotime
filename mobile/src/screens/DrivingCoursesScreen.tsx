@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -135,10 +135,8 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
 
       <View style={styles.bento}>
         <TouchableOpacity style={styles.examBig} onPress={() => startMode('exam')} activeOpacity={0.9}>
-          <View>
-            <Ionicons name={modes[0].icon as any} size={46} color={colors.text} style={styles.examIcon} />
-            <Text style={styles.examTitle}>Экзамен</Text>
-          </View>
+          <MaterialCommunityIcons name="clipboard-check-outline" size={50} color={colors.text} style={styles.examIcon} />
+          <Text style={styles.examTitle}>Экзамен</Text>
           <Text style={styles.examHint}>20 вопросов на время. Чтобы сдать, нужно ответить верно минимум на 70%.</Text>
         </TouchableOpacity>
 
@@ -222,8 +220,8 @@ const styles = StyleSheet.create({
   errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '700' },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 10 },
   bento: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  examBig: { flex: 1, borderRadius: 18, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 18, justifyContent: 'space-between' },
-  examIcon: { marginBottom: 6 },
+  examBig: { flex: 1, borderRadius: 18, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 18, justifyContent: 'center' },
+  examIcon: { marginBottom: 8 },
   examTitle: { color: colors.text, fontSize: 21, fontWeight: '900' },
   examHint: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '600' },
   sideCol: { width: 132, gap: 12 },
