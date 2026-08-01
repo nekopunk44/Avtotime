@@ -133,16 +133,28 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
         </View>
       ) : null}
 
-      <View style={styles.modeRow}>
-        {modes.map((item) => (
-          <TouchableOpacity key={item.mode} style={styles.modeCard} onPress={() => startMode(item.mode)} activeOpacity={0.9}>
-            <View style={styles.modeIcon}>
-              <Ionicons name={item.icon as any} size={34} color={colors.text} />
-            </View>
-            <Text style={styles.modeTitle} numberOfLines={1}>{item.title}</Text>
-            <Text style={styles.modeHint} numberOfLines={1}>{item.hint}</Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.bento}>
+        <TouchableOpacity style={styles.examBig} onPress={() => startMode('exam')} activeOpacity={0.9}>
+          <Ionicons name={modes[0].icon as any} size={40} color={colors.text} />
+          <View>
+            <Text style={styles.examTitle}>Экзамен</Text>
+            <Text style={styles.examHint}>20 вопросов · таймер · 70%</Text>
+          </View>
+          <View style={styles.examStart}>
+            <Text style={styles.examStartText}>Начать</Text>
+            <Ionicons name="arrow-forward" size={16} color={colors.onAccent} />
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.sideCol}>
+          {[modes[2], modes[1]].map((item) => (
+            <TouchableOpacity key={item.mode} style={styles.sideCard} onPress={() => startMode(item.mode)} activeOpacity={0.9}>
+              <Ionicons name={item.icon as any} size={26} color={colors.text} />
+              <Text style={styles.sideTitle} numberOfLines={1}>{item.title}</Text>
+              <Text style={styles.sideHint} numberOfLines={1}>{item.hint}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       <View style={styles.linksCard}>
@@ -213,11 +225,16 @@ const styles = StyleSheet.create({
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderColor: 'rgba(255,90,95,0.25)', borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 12, marginBottom: 12 },
   errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '700' },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 10 },
-  modeRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  modeCard: { flex: 1, borderRadius: 16, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingVertical: 16, paddingHorizontal: 6, alignItems: 'center' },
-  modeIcon: { alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  modeTitle: { color: colors.text, fontSize: 13, fontWeight: '900', textAlign: 'center' },
-  modeHint: { marginTop: 3, color: colors.textMuted, fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  bento: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  examBig: { flex: 1, borderRadius: 18, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 18, justifyContent: 'space-between' },
+  examTitle: { color: colors.text, fontSize: 21, fontWeight: '900' },
+  examHint: { marginTop: 5, color: colors.textMuted, fontSize: 13, fontWeight: '600' },
+  examStart: { alignSelf: 'flex-start', height: 40, paddingHorizontal: 18, borderRadius: 999, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  examStartText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
+  sideCol: { width: 132, gap: 12 },
+  sideCard: { minHeight: 88, borderRadius: 16, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 13, justifyContent: 'center' },
+  sideTitle: { marginTop: 8, color: colors.text, fontSize: 15, fontWeight: '900' },
+  sideHint: { marginTop: 2, color: colors.textMuted, fontSize: 11, fontWeight: '700' },
   linksCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 12, marginBottom: 18 },
   linkRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 },
   linkIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
