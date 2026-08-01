@@ -61,6 +61,7 @@ import { Post } from '../api/posts';
 import DrivingCoursesScreen from '../screens/DrivingCoursesScreen';
 import DrivingQuizScreen from '../screens/DrivingQuizScreen';
 import DrivingResultsScreen from '../screens/DrivingResultsScreen';
+import DrivingTicketsScreen from '../screens/DrivingTicketsScreen';
 import { DrivingMode } from '../api/driving';
 import StoryViewerScreen from '../screens/StoryViewerScreen';
 import { Story } from '../api/stories';
@@ -111,6 +112,7 @@ export type AppStackParamList = {
   SavedPosts: undefined;
   DrivingQuiz: { mode: DrivingMode; ticketNumber?: number };
   DrivingResults: { mode?: DrivingMode } | undefined;
+  DrivingTickets: undefined;
   StoryViewer: { story: Story };
 };
 
@@ -261,6 +263,7 @@ export default function AppNavigator() {
       <Stack.Screen name="AdminUserDetails" component={AdminUserDetailsScreen} options={{ title: 'Пользователь' }} />
       <Stack.Screen name="DrivingQuiz" component={DrivingQuizScreen} options={{ title: 'Автокурсы' }} />
       <Stack.Screen name="DrivingResults" component={DrivingResultsScreen} options={{ title: 'Результаты' }} />
+      <Stack.Screen name="DrivingTickets" component={DrivingTicketsScreen} options={{ title: 'Все билеты' }} />
       <Stack.Screen name="StoryViewer" component={StoryViewerScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EditMarketListing" component={EditMarketListingScreen} options={{ title: 'Редактировать' }} />
       <Stack.Screen name="MarketReviews" component={MarketReviewsScreen} options={{ title: 'Отзывы' }} />

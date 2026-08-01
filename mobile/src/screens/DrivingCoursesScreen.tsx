@@ -1,7 +1,6 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -14,11 +13,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   DrivingMode,
-  DrivingStatistics,
   DrivingTestResult,
   DrivingTicket,
   getDrivingResults,
-  getDrivingStatistics,
   getDrivingTickets,
 } from '../api/driving';
 import { AppStackParamList } from '../navigation/AppNavigator';
@@ -37,17 +34,17 @@ const modes: Array<{
   {
     mode: 'exam',
     title: 'Экзамен',
-    description: '20 вопросов, результат и проходной балл 70%',
+    description: '20 вопросов, таймер и проходной балл 70%',
     icon: 'timer-outline',
-    color: '#1d4ed8',
-    backgroundColor: colors.surfaceAlt,
+    color: '#4D96FF',
+    backgroundColor: 'rgba(77,150,255,0.14)',
   },
   {
     mode: 'practice',
     title: 'Тренировка',
     description: 'Билет без таймера, ответы с объяснениями',
     icon: 'book-outline',
-    color: '#b45309',
+    color: '#F6B23D',
     backgroundColor: 'rgba(246,178,61,0.14)',
   },
   {
@@ -55,8 +52,8 @@ const modes: Array<{
     title: 'Марафон',
     description: '100 случайных вопросов для закрепления',
     icon: 'flash-outline',
-    color: '#7c3aed',
-    backgroundColor: colors.surfaceAlt,
+    color: '#9D4EDD',
+    backgroundColor: 'rgba(157,78,221,0.16)',
   },
 ];
 
@@ -75,9 +72,7 @@ const formatDate = (value?: string) => {
 
 export default function DrivingCoursesScreen({ navigation }: Props) {
   const [tickets, setTickets] = useState<DrivingTicket[]>([]);
-  const [statistics, setStatistics] = useState<DrivingStatistics | null>(null);
-  const [recentResults, setRecentResults] = useState<DrivingTestResult[]>([]);
-  const [selectedMode, setSelectedMode] = useState<DrivingMode>('exam');
+  const [results, setResults] = useState<DrivingTestResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -85,14 +80,12 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
   const loadData = useCallback(async () => {
     setError('');
     try {
-      const [ticketData, statsData] = await Promise.all([
+      const [ticketData, resultData] = await Promise.all([
         getDrivingTickets(),
-        getDrivingStatistics().catch(() => null),
+        getDrivingResults({ limit: 50 }).catch(() => []),
       ]);
-      const resultData = await getDrivingResults({ limit: 5 }).catch(() => []);
       setTickets(ticketData);
-      setStatistics(statsData);
-      setRecentResults(resultData);
+      setResults(resultData);
     } catch (e: any) {
       setError(e.response?.data?.message || 'Не удалось загрузить автокурсы');
     } finally {
@@ -110,20 +103,36 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
     loadData();
   };
 
-  const startMode = (mode: DrivingMode, ticketNumber?: number) => {
+  // Ticket numbers the user has already passed — so a mode can open the next
+  // ticket they still need to do.
+  const passedTickets = useMemo(() => {
+    const set = new Set<number>();
+    results.forEach((result) => {
+      if (result.passed) (result.ticketNumbers || []).forEach((n) => set.add(n));
+    });
+    return set;
+  }, [results]);
+
+  const recent = results.slice(0, 3);
+
+  const startMode = (mode: DrivingMode) => {
+    if (mode === 'marathon') {
+      navigation.navigate('DrivingQuiz', { mode });
+      return;
+    }
+    const all = tickets.length ? tickets.map((t) => t.number) : Array.from({ length: 40 }, (_, i) => i + 1);
+    const pool = all.filter((n) => !passedTickets.has(n));
+    const source = pool.length ? pool : all;
+    const ticketNumber = source[Math.floor(Math.random() * source.length)];
     navigation.navigate('DrivingQuiz', { mode, ticketNumber });
   };
 
-  const openResults = (mode?: DrivingMode) => {
-    navigation.navigate('DrivingResults', mode ? { mode } : undefined);
-  };
-
   const repeatResult = (result: DrivingTestResult) => {
-    const firstTicket = result.ticketNumbers?.[0];
-    startMode(result.mode, result.mode === 'marathon' ? undefined : firstTicket);
+    navigation.navigate('DrivingQuiz', {
+      mode: result.mode,
+      ticketNumber: result.mode === 'marathon' ? undefined : result.ticketNumbers?.[0],
+    });
   };
-
-  const activeMode = modes.find((item) => item.mode === selectedMode) ?? modes[0];
 
   if (loading) {
     return <View style={styles.center}><ActivityIndicator size="large" color={colors.text} /></View>;
@@ -147,42 +156,63 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
         </View>
       ) : null}
 
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{statistics?.totalTests ?? 0}</Text>
-          <Text style={styles.statLabel}>тестов</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{statistics?.averagePercentage ?? 0}%</Text>
-          <Text style={styles.statLabel}>средний балл</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{statistics?.passedExams ?? 0}</Text>
-          <Text style={styles.statLabel}>экзаменов</Text>
-        </View>
+      <Text style={styles.sectionTitle}>Режим</Text>
+      <View style={styles.modeList}>
+        {modes.map((item) => (
+          <TouchableOpacity
+            key={item.mode}
+            style={styles.modeCard}
+            onPress={() => startMode(item.mode)}
+            activeOpacity={0.88}
+          >
+            <View style={[styles.modeIcon, { backgroundColor: item.backgroundColor }]}>
+              <Ionicons name={item.icon as any} size={22} color={item.color} />
+            </View>
+            <View style={styles.modeTextWrap}>
+              <Text style={styles.modeTitle}>{item.title}</Text>
+              <Text style={styles.modeDescription}>{item.description}</Text>
+            </View>
+            <View style={styles.startPill}>
+              <Text style={styles.startPillText}>Начать</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      <TouchableOpacity style={styles.historyBtn} onPress={() => openResults()} activeOpacity={0.88}>
-        <View style={styles.historyIcon}>
-          <Ionicons name="stats-chart-outline" size={20} color={colors.text} />
-        </View>
-        <View style={styles.historyTextWrap}>
-          <Text style={styles.historyTitle}>История результатов</Text>
-          <Text style={styles.historySubtitle}>Оценки, ошибки и повтор билетов</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-      </TouchableOpacity>
+      <View style={styles.linksCard}>
+        <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('DrivingTickets')} activeOpacity={0.85}>
+          <View style={styles.linkIcon}>
+            <Ionicons name="grid-outline" size={19} color={colors.text} />
+          </View>
+          <View style={styles.rowTextWrap}>
+            <Text style={styles.rowTitle}>Все билеты</Text>
+            <Text style={styles.rowSubtitle}>Выберите конкретный билет</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
+        </TouchableOpacity>
+        <View style={styles.linkDivider} />
+        <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('DrivingResults')} activeOpacity={0.85}>
+          <View style={styles.linkIcon}>
+            <Ionicons name="stats-chart-outline" size={19} color={colors.text} />
+          </View>
+          <View style={styles.rowTextWrap}>
+            <Text style={styles.rowTitle}>История результатов</Text>
+            <Text style={styles.rowSubtitle}>Оценки, ошибки и повтор</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
+        </TouchableOpacity>
+      </View>
 
-      {recentResults.length ? (
+      {recent.length ? (
         <View style={styles.recentBlock}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitleCompact}>Последние попытки</Text>
-            <TouchableOpacity onPress={() => openResults()}>
+            <TouchableOpacity onPress={() => navigation.navigate('DrivingResults')}>
               <Text style={styles.sectionLink}>Все</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.recentList}>
-            {recentResults.map((result) => (
+            {recent.map((result) => (
               <TouchableOpacity
                 key={result._id}
                 style={styles.resultMiniCard}
@@ -203,65 +233,6 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
           </View>
         </View>
       ) : null}
-
-      <Text style={styles.sectionTitle}>Режим</Text>
-      <View style={styles.modeList}>
-        {modes.map((item) => {
-          const selected = item.mode === selectedMode;
-          return (
-            <TouchableOpacity
-              key={item.mode}
-              style={[styles.modeCard, selected && styles.modeCardActive, { backgroundColor: selected ? item.backgroundColor : colors.surface }]}
-              onPress={() => setSelectedMode(item.mode)}
-              activeOpacity={0.88}
-            >
-              <View style={[styles.modeIcon, { backgroundColor: item.backgroundColor }]}>
-                <Ionicons name={item.icon as any} size={22} color={item.color} />
-              </View>
-              <View style={styles.modeTextWrap}>
-                <Text style={styles.modeTitle}>{item.title}</Text>
-                <Text style={styles.modeDescription}>{item.description}</Text>
-              </View>
-              {selected ? <Ionicons name="checkmark-circle" size={22} color={item.color} /> : null}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {selectedMode === 'marathon' ? (
-        <TouchableOpacity
-          style={[styles.startBigBtn, { backgroundColor: activeMode.color }]}
-          onPress={() => startMode('marathon')}
-          activeOpacity={0.9}
-        >
-          <Ionicons name="flash-outline" size={20} color="#fff" />
-          <Text style={styles.startBigText}>Начать марафон</Text>
-        </TouchableOpacity>
-      ) : (
-        <>
-          <View style={styles.ticketHeader}>
-            <Text style={styles.sectionTitle}>Билеты</Text>
-            <Text style={styles.ticketHint}>1-40</Text>
-          </View>
-          <FlatList
-            data={tickets.length ? tickets : Array.from({ length: 40 }, (_, index) => ({ number: index + 1, totalQuestions: 20 }))}
-            keyExtractor={(item) => String(item.number)}
-            numColumns={5}
-            scrollEnabled={false}
-            columnWrapperStyle={styles.ticketRow}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.ticketBtn}
-                onPress={() => startMode(selectedMode, item.number)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.ticketNumber}>{item.number}</Text>
-                <Text style={styles.ticketCount}>{item.totalQuestions || 20}</Text>
-              </TouchableOpacity>
-            )}
-          />
-        </>
-      )}
     </ScrollView>
   );
 }
@@ -269,47 +240,38 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 28 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
-  header: { paddingTop: 6, paddingBottom: 16 },
-  title: { color: colors.text, fontSize: 25, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13, fontWeight: '700', lineHeight: 19 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+  header: { paddingTop: 6, paddingBottom: 16, alignItems: 'center' },
+  title: { color: colors.text, fontSize: 26, fontWeight: '900', textAlign: 'center' },
+  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13, fontWeight: '700', lineHeight: 19, textAlign: 'center' },
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderColor: 'rgba(255,90,95,0.25)', borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 12, marginBottom: 12 },
   errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '700' },
-  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 18 },
-  statCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 8, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
-  statValue: { color: colors.text, fontSize: 20, fontWeight: '900' },
-  statLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', marginTop: 3 },
-  historyBtn: { minHeight: 68, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  historyIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  historyTextWrap: { flex: 1 },
-  historyTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  historySubtitle: { marginTop: 3, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  recentBlock: { marginBottom: 18 },
+  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 10 },
+  modeList: { gap: 9, marginBottom: 16 },
+  modeCard: { minHeight: 82, borderRadius: 16, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingVertical: 12, paddingLeft: 12, paddingRight: 12, flexDirection: 'row', alignItems: 'center', gap: 13 },
+  modeIcon: { width: 50, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  modeTextWrap: { flex: 1 },
+  modeTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
+  modeDescription: { marginTop: 3, color: colors.textMuted, fontSize: 12, lineHeight: 17 },
+  startPill: { height: 34, paddingHorizontal: 14, borderRadius: 999, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  startPillText: { color: colors.onAccent, fontSize: 13, fontWeight: '900' },
+  linksCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 12, marginBottom: 18 },
+  linkRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 },
+  linkIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  linkDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 50 },
+  rowTextWrap: { flex: 1 },
+  rowTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  rowSubtitle: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  recentBlock: { marginBottom: 6 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   sectionTitleCompact: { color: colors.text, fontSize: 17, fontWeight: '900' },
   sectionLink: { color: colors.text, fontSize: 13, fontWeight: '900' },
   recentList: { gap: 8 },
-  resultMiniCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  resultMiniCard: { backgroundColor: colors.surface, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12 },
   resultMiniTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   resultMiniMode: { color: colors.text, fontSize: 14, fontWeight: '900' },
   resultMiniStatus: { fontSize: 16, fontWeight: '900' },
-  resultPassed: { color: '#15803d' },
-  resultFailed: { color: '#b91c1c' },
+  resultPassed: { color: colors.success },
+  resultFailed: { color: colors.danger },
   resultMiniMeta: { marginTop: 4, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 10 },
-  modeList: { gap: 9 },
-  modeCard: { minHeight: 78, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  modeCardActive: { borderColor: '#d5d5d5' },
-  modeIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  modeTextWrap: { flex: 1 },
-  modeTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
-  modeDescription: { marginTop: 3, color: colors.textMuted, fontSize: 12, lineHeight: 17 },
-  startBigBtn: { height: 52, borderRadius: 12, marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  startBigText: { color: '#fff', fontWeight: '900', fontSize: 16 },
-  ticketHeader: { marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  ticketHint: { color: colors.textFaint, fontSize: 12, fontWeight: '800' },
-  ticketRow: { gap: 8, marginBottom: 8 },
-  ticketBtn: { flex: 1, aspectRatio: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  ticketNumber: { color: colors.text, fontSize: 17, fontWeight: '900' },
-  ticketCount: { marginTop: 2, color: colors.textFaint, fontSize: 10, fontWeight: '800' },
 });

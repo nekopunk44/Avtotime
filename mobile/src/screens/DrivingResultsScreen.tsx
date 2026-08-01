@@ -118,31 +118,25 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
     >
-      <View style={styles.header}>
-        <View style={styles.headerIcon}>
-          <Ionicons name="stats-chart-outline" size={28} color={colors.text} />
-        </View>
-        <Text style={styles.title}>Результаты</Text>
-        <Text style={styles.subtitle}>История тестов, экзаменов и тренировок по билетам ПДД</Text>
-      </View>
-
       {error ? (
         <View style={styles.errorBox}>
-          <Ionicons name="alert-circle-outline" size={22} color="#b91c1c" />
+          <Ionicons name="alert-circle-outline" size={22} color={colors.danger} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : null}
 
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
+      <View style={styles.statsStrip}>
+        <View style={styles.stat}>
           <Text style={styles.statValue}>{statistics?.totalTests ?? totals.attempts}</Text>
           <Text style={styles.statLabel}>попыток</Text>
         </View>
-        <View style={styles.statCard}>
+        <View style={styles.statDivider} />
+        <View style={styles.stat}>
           <Text style={styles.statValue}>{statistics?.averagePercentage ?? 0}%</Text>
           <Text style={styles.statLabel}>средний балл</Text>
         </View>
-        <View style={styles.statCard}>
+        <View style={styles.statDivider} />
+        <View style={styles.stat}>
           <Text style={styles.statValue}>{statistics?.passedExams ?? 0}</Text>
           <Text style={styles.statLabel}>экзаменов</Text>
         </View>
@@ -163,17 +157,6 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
           );
         })}
       </ScrollView>
-
-      <View style={styles.summaryBox}>
-        <View style={styles.summaryItem}>
-          <Ionicons name="checkmark-done-outline" size={20} color="#15803d" />
-          <Text style={styles.summaryText}>{totals.correct} верных ответов</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Ionicons name="help-circle-outline" size={20} color={colors.textMuted} />
-          <Text style={styles.summaryText}>{totals.questions} вопросов пройдено</Text>
-        </View>
-      </View>
 
       {results.length ? (
         <View style={styles.resultList}>
@@ -247,24 +230,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 28 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
-  header: { alignItems: 'center', paddingTop: 10, paddingBottom: 18 },
-  headerIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  title: { marginTop: 12, color: colors.text, fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderColor: '#fee2e2', borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 12 },
-  errorText: { flex: 1, color: '#991b1b', fontSize: 13, fontWeight: '700' },
-  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  statCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 8, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
-  statValue: { color: colors.text, fontSize: 20, fontWeight: '900' },
-  statLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', marginTop: 3 },
-  filters: { gap: 8, paddingVertical: 8 },
-  filterBtn: { height: 38, paddingHorizontal: 14, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' },
-  filterBtnActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
+  errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderColor: 'rgba(255,90,95,0.25)', borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 12, marginBottom: 12 },
+  errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '700' },
+  statsStrip: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingVertical: 12, marginTop: 8, marginBottom: 4 },
+  stat: { flex: 1, alignItems: 'center' },
+  statDivider: { width: StyleSheet.hairlineWidth, height: 28, backgroundColor: colors.border },
+  statValue: { color: colors.text, fontSize: 19, fontWeight: '900' },
+  statLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '800', marginTop: 3 },
+  filters: { gap: 8, paddingVertical: 10 },
+  filterBtn: { height: 36, paddingHorizontal: 15, borderRadius: 999, backgroundColor: colors.surfaceAlt, justifyContent: 'center' },
+  filterBtnActive: { backgroundColor: colors.accent },
   filterText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  filterTextActive: { color: '#fff' },
-  summaryBox: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 9, marginTop: 6, marginBottom: 14 },
-  summaryItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  summaryText: { color: colors.text, fontSize: 13, fontWeight: '800' },
+  filterTextActive: { color: colors.onAccent },
   resultList: { gap: 10 },
   resultCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 13 },
   resultTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
