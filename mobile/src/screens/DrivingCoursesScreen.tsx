@@ -138,11 +138,7 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
           <Ionicons name={modes[0].icon as any} size={40} color={colors.text} />
           <View>
             <Text style={styles.examTitle}>Экзамен</Text>
-            <Text style={styles.examHint}>20 вопросов · таймер · 70%</Text>
-          </View>
-          <View style={styles.examStart}>
-            <Text style={styles.examStartText}>Начать</Text>
-            <Ionicons name="arrow-forward" size={16} color={colors.onAccent} />
+            <Text style={styles.examHint}>20 вопросов на время. Чтобы сдать, нужно ответить верно минимум на 70%.</Text>
           </View>
         </TouchableOpacity>
 
@@ -228,9 +224,7 @@ const styles = StyleSheet.create({
   bento: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   examBig: { flex: 1, borderRadius: 18, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 18, justifyContent: 'space-between' },
   examTitle: { color: colors.text, fontSize: 21, fontWeight: '900' },
-  examHint: { marginTop: 5, color: colors.textMuted, fontSize: 13, fontWeight: '600' },
-  examStart: { alignSelf: 'flex-start', height: 40, paddingHorizontal: 18, borderRadius: 999, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  examStartText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
+  examHint: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '600' },
   sideCol: { width: 132, gap: 12 },
   sideCard: { minHeight: 88, borderRadius: 16, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 13, justifyContent: 'center' },
   sideTitle: { marginTop: 8, color: colors.text, fontSize: 15, fontWeight: '900' },
