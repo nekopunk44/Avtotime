@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   FlatList,
   Image,
   RefreshControl,
@@ -29,6 +30,11 @@ import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 type FilterMode = 'all' | 'unread';
+
+const FILTERS: Array<{ value: FilterMode; label: string }> = [
+  { value: 'all', label: 'Все' },
+  { value: 'unread', label: 'Непрочитанные' },
+];
 
 const ICONS: Record<string, { name: keyof typeof Ionicons.glyphMap; color: string }> = {
   like: { name: 'heart', color: colors.danger },
@@ -74,6 +80,36 @@ export default function NotificationsScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState('');
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [segLayouts, setSegLayouts] = useState<Array<{ x: number; width: number }>>([]);
+  const thumbX = useRef(new Animated.Value(0)).current;
+  const thumbW = useRef(new Animated.Value(0)).current;
+  const thumbInited = useRef(false);
+  const activeIndex = filter === 'unread' ? 1 : 0;
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity style={styles.headerSettings} onPress={() => navigation.navigate('NotificationSettings')} hitSlop={8} activeOpacity={0.8}>
+          <Ionicons name="options-outline" size={22} color={colors.text} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
+  useEffect(() => {
+    const layout = segLayouts[activeIndex];
+    if (!layout) return;
+    if (!thumbInited.current) {
+      thumbInited.current = true;
+      thumbX.setValue(layout.x);
+      thumbW.setValue(layout.width);
+      return;
+    }
+    Animated.parallel([
+      Animated.spring(thumbX, { toValue: layout.x, useNativeDriver: false, friction: 10, tension: 90 }),
+      Animated.spring(thumbW, { toValue: layout.width, useNativeDriver: false, friction: 10, tension: 90 }),
+    ]).start();
+  }, [activeIndex, segLayouts, thumbX, thumbW]);
 
   const filtered = useMemo(
     () => (filter === 'unread' ? notifications.filter((item) => !item.isRead) : notifications),
@@ -283,26 +319,34 @@ export default function NotificationsScreen({ navigation }: Props) {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.toolbar}>
-        <View style={styles.segment}>
-          <TouchableOpacity
-            style={[styles.segmentBtn, filter === 'all' && styles.segmentBtnActive]}
-            onPress={() => setFilter('all')}
-          >
-            <Text style={[styles.segmentText, filter === 'all' && styles.segmentTextActive]}>Все</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.segmentBtn, filter === 'unread' && styles.segmentBtnActive]}
-            onPress={() => setFilter('unread')}
-          >
-            <Text style={[styles.segmentText, filter === 'unread' && styles.segmentTextActive]}>
-              Непрочитанные{unreadCount ? ` · ${unreadCount}` : ''}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity style={styles.settingsBtn} onPress={() => navigation.navigate('NotificationSettings')}>
-          <Ionicons name="options-outline" size={20} color={colors.text} />
-        </TouchableOpacity>
+      <View style={styles.segment}>
+        {segLayouts.length === FILTERS.length ? (
+          <Animated.View style={[styles.segThumb, { left: thumbX, width: thumbW }]} />
+        ) : null}
+        {FILTERS.map((item, index) => {
+          const active = filter === item.value;
+          return (
+            <TouchableOpacity
+              key={item.value}
+              style={styles.segmentBtn}
+              onPress={() => setFilter(item.value)}
+              onLayout={(e) => {
+                const { x, width } = e.nativeEvent.layout;
+                setSegLayouts((prev) => {
+                  if (prev[index] && prev[index].x === x && prev[index].width === width) return prev;
+                  const next = [...prev];
+                  next[index] = { x, width };
+                  return next;
+                });
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.segmentText, active && styles.segmentTextActive]} numberOfLines={1}>
+                {item.value === 'unread' ? `Непрочитанные${unreadCount ? ` · ${unreadCount}` : ''}` : item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {notifications.length ? (
@@ -391,13 +435,12 @@ const styles = StyleSheet.create({
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   header: { gap: 10, marginBottom: 4 },
-  toolbar: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  segment: { flex: 1, flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 999, padding: 4 },
-  segmentBtn: { flex: 1, height: 34, borderRadius: 999, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
-  segmentBtnActive: { backgroundColor: colors.accent },
-  segmentText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
+  headerSettings: { marginRight: 12, padding: 4 },
+  segment: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceAlt, borderRadius: 999, height: 34 },
+  segThumb: { position: 'absolute', top: 3, height: 28, borderRadius: 999, backgroundColor: colors.accent },
+  segmentBtn: { height: 28, marginVertical: 3, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
+  segmentText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
   segmentTextActive: { color: colors.onAccent },
-  settingsBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   bulkRow: { flexDirection: 'row', gap: 8 },
   bulkBtn: { flex: 1, height: 42, borderRadius: 12, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   bulkBtnDisabled: { opacity: 0.52 },
