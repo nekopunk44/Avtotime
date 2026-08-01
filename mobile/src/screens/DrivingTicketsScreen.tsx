@@ -1,6 +1,7 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   StyleSheet,
   Text,
@@ -31,7 +32,18 @@ export default function DrivingTicketsScreen({ navigation }: Props) {
   const [tickets, setTickets] = useState<DrivingTicket[]>([]);
   const [results, setResults] = useState<DrivingTestResult[]>([]);
   const [mode, setMode] = useState<Exclude<DrivingMode, 'marathon'>>('exam');
+  const [segW, setSegW] = useState(0);
   const [loading, setLoading] = useState(true);
+  const thumb = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(thumb, {
+      toValue: mode === 'exam' ? 0 : 1,
+      useNativeDriver: true,
+      friction: 9,
+      tension: 80,
+    }).start();
+  }, [mode, thumb]);
 
   const load = useCallback(async () => {
     try {
@@ -66,13 +78,21 @@ export default function DrivingTicketsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.segment}>
+      <View style={styles.segment} onLayout={(e) => setSegW((e.nativeEvent.layout.width - 8) / 2)}>
+        {segW > 0 ? (
+          <Animated.View
+            style={[
+              styles.segThumb,
+              { width: segW, transform: [{ translateX: thumb.interpolate({ inputRange: [0, 1], outputRange: [0, segW] }) }] },
+            ]}
+          />
+        ) : null}
         {runModes.map((item) => {
           const active = mode === item.mode;
           return (
             <TouchableOpacity
               key={item.mode}
-              style={[styles.segmentBtn, active && styles.segmentBtnActive]}
+              style={styles.segmentBtn}
               onPress={() => setMode(item.mode)}
               activeOpacity={0.85}
             >
@@ -113,8 +133,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   segment: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 999, padding: 4, marginHorizontal: 16, marginTop: 14 },
+  segThumb: { position: 'absolute', left: 4, top: 4, height: 38, borderRadius: 999, backgroundColor: colors.accent },
   segmentBtn: { flex: 1, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  segmentBtnActive: { backgroundColor: colors.accent },
   segmentText: { color: colors.textMuted, fontSize: 14, fontWeight: '900' },
   segmentTextActive: { color: colors.onAccent },
   grid: { padding: 16, paddingBottom: 28 },
