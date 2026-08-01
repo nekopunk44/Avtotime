@@ -1,6 +1,7 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -66,6 +67,13 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [segW, setSegW] = useState(0);
+  const thumb = useRef(new Animated.Value(0)).current;
+  const activeIndex = selectedMode === 'exam' ? 1 : selectedMode === 'practice' ? 2 : selectedMode === 'marathon' ? 3 : 0;
+
+  useEffect(() => {
+    Animated.spring(thumb, { toValue: activeIndex, useNativeDriver: true, friction: 9, tension: 80 }).start();
+  }, [activeIndex, thumb]);
 
   const loadData = useCallback(async () => {
     setError('');
@@ -142,21 +150,29 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
         </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+      <View style={styles.segment} onLayout={(e) => setSegW((e.nativeEvent.layout.width - 8) / filters.length)}>
+        {segW > 0 ? (
+          <Animated.View
+            style={[
+              styles.segThumb,
+              { width: segW, transform: [{ translateX: thumb.interpolate({ inputRange: [0, filters.length - 1], outputRange: [0, segW * (filters.length - 1)] }) }] },
+            ]}
+          />
+        ) : null}
         {filters.map((filter) => {
           const selected = selectedMode === filter.value;
           return (
             <TouchableOpacity
               key={filter.label}
-              style={[styles.filterBtn, selected && styles.filterBtnActive]}
+              style={styles.segmentBtn}
               onPress={() => setSelectedMode(filter.value)}
-              activeOpacity={0.86}
+              activeOpacity={0.85}
             >
-              <Text style={[styles.filterText, selected && styles.filterTextActive]}>{filter.label}</Text>
+              <Text style={[styles.segmentText, selected && styles.segmentTextActive]} numberOfLines={1}>{filter.label}</Text>
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
+      </View>
 
       {results.length ? (
         <View style={styles.resultList}>
@@ -237,11 +253,11 @@ const styles = StyleSheet.create({
   statDivider: { width: StyleSheet.hairlineWidth, height: 28, backgroundColor: colors.border },
   statValue: { color: colors.text, fontSize: 19, fontWeight: '900' },
   statLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '800', marginTop: 3 },
-  filters: { gap: 8, paddingVertical: 10 },
-  filterBtn: { height: 36, paddingHorizontal: 15, borderRadius: 999, backgroundColor: colors.surfaceAlt, justifyContent: 'center' },
-  filterBtnActive: { backgroundColor: colors.accent },
-  filterText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  filterTextActive: { color: colors.onAccent },
+  segment: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 999, padding: 4, marginTop: 12, marginBottom: 4 },
+  segThumb: { position: 'absolute', left: 4, top: 4, height: 38, borderRadius: 999, backgroundColor: colors.accent },
+  segmentBtn: { flex: 1, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
+  segmentText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
+  segmentTextActive: { color: colors.onAccent },
   resultList: { gap: 10 },
   resultCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 13 },
   resultTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
