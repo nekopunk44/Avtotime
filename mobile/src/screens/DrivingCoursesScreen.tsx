@@ -157,26 +157,32 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
       ) : null}
 
       <Text style={styles.sectionTitle}>Режим</Text>
-      <View style={styles.modeList}>
-        {modes.map((item) => (
-          <TouchableOpacity
-            key={item.mode}
-            style={styles.modeCard}
-            onPress={() => startMode(item.mode)}
-            activeOpacity={0.88}
-          >
-            <View style={[styles.modeIcon, { backgroundColor: item.backgroundColor }]}>
-              <Ionicons name={item.icon as any} size={22} color={item.color} />
-            </View>
-            <View style={styles.modeTextWrap}>
-              <Text style={styles.modeTitle}>{item.title}</Text>
-              <Text style={styles.modeDescription}>{item.description}</Text>
-            </View>
-            <View style={styles.startPill}>
-              <Text style={styles.startPillText}>Начать</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.bento}>
+        <TouchableOpacity style={styles.examCard} onPress={() => startMode('exam')} activeOpacity={0.9}>
+          <View style={[styles.examIcon, { backgroundColor: modes[0].backgroundColor }]}>
+            <Ionicons name={modes[0].icon as any} size={26} color={modes[0].color} />
+          </View>
+          <View>
+            <Text style={styles.examTitle}>Экзамен</Text>
+            <Text style={styles.examDesc}>20 вопросов, таймер, проходной балл 70%</Text>
+          </View>
+          <View style={styles.examStart}>
+            <Text style={styles.examStartText}>Начать</Text>
+            <Ionicons name="arrow-forward" size={16} color={colors.onAccent} />
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.sideCol}>
+          {[modes[1], modes[2]].map((item) => (
+            <TouchableOpacity key={item.mode} style={styles.sideCard} onPress={() => startMode(item.mode)} activeOpacity={0.9}>
+              <View style={[styles.sideIcon, { backgroundColor: item.backgroundColor }]}>
+                <Ionicons name={item.icon as any} size={20} color={item.color} />
+              </View>
+              <Text style={styles.sideTitle}>{item.title}</Text>
+              <Text style={styles.sideDesc} numberOfLines={2}>{item.description}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       <View style={styles.linksCard}>
@@ -247,14 +253,18 @@ const styles = StyleSheet.create({
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderColor: 'rgba(255,90,95,0.25)', borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 12, marginBottom: 12 },
   errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '700' },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 10 },
-  modeList: { gap: 9, marginBottom: 16 },
-  modeCard: { minHeight: 82, borderRadius: 16, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingVertical: 12, paddingLeft: 12, paddingRight: 12, flexDirection: 'row', alignItems: 'center', gap: 13 },
-  modeIcon: { width: 50, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  modeTextWrap: { flex: 1 },
-  modeTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
-  modeDescription: { marginTop: 3, color: colors.textMuted, fontSize: 12, lineHeight: 17 },
-  startPill: { height: 34, paddingHorizontal: 14, borderRadius: 999, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  startPillText: { color: colors.onAccent, fontSize: 13, fontWeight: '900' },
+  bento: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  examCard: { flex: 1, aspectRatio: 1, borderRadius: 18, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 16, justifyContent: 'space-between' },
+  examIcon: { width: 54, height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  examTitle: { color: colors.text, fontSize: 20, fontWeight: '900' },
+  examDesc: { marginTop: 5, color: colors.textMuted, fontSize: 12, lineHeight: 17 },
+  examStart: { alignSelf: 'flex-start', height: 38, paddingHorizontal: 16, borderRadius: 999, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  examStartText: { color: colors.onAccent, fontSize: 14, fontWeight: '900' },
+  sideCol: { flex: 1, gap: 12 },
+  sideCard: { flex: 1, borderRadius: 18, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 13, justifyContent: 'center' },
+  sideIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginBottom: 9 },
+  sideTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  sideDesc: { marginTop: 3, color: colors.textMuted, fontSize: 11, lineHeight: 15 },
   linksCard: { backgroundColor: colors.surface, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 12, marginBottom: 18 },
   linkRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 },
   linkIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },

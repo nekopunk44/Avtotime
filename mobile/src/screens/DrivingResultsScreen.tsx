@@ -67,13 +67,28 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [segW, setSegW] = useState(0);
-  const thumb = useRef(new Animated.Value(0)).current;
+  // Content-sized segments spaced evenly, with a thumb that slides + resizes to
+  // the active one (so gaps between labels stay equal regardless of length).
+  const [segLayouts, setSegLayouts] = useState<Array<{ x: number; width: number }>>([]);
+  const thumbX = useRef(new Animated.Value(0)).current;
+  const thumbW = useRef(new Animated.Value(0)).current;
+  const thumbInited = useRef(false);
   const activeIndex = selectedMode === 'exam' ? 1 : selectedMode === 'practice' ? 2 : selectedMode === 'marathon' ? 3 : 0;
 
   useEffect(() => {
-    Animated.spring(thumb, { toValue: activeIndex, useNativeDriver: true, friction: 9, tension: 80 }).start();
-  }, [activeIndex, thumb]);
+    const layout = segLayouts[activeIndex];
+    if (!layout) return;
+    if (!thumbInited.current) {
+      thumbInited.current = true;
+      thumbX.setValue(layout.x);
+      thumbW.setValue(layout.width);
+      return;
+    }
+    Animated.parallel([
+      Animated.spring(thumbX, { toValue: layout.x, useNativeDriver: false, friction: 10, tension: 90 }),
+      Animated.spring(thumbW, { toValue: layout.width, useNativeDriver: false, friction: 10, tension: 90 }),
+    ]).start();
+  }, [activeIndex, segLayouts, thumbX, thumbW]);
 
   const loadData = useCallback(async () => {
     setError('');
@@ -150,22 +165,26 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
         </View>
       </View>
 
-      <View style={styles.segment} onLayout={(e) => setSegW((e.nativeEvent.layout.width - 8) / filters.length)}>
-        {segW > 0 ? (
-          <Animated.View
-            style={[
-              styles.segThumb,
-              { width: segW, transform: [{ translateX: thumb.interpolate({ inputRange: [0, filters.length - 1], outputRange: [0, segW * (filters.length - 1)] }) }] },
-            ]}
-          />
+      <View style={styles.segment}>
+        {segLayouts.length === filters.length ? (
+          <Animated.View style={[styles.segThumb, { left: thumbX, width: thumbW }]} />
         ) : null}
-        {filters.map((filter) => {
+        {filters.map((filter, index) => {
           const selected = selectedMode === filter.value;
           return (
             <TouchableOpacity
               key={filter.label}
               style={styles.segmentBtn}
               onPress={() => setSelectedMode(filter.value)}
+              onLayout={(e) => {
+                const { x, width } = e.nativeEvent.layout;
+                setSegLayouts((prev) => {
+                  if (prev[index] && prev[index].x === x && prev[index].width === width) return prev;
+                  const next = [...prev];
+                  next[index] = { x, width };
+                  return next;
+                });
+              }}
               activeOpacity={0.85}
             >
               <Text style={[styles.segmentText, selected && styles.segmentTextActive]} numberOfLines={1}>{filter.label}</Text>
@@ -244,7 +263,7 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 16, paddingBottom: 28 },
+  content: { flexGrow: 1, padding: 16, paddingBottom: 28 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderColor: 'rgba(255,90,95,0.25)', borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, padding: 12, marginBottom: 12 },
   errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '700' },
@@ -253,10 +272,10 @@ const styles = StyleSheet.create({
   statDivider: { width: StyleSheet.hairlineWidth, height: 28, backgroundColor: colors.border },
   statValue: { color: colors.text, fontSize: 19, fontWeight: '900' },
   statLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '800', marginTop: 3 },
-  segment: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 999, padding: 4, marginTop: 12, marginBottom: 4 },
-  segThumb: { position: 'absolute', left: 4, top: 4, height: 38, borderRadius: 999, backgroundColor: colors.accent },
-  segmentBtn: { flex: 1, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
-  segmentText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
+  segment: { flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center', backgroundColor: colors.surfaceAlt, borderRadius: 999, height: 46, marginTop: 12, marginBottom: 4 },
+  segThumb: { position: 'absolute', top: 4, height: 38, borderRadius: 999, backgroundColor: colors.accent },
+  segmentBtn: { height: 38, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
+  segmentText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
   segmentTextActive: { color: colors.onAccent },
   resultList: { gap: 10 },
   resultCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 13 },
@@ -278,7 +297,7 @@ const styles = StyleSheet.create({
   metaText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   repeatBtn: { marginTop: 12, height: 42, borderRadius: 10, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   repeatText: { color: colors.text, fontSize: 14, fontWeight: '900' },
-  emptyBox: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 22, alignItems: 'center' },
+  emptyBox: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 16 },
   emptyTitle: { marginTop: 10, color: colors.text, fontSize: 18, fontWeight: '900' },
   emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
   startBtn: { marginTop: 15, height: 42, paddingHorizontal: 20, borderRadius: 10, backgroundColor: colors.surfaceHi, justifyContent: 'center' },
