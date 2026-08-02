@@ -1,11 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   FlatList,
   Image,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,6 +37,28 @@ export default function MarketScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [segLayouts, setSegLayouts] = useState<Array<{ x: number; width: number }>>([]);
+  const thumbX = useRef(new Animated.Value(0)).current;
+  const thumbW = useRef(new Animated.Value(0)).current;
+  const thumbInited = useRef(false);
+  const catScrollRef = useRef<ScrollView>(null);
+  const activeIndex = Math.max(0, MARKET_CATEGORIES.findIndex((item) => item.id === categoryId));
+
+  useEffect(() => {
+    const layout = segLayouts[activeIndex];
+    if (!layout) return;
+    if (!thumbInited.current) {
+      thumbInited.current = true;
+      thumbX.setValue(layout.x);
+      thumbW.setValue(layout.width);
+      return;
+    }
+    Animated.parallel([
+      Animated.spring(thumbX, { toValue: layout.x, useNativeDriver: false, friction: 10, tension: 90 }),
+      Animated.spring(thumbW, { toValue: layout.width, useNativeDriver: false, friction: 10, tension: 90 }),
+    ]).start();
+    catScrollRef.current?.scrollTo({ x: Math.max(0, layout.x - 16), animated: true });
+  }, [activeIndex, segLayouts, thumbX, thumbW]);
 
   const activeCategory = useMemo(
     () => MARKET_CATEGORIES.find((item) => item.id === categoryId) ?? MARKET_CATEGORIES[0],
@@ -66,19 +91,6 @@ export default function MarketScreen({ navigation }: Props) {
   const refresh = () => {
     setRefreshing(true);
     loadListings(true);
-  };
-
-  const renderCategory = ({ item }: { item: MarketCategory }) => {
-    const active = item.id === categoryId;
-    return (
-      <PressableScale
-        style={[styles.catChip, active && styles.catChipActive]}
-        onPress={() => setCategoryId(item.id)}
-      >
-        <Ionicons name={item.icon as any} size={16} color={active ? colors.white : colors.text} />
-        <Text style={[styles.catText, active && styles.catTextActive]}>{item.shortLabel}</Text>
-      </PressableScale>
-    );
   };
 
   const renderListing = ({ item }: { item: MarketListing }) => {
@@ -139,14 +151,40 @@ export default function MarketScreen({ navigation }: Props) {
         <Ionicons name="options-outline" size={18} color={colors.text} />
       </PressableScale>
 
-      <FlatList
-        data={MARKET_CATEGORIES}
+      <ScrollView
+        ref={catScrollRef}
         horizontal
-        keyExtractor={(item) => item.id}
-        renderItem={renderCategory}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.catList}
-      />
+        style={styles.catScroll}
+        contentContainerStyle={styles.segment}
+      >
+        {segLayouts.length === MARKET_CATEGORIES.length ? (
+          <Animated.View style={[styles.segThumb, { left: thumbX, width: thumbW }]} />
+        ) : null}
+        {MARKET_CATEGORIES.map((item, index) => {
+          const active = item.id === categoryId;
+          return (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.segChip}
+              onPress={() => setCategoryId(item.id)}
+              onLayout={(e) => {
+                const { x, width } = e.nativeEvent.layout;
+                setSegLayouts((prev) => {
+                  if (prev[index] && prev[index].x === x && prev[index].width === width) return prev;
+                  const next = [...prev];
+                  next[index] = { x, width };
+                  return next;
+                });
+              }}
+              activeOpacity={0.85}
+            >
+              <Ionicons name={item.icon as any} size={16} color={active ? colors.onAccent : colors.text} />
+              <Text style={[styles.segText, active && styles.segTextActive]}>{item.shortLabel}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 
@@ -204,14 +242,12 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, color: colors.text, fontSize: font.body },
 
-  catList: { gap: 8, paddingVertical: space.md },
-  catChip: {
-    height: 40, borderRadius: radius.pill, paddingHorizontal: 14, flexDirection: 'row',
-    alignItems: 'center', gap: 6, backgroundColor: colors.surface, ...shadow.card,
-  },
-  catChipActive: { backgroundColor: colors.ink },
-  catText: { fontSize: font.small, fontWeight: '800', color: colors.text },
-  catTextActive: { color: colors.white },
+  catScroll: { marginTop: space.md, marginBottom: 2 },
+  segment: { flexDirection: 'row', alignItems: 'center', height: 44, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt },
+  segThumb: { position: 'absolute', top: 4, height: 36, borderRadius: radius.pill, backgroundColor: colors.accent },
+  segChip: { height: 44, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  segText: { fontSize: font.small, fontWeight: '800', color: colors.text },
+  segTextActive: { color: colors.onAccent },
 
   grid: { paddingHorizontal: space.md - 3, justifyContent: 'space-between' },
   listContent: { paddingBottom: space.lg },
