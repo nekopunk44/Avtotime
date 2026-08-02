@@ -43,6 +43,7 @@ import SnakeGameScreen from '../screens/SnakeGameScreen';
 import TetrisGameScreen from '../screens/TetrisGameScreen';
 import SudokuGameScreen from '../screens/SudokuGameScreen';
 import BillingScreen from '../screens/BillingScreen';
+import PaymentHistoryScreen from '../screens/PaymentHistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
@@ -98,6 +99,7 @@ export type AppStackParamList = {
   TetrisGame: undefined;
   SudokuGame: undefined;
   Billing: undefined;
+  PaymentHistory: undefined;
   Settings: undefined;
   PrivacyPolicy: undefined;
   EmailVerification: undefined;
@@ -256,6 +258,7 @@ export default function AppNavigator() {
       <Stack.Screen name="TetrisGame" component={TetrisGameScreen} options={{ title: 'Тетрис' }} />
       <Stack.Screen name="SudokuGame" component={SudokuGameScreen} options={{ title: 'Судоку' }} />
       <Stack.Screen name="Billing" component={BillingScreen} options={{ title: 'Тарифы' }} />
+      <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} options={{ title: 'История платежей' }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Настройки' }} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ title: 'Политика' }} />
       <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} options={{ title: 'Email' }} />

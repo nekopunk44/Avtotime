@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,8 +16,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   BillingStatus,
   getBillingStatus,
-  getPaymentGeo,
-  PaymentRow,
   PlanKey,
   setFreePlan,
   WEB_TARIFFS_URL,
@@ -42,13 +40,6 @@ const PLAN_LABEL: Record<string, string> = {
   free: 'Базовый',
   pro: 'Pro Seller',
   business: 'Business',
-};
-
-const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
-  succeeded: { label: 'Оплачен', color: colors.success, bg: 'rgba(61,214,140,0.15)' },
-  pending: { label: 'В обработке', color: colors.warning, bg: 'rgba(246,178,61,0.15)' },
-  failed: { label: 'Ошибка', color: colors.danger, bg: 'rgba(255,90,95,0.14)' },
-  refunded: { label: 'Возврат', color: colors.textMuted, bg: colors.surfaceAlt },
 };
 
 const PLANS: PlanCard[] = [
@@ -124,19 +115,6 @@ const formatDate = (value?: string | null) => {
   });
 };
 
-const formatDateTime = (value?: string | null) => {
-  if (!value) return 'Нет даты';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Нет даты';
-  return date.toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
 const formatAmount = (amount: number, currency?: string) => {
   const code = (currency || 'eur').toUpperCase();
   const value = (Number(amount || 0) / 100).toFixed(2);
@@ -147,7 +125,6 @@ const formatAmount = (amount: number, currency?: string) => {
 
 export default function BillingScreen({ navigation }: Props) {
   const [status, setStatus] = useState<BillingStatus>(emptyStatus);
-  const [geo, setGeo] = useState<{ country: string | null; isCis: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -165,12 +142,7 @@ export default function BillingScreen({ navigation }: Props) {
     if (!silent) setLoading(true);
     setError('');
     try {
-      const [nextStatus, nextGeo] = await Promise.all([
-        getBillingStatus(),
-        getPaymentGeo().catch(() => null),
-      ]);
-      setStatus(nextStatus);
-      setGeo(nextGeo);
+      setStatus(await getBillingStatus());
     } catch (e: any) {
       setError(e.response?.data?.message || 'Не удалось загрузить тарифы');
     } finally {
@@ -182,6 +154,16 @@ export default function BillingScreen({ navigation }: Props) {
   useFocusEffect(useCallback(() => {
     load();
   }, [load]));
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('PaymentHistory')} hitSlop={8} activeOpacity={0.8}>
+          <Ionicons name="receipt-outline" size={22} color={colors.text} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
 
   const refresh = () => {
     setRefreshing(true);
@@ -276,43 +258,8 @@ export default function BillingScreen({ navigation }: Props) {
     );
   };
 
-  const renderPayment = (payment: PaymentRow, index: number) => {
-    const statusInfo = STATUS_LABEL[payment.status] || { label: payment.status, color: colors.textMuted, bg: colors.surfaceAlt };
-    const planLabel = PLAN_LABEL[payment.plan] || payment.plan;
-
-    return (
-      <View key={payment._id || `${payment.createdAt}-${index}`} style={styles.paymentRow}>
-        <View style={styles.paymentIcon}>
-          <Ionicons name={payment.plan === 'business' ? 'business-outline' : 'sparkles-outline'} size={20} color={colors.danger} />
-        </View>
-        <View style={styles.paymentInfo}>
-          <Text style={styles.paymentTitle}>{planLabel}</Text>
-          <Text style={styles.paymentDate}>{formatDateTime(payment.createdAt)}</Text>
-        </View>
-        <View style={styles.paymentRight}>
-          <Text style={styles.paymentAmount}>{formatAmount(payment.amount, payment.currency)}</Text>
-          <Text style={[styles.statusPill, { color: statusInfo.color, backgroundColor: statusInfo.bg }]}>
-            {statusInfo.label}
-          </Text>
-        </View>
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
-      <View style={styles.top}>
-        <View style={styles.titleRow}>
-          <View style={styles.titleBlock}>
-            <Text style={styles.title}>Тарифы</Text>
-            <Text style={styles.subtitle}>План, лимиты и история платежей AVTOTIME Market</Text>
-          </View>
-          <TouchableOpacity style={styles.historyBtn} onPress={() => navigation.navigate('MarketAnalytics')} activeOpacity={0.85}>
-            <Ionicons name="bar-chart-outline" size={22} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.text} />
@@ -342,22 +289,6 @@ export default function BillingScreen({ navigation }: Props) {
             </View>
           </View>
 
-          <View style={styles.geoBox}>
-            <View style={styles.geoIcon}>
-              <Ionicons name="earth-outline" size={20} color={geo?.isCis ? '#b45309' : '#14843b'} />
-            </View>
-            <View style={styles.geoTextWrap}>
-              <Text style={styles.geoTitle}>
-                {geo?.country ? `Регион оплаты: ${geo.country}` : 'Регион оплаты не определен'}
-              </Text>
-              <Text style={styles.geoText}>
-                {geo?.isCis
-                  ? 'Backend определил CIS-регион. Для оплаты может быть удобнее web checkout.'
-                  : 'Backend не видит ограничений CIS для текущего IP.'}
-              </Text>
-            </View>
-          </View>
-
           <View style={styles.noticeBox}>
             <Ionicons name="card-outline" size={22} color={colors.text} />
             <Text style={styles.noticeText}>
@@ -368,25 +299,6 @@ export default function BillingScreen({ navigation }: Props) {
           <View style={styles.planList}>
             {PLANS.map(renderPlan)}
           </View>
-
-          <View style={styles.historyBlock}>
-            <View style={styles.sectionTitleRow}>
-              <Ionicons name="receipt-outline" size={21} color={colors.text} />
-              <Text style={styles.sectionTitle}>История платежей</Text>
-            </View>
-
-            {status.payments.length ? (
-              <View style={styles.paymentsList}>
-                {status.payments.map(renderPayment)}
-              </View>
-            ) : (
-              <View style={styles.emptyHistory}>
-                <Ionicons name="receipt-outline" size={34} color={colors.textFaint} />
-                <Text style={styles.emptyTitle}>Платежей пока нет</Text>
-                <Text style={styles.emptyText}>После оплаты Pro или Business операции появятся здесь.</Text>
-              </View>
-            )}
-          </View>
         </ScrollView>
       )}
     </View>
@@ -395,14 +307,9 @@ export default function BillingScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  titleBlock: { flex: 1 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13 },
-  historyBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  headerBtn: { marginRight: 12, padding: 4 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scrollContent: { padding: 12, paddingBottom: 28, gap: 10 },
+  scrollContent: { padding: 12, paddingTop: 14, paddingBottom: 28, gap: 10 },
   statusCard: { borderRadius: 8, backgroundColor: colors.surfaceHi, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
   statusLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   statusPlan: { marginTop: 5, color: '#fff', fontSize: 27, fontWeight: '900' },
@@ -411,11 +318,6 @@ const styles = StyleSheet.create({
   statusStatValue: { color: '#fff', fontSize: 24, fontWeight: '900' },
   statusStatLabel: { color: 'rgba(255,255,255,0.58)', fontSize: 12, fontWeight: '800' },
   statusStatTotal: { marginTop: 8, color: '#fff', fontSize: 13, fontWeight: '900' },
-  geoBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  geoIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  geoTextWrap: { flex: 1 },
-  geoTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
-  geoText: { marginTop: 3, color: colors.textMuted, fontSize: 12, lineHeight: 17, fontWeight: '700' },
   noticeBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
   noticeText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700' },
   planList: { gap: 10 },
@@ -438,21 +340,6 @@ const styles = StyleSheet.create({
   planBtnText: { fontSize: 14, fontWeight: '900' },
   planBtnTextActive: { color: colors.onAccent },
   planBtnTextDisabled: { color: colors.textMuted },
-  historyBlock: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 14 },
-  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
-  paymentsList: { gap: 9, marginTop: 12 },
-  paymentRow: { minHeight: 70, borderRadius: 8, backgroundColor: colors.bg, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  paymentIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center' },
-  paymentInfo: { flex: 1 },
-  paymentTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
-  paymentDate: { marginTop: 3, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  paymentRight: { alignItems: 'flex-end', gap: 6 },
-  paymentAmount: { color: colors.text, fontSize: 14, fontWeight: '900' },
-  statusPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  emptyHistory: { alignItems: 'center', paddingVertical: 28 },
-  emptyTitle: { marginTop: 9, color: colors.text, fontSize: 16, fontWeight: '900' },
-  emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
   errorBox: { borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: 1, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
 });
