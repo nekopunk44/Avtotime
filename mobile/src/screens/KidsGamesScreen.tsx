@@ -493,44 +493,38 @@ export default function KidsGamesScreen({ navigation }: Props) {
         })}
       </ScrollView>
 
-      {filteredGames.map((game) => (
-        <View key={game.key} style={styles.gameCard}>
-          {game.image ? (
-            <Image source={{ uri: game.image }} style={styles.gameImage} />
-          ) : game.kind === 'built-in' ? (
-            <GamePreview gameId={game.gameId} style={styles.gameImage} />
-          ) : (
-            <View style={[styles.gameImage, styles.gameImageFallback]}>
-              <Ionicons name={game.icon as any} size={34} color={colors.text} />
+      <View style={styles.gameGrid}>
+        {filteredGames.map((game) => (
+          <TouchableOpacity
+            key={game.key}
+            style={styles.gameTile}
+            onPress={() => game.kind === 'external' ? openExternalGame(game.url) : openBuiltInGame(game.gameId)}
+            activeOpacity={0.88}
+          >
+            {game.image ? (
+              <Image source={{ uri: game.image }} style={styles.tilePreview} />
+            ) : game.kind === 'built-in' ? (
+              <GamePreview gameId={game.gameId} style={styles.tilePreview} />
+            ) : (
+              <View style={[styles.tilePreview, styles.tileFallback]}>
+                <Ionicons name={game.icon as any} size={30} color={colors.textMuted} />
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.tileTrophy}
+              onPress={() => showLeaderboard(game.gameId, game.title)}
+              hitSlop={6}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="trophy-outline" size={14} color={colors.text} />
+            </TouchableOpacity>
+            <View style={styles.tileBody}>
+              <Text style={styles.tileTitle} numberOfLines={1}>{game.title}</Text>
+              <Text style={styles.tileMeta} numberOfLines={1}>{game.category}</Text>
             </View>
-          )}
-          <View style={styles.gameBody}>
-            <View style={styles.cardMetaRow}>
-              <Text style={styles.typePill}>{game.category}</Text>
-              <Text style={styles.sourcePill}>{game.kind === 'external' ? 'URL' : 'Встроенная'}</Text>
-            </View>
-            <Text style={styles.cardTitle}>{game.title}</Text>
-            <Text style={styles.cardText} numberOfLines={3}>{game.description || 'Описание не указано.'}</Text>
-            <View style={styles.gameActions}>
-              <TouchableOpacity
-                style={styles.playBtn}
-                onPress={() => game.kind === 'external' ? openExternalGame(game.url) : openBuiltInGame(game.gameId)}
-                activeOpacity={0.85}
-              >
-                <Ionicons name={game.kind === 'external' ? 'open-outline' : 'play-circle-outline'} size={18} color="#fff" />
-                <Text style={styles.playText}>{game.kind === 'external' ? 'Открыть' : 'Открыть'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.leaderBtn}
-                onPress={() => showLeaderboard(game.gameId, game.title)}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="trophy-outline" size={18} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      ))}
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {!filteredGames.length ? (
         <View style={styles.emptyInline}>
@@ -772,7 +766,6 @@ const styles = StyleSheet.create({
   activityBody: { padding: 14 },
   cardMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   typePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: colors.accentSoft, color: colors.textMuted, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  sourcePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: colors.surfaceAlt, color: colors.textMuted, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   dateText: { color: colors.textFaint, fontSize: 12, fontWeight: '800' },
   cardTitle: { marginTop: 11, color: colors.text, fontSize: 18, lineHeight: 23, fontWeight: '900' },
   cardText: { marginTop: 7, color: colors.textMuted, fontSize: 14, lineHeight: 20 },
@@ -789,14 +782,14 @@ const styles = StyleSheet.create({
   categoryBtnActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
   categoryText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   categoryTextActive: { color: '#fff' },
-  gameCard: { backgroundColor: colors.surface, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
-  gameImage: { width: '100%', height: 160, backgroundColor: colors.surfaceAlt },
-  gameImageFallback: { alignItems: 'center', justifyContent: 'center' },
-  gameBody: { padding: 14 },
-  gameActions: { flexDirection: 'row', gap: 8, marginTop: 14 },
-  playBtn: { flex: 1, height: 42, borderRadius: 8, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  playText: { color: '#fff', fontSize: 14, fontWeight: '900' },
-  leaderBtn: { width: 42, height: 42, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  gameGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  gameTile: { width: '48.6%', marginBottom: 10, borderRadius: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
+  tilePreview: { width: '100%', aspectRatio: 1.5, backgroundColor: colors.surfaceAlt },
+  tileFallback: { alignItems: 'center', justifyContent: 'center' },
+  tileTrophy: { position: 'absolute', top: 7, right: 7, width: 28, height: 28, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
+  tileBody: { paddingHorizontal: 11, paddingVertical: 9 },
+  tileTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  tileMeta: { marginTop: 2, color: colors.textMuted, fontSize: 11, fontWeight: '700' },
   achievementsBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 14 },
   achievementList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   achievementPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: colors.surfaceAlt, color: colors.text, fontSize: 12, fontWeight: '900' },
