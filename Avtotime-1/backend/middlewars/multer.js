@@ -1,5 +1,7 @@
 import multer from 'multer'
 import fs from 'fs'
+import path from 'path'
+import crypto from 'crypto'
 
 const dir = './public';
 if (!fs.existsSync(dir)){
@@ -11,8 +13,10 @@ const storage = multer.diskStorage({
         cb(null, dir)
     },
     filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-        cb(null, uniqueSuffix + '-' + file.originalname)
+        // Files under ./public are served without auth from /api/public, so the
+        // name must be an unguessable capability URL — never the original name.
+        const ext = path.extname(file.originalname || '').slice(0, 10).replace(/[^.a-zA-Z0-9]/g, '')
+        cb(null, `${Date.now()}-${crypto.randomBytes(16).toString('hex')}${ext}`)
     }
 })
 

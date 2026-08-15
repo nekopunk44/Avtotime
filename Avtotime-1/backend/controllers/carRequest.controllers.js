@@ -1,6 +1,4 @@
 import nodemailer from 'nodemailer';
-import jwt from 'jsonwebtoken';
-import { getAuthCookieName } from '../config/authCookie.js';
 import { createNotification } from './notification.controllers.js';
 
 const transporter = nodemailer.createTransport({
@@ -84,29 +82,16 @@ export const sendCarRequest = async (req, res) => {
             html: userEmailContent
         });
 
-        // Если пользователь авторизован, добавляем уведомление в раздел уведомлений.
-        // Токен берём и из cookie (web), и из Authorization: Bearer (мобильный клиент).
-        // Роут публичный, поэтому это best-effort (без ошибки для гостя).
-        try {
-            const bearer = req.headers.authorization?.startsWith('Bearer ')
-                ? req.headers.authorization.slice(7)
-                : null;
-            const token = req.cookies?.[getAuthCookieName()] || bearer;
-            if (token) {
-                const verified = jwt.verify(token, process.env.JWT_SECRET);
-                const userId = verified?.userId;
-                if (userId) {
-                    await createNotification({
-                        recipient: userId,
-                        actor: userId,
-                        type: 'system',
-                        title: 'Заявка отправлена',
-                        description: `Заявка на ${marca} ${model} (${year}) успешно отправлена. Проверьте вашу почту.`,
-                    });
-                }
-            }
-        } catch {
-            // ignore
+        // Если пользователь авторизован (optionalAuth проставил req.userId из
+        // cookie или Bearer), добавляем уведомление. Best-effort для гостя.
+        if (req.userId) {
+            await createNotification({
+                recipient: req.userId,
+                actor: req.userId,
+                type: 'system',
+                title: 'Заявка отправлена',
+                description: `Заявка на ${marca} ${model} (${year}) успешно отправлена. Проверьте вашу почту.`,
+            }).catch(() => {});
         }
 
         return res.status(200).json({ 

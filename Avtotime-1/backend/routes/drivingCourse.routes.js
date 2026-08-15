@@ -1,5 +1,6 @@
 import express from "express";
 import isAuth from "../middlewars/isAuth.js";
+import isAdmin from "../middlewars/isAdmin.js";
 import {
   getDrivingQuestions,
   getDrivingQuestionsWithAnswers,
@@ -18,10 +19,10 @@ import {
 const drivingCourseRouter = express.Router();
 
 // Получить вопросы по номеру билета (без аутентификации)
-drivingCourseRouter.get("/questions", getDrivingQuestions);
+drivingCourseRouter.get("/questions", isAuth, getDrivingQuestions);
 
 // Получить вопросы с полной информацией (для просмотра результатов)
-drivingCourseRouter.get("/questions-with-answers", getDrivingQuestionsWithAnswers);
+drivingCourseRouter.get("/questions-with-answers", isAuth, getDrivingQuestionsWithAnswers);
 
 // Получить список билетов
 drivingCourseRouter.get("/tickets", isAuth, getTicketsList);
@@ -47,6 +48,6 @@ drivingCourseRouter.get("/results", isAuth, getUserTestResults);
 drivingCourseRouter.get("/statistics", isAuth, getUserStatistics);
 
 // Создать вопрос (для админа)
-drivingCourseRouter.post("/questions/create", isAuth, createDrivingQuestion);
+drivingCourseRouter.post("/questions/create", isAuth, isAdmin, createDrivingQuestion);
 
 export default drivingCourseRouter;

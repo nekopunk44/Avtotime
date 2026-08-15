@@ -134,6 +134,21 @@ export const comment = async (req, res) => {
 }
 
 
+
+export const getLoopById = async (req, res) => {
+    try {
+        const loop = await Loop.findById(req.params.loopId)
+            .populate('author', 'name userName profileImage')
+            .populate('comments.author', 'name userName profileImage')
+        if (!loop) {
+            return res.status(404).json({ message: 'Видео не найдено' })
+        }
+        return res.status(200).json(loop)
+    } catch (error) {
+        return res.status(500).json({ message: `Ошибка получения видео: ${error.message}` })
+    }
+}
+
 export const gettAllLoops = async(req, res) => {
     try {
         const page = Math.max(1, parseInt(req.query.page) || 1)

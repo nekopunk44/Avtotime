@@ -1,6 +1,7 @@
 import express from "express";
 import isAuth from "../middlewars/isAuth.js";
 import isEmailVerified from "../middlewars/isEmailVerified.js";
+import isAdmin from "../middlewars/isAdmin.js";
 import { upload } from "../middlewars/multer.js";
 import { checkPlanLimits } from "../middlewars/checkPlanLimits.js";
 import validateObjectId from "../middlewars/validateObjectId.js";
@@ -110,7 +111,7 @@ marketRouter.patch("/dry-cleaning/:id", isAuth, validateObjectId("id"), upload.s
 marketRouter.delete("/dry-cleaning/:id", isAuth, validateObjectId("id"), deleteDryCleaningListing);
 
 marketRouter.get("/games", isAuth, getGames);
-marketRouter.post("/games", isAuth, isEmailVerified, createGame);
+marketRouter.post("/games", isAuth, isAdmin, createGame);
 marketRouter.patch("/games/:id", isAuth, validateObjectId("id"), updateGame);
 marketRouter.delete("/games/:id", isAuth, validateObjectId("id"), deleteGame);
 
@@ -130,7 +131,7 @@ marketRouter.put("/compare", isAuth, saveCompareState);
 marketRouter.get("/driving-courses/modes", isAuth, getDrivingCourseModes);
 
 marketRouter.get("/kids/activities", isAuth, getKidsActivities);
-marketRouter.post("/kids/activities", isAuth, isEmailVerified, createKidsActivity);
+marketRouter.post("/kids/activities", isAuth, isAdmin, createKidsActivity);
 marketRouter.patch("/kids/activities/:id", isAuth, updateKidsActivity);
 marketRouter.delete("/kids/activities/:id", isAuth, deleteKidsActivity);
 marketRouter.get("/kids/leaderboard", isAuth, getKidsLeaderboard);

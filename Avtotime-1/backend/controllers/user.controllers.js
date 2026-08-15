@@ -6,6 +6,7 @@ import Story from '../models/story.model.js'
 import Conversation from '../models/conversation.model.js'
 import Message from '../models/messages.model.js'
 import Notification from '../models/notification.model.js'
+import { createNotification } from './notification.controllers.js'
 import Favorite from '../models/favorite.model.js'
 import DrivingTestResult from '../models/drivingTestResult.model.js'
 import MarketCarListing from '../models/marketCarListing.model.js'
@@ -240,25 +241,38 @@ export const follow=async (req, res)=>{
         return res.status(400).json({message: 'Ты не можешь подписаться сам на себя '})
         }
 
-        const currentUser=await User.findById(currentUserId)
-        const targetUser=await User.findById(targetUserId)
+        const targetUser = await User.findById(targetUserId).select('_id name userName')
+        if (!targetUser) {
+            return res.status(404).json({ message: 'Пользователь не найден' })
+        }
 
+        const currentUser = await User.findById(currentUserId).select('following name userName')
         const isFollowing = currentUser.following.some(id => id.toString() === targetUserId.toString())
 
-        if(isFollowing){
-            currentUser.following=currentUser.following.filter(id=>id.toString()!=targetUserId)
-            targetUser.followers=targetUser.followers.filter(id=>id.toString()!=currentUserId)
-            await currentUser.save()
-            await targetUser.save()
+        // Atomic $addToSet/$pull — concurrent taps can no longer duplicate or
+        // lose entries in the two arrays.
+        if (isFollowing) {
+            await Promise.all([
+                User.updateOne({ _id: currentUserId }, { $pull: { following: targetUserId } }),
+                User.updateOne({ _id: targetUserId }, { $pull: { followers: currentUserId } }),
+            ])
             return res.status(200).json({
                 following: false,
                 message: 'Вы отписались'
             })
-        }else{
-            currentUser.following.push(targetUserId)
-            targetUser.followers.push(currentUserId)
-            await currentUser.save()
-            await targetUser.save()
+        } else {
+            await Promise.all([
+                User.updateOne({ _id: currentUserId }, { $addToSet: { following: targetUserId } }),
+                User.updateOne({ _id: targetUserId }, { $addToSet: { followers: currentUserId } }),
+            ])
+            createNotification({
+                recipient: targetUserId,
+                actor: currentUserId,
+                type: 'follow',
+                title: 'Новый подписчик',
+                description: `${currentUser.userName || currentUser.name || 'Пользователь'} подписался(ась) на вас`,
+                link: `/profile-id/${currentUserId}`,
+            }).catch(() => {})
             return res.status(200).json({
                 following: true,
                 message: 'Вы подписались'

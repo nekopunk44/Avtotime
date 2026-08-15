@@ -71,9 +71,20 @@ const setAuthCookie = (res, token) => {
 
 export const signUp = async (req, res) => {
     try {
-        const { name, password } = req.body
+        const { password } = req.body
+        const name = String(req.body.name ?? '').trim().slice(0, 80)
         const email = req.body.email?.trim().toLowerCase()
         const userName = req.body.userName?.trim()
+
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ message: 'Введите корректный email' })
+        }
+        if (!userName || !/^[a-zA-Z0-9_.]{3,30}$/.test(userName)) {
+            return res.status(400).json({ message: 'Username: 3-30 символов, только латиница, цифры, точка и _' })
+        }
+        if (!name) {
+            return res.status(400).json({ message: 'Введите имя' })
+        }
 
         const findByEmail = await User.findOne({ email })
         if (findByEmail) {
@@ -254,7 +265,9 @@ export const verifyOtp = async (req, res) => {
 
         user.isOtpVerified = true
         user.resetOtp = undefined
-        user.otpExpires = undefined
+        // Verified OTP is only good for 10 minutes — reuse otpExpires as the
+        // reset-password window so a stale verification can't be used later.
+        user.otpExpires = Date.now() + 10 * 60 * 1000
 
         await user.save()
         return res.status(200).json({ message: 'OTP verified' })
@@ -273,7 +286,7 @@ export const resetPassword = async (req, res) => {
         }
 
         const user = await User.findOne({ email })
-        if (!user || !user.isOtpVerified) {
+        if (!user || !user.isOtpVerified || !user.otpExpires || user.otpExpires < Date.now()) {
             return res.status(400).json({ message: 'Сначала подтвердите OTP-код' })
         }
 
