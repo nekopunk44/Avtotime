@@ -47,3 +47,90 @@
 1. Пересобрать dev-билд — разблокирует SVG (раскраска, анимация итогов экзамена) и завершит настройку пушей (FCM-ключ в `eas credentials`).
 2. Редеплой бэкенда — накопились серверные правки.
 3. Светлая тема — отложена по решению владельца.
+
+---
+
+## 2. Соцсеть — контент (лента, рилсы, истории, посты)
+
+### 🔴 Критично
+
+1. **Loops: неограниченное число видеоплееров** (`LoopsScreen.tsx:405`) — FlatList без `windowSize`/`removeClippedSubviews` монтирует до ~20 полноэкранных `useVideoPlayer` одновременно → превышение лимита аппаратных декодеров, чёрные видео, рост памяти. Главный риск раздела.
+2. **StoryViewer без safe-area** (`StoryViewerScreen.tsx:180`) — прогресс и кнопка закрытия уходят под чёлку/Dynamic Island (фиксированные top: 8/22 при headerShown: false).
+3. **CreatePost: невидимая кнопка play** (`CreatePostScreen.tsx:155`) — белая иконка на белом акцентном фоне (нужен `colors.onAccent`).
+4. **Лента сбрасывает пагинацию при каждом фокусе** (`FeedScreen.tsx:186`) — после скролла вглубь и возврата список схлопывается до 20 постов, позиция прыгает.
+
+### 🟠 Заметные баги
+
+- Loops: шторка комментариев показывает только превью (полный список не догружается); двойной Enter шлёт комментарий дважды; mute сбрасывается на каждом видео; `scrollToIndex` промахивается при активном поиске; `listHeight` сбивается клавиатурой на Android; `setProgress` 4р/с ререндерит карточку.
+- StoryViewer: нет жестов (пауза/пропуск/свайп вниз); таймер не останавливается под панелью просмотров; `goBack()` внутри setState-апдейтера; вечный спиннер в пустой панели просмотров.
+- Create/EditPost: нет guard'а несохранённых изменений; нет KeyboardAvoidingView; deprecated `MediaTypeOptions` (тоже в Feed/Loops); EditPost не поддерживает видео и удаление отдельных фото; дубликаты фото по uri удаляются парой.
+- PostComments: KeyboardAvoidingView без `keyboardVerticalOffset` (поле под клавиатурой); нет оптимистичного добавления/пагинации.
+- Feed: ошибки загрузки молча глотаются (пустое состояние вместо ретрая); лайк не оптимистичный + гонка при двойном тапе; `item.author._id` без `?.` упадёт на удалённом авторе.
+- SavedPosts: плюрализация «1 публикаций»; `getSavedPosts` вернёт пусто, если бэкенд отдаст массив id.
+
+### 🟡 Визуальный долг
+
+- Сырые hex из светлой темы: `#e53935`/`#555` — тёмно-серые сердца почти невидимы (PostComments, SavedPosts); `#ff335f` прогресс в Loops (цветной акцент против монохрома); `#fff`/`#333`/`#ddd` россыпью.
+- Hero-заголовки, дублирующие нативный хедер: EditPost, SavedPosts.
+- Легаси `borderWidth: 1` вместо hairline: EditPost, SavedPosts, PostComments, Loops.
+- `sendBtn` в Loops — легаси-primary (`surfaceHi` + белая иконка) вместо акцента.
+- Голые спиннеры вместо скелетонов: Loops, SavedPosts; RefreshControl без tintColor.
+- Тач-таргеты < 40px в ленте (moreBtn 34px, лайк/коммент ~23px).
+
+---
+
+## 3. Соцсеть — люди и коммуникации (профили, чаты, поиск, уведомления)
+
+### 🔴 Критично
+
+1. **Гонка в `getSocket()`** (`src/hooks/useSocket.ts:8-16`) — пока сокет подключается, каждый параллельный вызов создаёт новый сокет и затирает общий; подписчики старого (Chat/Messages/Notifications) навсегда теряют realtime. Cleanup снимает обработчики с уже затёртого экземпляра.
+2. **`ListHeaderComponent={renderHeader}` с TextInput внутри** (Messages:171, Search:274, FollowList:143) — новая функция-компонент на каждый рендер перемонтирует хедер: поисковая строка теряет фокус/клавиатуру при вводе.
+3. **UserProfileScreen целиком в легаси-стиле** — borderWidth:1 повсюду, сырые hex (`#f5a400`, `#ccc`), radius 8; резкий контраст с новым ProfileScreen.
+
+### 🟠 Заметные баги
+
+- Chat: ручная сокет-подписка без mounted-флага (утечка слушателя); KeyboardAvoidingView без `keyboardVerticalOffset` (ввод под клавиатурой, то же в PostComments); нет пагинации истории (только первые 50); ошибка отправки затирает набранный текст; рекордер не гасится при размонтировании; deprecated MediaTypeOptions.
+- Messages: удаление диалога не пересчитывает бейдж непрочитанных; `join(' ')` с undefined («undefined» матчит все диалоги, то же FollowList).
+- Search: нет отмены гонки запросов; не-silent `loadDiscover()` на каждый фокус (то же UserProfile, FollowList).
+- Profile: флаги `savedLoaded/reviewsLoaded` ставятся до запроса, ошибка глотается — вкладка навсегда пустая; refresh не обновляет вкладки Сохранённые/Отзывы.
+- UserProfile: подписка не оптимистична, счётчик может разойтись с сервером.
+- Notifications: цветная карта ICONS — мёртвый код; `await markOne` блокирует навигацию по тапу; спиннер clearAll показывается не в той кнопке; thumb сегмента без горизонтального инсета.
+
+### 🟡 Визуальный долг
+
+FollowList: hero-заголовок дублирует нативный + легаси-рамки. Search/Chat: не мигрированы на токены space/radius/font. Повсюду RefreshControl без tintColor, спиннеры вместо скелетонов, «N отзывов/профилей» без склонения.
+
+---
+
+## 4. Бэкенд
+
+### 🔴 Критично — безопасность
+
+1. **`PATCH /api/user/plan` — бесплатный обход Stripe** (`user.controllers.js:488`) — любой пользователь выдаёт себе pro/business на произвольный срок. Фикс: разрешить только `plan: 'free'`.
+2. **Утечка password-хэшей и PII** — `getProfile` популяции followers/following/saved без select отдают ПОЛНЫЕ документы User (bcrypt-хэш, email, phone, push-токены, OTP); то же в story (`viewers author`), suggestedUsers, getUserById.
+3. **`/car-request/send-car-request` без auth и лимита** — спам-релей через Gmail + HTML-инъекция полей в письма.
+4. **Story TTL-баг** (`story.model.js:26`) — `default: Date.now()` (вызван при старте процесса!) вместо `Date.now`: после суток аптайма новые истории удаляются TTL-индексом немедленно.
+
+### 🟠 Auth-дуальность (cookie vs Bearer)
+
+- carRequest: уведомление админу создаётся только при cookie-JWT — мобильные (Bearer) его не получают.
+- `GET /auth/me` (getSession) читает только cookie — для Bearer всегда null.
+- payment routes: `csrfOriginCheck` требует Origin — латентная мина для будущей нативной оплаты.
+
+### 🟠 Контракт с мобилкой (план фикса search/filter)
+
+`/market/search|filter` читают только `q/type/sortBy/minPrice/maxPrice/location`; мобильные имена (`priceMin`, `region`, brand/model/год/пробег/топливо/КПП/кузов/привод/partGroup) игнорируются, ветки dry-cleaning нет. При этом `buildCarFilterClauses`/`buildPartFilterClauses` уже понимают ровно мобильные имена. Фикс: пропустить query через алиасы (`priceMin ?? minPrice`, `region ?? location`, удалить `type` — в билдерах это offerType), переиспользовать билдеры в ветках cars/parts, добавить ветку dry-cleaning, `escapeRe` на все RegExp, `.limit(300)` и `notExpiredFilter` во все ветки.
+
+### 🟠 Прочие баги
+
+- editProfile: частичный запрос затирает name/bio/website в undefined.
+- deleteProfile: `Message.deleteMany({senderId})` — поле называется `sender` (сообщения не удаляются), `Notification({sender})` — поле `actor`; у Google-аккаунтов `bcrypt.compare(pw, null)` → 500.
+- searchPosts: `new RegExp(q)` без экранирования — 500/ReDoS.
+- sendMessage: неатомарное создание Conversation (дубли переписок); нет валидации receiverId.
+- reviews: нет запрета отзыва самому себе; выборки без limit.
+- multer: 50МБ, mime по заявленному типу без magic bytes; `/api/public` раздаёт вложения личных сообщений без авторизации.
+- search/filter: `.find()` по 5 коллекциям без limit; истёкшие объявления в выдаче; `:id`-роуты без validateObjectId.
+
+### Приоритет фиксов
+
+1) setPlan + утечки PII; 2) car-request + story TTL; 3) контракт search/filter; 4) единый optional-auth вместо чтения cookie в контроллерах.
