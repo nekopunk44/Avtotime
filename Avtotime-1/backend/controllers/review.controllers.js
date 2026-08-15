@@ -22,6 +22,16 @@ export const addReview = async (req, res) => {
         .json({ message: "Требуются корректные данные рейтинга" });
     }
 
+    // Нельзя накручивать собственный рейтинг
+    if (String(targetUserId) === String(req.userId)) {
+      return res.status(400).json({ message: "Нельзя оставить отзыв самому себе" });
+    }
+
+    const targetExists = await User.exists({ _id: targetUserId });
+    if (!targetExists) {
+      return res.status(404).json({ message: "Пользователь не найден" });
+    }
+
     // Check if already reviewed
     const existing = await Review.findOne({
       reviewer: req.userId,
@@ -90,26 +100,31 @@ export const getReviews = async (req, res) => {
       filter.listing = listingId;
     }
 
-    const reviews = await Review.find(filter)
-      .populate("reviewer", "name userName profileImage")
-      .populate("targetUser", "name userName profileImage")
-      .sort({ createdAt: -1 });
+    // The list is capped, but stats are computed over ALL matching ratings via
+    // a ratings-only projection so the numbers stay exact and cheap.
+    const [reviews, ratings] = await Promise.all([
+      Review.find(filter)
+        .populate("reviewer", "name userName profileImage")
+        .populate("targetUser", "name userName profileImage")
+        .sort({ createdAt: -1 })
+        .limit(200),
+      Review.find(filter).select("rating").lean(),
+    ]);
 
-    // Calculate stats
-    const totalReviews = reviews.length;
+    const totalReviews = ratings.length;
     const avgRating =
       totalReviews > 0
-        ? (reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(
+        ? (ratings.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(
             1
           )
         : 0;
 
     const ratingBreakdown = {
-      5: reviews.filter((r) => r.rating === 5).length,
-      4: reviews.filter((r) => r.rating === 4).length,
-      3: reviews.filter((r) => r.rating === 3).length,
-      2: reviews.filter((r) => r.rating === 2).length,
-      1: reviews.filter((r) => r.rating === 1).length,
+      5: ratings.filter((r) => r.rating === 5).length,
+      4: ratings.filter((r) => r.rating === 4).length,
+      3: ratings.filter((r) => r.rating === 3).length,
+      2: ratings.filter((r) => r.rating === 2).length,
+      1: ratings.filter((r) => r.rating === 1).length,
     };
 
     return res.status(200).json({
@@ -129,7 +144,7 @@ export const getUserRatingStats = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const reviews = await Review.find({ targetUser: userId }).lean();
+    const reviews = await Review.find({ targetUser: userId }).select("rating").lean();
 
     const totalReviews = reviews.length;
     const avgRating =

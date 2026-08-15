@@ -222,7 +222,7 @@ export const createDryCleaningListing = async (req, res) => {
 
 export const getGames = async (req, res) => {
   try {
-    const games = await MarketGame.find({ isActive: true }).sort({ createdAt: -1 }).lean();
+    const games = await MarketGame.find({ isActive: true }).sort({ createdAt: -1 }).limit(200).lean();
     return res.status(200).json(games);
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -262,7 +262,7 @@ export const getEcoTips = async (req, res) => {
         ? { author: req.userId }
         : { $or: [{ moderationStatus: "approved" }, { moderationStatus: { $exists: false } }] };
 
-    const tips = await MarketEcoTip.find(filter).sort({ createdAt: -1 }).lean();
+    const tips = await MarketEcoTip.find(filter).sort({ createdAt: -1 }).limit(200).lean();
     return res.status(200).json(tips);
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -318,7 +318,7 @@ export const getHelpRequests = async (req, res) => {
         ? { author: req.userId }
         : { $or: [{ moderationStatus: "approved" }, { moderationStatus: { $exists: false } }] };
 
-    const requests = await MarketHelpRequest.find(filter).sort({ createdAt: -1 }).lean({ getters: true });
+    const requests = await MarketHelpRequest.find(filter).sort({ createdAt: -1 }).limit(200).lean({ getters: true });
     return res.status(200).json(requests);
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -496,7 +496,7 @@ export const getDrivingCourseModes = async (_req, res) => {
 
 export const getKidsActivities = async (req, res) => {
   try {
-    const activities = await MarketKidsActivity.find().sort({ createdAt: -1 }).lean();
+    const activities = await MarketKidsActivity.find().sort({ createdAt: -1 }).limit(200).lean();
     return res.status(200).json(activities);
   } catch (error) {
     return res.status(500).json({ message: error.message });

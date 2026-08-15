@@ -16,8 +16,19 @@ export const sendMessage = async (req, res) => {
         const receiverId = req.params.receiverId;
         const { message } = req.body;
 
+        if (!mongoose.isValidObjectId(receiverId)) {
+            return res.status(400).json({ message: 'Некорректный получатель' });
+        }
+        const hasAttachment = Boolean(req.files?.image?.[0] || req.files?.file?.[0] || req.files?.audio?.[0]);
+        if (!String(message || '').trim() && !hasAttachment) {
+            return res.status(400).json({ message: 'Сообщение не может быть пустым' });
+        }
+
         // Check if receiver has blocked the sender
         const receiver = await User.findById(receiverId).select('blockedUsers notificationPreferences').lean();
+        if (!receiver) {
+            return res.status(404).json({ message: 'Пользователь не найден' });
+        }
         if (receiver?.blockedUsers?.some(id => id.toString() === senderId)) {
             return res.status(403).json({ message: 'Вы не можете отправить сообщение этому пользователю' });
         }
@@ -64,19 +75,16 @@ export const sendMessage = async (req, res) => {
             audioUrl,
         });
 
-        let conversation = await Conversation.findOne({
-            participants: { $all: [senderId, receiverId] }
-        });
-
-        if (!conversation) {
-            conversation = await Conversation.create({
-                participants: [senderId, receiverId],
-                messages: [newMessage._id]
-            });
-        } else {
-            conversation.messages.push(newMessage._id);
-            await conversation.save();
-        }
+        // Atomic upsert: two concurrent first messages would otherwise both
+        // pass the findOne-null check and create duplicate conversations.
+        await Conversation.findOneAndUpdate(
+            { participants: { $all: [senderId, receiverId] } },
+            {
+                $push: { messages: newMessage._id },
+                $setOnInsert: { participants: [senderId, receiverId] },
+            },
+            { upsert: true, new: true }
+        );
         const payload = newMessage.toObject({ getters: true });
         io.to(String(senderId)).emit('newMessage', payload);
         io.to(String(receiverId)).emit('newMessage', payload);
