@@ -4,6 +4,7 @@ import MarketAutoTuningListing from "../models/marketAutoTuningListing.model.js"
 import MarketConsultationExpert from "../models/marketConsultationExpert.model.js";
 import MarketCarListing from "../models/marketCarListing.model.js";
 import MarketPartListing from "../models/marketPartListing.model.js";
+import MarketDryCleaningListing from "../models/marketDryCleaningListing.model.js";
 import uploadOnCloudinary from "../config/cloudinary.js";
 import { buildPublicFileUrl } from "../config/publicFiles.js";
 import { getAiModerationProvider, isAiModerationEnabled } from "../services/aiModeration.js";
@@ -100,9 +101,12 @@ const parseListQueryOptions = (req, { mine }) => {
   return { page, limit, skip };
 };
 
-const notExpiredFilter = {
+// A factory, not a constant: `new Date()` in a module-level object would be
+// evaluated once at process start, so listings expiring later would never be
+// filtered out on a long-running server.
+const notExpiredFilter = () => ({
   $or: [{ expiresAt: null }, { expiresAt: { $gt: new Date() } }],
-};
+});
 
 const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -244,10 +248,10 @@ export const getCarListings = async (req, res) => {
 
     let filter;
     if (filtered && !isMine) {
-      const clauses = buildCarFilterClauses(req.query, buildAndQuery([baseFilter, notExpiredFilter]));
+      const clauses = buildCarFilterClauses(req.query, buildAndQuery([baseFilter, notExpiredFilter()]));
       filter = buildAndQuery(clauses);
     } else if (!isMine) {
-      filter = buildAndQuery([baseFilter, notExpiredFilter]);
+      filter = buildAndQuery([baseFilter, notExpiredFilter()]);
     } else if (filtered) {
       const clauses = buildCarFilterClauses(req.query, baseFilter);
       filter = buildAndQuery(clauses);
@@ -283,10 +287,10 @@ export const getPartListings = async (req, res) => {
 
     let filter;
     if (filtered && !isMine) {
-      const clauses = buildPartFilterClauses(req.query, buildAndQuery([baseFilter, notExpiredFilter]));
+      const clauses = buildPartFilterClauses(req.query, buildAndQuery([baseFilter, notExpiredFilter()]));
       filter = buildAndQuery(clauses);
     } else if (!isMine) {
-      filter = buildAndQuery([baseFilter, notExpiredFilter]);
+      filter = buildAndQuery([baseFilter, notExpiredFilter()]);
     } else if (filtered) {
       const clauses = buildPartFilterClauses(req.query, baseFilter);
       filter = buildAndQuery(clauses);
@@ -1239,159 +1243,115 @@ export const deleteConsultationExpert = async (req, res) => {
 };
 
 // SEARCH контроллеры
+
+// Normalizes search/filter query params to the names the clause builders read.
+// The mobile client sends priceMin/priceMax/region-style names, the web
+// historically sent minPrice/maxPrice/location — accept both. `type` is
+// deliberately stripped: in the builders it means offerType («Продажа»), while
+// on these endpoints it selects the listing category.
+const buildSearchFilterParams = (query) => {
+  const { type, sortBy, minPrice, maxPrice, location, category, mine, page, limit, ...rest } = query;
+  const fp = { ...rest };
+  if (fp.priceMin == null && minPrice != null) fp.priceMin = minPrice;
+  if (fp.priceMax == null && maxPrice != null) fp.priceMax = maxPrice;
+  if (fp.region == null && location != null) fp.region = location;
+  return fp;
+};
+
+// Price clause for the flat-price collections (services/tuning/consultations).
+// Only added when the caller actually constrained the price, so listings with
+// no price keep the old behavior of passing an unconstrained query.
+const buildPriceClause = (field, min, max) => {
+  const cl = {};
+  if (min > 0) cl.$gte = min;
+  if (Number.isFinite(max)) cl.$lte = max;
+  return Object.keys(cl).length ? { [field]: cl } : null;
+};
+
+const SEARCH_RESULT_LIMIT = 300;
+
 export const searchMarketListings = async (req, res) => {
   try {
-    const { q, type, minPrice, maxPrice, location, sortBy } = req.query;
-    const searchQuery = String(q || "").trim().toLowerCase();
+    const { q, type, sortBy } = req.query;
+    const fp = buildSearchFilterParams(req.query);
+    const searchQuery = String(q || "").trim();
     const listingType = String(type || "").toLowerCase();
-    const min = Number(minPrice) || 0;
-    const max = Number(maxPrice) || Infinity;
+    const min = Number(fp.priceMin) || 0;
+    const max = Number(fp.priceMax) || Infinity;
+    const base = buildAndQuery([moderationApprovedFilter, notExpiredFilter()]);
+    const regionClause = fp.region
+      ? { location: new RegExp(escapeRe(fp.region), "i") }
+      : null;
+    const textClause = (fields) => searchQuery
+      ? { $or: fields.map((f) => ({ [f]: new RegExp(escapeRe(searchQuery), "i") })) }
+      : null;
 
     const results = [];
-    let query;
 
-    // Search parts
+    // Search parts — full filter support via the shared clause builder
+    // (brand/model/year/price/partGroup/region + text query).
     if (!listingType || listingType === "parts") {
-      const locationClause = location
-        ? {
-            $or: [{ region: new RegExp(location, "i") }, { location: new RegExp(location, "i") }],
-          }
-        : null;
-
-      const searchClause = searchQuery
-        ? {
-            $or: [
-              { title: new RegExp(searchQuery, "i") },
-              { brand: new RegExp(searchQuery, "i") },
-              { model: new RegExp(searchQuery, "i") },
-              { partGroup: new RegExp(searchQuery, "i") },
-              { partCategory: new RegExp(searchQuery, "i") },
-              { partCategoryKey: new RegExp(searchQuery, "i") },
-              { description: new RegExp(searchQuery, "i") },
-            ],
-          }
-        : null;
-
-      query = buildAndQuery([moderationApprovedFilter, locationClause, searchClause]);
-
-      const parts = await MarketPartListing.find(query)
+      const parts = await MarketPartListing.find(buildAndQuery(buildPartFilterClauses(fp, base)))
         .select("id title price image type brand model year location region partGroup partCategory partCategoryKey")
+        .sort({ createdAt: -1 })
+        .limit(SEARCH_RESULT_LIMIT)
         .lean();
-
-      const filterByPrice = parts.filter((part) => {
-        const priceNum = getListingPriceValue(part);
-        return priceNum >= min && priceNum <= max;
-      });
-
-      results.push(...filterByPrice.map((p) => ({ ...p, listingType: "part" })));
+      results.push(...parts.map((p) => ({ ...p, listingType: "part" })));
     }
 
-    // Search cars
+    // Search cars — full filter support (brand/model/year/mileage/fuel/
+    // gearbox/bodyType/driveType/price/region + text query).
     if (!listingType || listingType === "cars") {
-      const locationClause = location
-        ? {
-            $or: [
-              { region: new RegExp(location, "i") },
-              { registrationPlace: new RegExp(location, "i") },
-              { location: new RegExp(location, "i") },
-            ],
-          }
-        : null;
-
-      const searchClause = searchQuery
-        ? {
-            $or: [
-              { title: new RegExp(searchQuery, "i") },
-              { brand: new RegExp(searchQuery, "i") },
-              { model: new RegExp(searchQuery, "i") },
-              { type: new RegExp(searchQuery, "i") },
-              { description: new RegExp(searchQuery, "i") },
-            ],
-          }
-        : null;
-
-      query = buildAndQuery([moderationApprovedFilter, locationClause, searchClause]);
-
-      const cars = await MarketCarListing.find(query)
+      const cars = await MarketCarListing.find(buildAndQuery(buildCarFilterClauses(fp, base)))
         .select("id title price image type brand model year location region registrationPlace")
+        .sort({ createdAt: -1 })
+        .limit(SEARCH_RESULT_LIMIT)
         .lean();
-
-      const filterByPrice = cars.filter((car) => {
-        const priceNum = getListingPriceValue(car);
-        return priceNum >= min && priceNum <= max;
-      });
-
-      results.push(...filterByPrice.map((c) => ({ ...c, listingType: "car" })));
+      results.push(...cars.map((c) => ({ ...c, listingType: "car" })));
     }
 
     // Search car services
     if (!listingType || listingType === "car-services") {
-      const searchClause = searchQuery
-        ? {
-            $or: [{ title: new RegExp(searchQuery, "i") }, { category: new RegExp(searchQuery, "i") }],
-          }
-        : null;
-      const locationClause = location ? { location: new RegExp(location, "i") } : null;
-
-      query = buildAndQuery([moderationApprovedFilter, searchClause, locationClause]);
-
+      const query = buildAndQuery([base, textClause(["title", "category"]), regionClause, buildPriceClause("price", min, max)]);
       const services = await MarketCarServiceListing.find(query)
         .select("id title price image category location")
+        .sort({ createdAt: -1 })
+        .limit(SEARCH_RESULT_LIMIT)
         .lean();
-
-      const filterByPrice = services.filter(
-        (s) => s.price >= min && s.price <= max
-      );
-
-      results.push(
-        ...filterByPrice.map((s) => ({ ...s, listingType: "car-service" }))
-      );
+      results.push(...services.map((s) => ({ ...s, listingType: "car-service" })));
     }
 
     // Search auto tuning
     if (!listingType || listingType === "auto-tuning") {
-      const searchClause = searchQuery
-        ? {
-            $or: [{ title: new RegExp(searchQuery, "i") }, { category: new RegExp(searchQuery, "i") }],
-          }
-        : null;
-      const locationClause = location ? { location: new RegExp(location, "i") } : null;
-
-      query = buildAndQuery([moderationApprovedFilter, searchClause, locationClause]);
-
+      const query = buildAndQuery([base, textClause(["title", "category"]), regionClause, buildPriceClause("price", min, max)]);
       const tuning = await MarketAutoTuningListing.find(query)
         .select("id title price image category location badge")
+        .sort({ createdAt: -1 })
+        .limit(SEARCH_RESULT_LIMIT)
         .lean();
+      results.push(...tuning.map((t) => ({ ...t, listingType: "auto-tuning" })));
+    }
 
-      const filterByPrice = tuning.filter((t) => t.price >= min && t.price <= max);
-
-      results.push(
-        ...filterByPrice.map((t) => ({ ...t, listingType: "auto-tuning" }))
-      );
+    // Search dry cleaning (was missing entirely — «Химчистка» always came back empty)
+    if (!listingType || listingType === "dry-cleaning") {
+      const query = buildAndQuery([base, textClause(["title", "category"]), regionClause, buildPriceClause("price", min, max)]);
+      const cleaning = await MarketDryCleaningListing.find(query)
+        .select("id title price image category location badge")
+        .sort({ createdAt: -1 })
+        .limit(SEARCH_RESULT_LIMIT)
+        .lean();
+      results.push(...cleaning.map((d) => ({ ...d, listingType: "dry-cleaning" })));
     }
 
     // Search consultations
     if (!listingType || listingType === "consultations") {
-      const searchClause = searchQuery
-        ? {
-            $or: [{ name: new RegExp(searchQuery, "i") }, { specialties: new RegExp(searchQuery, "i") }],
-          }
-        : null;
-      const locationClause = location ? { location: new RegExp(location, "i") } : null;
-
-      query = buildAndQuery([moderationApprovedFilter, searchClause, locationClause]);
-
+      const query = buildAndQuery([base, textClause(["name", "specialties"]), regionClause, buildPriceClause("hourlyRate", min, max)]);
       const experts = await MarketConsultationExpert.find(query)
         .select("id name avatar isVerified hourlyRate location specialties")
+        .sort({ createdAt: -1 })
+        .limit(SEARCH_RESULT_LIMIT)
         .lean();
-
-      const filterByPrice = experts.filter(
-        (e) => e.hourlyRate >= min && e.hourlyRate <= max
-      );
-
-      results.push(
-        ...filterByPrice.map((e) => ({ ...e, listingType: "consultation" }))
-      );
+      results.push(...experts.map((e) => ({ ...e, listingType: "consultation" })));
     }
 
     // Apply sorting
@@ -1421,134 +1381,100 @@ export const searchMarketListings = async (req, res) => {
 
 export const filterMarketListings = async (req, res) => {
   try {
-    const { type, minPrice, maxPrice, location, category, sortBy } = req.query;
+    const { type, category, sortBy } = req.query;
+    const fp = buildSearchFilterParams(req.query);
     const listingType = String(type || "").toLowerCase();
-    const min = Number(minPrice) || 0;
-    const max = Number(maxPrice) || Infinity;
+    const min = Number(fp.priceMin) || 0;
+    const max = Number(fp.priceMax) || Infinity;
     const categoryValue = String(category || "").trim();
-    const categoryFilter = categoryValue.toLowerCase();
+    const base = buildAndQuery([moderationApprovedFilter, notExpiredFilter()]);
+    const regionClause = fp.region
+      ? { location: new RegExp(escapeRe(fp.region), "i") }
+      : null;
 
     const results = [];
-    let query;
 
-    // Filter parts
+    // Filter parts — full filter support via the shared clause builder.
     if (!listingType || listingType === "parts") {
-      const locationClause = location
-        ? {
-            $or: [{ region: new RegExp(location, "i") }, { location: new RegExp(location, "i") }],
-          }
-        : null;
-
-      const categoryClause = categoryValue
-        ? {
-            $or: [
-              { partGroup: new RegExp(categoryValue, "i") },
-              { partCategory: new RegExp(categoryValue, "i") },
-              { partCategoryKey: new RegExp(categoryValue, "i") },
-              { brand: new RegExp(categoryValue, "i") },
-              { model: new RegExp(categoryValue, "i") },
-            ],
-          }
-        : null;
-
-      query = buildAndQuery([moderationApprovedFilter, locationClause, categoryClause]);
-
-      const parts = await MarketPartListing.find(query)
+      const clauses = buildPartFilterClauses(fp, base);
+      if (categoryValue) {
+        const re = new RegExp(escapeRe(categoryValue), "i");
+        clauses.push({
+          $or: [
+            { partGroup: re },
+            { partCategory: re },
+            { partCategoryKey: re },
+            { brand: re },
+            { model: re },
+          ],
+        });
+      }
+      const parts = await MarketPartListing.find(buildAndQuery(clauses))
         .select("id title price image type brand model year location region partGroup partCategory partCategoryKey")
+        .sort({ createdAt: -1 })
+        .limit(SEARCH_RESULT_LIMIT)
         .lean();
-
-      const filterByPrice = parts.filter((part) => {
-        const priceNum = getListingPriceValue(part);
-        return priceNum >= min && priceNum <= max;
-      });
-
-      results.push(...filterByPrice.map((p) => ({ ...p, listingType: "part" })));
+      results.push(...parts.map((p) => ({ ...p, listingType: "part" })));
     }
 
-    // Filter cars
+    // Filter cars — full filter support via the shared clause builder.
     if (!listingType || listingType === "cars") {
-      const locationClause = location
-        ? {
-            $or: [
-              { region: new RegExp(location, "i") },
-              { registrationPlace: new RegExp(location, "i") },
-              { location: new RegExp(location, "i") },
-            ],
-          }
-        : null;
-
-      const categoryClause = categoryValue ? { type: new RegExp(categoryValue, "i") } : null;
-
-      query = buildAndQuery([moderationApprovedFilter, locationClause, categoryClause]);
-
-      const cars = await MarketCarListing.find(query)
-        .select("id title price image type brand model year location")
+      const clauses = buildCarFilterClauses(fp, base);
+      if (categoryValue) clauses.push({ type: new RegExp(escapeRe(categoryValue), "i") });
+      const cars = await MarketCarListing.find(buildAndQuery(clauses))
+        .select("id title price image type brand model year location region")
+        .sort({ createdAt: -1 })
+        .limit(SEARCH_RESULT_LIMIT)
         .lean();
-
-      const filterByPrice = cars.filter((car) => {
-        const priceNum = getListingPriceValue(car);
-        return priceNum >= min && priceNum <= max;
-      });
-
-      results.push(...filterByPrice.map((c) => ({ ...c, listingType: "car" })));
+      results.push(...cars.map((c) => ({ ...c, listingType: "car" })));
     }
 
     // Filter car services
     if (!listingType || listingType === "car-services") {
-      const locationClause = location ? { location: new RegExp(location, "i") } : null;
-      const categoryClause = categoryFilter ? { category: new RegExp(categoryFilter, "i") } : null;
-
-      query = buildAndQuery([moderationApprovedFilter, locationClause, categoryClause]);
-
+      const categoryClause = categoryValue ? { category: new RegExp(escapeRe(categoryValue), "i") } : null;
+      const query = buildAndQuery([base, regionClause, categoryClause, buildPriceClause("price", min, max)]);
       const services = await MarketCarServiceListing.find(query)
         .select("id title price image category location")
+        .sort({ createdAt: -1 })
+        .limit(SEARCH_RESULT_LIMIT)
         .lean();
-
-      const filterByPrice = services.filter(
-        (s) => s.price >= min && s.price <= max
-      );
-
-      results.push(
-        ...filterByPrice.map((s) => ({ ...s, listingType: "car-service" }))
-      );
+      results.push(...services.map((s) => ({ ...s, listingType: "car-service" })));
     }
 
     // Filter auto tuning
     if (!listingType || listingType === "auto-tuning") {
-      const locationClause = location ? { location: new RegExp(location, "i") } : null;
-      const categoryClause = categoryFilter ? { category: new RegExp(categoryFilter, "i") } : null;
-
-      query = buildAndQuery([moderationApprovedFilter, locationClause, categoryClause]);
-
+      const categoryClause = categoryValue ? { category: new RegExp(escapeRe(categoryValue), "i") } : null;
+      const query = buildAndQuery([base, regionClause, categoryClause, buildPriceClause("price", min, max)]);
       const tuning = await MarketAutoTuningListing.find(query)
         .select("id title price image category location")
+        .sort({ createdAt: -1 })
+        .limit(SEARCH_RESULT_LIMIT)
         .lean();
+      results.push(...tuning.map((t) => ({ ...t, listingType: "auto-tuning" })));
+    }
 
-      const filterByPrice = tuning.filter((t) => t.price >= min && t.price <= max);
-
-      results.push(
-        ...filterByPrice.map((t) => ({ ...t, listingType: "auto-tuning" }))
-      );
+    // Filter dry cleaning (was missing entirely)
+    if (!listingType || listingType === "dry-cleaning") {
+      const categoryClause = categoryValue ? { category: new RegExp(escapeRe(categoryValue), "i") } : null;
+      const query = buildAndQuery([base, regionClause, categoryClause, buildPriceClause("price", min, max)]);
+      const cleaning = await MarketDryCleaningListing.find(query)
+        .select("id title price image category location badge")
+        .sort({ createdAt: -1 })
+        .limit(SEARCH_RESULT_LIMIT)
+        .lean();
+      results.push(...cleaning.map((d) => ({ ...d, listingType: "dry-cleaning" })));
     }
 
     // Filter consultations
     if (!listingType || listingType === "consultations") {
-      const locationClause = location ? { location: new RegExp(location, "i") } : null;
-      const categoryClause = categoryFilter ? { specialties: new RegExp(categoryFilter, "i") } : null;
-
-      query = buildAndQuery([moderationApprovedFilter, locationClause, categoryClause]);
-
+      const categoryClause = categoryValue ? { specialties: new RegExp(escapeRe(categoryValue), "i") } : null;
+      const query = buildAndQuery([base, regionClause, categoryClause, buildPriceClause("hourlyRate", min, max)]);
       const experts = await MarketConsultationExpert.find(query)
         .select("id name avatar isVerified hourlyRate location specialties")
+        .sort({ createdAt: -1 })
+        .limit(SEARCH_RESULT_LIMIT)
         .lean();
-
-      const filterByPrice = experts.filter(
-        (e) => e.hourlyRate >= min && e.hourlyRate <= max
-      );
-
-      results.push(
-        ...filterByPrice.map((e) => ({ ...e, listingType: "consultation" }))
-      );
+      results.push(...experts.map((e) => ({ ...e, listingType: "consultation" })));
     }
 
     // Apply sorting
