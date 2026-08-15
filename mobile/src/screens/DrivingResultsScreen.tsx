@@ -34,9 +34,9 @@ const modeLabels: Record<DrivingMode, string> = {
 };
 
 const modeColors: Record<DrivingMode, string> = {
-  exam: '#1d4ed8',
-  practice: '#b45309',
-  marathon: '#7c3aed',
+  exam: colors.text,
+  practice: colors.text,
+  marathon: colors.text,
 };
 
 const filters: Array<{ label: string; value?: DrivingMode }> = [
@@ -234,7 +234,7 @@ export default function DrivingResultsScreen({ navigation, route }: Props) {
                     <Text style={styles.metaText}>{formatTime(result.timeSpentSeconds)}</Text>
                   </View>
                   <View style={styles.metaItem}>
-                    <Ionicons name={result.passed ? 'checkmark-circle-outline' : 'reload-outline'} size={16} color={result.passed ? '#15803d' : '#b45309'} />
+                    <Ionicons name={result.passed ? 'checkmark-circle-outline' : 'reload-outline'} size={16} color={result.passed ? colors.success : colors.warning} />
                     <Text style={styles.metaText}>{result.passed ? 'Сдано' : 'Повторить'}</Text>
                   </View>
                 </View>
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   segmentText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
   segmentTextActive: { color: colors.onAccent },
   resultList: { gap: 10 },
-  resultCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 13 },
+  resultCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 13 },
   resultTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   modeBadge: { height: 30, borderRadius: 10, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 5 },
   modeBadgeText: { fontSize: 12, fontWeight: '900' },
@@ -290,8 +290,8 @@ const styles = StyleSheet.create({
   percentPassed: { backgroundColor: 'rgba(61,214,140,0.14)' },
   percentFailed: { backgroundColor: 'rgba(255,90,95,0.12)' },
   percentText: { fontSize: 18, fontWeight: '900' },
-  percentTextPassed: { color: '#15803d' },
-  percentTextFailed: { color: '#b91c1c' },
+  percentTextPassed: { color: colors.success },
+  percentTextFailed: { color: colors.danger },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   metaItem: { minHeight: 28, borderRadius: 9, backgroundColor: colors.bg, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 5 },
   metaText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
