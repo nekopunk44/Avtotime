@@ -51,7 +51,7 @@ function MetricTile({
   icon: keyof typeof Ionicons.glyphMap;
   tone: 'red' | 'green' | 'black';
 }) {
-  const color = tone === 'red' ? '#d92323' : tone === 'green' ? '#14843b' : '#111';
+  const color = tone === 'green' ? colors.success : colors.text;
 
   return (
     <View style={styles.metricTile}>
@@ -59,7 +59,7 @@ function MetricTile({
         <Text style={styles.metricLabel}>{label}</Text>
         <Ionicons name={icon} size={18} color={color} />
       </View>
-      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricValue}>{value.toLocaleString('ru-RU')}</Text>
     </View>
   );
 }
@@ -73,8 +73,8 @@ function Bars({ data }: { data: MarketAnalyticsPoint[] }) {
         <View key={point.day} style={styles.barColumn}>
           <View style={styles.barTrack}>
             <View style={styles.barPair}>
-              <View style={[styles.bar, styles.viewsBar, { height: `${Math.max(2, (point.views / max) * 100)}%` }]} />
-              <View style={[styles.bar, styles.leadsBar, { height: `${Math.max(2, (point.leads / max) * 100)}%` }]} />
+              <View style={[styles.bar, styles.viewsBar, { height: `${point.views ? Math.max(3, (point.views / max) * 100) : 0}%` }]} />
+              <View style={[styles.bar, styles.leadsBar, { height: `${point.leads ? Math.max(3, (point.leads / max) * 100) : 0}%` }]} />
             </View>
           </View>
           <Text style={styles.barLabel}>{shortDay(point.day)}</Text>
@@ -125,6 +125,7 @@ export default function MarketAnalyticsScreen({ navigation }: Props) {
     try {
       const summary = await getMarketAnalyticsSummary();
       setData(summary);
+      hasDataRef.current = true;
     } catch (e: any) {
       setData(null);
       setError(e.response?.data?.message || 'Не удалось загрузить аналитику');
@@ -135,8 +136,10 @@ export default function MarketAnalyticsScreen({ navigation }: Props) {
     }
   }, []);
 
+  const hasDataRef = React.useRef(false);
+
   useFocusEffect(useCallback(() => {
-    load();
+    load(hasDataRef.current);
   }, [load]));
 
   const refresh = () => {
@@ -156,16 +159,8 @@ export default function MarketAnalyticsScreen({ navigation }: Props) {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
     >
-      <View style={styles.hero}>
-        <View style={styles.heroIcon}>
-          <Ionicons name="bar-chart-outline" size={26} color={colors.danger} />
-        </View>
-        <Text style={styles.title}>Аналитика</Text>
-        <Text style={styles.subtitle}>Просмотры и контакты по объявлениям за последние 7 дней</Text>
-      </View>
-
       {error ? (
         <View style={styles.accessCard}>
           <Ionicons name={errorCode === 'ANALYTICS_DISABLED' ? 'sparkles-outline' : 'alert-circle-outline'} size={34} color={colors.danger} />
@@ -180,7 +175,7 @@ export default function MarketAnalyticsScreen({ navigation }: Props) {
                 onPress={() => navigation.navigate('Billing')}
                 activeOpacity={0.85}
               >
-                <Ionicons name="card-outline" size={18} color="#fff" />
+                <Ionicons name="card-outline" size={18} color={colors.onAccent} />
                 <Text style={styles.tariffsBtnText}>Открыть тарифы</Text>
               </TouchableOpacity>
             </>
@@ -195,13 +190,13 @@ export default function MarketAnalyticsScreen({ navigation }: Props) {
               <Text style={styles.planLabel}>Тариф</Text>
               <Text style={styles.planValue}>{PLAN_LABEL[data.effectivePlan] || data.effectivePlan}</Text>
             </View>
-            <Ionicons name={data.effectivePlan === 'business' ? 'diamond-outline' : 'sparkles-outline'} size={28} color="#fff" />
+            <Ionicons name={data.effectivePlan === 'business' ? 'diamond-outline' : 'sparkles-outline'} size={28} color={colors.text} />
           </View>
 
           <View style={styles.metricsGrid}>
-            <MetricTile label="Все просмотры" value={data.totals.viewsTotal} icon="eye-outline" tone="red" />
+            <MetricTile label="Все просмотры" value={data.totals.viewsTotal} icon="eye-outline" tone="black" />
             <MetricTile label="Все контакты" value={data.totals.leadsTotal} icon="chatbubble-ellipses-outline" tone="green" />
-            <MetricTile label="7 дней просмотры" value={data.totals.last7DaysViews} icon="trending-up-outline" tone="red" />
+            <MetricTile label="7 дней просмотры" value={data.totals.last7DaysViews} icon="trending-up-outline" tone="black" />
             <MetricTile label="7 дней контакты" value={data.totals.last7DaysLeads} icon="send-outline" tone="green" />
           </View>
 
@@ -248,24 +243,22 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 28 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  hero: { alignItems: 'center', paddingVertical: 20 },
-  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   title: { color: colors.text, fontSize: 30, fontWeight: '900' },
   subtitle: { marginTop: 6, color: colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  accessCard: { marginTop: 18, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 18, alignItems: 'center' },
+  accessCard: { marginTop: 18, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 18, alignItems: 'center' },
   accessTitle: { marginTop: 12, color: colors.text, fontSize: 17, fontWeight: '900', textAlign: 'center' },
   accessText: { marginTop: 8, color: colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  tariffsBtn: { marginTop: 14, height: 42, borderRadius: 8, paddingHorizontal: 16, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  tariffsBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' },
+  tariffsBtn: { marginTop: 14, height: 42, borderRadius: 8, paddingHorizontal: 16, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  tariffsBtnText: { color: colors.onAccent, fontSize: 14, fontWeight: '900' },
   planCard: { marginTop: 8, borderRadius: 8, backgroundColor: colors.surfaceHi, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  planLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  planValue: { marginTop: 4, color: '#fff', fontSize: 22, fontWeight: '900' },
+  planLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  planValue: { marginTop: 4, color: colors.text, fontSize: 22, fontWeight: '900' },
   metricsGrid: { marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  metricTile: { width: '48%', minHeight: 96, borderRadius: 8, backgroundColor: colors.surface, padding: 12, borderWidth: 1, borderColor: colors.border },
+  metricTile: { width: '48%', minHeight: 96, borderRadius: 8, backgroundColor: colors.surface, padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   metricTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
   metricLabel: { flex: 1, color: colors.textMuted, fontSize: 11, lineHeight: 15, fontWeight: '900', textTransform: 'uppercase' },
   metricValue: { marginTop: 12, color: colors.text, fontSize: 28, fontWeight: '900' },
-  section: { marginTop: 12, borderRadius: 8, backgroundColor: colors.surface, padding: 14, borderWidth: 1, borderColor: colors.border },
+  section: { marginTop: 12, borderRadius: 8, backgroundColor: colors.surface, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 12 },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
   legend: { gap: 5 },
@@ -278,9 +271,9 @@ const styles = StyleSheet.create({
   barColumn: { flex: 1, height: '100%', alignItems: 'center' },
   barTrack: { flex: 1, width: '100%', justifyContent: 'flex-end' },
   barPair: { height: '100%', flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
-  bar: { flex: 1, minHeight: 2, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
-  viewsBar: { backgroundColor: colors.danger },
-  leadsBar: { backgroundColor: '#14843b' },
+  bar: { flex: 1, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
+  viewsBar: { backgroundColor: colors.accent },
+  leadsBar: { backgroundColor: colors.success },
   barLabel: { marginTop: 6, color: colors.textMuted, fontSize: 10, fontWeight: '800' },
   listings: { marginTop: 8 },
   listingRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },

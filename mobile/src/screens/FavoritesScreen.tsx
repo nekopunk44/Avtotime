@@ -38,6 +38,8 @@ const FILTERS: Array<{ label: string; type?: FavoriteListingType }> = [
 
 export default function FavoritesScreen({ navigation }: Props) {
   const [filter, setFilter] = useState<FavoriteListingType | undefined>();
+  const requestIdRef = React.useRef(0);
+  const hasDataRef = React.useRef(false);
   const [items, setItems] = useState<FavoriteItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -50,21 +52,27 @@ export default function FavoritesScreen({ navigation }: Props) {
   );
 
   const load = useCallback(async (silent = false) => {
+    const requestId = ++requestIdRef.current;
     if (!silent) setLoading(true);
     setError('');
     try {
       const data = await getFavorites(filter);
+      if (requestId !== requestIdRef.current) return;
+      hasDataRef.current = true;
       setItems(data);
     } catch (e: any) {
+      if (requestId !== requestIdRef.current) return;
       setError(e.response?.data?.message || 'Не удалось загрузить избранное');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [filter]);
 
   useFocusEffect(useCallback(() => {
-    load();
+    load(hasDataRef.current);
   }, [load]));
 
   const refresh = () => {
@@ -84,7 +92,14 @@ export default function FavoritesScreen({ navigation }: Props) {
     navigation.navigate('MarketListingDetails', { listing, categoryId });
   };
 
-  const deleteItem = async (item: FavoriteItem) => {
+  const deleteItem = (item: FavoriteItem) => {
+    Alert.alert('Удалить из избранного?', item.listingTitle || 'Объявление', [
+      { text: 'Отмена', style: 'cancel' },
+      { text: 'Удалить', style: 'destructive', onPress: () => performDelete(item) },
+    ]);
+  };
+
+  const performDelete = async (item: FavoriteItem) => {
     setRemovingId(item._id);
     try {
       await removeFavorite(item.listingId, item.listingType);
@@ -149,8 +164,6 @@ export default function FavoritesScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.heading}>Избранное</Text>
-        <Text style={styles.subtitle}>Сохранённые объявления маркета</Text>
         <FlatList
           data={FILTERS}
           horizontal
@@ -171,7 +184,7 @@ export default function FavoritesScreen({ navigation }: Props) {
           keyExtractor={(item) => item._id}
           renderItem={renderItem}
           contentContainerStyle={items.length ? styles.list : styles.emptyList}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons name="bookmark-outline" size={36} color={colors.textFaint} />
@@ -193,18 +206,16 @@ export default function FavoritesScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  header: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
-  heading: { color: colors.text, fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13 },
-  filters: { gap: 8, paddingTop: 14, paddingBottom: 2 },
-  filterBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, justifyContent: 'center', backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
-  filterBtnActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
+  header: { paddingHorizontal: 16 },
+  filters: { gap: 8, paddingTop: 12, paddingBottom: 4 },
+  filterBtn: { height: 36, borderRadius: 999, paddingHorizontal: 14, justifyContent: 'center', backgroundColor: colors.surfaceAlt },
+  filterBtnActive: { backgroundColor: colors.accent },
   filterText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
-  filterTextActive: { color: '#fff' },
+  filterTextActive: { color: colors.onAccent },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: 12, gap: 10 },
   emptyList: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  card: { minHeight: 104, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: colors.border },
+  card: { minHeight: 104, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderRadius: 8, padding: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   image: { width: 84, height: 84, borderRadius: 8, backgroundColor: colors.surfaceAlt },
   noImage: { alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, alignSelf: 'stretch', justifyContent: 'center' },

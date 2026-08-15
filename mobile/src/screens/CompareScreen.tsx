@@ -24,10 +24,18 @@ import {
   getListingImage,
   getListingPrice,
   getListingTitle,
-  loadMarketListings,
+  getMarketListingById,
   MarketCategoryId,
-  MarketListing,
 } from '../api/market';
+
+const plural = (n: number, forms: [string, string, string]) => {
+  const abs = Math.abs(n) % 100;
+  const d = abs % 10;
+  if (abs > 10 && abs < 20) return forms[2];
+  if (d > 1 && d < 5) return forms[1];
+  if (d === 1) return forms[0];
+  return forms[2];
+};
 
 const categoriesByType: Record<CompareItemType, MarketCategoryId[]> = {
   car: ['cars', 'parts'],
@@ -55,15 +63,24 @@ const compareRows: Array<{ label: string; getValue: (item: ResolvedCompareItem) 
     const value = item.listing?.rating ?? item.listing?.serviceQuality;
     return value ? `${value}/5` : '';
   } },
-  { label: 'Опыт', getValue: (item) => item.listing?.experience ? `${item.listing.experience} лет` : '' },
+  { label: 'Опыт', getValue: (item) => {
+    const years = Number(item.listing?.experience);
+    return Number.isFinite(years) && years > 0 ? `${years} ${plural(years, ['год', 'года', 'лет'])}` : '';
+  } },
 ];
 
-const findListing = (lists: Array<{ categoryId: MarketCategoryId; listings: MarketListing[] }>, item: CompareItem) => {
-  for (const list of lists) {
-    const listing = list.listings.find((candidate) => candidate.id === item.id);
-    if (listing) return { listing, categoryId: list.categoryId };
+// Resolve one compare item by id against the categories its type maps to —
+// a couple of by-id requests instead of downloading whole category lists.
+const resolveItem = async (item: CompareItem): Promise<ResolvedCompareItem> => {
+  for (const categoryId of categoriesByType[item.type] || []) {
+    try {
+      const listing = await getMarketListingById(categoryId, item.id);
+      if (listing) return { ...item, listing, categoryId };
+    } catch {
+      // 404 in this category — try the next one.
+    }
   }
-  return {};
+  return { ...item };
 };
 
 export default function CompareScreen() {
@@ -92,19 +109,7 @@ export default function CompareScreen() {
         return;
       }
 
-      const type = nextItems[0].type;
-      const categories = categoriesByType[type] || [];
-      const loadedLists = await Promise.all(
-        categories.map(async (categoryId) => ({
-          categoryId,
-          listings: await loadMarketListings(categoryId, { limit: 200 }),
-        })),
-      );
-
-      setResolvedItems(nextItems.map((item) => {
-        const match = findListing(loadedLists, item);
-        return { ...item, ...match };
-      }));
+      setResolvedItems(await Promise.all(nextItems.map(resolveItem)));
     } catch (e: any) {
       setError(e.response?.data?.message || 'Не удалось загрузить сравнение');
     } finally {
@@ -113,8 +118,11 @@ export default function CompareScreen() {
     }
   }, []);
 
+  const hasDataRef = React.useRef(false);
+  hasDataRef.current = resolvedItems.length > 0 || items.length > 0;
+
   useFocusEffect(useCallback(() => {
-    load();
+    load(hasDataRef.current);
   }, [load]));
 
   const refresh = () => {
@@ -153,34 +161,26 @@ export default function CompareScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
     >
-      <View style={styles.hero}>
-        <View style={styles.heroIcon}>
-          <Ionicons name="git-compare-outline" size={27} color={colors.text} />
-        </View>
-        <Text style={styles.title}>Сравнение</Text>
-        <Text style={styles.subtitle}>
-          {comparisonType ? typeLabel[comparisonType] : 'Добавьте до двух объявлений одного типа'}
-        </Text>
-      </View>
-
       {error ? (
-        <View style={styles.emptyCard}>
-          <Ionicons name="alert-circle-outline" size={36} color={colors.danger} />
+        <View style={styles.emptyWrap}>
+          <Ionicons name="alert-circle-outline" size={40} color={colors.danger} />
           <Text style={styles.emptyTitle}>{error}</Text>
           <Text style={styles.emptyText}>Потяните экран вниз, чтобы попробовать снова.</Text>
         </View>
       ) : !items.length ? (
-        <View style={styles.emptyCard}>
-          <Ionicons name="albums-outline" size={38} color={colors.textFaint} />
+        <View style={styles.emptyWrap}>
+          <Ionicons name="albums-outline" size={42} color={colors.textFaint} />
           <Text style={styles.emptyTitle}>Список сравнения пуст</Text>
           <Text style={styles.emptyText}>Откройте объявление в маркете и нажмите “Сравнить”.</Text>
         </View>
       ) : (
         <>
           <View style={styles.topRow}>
-            <Text style={styles.countText}>{items.length}/2 элемента</Text>
+            <Text style={styles.countText}>
+              {comparisonType ? `${typeLabel[comparisonType]} · ` : ''}{items.length}/2
+            </Text>
             <TouchableOpacity style={styles.clearBtn} onPress={clear} disabled={saving}>
               {saving ? <ActivityIndicator size="small" color={colors.danger} /> : <Text style={styles.clearText}>Очистить</Text>}
             </TouchableOpacity>
@@ -236,13 +236,9 @@ export default function CompareScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 16, paddingBottom: 28 },
+  content: { flexGrow: 1, padding: 16, paddingBottom: 28 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  hero: { alignItems: 'center', paddingVertical: 18 },
-  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 1, borderColor: colors.border },
-  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 6, color: colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  emptyCard: { marginTop: 18, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 20, alignItems: 'center' },
+  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   emptyTitle: { marginTop: 10, color: colors.text, fontSize: 17, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 10 },
@@ -250,15 +246,15 @@ const styles = StyleSheet.create({
   clearBtn: { minWidth: 88, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
   clearText: { color: colors.danger, fontSize: 13, fontWeight: '900' },
   cardsRow: { flexDirection: 'row', gap: 10 },
-  itemCard: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  itemCard: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
   itemImage: { width: '100%', height: 112, backgroundColor: colors.surfaceAlt },
   itemImageFallback: { alignItems: 'center', justifyContent: 'center' },
   itemTitle: { marginTop: 10, paddingHorizontal: 10, color: colors.text, fontSize: 14, lineHeight: 19, fontWeight: '900', minHeight: 38 },
   itemPrice: { paddingHorizontal: 10, marginTop: 5, color: colors.text, fontSize: 14, fontWeight: '900' },
   removeBtn: { margin: 10, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   removeText: { color: colors.danger, fontSize: 12, fontWeight: '900' },
-  table: { marginTop: 12, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
-  tableRow: { borderBottomWidth: 1, borderBottomColor: colors.border, padding: 12 },
+  table: { marginTop: 12, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
+  tableRow: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, padding: 12 },
   rowLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 8 },
   rowValues: { flexDirection: 'row', gap: 10 },
   rowValue: { flex: 1, color: colors.text, fontSize: 14, lineHeight: 19, fontWeight: '800' },

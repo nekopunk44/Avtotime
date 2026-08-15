@@ -74,6 +74,15 @@ const digits = (value: string) => value.replace(/[^0-9]/g, '').slice(0, 9);
 const getResultCategoryId = (listing: MarketListing): MarketCategoryId =>
   getMarketCategoryFromListingType(listing.listingType);
 
+const pluralResults = (n: number) => {
+  const abs = Math.abs(n) % 100;
+  const d = abs % 10;
+  if (abs > 10 && abs < 20) return 'результатов';
+  if (d > 1 && d < 5) return 'результата';
+  if (d === 1) return 'результат';
+  return 'результатов';
+};
+
 export default function MarketSearchScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
   const [type, setType] = useState<CategoryKey>('all');
@@ -87,7 +96,10 @@ export default function MarketSearchScreen({ navigation }: Props) {
   const set = (key: keyof Form, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
   const fields = FIELDS[type];
 
+  const requestIdRef = React.useRef(0);
+
   const loadResults = useCallback(async (silent = false) => {
+    const requestId = ++requestIdRef.current;
     if (!silent) setLoading(true);
     setError('');
     try {
@@ -100,13 +112,16 @@ export default function MarketSearchScreen({ navigation }: Props) {
         fuel: form.fuel, gearbox: form.gearbox, bodyType: form.bodyType, driveType: form.driveType,
       };
       const data = query.trim() ? await searchMarketListings(options) : await filterMarketListings(options);
+      if (requestId !== requestIdRef.current) return;
       setResults(data);
     } catch (e: any) {
       setError(e.response?.data?.message || 'Не удалось выполнить поиск');
       setResults([]);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [query, type, sortBy, form]);
 
@@ -123,6 +138,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
   const reset = () => {
     setQuery('');
     setSortBy('newest');
+    setType('cars');
     setForm(emptyForm);
   };
 
@@ -266,7 +282,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.summaryRow}>
-        <Text style={styles.resultCount}>{results.length} результатов</Text>
+        <Text style={styles.resultCount}>{results.length} {pluralResults(results.length)}</Text>
         <TouchableOpacity onPress={reset} style={styles.clearBtn}>
           <Ionicons name="refresh-outline" size={15} color={colors.text} />
           <Text style={styles.clearText}>Сбросить</Text>
@@ -317,7 +333,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
       renderItem={renderResult}
       ListHeaderComponent={renderHeader}
       contentContainerStyle={results.length ? styles.list : styles.emptyList}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       keyboardShouldPersistTaps="handled"
       ListEmptyComponent={
         loading ? (

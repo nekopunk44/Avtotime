@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useHeaderHeight } from '@react-navigation/elements';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -85,6 +86,7 @@ const DEFAULT_CATEGORY_BY_MODE: Record<MarketCategoryId, string> = {
 const isVehicleMode = (mode: MarketCategoryId) => mode === 'cars' || mode === 'parts';
 
 export default function CreateMarketListingScreen({ navigation }: Props) {
+  const headerHeight = useHeaderHeight();
   const [mode, setMode] = useState<MarketCategoryId>('cars');
   const [form, setForm] = useState<FormState>(initialForm);
   const [images, setImages] = useState<string[]>([]);
@@ -117,7 +119,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: isVehicle,
       selectionLimit: imageLimit,
       quality: 0.82,
@@ -125,7 +127,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
 
     if (!result.canceled) {
       const selected = result.assets.map((asset) => asset.uri);
-      setImages((prev) => (isVehicle ? [...prev, ...selected].slice(0, imageLimit) : selected.slice(0, 1)));
+      setImages((prev) => (isVehicle ? Array.from(new Set([...prev, ...selected])).slice(0, imageLimit) : selected.slice(0, 1)));
     }
   };
 
@@ -246,7 +248,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
       placeholder={placeholder}
       placeholderTextColor={colors.textFaint}
       value={form[key]}
-      onChangeText={(value) => update(key, value)}
+      onChangeText={(value) => update(key, options.keyboardType === 'numeric' ? value.replace(/[^0-9]/g, '') : value)}
       keyboardType={options.keyboardType ?? 'default'}
       multiline={options.multiline}
       textAlignVertical={options.multiline ? 'top' : 'center'}
@@ -254,7 +256,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   );
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={headerHeight}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.lead}>Выберите раздел и заполните карточку — объявление появится в Avtotime Market после проверки.</Text>
 
@@ -328,11 +330,11 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
 
         <Text style={styles.sectionTitle}>{isConsultation ? 'Аватар' : 'Фото'}</Text>
         <View style={styles.imageActionRow}>
-          <TouchableOpacity style={styles.imagePicker} onPress={takePhoto} activeOpacity={0.85} disabled={images.length >= imageLimit}>
+          <TouchableOpacity style={[styles.imagePicker, images.length >= imageLimit && styles.imagePickerDisabled]} onPress={takePhoto} activeOpacity={0.85} disabled={images.length >= imageLimit}>
             <Ionicons name="camera-outline" size={22} color={colors.text} />
             <Text style={styles.imagePickerText}>Камера</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.imagePicker} onPress={pickImages} activeOpacity={0.85} disabled={images.length >= imageLimit}>
+          <TouchableOpacity style={[styles.imagePicker, images.length >= imageLimit && styles.imagePickerDisabled]} onPress={pickImages} activeOpacity={0.85} disabled={images.length >= imageLimit}>
             <Ionicons name="images-outline" size={22} color={colors.text} />
             <Text style={styles.imagePickerText}>Галерея</Text>
             <Text style={styles.imagePickerCount}>{images.length}/{imageLimit}</Text>
@@ -345,7 +347,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
               <View key={uri} style={styles.previewItem}>
                 <Image source={{ uri }} style={styles.previewImage} />
                 <TouchableOpacity style={styles.removeImage} onPress={() => removeImage(uri)}>
-                  <Ionicons name="close" size={16} color="#fff" />
+                  <Ionicons name="close" size={16} color={colors.white} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -394,6 +396,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 14, gap: 8,
   },
+  imagePickerDisabled: { opacity: 0.5 },
   imagePickerText: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '800' },
   imagePickerCount: { color: colors.textMuted, fontWeight: '800' },
   previewGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },

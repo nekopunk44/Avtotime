@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { sendCarRequest } from '../api/carRequests';
 import { useAuthStore } from '../store/authStore';
 import { colors } from '../theme';
@@ -23,6 +24,7 @@ const currentYear = new Date().getFullYear();
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 export default function CarRequestScreen() {
+  const headerHeight = useHeaderHeight();
   const user = useAuthStore((state) => state.user);
   const initialEmail = String((user as any)?.email || '');
   const initialRegion = user?.region || user?.location || user?.address || '';
@@ -91,19 +93,12 @@ export default function CarRequestScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={headerHeight}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <View style={styles.headerIcon}>
-            <Ionicons name="car-sport-outline" size={30} color={colors.text} />
-          </View>
-          <Text style={styles.title}>Подбор автомобиля</Text>
-          <Text style={styles.subtitle}>Оставьте параметры, и команда Avtotime свяжется с вами по email.</Text>
-        </View>
-
         {sentMessage ? (
           <View style={styles.successBox}>
-            <Ionicons name="checkmark-circle-outline" size={24} color="#15803d" />
+            <Ionicons name="checkmark-circle-outline" size={24} color={colors.success} />
             <Text style={styles.successText}>{sentMessage}</Text>
           </View>
         ) : null}
@@ -200,7 +195,7 @@ export default function CarRequestScreen() {
 
         <View style={styles.infoBox}>
           <Ionicons name="mail-outline" size={20} color={colors.textMuted} />
-          <Text style={styles.infoText}>Backend отправит заявку администратору и письмо-подтверждение на указанный email.</Text>
+          <Text style={styles.infoText}>Мы передадим заявку администратору и пришлём подтверждение на указанный email.</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -210,26 +205,22 @@ export default function CarRequestScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 30 },
-  header: { alignItems: 'center', paddingTop: 10, paddingBottom: 20 },
-  headerIcon: { width: 62, height: 62, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  title: { marginTop: 12, color: colors.text, fontSize: 28, fontWeight: '900', textAlign: 'center' },
-  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
   successBox: { marginBottom: 12, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(61,214,140,0.3)', backgroundColor: 'rgba(61,214,140,0.14)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  successText: { flex: 1, color: '#166534', fontSize: 13, lineHeight: 19, fontWeight: '800' },
-  formCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 },
+  successText: { flex: 1, color: colors.success, fontSize: 13, lineHeight: 19, fontWeight: '800' },
+  formCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14, marginBottom: 12 },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '900', marginBottom: 12 },
   inputLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '800', marginBottom: 7 },
   input: { minHeight: 48, borderRadius: 10, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 15, marginBottom: 13 },
   inputError: { borderWidth: 1, borderColor: colors.danger, backgroundColor: 'rgba(255,90,95,0.12)' },
-  errorHint: { color: '#b91c1c', fontSize: 12, fontWeight: '800', marginTop: -7, marginBottom: 12 },
+  errorHint: { color: colors.danger, fontSize: 12, fontWeight: '800', marginTop: -7, marginBottom: 12 },
   regionChips: { gap: 8, paddingBottom: 2 },
-  regionChip: { height: 36, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, justifyContent: 'center' },
-  regionChipActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
+  regionChip: { height: 36, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.bg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, justifyContent: 'center' },
+  regionChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   regionChipText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  regionChipTextActive: { color: '#fff' },
+  regionChipTextActive: { color: colors.onAccent },
   submitBtn: { marginTop: 2, height: 50, borderRadius: 12, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   submitBtnDisabled: { opacity: 0.65 },
   submitText: { color: colors.onAccent, fontSize: 16, fontWeight: '900' },
-  infoBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  infoBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
   infoText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700' },
 });

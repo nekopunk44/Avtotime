@@ -65,28 +65,46 @@ export default function MarketScreen({ navigation }: Props) {
     [categoryId],
   );
 
+  const requestIdRef = useRef(0);
+  const hasLoadedRef = useRef(false);
+  const prevQueryRef = useRef(query);
+
   const loadListings = useCallback(async (silent = false) => {
+    const requestId = ++requestIdRef.current;
+    hasLoadedRef.current = true;
     if (!silent) setLoading(true);
     setError('');
     try {
       const data = await loadMarketListings(categoryId, { q: query, limit: 40 });
+      if (requestId !== requestIdRef.current) return;
       setListings(data);
     } catch (e: any) {
+      if (requestId !== requestIdRef.current) return;
       setError(e.response?.data?.message || 'Не удалось загрузить объявления');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [categoryId, query]);
 
+  const loadListingsRef = useRef(loadListings);
+  loadListingsRef.current = loadListings;
+
   useEffect(() => {
-    const id = setTimeout(() => loadListings(), query.trim() ? 350 : 0);
+    // Silent when the reload is caused by typing, so the list (and the
+    // TextInput in its header) stays mounted and the keyboard stays open.
+    const queryChanged = prevQueryRef.current !== query;
+    prevQueryRef.current = query;
+    const id = setTimeout(() => loadListings(queryChanged), queryChanged && query.trim() ? 350 : 0);
     return () => clearTimeout(id);
   }, [loadListings, query]);
 
   useFocusEffect(useCallback(() => {
-    loadListings(true);
-  }, [loadListings]));
+    // Initial load is handled by the debounce effect; on re-focus refresh silently.
+    if (hasLoadedRef.current) loadListingsRef.current(true);
+  }, []));
 
   const refresh = () => {
     setRefreshing(true);
@@ -137,7 +155,7 @@ export default function MarketScreen({ navigation }: Props) {
         </View>
       </View>
 
-      <PressableScale style={styles.searchBox} scaleTo={1} onPress={() => navigation.navigate('MarketSearch')}>
+      <View style={styles.searchBox}>
         <Ionicons name="search-outline" size={18} color={colors.textMuted} />
         <TextInput
           style={styles.searchInput}
@@ -148,8 +166,10 @@ export default function MarketScreen({ navigation }: Props) {
           autoCapitalize="none"
           returnKeyType="search"
         />
-        <Ionicons name="options-outline" size={18} color={colors.text} />
-      </PressableScale>
+        <TouchableOpacity onPress={() => navigation.navigate('MarketSearch')} hitSlop={8}>
+          <Ionicons name="options-outline" size={18} color={colors.text} />
+        </TouchableOpacity>
+      </View>
 
       <ScrollView
         ref={catScrollRef}

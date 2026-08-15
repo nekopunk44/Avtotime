@@ -145,7 +145,7 @@ export function getListingTitle(listing: MarketListing) {
 
 export function getListingPrice(listing: MarketListing, categoryId?: MarketCategoryId) {
   if (categoryId === 'consultations' && listing.hourlyRate != null) {
-    return `€ ${listing.hourlyRate}/ч`;
+    return `€ ${listing.hourlyRate.toLocaleString('ru-RU')}/ч`;
   }
 
   if (listing.price == null || listing.price === '') {
@@ -155,7 +155,7 @@ export function getListingPrice(listing: MarketListing, categoryId?: MarketCateg
   if (typeof listing.price === 'number') {
     const prefix = listing.pricePrefix ? `${listing.pricePrefix} ` : '';
     const unit = listing.unit ? `/${listing.unit}` : '';
-    return `${prefix}€ ${listing.price}${unit}`;
+    return `${prefix}€ ${listing.price.toLocaleString('ru-RU')}${unit}`;
   }
 
   return listing.price;
@@ -169,6 +169,14 @@ export function getAuthorId(listing: MarketListing) {
   if (!listing.author) return '';
   if (typeof listing.author === 'string') return listing.author;
   return listing.author._id;
+}
+
+export async function getMarketListingById(
+  categoryId: MarketCategoryId,
+  id: string | number,
+): Promise<MarketListing> {
+  const { data } = await client.get(`/market/listing/${categoryId}/${id}`);
+  return data;
 }
 
 export async function loadMarketListings(

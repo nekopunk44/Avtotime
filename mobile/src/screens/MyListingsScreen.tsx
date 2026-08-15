@@ -53,6 +53,15 @@ const STATUS_STYLE: Record<Exclude<StatusFilter, 'all'>, { color: string; bg: st
 
 const statusFilters: StatusFilter[] = ['all', 'approved', 'pending', 'rejected', 'unknown'];
 
+const pluralYears = (n: number) => {
+  const abs = Math.abs(n) % 100;
+  const d = abs % 10;
+  if (abs > 10 && abs < 20) return 'лет';
+  if (d > 1 && d < 5) return 'года';
+  if (d === 1) return 'год';
+  return 'лет';
+};
+
 const getStatus = (item: MyMarketListing): Exclude<StatusFilter, 'all'> => {
   const value = String(item.listing.moderationStatus || '').toLowerCase();
   if (value === 'approved' || value === 'pending' || value === 'rejected') return value;
@@ -75,7 +84,7 @@ const getMeta = (item: MyMarketListing) => {
     listing.model,
     listing.category,
     listing.partCategory,
-    listing.experience ? `${listing.experience} лет опыта` : '',
+    listing.experience ? `${listing.experience} ${pluralYears(Number(listing.experience))} опыта` : '',
   ].filter(Boolean);
   return details.length ? `${location} · ${details.slice(0, 2).join(' · ')}` : location;
 };
@@ -104,6 +113,7 @@ export default function MyListingsScreen({ navigation }: Props) {
         return bTime - aTime;
       });
       setItems(data);
+      hasDataRef.current = true;
     } catch (e: any) {
       setError(e.response?.data?.message || 'Не удалось загрузить ваши объявления');
     } finally {
@@ -112,8 +122,10 @@ export default function MyListingsScreen({ navigation }: Props) {
     }
   }, []);
 
+  const hasDataRef = React.useRef(false);
+
   useFocusEffect(useCallback(() => {
-    load();
+    load(hasDataRef.current);
   }, [load]));
 
   const counts = useMemo(() => {
@@ -331,7 +343,7 @@ export default function MyListingsScreen({ navigation }: Props) {
 
           <View style={styles.actionRow}>
             <TouchableOpacity style={styles.openBtn} onPress={() => openDetails(item)} activeOpacity={0.85}>
-              <Ionicons name="open-outline" size={17} color="#fff" />
+              <Ionicons name="open-outline" size={17} color={colors.onAccent} />
               <Text style={styles.openBtnText}>Открыть</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.editBtn} onPress={() => editListing(item)} activeOpacity={0.85}>
@@ -385,7 +397,7 @@ export default function MyListingsScreen({ navigation }: Props) {
         renderItem={renderItem}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={filtered.length ? styles.list : styles.emptyList}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name={error ? 'alert-circle-outline' : 'albums-outline'} size={38} color={colors.textFaint} />
@@ -455,7 +467,7 @@ const styles = StyleSheet.create({
   greenText: { color: colors.success },
   amberText: { color: colors.warning },
   statLabel: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
-  searchBox: { height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  searchBox: { height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
   searchInput: { flex: 1, color: colors.text, fontSize: 15 },
   filterRow: { gap: 8, paddingVertical: 2, alignItems: 'center' },
   filterBtn: { height: 36, borderRadius: 999, paddingHorizontal: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, justifyContent: 'center' },
@@ -476,9 +488,9 @@ const styles = StyleSheet.create({
   cardDate: { marginTop: 6, color: colors.textFaint, fontSize: 12, fontWeight: '700' },
   rejectText: { marginTop: 8, color: colors.danger, fontSize: 12, lineHeight: 17, fontWeight: '700' },
   actionRow: { flexDirection: 'row', gap: 8, marginTop: 13 },
-  openBtn: { flex: 1, height: 42, borderRadius: 8, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  openBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' },
-  editBtn: { width: 62, height: 42, borderRadius: 8, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  openBtn: { flex: 1, height: 42, borderRadius: 8, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  openBtnText: { color: colors.onAccent, fontSize: 14, fontWeight: '900' },
+  editBtn: { width: 62, height: 42, borderRadius: 8, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   editBtnText: { color: colors.text, fontSize: 12, fontWeight: '900' },
   appealBtn: { width: 62, height: 42, borderRadius: 12, backgroundColor: 'rgba(246,178,61,0.14)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(246,178,61,0.3)', alignItems: 'center', justifyContent: 'center' },
   appealBtnText: { color: colors.warning, fontSize: 12, fontWeight: '900' },

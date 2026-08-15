@@ -18,6 +18,7 @@ import {
   getListingPrice,
   getListingTitle,
   getMarketCategory,
+  getMarketListingById,
   getSellerNickname,
   recordMarketLead,
   recordMarketView,
@@ -40,7 +41,7 @@ import {
 import { searchUsers } from '../api/users';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import ImageViewer from '../components/ImageViewer';
-import { colors } from '../theme';
+import { colors, radius } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'MarketListingDetails'>;
@@ -50,7 +51,8 @@ type Props = {
 const isObjectId = (value: string) => /^[0-9a-fA-F]{24}$/.test(value);
 
 export default function MarketListingDetailsScreen({ navigation, route }: Props) {
-  const { listing, categoryId } = route.params;
+  const { listing: initialListing, categoryId } = route.params;
+  const [listing, setListing] = useState(initialListing);
   const [imageIndex, setImageIndex] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -72,6 +74,24 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
   useEffect(() => {
     navigation.setOptions({ title: category.label });
   }, [category.label, navigation]);
+
+  useEffect(() => {
+    // Screens like search/favorites pass trimmed listing objects; silently
+    // refetch the full document and merge it in. Keep the passed data meanwhile.
+    const id = initialListing._id || initialListing.id;
+    if (id == null || id === '') return;
+
+    let mounted = true;
+    getMarketListingById(categoryId, id)
+      .then((full) => {
+        if (mounted && full) setListing((prev) => ({ ...prev, ...full }));
+      })
+      .catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
+  }, [categoryId, initialListing]);
 
   useEffect(() => {
     if (listing.id) recordMarketView(categoryId, listing.id);
@@ -232,10 +252,10 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
 
         {images.length > 1 ? (
           <>
-            <TouchableOpacity style={[styles.imageNav, styles.imageNavLeft]} onPress={previousImage}>
+            <TouchableOpacity style={[styles.imageNav, styles.imageNavLeft]} onPress={previousImage} hitSlop={8}>
               <Ionicons name="chevron-back" size={24} color={colors.text} />
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.imageNav, styles.imageNavRight]} onPress={nextImage}>
+            <TouchableOpacity style={[styles.imageNav, styles.imageNavRight]} onPress={nextImage} hitSlop={8}>
               <Ionicons name="chevron-forward" size={24} color={colors.text} />
             </TouchableOpacity>
             <View style={styles.imageCounter}>
@@ -259,9 +279,9 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
               activeOpacity={0.85}
             >
               {compareLoading ? (
-                <ActivityIndicator size="small" color={isCompared ? '#fff' : '#111'} />
+                <ActivityIndicator size="small" color={isCompared ? colors.onAccent : colors.text} />
               ) : (
-                <Ionicons name="git-compare-outline" size={20} color={isCompared ? '#fff' : '#111'} />
+                <Ionicons name="git-compare-outline" size={20} color={isCompared ? colors.onAccent : colors.text} />
               )}
             </TouchableOpacity>
             <TouchableOpacity
@@ -271,9 +291,9 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
               activeOpacity={0.85}
             >
               {favoriteLoading ? (
-                <ActivityIndicator size="small" color={isFavorite ? '#fff' : '#111'} />
+                <ActivityIndicator size="small" color={isFavorite ? colors.onAccent : colors.text} />
               ) : (
-                <Ionicons name={isFavorite ? 'bookmark' : 'bookmark-outline'} size={20} color={isFavorite ? '#fff' : '#111'} />
+                <Ionicons name={isFavorite ? 'bookmark' : 'bookmark-outline'} size={20} color={isFavorite ? colors.onAccent : colors.text} />
               )}
             </TouchableOpacity>
           </View>
@@ -288,7 +308,7 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
 
         <TouchableOpacity style={styles.reviewsBtn} onPress={openReviews} activeOpacity={0.85}>
           <View style={styles.reviewsLeft}>
-            <Ionicons name="star" size={17} color="#f5a400" />
+            <Ionicons name="star" size={17} color={colors.star} />
             <Text style={styles.reviewsText}>
               {reviewCount > 0 ? `${reviewRating ? reviewRating.toFixed(1) : '0.0'} · ${reviewCount} отзывов` : 'Отзывы'}
             </Text>
@@ -376,34 +396,34 @@ const styles = StyleSheet.create({
     position: 'absolute', right: 12, bottom: 12, paddingHorizontal: 10, paddingVertical: 5,
     borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.65)',
   },
-  imageCounterText: { color: '#fff', fontWeight: '800', fontSize: 12 },
-  panel: { backgroundColor: colors.surface, padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
+  imageCounterText: { color: colors.white, fontWeight: '800', fontSize: 12 },
+  panel: { backgroundColor: colors.surface, padding: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   panelTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   categoryLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   categoryText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
   panelActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  saveBtnActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
+  saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  saveBtnActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   title: { marginTop: 10, color: colors.text, fontSize: 24, fontWeight: '900', lineHeight: 29 },
   price: { marginTop: 10, color: colors.text, fontSize: 24, fontWeight: '900' },
   locationRow: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 5 },
   locationText: { flex: 1, color: colors.textMuted, fontSize: 14 },
-  reviewsBtn: { marginTop: 12, minHeight: 44, borderRadius: 8, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
+  reviewsBtn: { marginTop: 12, minHeight: 44, borderRadius: radius.sm, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
   reviewsLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   reviewsText: { color: colors.text, fontSize: 14, fontWeight: '900' },
-  sellerBadge: { alignSelf: 'flex-start', marginTop: 12, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8, backgroundColor: colors.surfaceHi, color: '#fff', fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  section: { marginTop: 10, backgroundColor: colors.surface, padding: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border },
+  sellerBadge: { alignSelf: 'flex-start', marginTop: 12, paddingHorizontal: 9, paddingVertical: 5, borderRadius: radius.sm, backgroundColor: colors.surfaceHi, color: colors.text, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  section: { marginTop: 10, backgroundColor: colors.surface, padding: 16, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 12 },
   specGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  specItem: { width: '48%', minHeight: 64, borderRadius: 8, backgroundColor: colors.surfaceAlt, padding: 10 },
+  specItem: { width: '48%', minHeight: 64, borderRadius: radius.sm, backgroundColor: colors.surfaceAlt, padding: 10 },
   specLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 5 },
   specValue: { color: colors.text, fontSize: 14, fontWeight: '800' },
   description: { color: colors.textMuted, fontSize: 14, lineHeight: 21 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  tag: { paddingHorizontal: 9, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.surfaceAlt, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  tag: { paddingHorizontal: 9, paddingVertical: 6, borderRadius: radius.sm, backgroundColor: colors.surfaceAlt, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   sellerBox: {
-    marginTop: 10, marginHorizontal: 12, borderRadius: 8, backgroundColor: colors.surface,
-    padding: 12, borderWidth: 1, borderColor: colors.border,
+    marginTop: 10, marginHorizontal: 12, borderRadius: radius.sm, backgroundColor: colors.surface,
+    padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
   },
   sellerInfo: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surfaceAlt },
@@ -412,7 +432,7 @@ const styles = StyleSheet.create({
   sellerTitle: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   sellerName: { color: colors.text, fontSize: 16, fontWeight: '900', marginTop: 2 },
   contactBtn: {
-    height: 46, borderRadius: 8, backgroundColor: colors.accent,
+    height: 46, borderRadius: radius.sm, backgroundColor: colors.accent,
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7,
   },
   contactText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },

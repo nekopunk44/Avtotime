@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -92,6 +93,7 @@ const getInitialForm = (listing: MarketListing, categoryId: MarketCategoryId): F
 });
 
 export default function EditMarketListingScreen({ navigation, route }: Props) {
+  const headerHeight = useHeaderHeight();
   const { listing, categoryId } = route.params;
   const category = useMemo(() => getMarketCategory(categoryId), [categoryId]);
   const [form, setForm] = useState<FormState>(() => getInitialForm(listing, categoryId));
@@ -115,7 +117,7 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: isVehicle,
       selectionLimit: imageLimit,
       quality: 0.82,
@@ -140,7 +142,7 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
     });
 
     if (!result.canceled) {
-      setImages(isVehicle ? [result.assets[0].uri] : [result.assets[0].uri]);
+      setImages((prev) => (isVehicle ? Array.from(new Set([...prev, result.assets[0].uri])) : [result.assets[0].uri]));
     }
   };
 
@@ -218,7 +220,7 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
       placeholder={placeholder}
       placeholderTextColor={colors.textFaint}
       value={form[key]}
-      onChangeText={(value) => update(key, value)}
+      onChangeText={(value) => update(key, options.keyboardType === 'numeric' ? value.replace(/[^0-9]/g, '') : value)}
       keyboardType={options.keyboardType ?? 'default'}
       multiline={options.multiline}
       textAlignVertical={options.multiline ? 'top' : 'center'}
@@ -226,18 +228,8 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
   );
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={headerHeight}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.hero}>
-          <View style={styles.heroIcon}>
-            <Ionicons name={category.icon as any} size={26} color={colors.text} />
-          </View>
-          <View style={styles.heroText}>
-            <Text style={styles.title}>Редактирование</Text>
-            <Text style={styles.subtitle}>{category.label}</Text>
-          </View>
-        </View>
-
         <Text style={styles.sectionTitle}>{isConsultation ? 'Профиль специалиста' : 'Основное'}</Text>
         {input('title', isConsultation ? 'Имя специалиста' : 'Название объявления')}
         {input('price', isConsultation ? 'Ставка в EUR / час' : 'Цена в EUR', { keyboardType: 'numeric' })}
@@ -363,7 +355,7 @@ const styles = StyleSheet.create({
   subtitle: { marginTop: 2, color: colors.textMuted, fontSize: 14, fontWeight: '700' },
   sectionTitle: { marginTop: 14, marginBottom: 8, color: colors.text, fontSize: 15, fontWeight: '900' },
   input: {
-    minHeight: 48,
+    minHeight: 50,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 10,
