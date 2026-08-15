@@ -24,7 +24,11 @@ const storySchema= new mongoose.Schema({
             ],
             createdAt: {
                 type: Date,
-                default: Date.now(),
+                // Must be the function reference, not a call: Date.now() would be
+                // evaluated once at process start, giving every story the same
+                // createdAt and making the TTL index expire new stories instantly
+                // after a day of uptime.
+                default: Date.now,
                 expires:86400,
             }
 }, {timestamps:true,})

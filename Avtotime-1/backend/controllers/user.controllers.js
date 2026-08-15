@@ -96,11 +96,15 @@ export const getCurrentUser = async (req, res) => {
     }
 }
 
+// Public-safe projection for other people's accounts: never expose email,
+// phone, push tokens, OTP/verification secrets or block lists to third parties.
+const PUBLIC_USER_FIELDS = 'name userName profileImage bio profession location followers following posts'
+
 export const suggestedUsers = async (req, res) => {
     try {
         const users = await User.find({
             _id: { $ne: req.userId }
-        }).select("-password").limit(20).lean()
+        }).select(PUBLIC_USER_FIELDS).limit(20).lean()
         return res.status(200).json(users)
     } catch (error) {
         return res.status(500).json({ message: `Получить предлагаемую ошибку пользователя ${error}` })
@@ -122,10 +126,11 @@ export const editProfile = async (req, res) => {
             return res.status(400).json({ message: 'Пользователь не найден' })
         }
 
-        const sameUserWithUserName = await User.findOne({ userName }).select('-password')
-
-        if (sameUserWithUserName && sameUserWithUserName._id.toString() !== req.userId.toString()) {
-            return res.status(400).json({ message: 'Пользователь уже существует' })
+        if (userName !== undefined) {
+            const sameUserWithUserName = await User.findOne({ userName }).select('_id')
+            if (sameUserWithUserName && sameUserWithUserName._id.toString() !== req.userId.toString()) {
+                return res.status(400).json({ message: 'Пользователь уже существует' })
+            }
         }
 
         let profileImage;
@@ -172,18 +177,19 @@ export const editProfile = async (req, res) => {
             }
         }
 
-        user.name = name
-        user.userName = userName
+        // Partial updates must not wipe fields that were simply omitted.
+        if (name !== undefined) user.name = name
+        if (userName !== undefined) user.userName = userName
         if(profileImage) {
             user.profileImage = profileImage
         }
-        user.bio = bio
-        user.profession = profession 
+        if (bio !== undefined) user.bio = bio
+        if (profession !== undefined) user.profession = profession
         if (genderProvided) user.gender = normalizedGender
-        user.location = location
-        user.website = website
-        user.instagram = instagram
-        user.telegram = telegram
+        if (location !== undefined) user.location = location
+        if (website !== undefined) user.website = website
+        if (instagram !== undefined) user.instagram = instagram
+        if (telegram !== undefined) user.telegram = telegram
         if (phone !== undefined) user.phone = phone?.trim() || ''
         if (address !== undefined) user.address = address?.trim() || ''
         if (region !== undefined) user.region = region?.trim() || ''
@@ -204,12 +210,12 @@ export const getProfile = async (req, res) => {
         const user = await User.findOne({ userName })
             .select('-password')
             .populate([
-                { path: 'posts', populate: { path: 'author' } },
-                { path: 'followers' },
-                { path: 'following' },
-                { 
-                    path: 'saved', 
-                    populate: { path: 'author' } //  ЭТО РАСКРОЕТ АВАТАРКУ И ИМЯ
+                { path: 'posts', populate: { path: 'author', select: 'name userName profileImage' } },
+                { path: 'followers', select: 'name userName profileImage' },
+                { path: 'following', select: 'name userName profileImage' },
+                {
+                    path: 'saved',
+                    populate: { path: 'author', select: 'name userName profileImage' },
                 }
             ]);
         
@@ -303,7 +309,7 @@ export const getUserById = async (req, res) => {
         }
 
         const user = await User.findById(userId)
-            .select('-password')
+            .select(`${PUBLIC_USER_FIELDS} website instagram telegram preferredContact createdAt`)
             .populate([
                 { path: 'posts', limit: 10 },
                 { path: 'followers', select: 'name userName profileImage' },
@@ -343,8 +349,10 @@ export const deleteProfile = async (req, res) => {
             return res.status(404).json({ message: 'Пользователь не найден' });
         }
 
-        // Verify password
-        const isPasswordCorrect = await user.matchPassword(password);
+        // Verify password. Google-auth accounts have no local password —
+        // bcrypt.compare(pw, null) would throw, and they are already
+        // authenticated by JWT, so the extra password gate is skipped.
+        const isPasswordCorrect = user.password ? await user.matchPassword(password) : true;
         if (!isPasswordCorrect) {
             return res.status(401).json({ message: 'Неверный пароль' });
         }
@@ -354,9 +362,9 @@ export const deleteProfile = async (req, res) => {
             Post.deleteMany({ author: userId }),
             Loop.deleteMany({ author: userId }),
             Story.deleteMany({ author: userId }),
-            Message.deleteMany({ senderId: userId }),
+            Message.deleteMany({ sender: userId }),
             Conversation.deleteMany({ participants: userId }),
-            Notification.deleteMany({ $or: [{ recipient: userId }, { sender: userId }] }),
+            Notification.deleteMany({ $or: [{ recipient: userId }, { actor: userId }] }),
             Favorite.deleteMany({ user: userId }),
             DrivingTestResult.deleteMany({ user: userId }),
             MarketCarListing.deleteMany({ author: userId }),
@@ -487,21 +495,19 @@ export const logoutAll = async (req, res) => {
 
 export const setPlan = async (req, res) => {
     try {
-        const { plan, durationDays } = req.body
-        const allowed = ['free', 'pro', 'business']
-        if (!allowed.includes(plan)) {
-            return res.status(400).json({ message: 'Неверный тариф' })
+        const { plan } = req.body
+        // Self-service only allows downgrading to free. Paid plans are granted
+        // exclusively by the Stripe webhook (payment.controllers.js) — otherwise
+        // this endpoint would be a free bypass of the whole billing system.
+        if (plan !== 'free') {
+            return res.status(403).json({ message: 'Платные тарифы активируются только через оплату' })
         }
 
-        const update = { plan, planExpiryWarnedThreshold: null }
-        if (plan === 'free') {
-            update.planActivatedAt = null
-            update.planExpiresAt = null
-        } else {
-            const days = Number(durationDays) > 0 ? Number(durationDays) : 30
-            const now = new Date()
-            update.planActivatedAt = now
-            update.planExpiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+        const update = {
+            plan: 'free',
+            planExpiryWarnedThreshold: null,
+            planActivatedAt: null,
+            planExpiresAt: null,
         }
 
         const user = await User.findByIdAndUpdate(

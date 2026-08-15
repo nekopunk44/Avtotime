@@ -91,7 +91,7 @@ export const viewStory = async (req, res) => {
 
         const story = await Story.find({
             author: user._id
-        }).populate ('viewers author')
+        }).populate('viewers author', 'name userName profileImage')
         return res.status(200).json(story);
     } catch (error) {
          return res.status(500).json({ message: 'Ошибка получения истории пользователя'});
@@ -105,7 +105,7 @@ export const getAllStories=async(req, res)=>{
 
         const stories=await Story.find({
             author: {$in:followingIds}
-        }).populate('viewers author')
+        }).populate('viewers author', 'name userName profileImage')
         .sort({createdAt:-1})
 
         return res.status(200).json(stories)

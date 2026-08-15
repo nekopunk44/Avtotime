@@ -13,15 +13,27 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+// User-supplied values go into HTML emails — escape them to prevent HTML
+// injection into what the admin (and the user) reads.
+const escapeHtml = (value) => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
 export const sendCarRequest = async (req, res) => {
     try {
-        const { marca, model, year, email, region } = req.body;
+        const marca = escapeHtml(req.body.marca).slice(0, 80);
+        const model = escapeHtml(req.body.model).slice(0, 80);
+        const year = escapeHtml(req.body.year).slice(0, 20);
+        const region = escapeHtml(req.body.region).slice(0, 80);
+        const email = String(req.body.email ?? '').trim();
 
         // Валидация данных
         if (!marca || !model || !year || !email || !region) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Все поля обязательны' 
+            return res.status(400).json({
+                success: false,
+                message: 'Все поля обязательны'
             });
         }
 
@@ -41,7 +53,7 @@ export const sendCarRequest = async (req, res) => {
             <p><strong>Модель:</strong> ${model}</p>
             <p><strong>Год:</strong> ${year}</p>
             <p><strong>Регион:</strong> ${region}</p>
-            <p><strong>Email пользователя:</strong> ${email}</p>
+            <p><strong>Email пользователя:</strong> ${escapeHtml(email)}</p>
             <p><strong>Время:</strong> ${new Date().toLocaleString('ru-RU')}</p>
         `;
 
@@ -72,10 +84,14 @@ export const sendCarRequest = async (req, res) => {
             html: userEmailContent
         });
 
-        // Если пользователь авторизован (есть cookie с JWT), добавляем уведомление в раздел уведомлений.
+        // Если пользователь авторизован, добавляем уведомление в раздел уведомлений.
+        // Токен берём и из cookie (web), и из Authorization: Bearer (мобильный клиент).
         // Роут публичный, поэтому это best-effort (без ошибки для гостя).
         try {
-            const token = req.cookies?.[getAuthCookieName()];
+            const bearer = req.headers.authorization?.startsWith('Bearer ')
+                ? req.headers.authorization.slice(7)
+                : null;
+            const token = req.cookies?.[getAuthCookieName()] || bearer;
             if (token) {
                 const verified = jwt.verify(token, process.env.JWT_SECRET);
                 const userId = verified?.userId;

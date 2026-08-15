@@ -183,7 +183,12 @@ export const signOut = async (req, res) => {
 
 export const getSession = async (req, res) => {
     try {
-        const token = req.cookies?.[getAuthCookieName()]
+        // Web sends the JWT as a cookie; the mobile client sends
+        // Authorization: Bearer — accept both so /auth/me works everywhere.
+        const bearer = req.headers.authorization?.startsWith('Bearer ')
+            ? req.headers.authorization.slice(7)
+            : null
+        const token = req.cookies?.[getAuthCookieName()] || bearer
         if (!token) {
             return res.status(200).json(null)
         }

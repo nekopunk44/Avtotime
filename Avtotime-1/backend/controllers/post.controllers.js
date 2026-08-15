@@ -172,8 +172,11 @@ export const searchPosts = async (req, res) => {
             return res.status(400).json({ message: 'Поисковый запрос должен быть не менее 2 символов' })
         }
 
+        // Escape regex metacharacters: raw user input like "(((" would throw
+        // (500) and long patterns invite ReDoS.
+        const safe = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
         const posts = await Post.find({
-            caption: new RegExp(q, 'i'),
+            caption: new RegExp(safe, 'i'),
         })
             .populate('author', 'name userName profileImage')
             .populate('comments.author', 'name userName profileImage')
