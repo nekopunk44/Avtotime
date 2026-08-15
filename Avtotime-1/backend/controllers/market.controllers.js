@@ -1242,6 +1242,44 @@ export const deleteConsultationExpert = async (req, res) => {
   }
 };
 
+// Full listing by id — search/filter return trimmed projections, so clients
+// (mobile details screen) refetch the complete document here. Accepts either
+// the Mongo _id or the numeric public id.
+const LISTING_MODELS = {
+  cars: MarketCarListing,
+  parts: MarketPartListing,
+  "car-services": MarketCarServiceListing,
+  "auto-tuning": MarketAutoTuningListing,
+  consultations: MarketConsultationExpert,
+  "dry-cleaning": MarketDryCleaningListing,
+};
+
+export const getMarketListingById = async (req, res) => {
+  try {
+    const { listingType, id } = req.params;
+    const model = LISTING_MODELS[String(listingType || "").toLowerCase()];
+    if (!model) {
+      return res.status(400).json({ message: "Неизвестный тип объявления" });
+    }
+
+    const or = [];
+    if (/^[0-9a-fA-F]{24}$/.test(id)) or.push({ _id: id });
+    const numericId = Number(id);
+    if (Number.isFinite(numericId)) or.push({ id: numericId });
+    if (!or.length) {
+      return res.status(400).json({ message: "Некорректный id" });
+    }
+
+    const listing = await model.findOne(buildAndQuery([{ $or: or }, moderationApprovedFilter])).lean();
+    if (!listing) {
+      return res.status(404).json({ message: "Объявление не найдено" });
+    }
+    return res.status(200).json(listing);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 // SEARCH контроллеры
 
 // Normalizes search/filter query params to the names the clause builders read.

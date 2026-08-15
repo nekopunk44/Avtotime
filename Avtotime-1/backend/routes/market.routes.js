@@ -16,6 +16,7 @@ import {
   deleteCarServiceListing,
   deleteConsultationExpert,
   filterMarketListings,
+  getMarketListingById,
   getAutoTuningListings,
   getCarListings,
   getPartListings,
@@ -72,6 +73,7 @@ marketRouter.post("/:type/:id/lead", isAuth, recordListingLead);
 
 marketRouter.get("/search", isAuth, searchMarketListings);
 marketRouter.get("/filter", isAuth, filterMarketListings);
+marketRouter.get("/listing/:listingType/:id", isAuth, getMarketListingById);
 
 marketRouter.get("/cars", isAuth, getCarListings);
 marketRouter.post("/cars", isAuth, isEmailVerified, upload.array("images", 10), checkPlanLimits("cars"), createCarListing);
