@@ -289,7 +289,7 @@ export default function SudokuGameScreen() {
           <Text style={styles.subtitle}>Заполните поле без ошибок и сохраните результат в общем рейтинге.</Text>
         </View>
         <View style={styles.heroIcon}>
-          <Ionicons name="keypad-outline" size={28} color="#fff" />
+          <Ionicons name="keypad-outline" size={28} color={colors.accent} />
         </View>
       </View>
 
@@ -364,7 +364,7 @@ export default function SudokuGameScreen() {
         </View>
       ) : (
         <TouchableOpacity style={styles.startBtn} onPress={startGame} activeOpacity={0.85}>
-          <Ionicons name="play-circle-outline" size={22} color="#fff" />
+          <Ionicons name="play-circle-outline" size={22} color={colors.onAccent} />
           <Text style={styles.startText}>{status === 'finished' ? 'Новая партия' : 'Старт'}</Text>
         </TouchableOpacity>
       )}
@@ -419,11 +419,11 @@ const styles = StyleSheet.create({
   content: { padding: 12, paddingBottom: 30, gap: 10 },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 8, backgroundColor: colors.surfaceHi, padding: 14 },
   heroText: { flex: 1 },
-  title: { color: '#fff', fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 5, color: '#ddd', fontSize: 13, lineHeight: 19, fontWeight: '700' },
-  heroIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
+  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
+  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  heroIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   statsRow: { flexDirection: 'row', gap: 8 },
-  statBox: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  statBox: { flex: 1, borderRadius: 12, backgroundColor: colors.surfaceAlt, padding: 12 },
   statValue: { color: colors.text, fontSize: 24, fontWeight: '900' },
   statLabel: { marginTop: 2, color: colors.textMuted, fontSize: 11, fontWeight: '800' },
   board: { aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: colors.surfaceHi, flexDirection: 'row', flexWrap: 'wrap', borderWidth: 2, borderColor: colors.border },
@@ -436,22 +436,22 @@ const styles = StyleSheet.create({
   cellText: { fontSize: 19, fontWeight: '900' },
   fixedText: { color: colors.text },
   playerText: { color: colors.danger },
-  progressBlock: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  progressBlock: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12 },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   progressLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   progressValue: { color: colors.text, fontSize: 12, fontWeight: '900' },
   progressTrack: { height: 8, borderRadius: 4, backgroundColor: colors.surfaceHi, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 4, backgroundColor: colors.danger },
+  progressFill: { height: '100%', borderRadius: 4, backgroundColor: colors.accent },
   keypad: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  numberBtn: { width: '31.8%', height: 48, borderRadius: 8, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
-  numberText: { color: '#fff', fontSize: 20, fontWeight: '900' },
-  eraseBtn: { flex: 1, minWidth: '45%', height: 48, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  numberBtn: { width: '31.8%', height: 48, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  numberText: { color: colors.text, fontSize: 20, fontWeight: '900' },
+  eraseBtn: { flex: 1, minWidth: '45%', height: 48, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   eraseText: { color: colors.text, fontSize: 13, fontWeight: '900' },
-  saveBtn: { flex: 1, minWidth: '45%', height: 48, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  saveBtn: { flex: 1, minWidth: '45%', height: 48, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   saveText: { color: colors.text, fontSize: 13, fontWeight: '900' },
-  startBtn: { height: 50, borderRadius: 8, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  startText: { color: '#fff', fontSize: 16, fontWeight: '900' },
-  card: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 },
+  startBtn: { height: 50, borderRadius: 8, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  startText: { color: colors.onAccent, fontSize: 16, fontWeight: '900' },
+  card: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14, gap: 10 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   savedGrid: { flexDirection: 'row', gap: 8 },
@@ -460,9 +460,9 @@ const styles = StyleSheet.create({
   savedLabel: { marginTop: 2, color: colors.textMuted, fontSize: 11, fontWeight: '800' },
   playTime: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   rankRow: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 8, backgroundColor: colors.bg, paddingHorizontal: 10, paddingVertical: 7 },
-  rankNumber: { width: 22, color: colors.danger, fontSize: 14, fontWeight: '900', textAlign: 'center' },
+  rankNumber: { width: 22, color: colors.textMuted, fontSize: 14, fontWeight: '900', textAlign: 'center' },
   rankAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
-  rankInitial: { color: '#fff', fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  rankInitial: { color: colors.text, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   rankName: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '800' },
   rankScore: { color: colors.text, fontSize: 14, fontWeight: '900' },
   mutedText: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },

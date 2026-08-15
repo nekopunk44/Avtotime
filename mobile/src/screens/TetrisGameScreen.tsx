@@ -410,7 +410,7 @@ export default function TetrisGameScreen() {
           <Text style={styles.subtitle}>Собирайте линии, повышайте уровень и сохраняйте лучший результат.</Text>
         </View>
         <View style={styles.heroIcon}>
-          <Ionicons name="grid-outline" size={28} color="#fff" />
+          <Ionicons name="grid-outline" size={28} color={colors.accent} />
         </View>
       </View>
 
@@ -480,14 +480,14 @@ export default function TetrisGameScreen() {
         <View style={styles.controlPanel}>
           <View style={styles.controlRow}>
             <TouchableOpacity style={styles.arrowBtn} onPress={() => movePiece(-1)} activeOpacity={0.85}>
-              <Ionicons name="chevron-back" size={27} color="#fff" />
+              <Ionicons name="chevron-back" size={27} color={colors.text} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.rotateBtn} onPress={rotatePiece} activeOpacity={0.85}>
-              <Ionicons name="refresh" size={23} color="#fff" />
+              <Ionicons name="refresh" size={23} color={colors.text} />
               <Text style={styles.rotateText}>Поворот</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.arrowBtn} onPress={() => movePiece(1)} activeOpacity={0.85}>
-              <Ionicons name="chevron-forward" size={27} color="#fff" />
+              <Ionicons name="chevron-forward" size={27} color={colors.text} />
             </TouchableOpacity>
           </View>
           <View style={styles.controlRow}>
@@ -503,7 +503,7 @@ export default function TetrisGameScreen() {
         </View>
       ) : (
         <TouchableOpacity style={styles.startBtn} onPress={startGame} activeOpacity={0.85}>
-          <Ionicons name="play-circle-outline" size={22} color="#fff" />
+          <Ionicons name="play-circle-outline" size={22} color={colors.onAccent} />
           <Text style={styles.startText}>{status === 'finished' ? 'Новая партия' : 'Старт'}</Text>
         </TouchableOpacity>
       )}
@@ -558,11 +558,11 @@ const styles = StyleSheet.create({
   content: { padding: 12, paddingBottom: 30, gap: 10 },
   hero: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 8, backgroundColor: colors.surfaceHi, padding: 14 },
   heroText: { flex: 1 },
-  title: { color: '#fff', fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 5, color: '#ddd', fontSize: 13, lineHeight: 19, fontWeight: '700' },
-  heroIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
+  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
+  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  heroIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   statsRow: { flexDirection: 'row', gap: 8 },
-  statBox: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  statBox: { flex: 1, borderRadius: 12, backgroundColor: colors.surfaceAlt, padding: 12 },
   statValue: { color: colors.text, fontSize: 24, fontWeight: '900' },
   statLabel: { marginTop: 2, color: colors.textMuted, fontSize: 11, fontWeight: '800' },
   gameRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
@@ -574,27 +574,27 @@ const styles = StyleSheet.create({
   preview: { width: 98, height: 98, borderRadius: 8, backgroundColor: '#242424', borderWidth: 1, borderColor: '#1a1a1a', flexDirection: 'row', flexWrap: 'wrap', padding: 6 },
   previewCell: { width: '25%', aspectRatio: 1, borderWidth: 1, borderColor: '#303030' },
   previewEmpty: { backgroundColor: '#3a3a3a' },
-  levelBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 10 },
+  levelBox: { borderRadius: 12, backgroundColor: colors.surfaceAlt, padding: 10 },
   levelValue: { color: colors.text, fontSize: 24, fontWeight: '900' },
   levelLabel: { marginTop: 2, color: colors.textMuted, fontSize: 11, fontWeight: '800' },
-  progressBlock: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  progressBlock: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12 },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   progressLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   progressValue: { color: colors.text, fontSize: 12, fontWeight: '900' },
   progressTrack: { height: 8, borderRadius: 4, backgroundColor: colors.surfaceHi, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 4, backgroundColor: colors.danger },
+  progressFill: { height: '100%', borderRadius: 4, backgroundColor: colors.accent },
   controlPanel: { gap: 8 },
   controlRow: { flexDirection: 'row', gap: 8 },
-  arrowBtn: { flex: 1, height: 50, borderRadius: 8, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
+  arrowBtn: { flex: 1, height: 50, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   rotateBtn: { flex: 1.45, height: 50, borderRadius: 8, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  rotateText: { color: '#fff', fontSize: 13, fontWeight: '900' },
-  downBtn: { flex: 1, height: 50, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  rotateText: { color: colors.text, fontSize: 13, fontWeight: '900' },
+  downBtn: { flex: 1, height: 50, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   downText: { color: colors.text, fontSize: 13, fontWeight: '900' },
-  saveBtn: { flex: 1, height: 50, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  saveBtn: { flex: 1, height: 50, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   saveText: { color: colors.text, fontSize: 13, fontWeight: '900' },
-  startBtn: { height: 50, borderRadius: 8, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  startText: { color: '#fff', fontSize: 16, fontWeight: '900' },
-  card: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 },
+  startBtn: { height: 50, borderRadius: 8, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  startText: { color: colors.onAccent, fontSize: 16, fontWeight: '900' },
+  card: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14, gap: 10 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   savedGrid: { flexDirection: 'row', gap: 8 },
@@ -603,9 +603,9 @@ const styles = StyleSheet.create({
   savedLabel: { marginTop: 2, color: colors.textMuted, fontSize: 11, fontWeight: '800' },
   playTime: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   rankRow: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 8, backgroundColor: colors.bg, paddingHorizontal: 10, paddingVertical: 7 },
-  rankNumber: { width: 22, color: colors.danger, fontSize: 14, fontWeight: '900', textAlign: 'center' },
+  rankNumber: { width: 22, color: colors.textMuted, fontSize: 14, fontWeight: '900', textAlign: 'center' },
   rankAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
-  rankInitial: { color: '#fff', fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  rankInitial: { color: colors.text, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   rankName: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '800' },
   rankScore: { color: colors.text, fontSize: 14, fontWeight: '900' },
   mutedText: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
