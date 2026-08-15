@@ -42,6 +42,11 @@ export async function getLoops(page = 1, limit = 20): Promise<Loop[]> {
   return Array.isArray(data) ? data : [];
 }
 
+export async function getLoopById(loopId: string): Promise<Loop> {
+  const { data } = await client.get(`/loop/byId/${loopId}`);
+  return data;
+}
+
 export async function likeLoop(loopId: string): Promise<Loop> {
   const { data } = await client.get(`/loop/like/${loopId}`);
   return data;

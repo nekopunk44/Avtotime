@@ -89,15 +89,15 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
         {item.caption ? <Text style={styles.caption}>{item.caption}</Text> : null}
 
         <View style={styles.actions}>
-          <PressableScale style={styles.actionBtn} onPress={onLike}>
+          <PressableScale style={styles.actionBtn} onPress={onLike} hitSlop={10}>
             <Ionicons name={liked ? 'heart' : 'heart-outline'} size={23} color={liked ? colors.danger : colors.textMuted} />
             <Text style={[styles.actionCount, liked && { color: colors.danger }]}>{item.likes.length}</Text>
           </PressableScale>
-          <PressableScale style={styles.actionBtn} onPress={onOpen}>
+          <PressableScale style={styles.actionBtn} onPress={onOpen} hitSlop={10}>
             <Ionicons name="chatbubble-outline" size={21} color={colors.textMuted} />
             <Text style={styles.actionCount}>{item.commentsCount ?? item.comments.length}</Text>
           </PressableScale>
-          <PressableScale style={styles.saveActionBtn} onPress={onSave}>
+          <PressableScale style={styles.saveActionBtn} onPress={onSave} hitSlop={10}>
             <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={21} color={saved ? colors.accent : colors.textMuted} />
           </PressableScale>
         </View>

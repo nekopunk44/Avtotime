@@ -82,7 +82,7 @@ export default function AdminUserDetailsScreen({ navigation, route }: Props) {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
     >
       {error ? (
         <View style={styles.errorBox}>
@@ -139,7 +139,7 @@ export default function AdminUserDetailsScreen({ navigation, route }: Props) {
             onPress={() => navigation.navigate('UserProfile', { userId: user._id })}
             activeOpacity={0.86}
           >
-            <Ionicons name="person-outline" size={18} color="#fff" />
+            <Ionicons name="person-outline" size={18} color={colors.onAccent} />
             <Text style={styles.profileBtnText}>Открыть публичный профиль</Text>
           </TouchableOpacity>
         </>
@@ -158,21 +158,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   content: { padding: 12, paddingBottom: 30, gap: 10 },
-  errorBox: { borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: 1, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  errorBox: { borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   errorText: { flex: 1, color: colors.danger, fontSize: 13, lineHeight: 18, fontWeight: '800' },
-  profileCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  profileCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 74, height: 74, borderRadius: 24, backgroundColor: colors.surfaceAlt },
   avatarFallback: { backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontSize: 24, fontWeight: '900' },
+  avatarText: { color: colors.white, fontSize: 24, fontWeight: '900' },
   profileInfo: { flex: 1 },
   name: { color: colors.text, fontSize: 22, fontWeight: '900' },
   username: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   email: { marginTop: 5, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  planBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: colors.surfaceHi, color: '#fff', paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  adminBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: 'rgba(61,214,140,0.14)', color: '#14843b', paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  planBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: colors.surfaceHi, color: colors.white, paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  adminBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: 'rgba(61,214,140,0.14)', color: colors.success, paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   bannedBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: 'rgba(255,90,95,0.12)', color: colors.danger, paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  section: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 },
+  section: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14, gap: 10 },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   statCard: { width: '48.6%', borderRadius: 8, backgroundColor: colors.bg, padding: 12 },
@@ -180,8 +180,8 @@ const styles = StyleSheet.create({
   statLabel: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   infoLine: { color: colors.textMuted, fontSize: 14, lineHeight: 20, fontWeight: '700' },
   bio: { color: colors.textMuted, fontSize: 14, lineHeight: 21, backgroundColor: colors.bg, borderRadius: 8, padding: 10 },
-  profileBtn: { height: 48, borderRadius: 8, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  profileBtnText: { color: '#fff', fontSize: 15, fontWeight: '900' },
+  profileBtn: { height: 48, borderRadius: 8, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  profileBtnText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
   empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 42, paddingHorizontal: 20 },
   emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },

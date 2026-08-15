@@ -22,7 +22,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { RouteProp, useFocusEffect, useIsFocused, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { commentLoop, getLoops, likeLoop, Loop, uploadLoop } from '../api/loops';
+import { commentLoop, getLoopById, getLoops, likeLoop, Loop, uploadLoop } from '../api/loops';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList, AppTabParamList } from '../navigation/AppNavigator';
 import ModeSwitcher from '../components/ModeSwitcher';
@@ -216,6 +216,7 @@ export default function LoopsScreen({ navigation }: Props) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [commentTarget, setCommentTarget] = useState<Loop | null>(null);
+  const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
   const [pendingVideo, setPendingVideo] = useState<{ uri: string; mimeType?: string } | null>(null);
@@ -379,6 +380,21 @@ export default function LoopsScreen({ navigation }: Props) {
     }
   };
 
+  // The feed carries only a comments preview — fetch the full loop when the
+  // sheet opens so every comment is visible.
+  const openComments = (loop: Loop) => {
+    setCommentTarget(loop);
+    setCommentsLoading(true);
+    getLoopById(loop._id)
+      .then((full) => {
+        setLoops((prev) => prev.map((item) => (item._id === full._id ? full : item)));
+      })
+      .catch(() => {
+        // keep the preview comments
+      })
+      .finally(() => setCommentsLoading(false));
+  };
+
   const closeComments = () => {
     setCommentTarget(null);
     setCommentText('');
@@ -392,7 +408,7 @@ export default function LoopsScreen({ navigation }: Props) {
       muted={muted}
       onToggleMute={() => setMuted((prev) => !prev)}
       onLike={handleLike}
-      onCommentOpen={setCommentTarget}
+      onCommentOpen={openComments}
       onAuthorPress={openAuthor}
     />
   );
@@ -523,6 +539,12 @@ export default function LoopsScreen({ navigation }: Props) {
               </TouchableOpacity>
             </View>
 
+            {commentsLoading ? (
+              <View style={styles.commentsLoading}>
+                <ActivityIndicator size="small" color={colors.textMuted} />
+              </View>
+            ) : null}
+
             <FlatList
               data={activeLoop?.comments || activeLoop?.commentsPreview || []}
               keyExtractor={(item, index) => item._id || `${item.author?._id || 'comment'}-${index}`}
@@ -577,7 +599,7 @@ export default function LoopsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  centerDark: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceHi },
+  centerDark: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   loopCard: { width: '100%', backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   video: { width: '100%', height: '100%' },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: space.lg, paddingBottom: 10, zIndex: 20 },
@@ -608,6 +630,7 @@ const styles = StyleSheet.create({
   sheetTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   closeBtn: { position: 'absolute', right: 12, width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   commentsList: { flex: 1 },
+  commentsLoading: { paddingVertical: 8, alignItems: 'center' },
   commentsContent: { padding: 16, gap: 14 },
   noComments: { marginTop: 36, textAlign: 'center', color: colors.textMuted, fontSize: 15, fontWeight: '700' },
   commentRow: { flexDirection: 'row', gap: 10 },

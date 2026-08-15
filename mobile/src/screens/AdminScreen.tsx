@@ -288,7 +288,7 @@ export default function AdminScreen({ navigation }: Props) {
             onPress={() => setActiveTab(tab.id)}
             activeOpacity={0.86}
           >
-            <Ionicons name={tab.icon} size={17} color={active ? '#fff' : '#777'} />
+            <Ionicons name={tab.icon} size={17} color={active ? colors.onAccent : colors.textMuted} />
             <Text style={[styles.tabText, active && styles.tabTextActive]}>{tab.label}</Text>
           </TouchableOpacity>
         );
@@ -371,7 +371,7 @@ export default function AdminScreen({ navigation }: Props) {
               onPress={() => setSelectedCategory(category.id)}
               activeOpacity={0.86}
             >
-              <Ionicons name={category.icon as any} size={17} color={active ? '#fff' : '#555'} />
+              <Ionicons name={category.icon as any} size={17} color={active ? colors.onAccent : colors.textMuted} />
               <Text style={[styles.categoryText, active && styles.categoryTextActive]}>{category.shortLabel}</Text>
             </TouchableOpacity>
           );
@@ -412,10 +412,10 @@ export default function AdminScreen({ navigation }: Props) {
             ) : null}
             <View style={styles.actionsRow}>
               <TouchableOpacity style={styles.approveBtn} onPress={() => approveListing(item)} disabled={!!actingId}>
-                {approving ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionTextLight}>Одобрить</Text>}
+                {approving ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.actionTextOnSuccess}>Одобрить</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectListing(item)} disabled={!!actingId}>
-                {rejecting ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionTextLight}>Отклонить</Text>}
+                {rejecting ? <ActivityIndicator color={colors.white} /> : <Text style={styles.actionTextOnDanger}>Отклонить</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -486,7 +486,9 @@ export default function AdminScreen({ navigation }: Props) {
                 {adminLoading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.actionTextDark}>{admin ? 'Снять admin' : 'Выдать admin'}</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={banned ? styles.approveBtn : styles.rejectBtn} onPress={() => toggleBan(item)} disabled={!!actingId}>
-                {banLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.actionTextLight}>{banned ? 'Разбанить' : 'Бан'}</Text>}
+                {banLoading
+                  ? <ActivityIndicator color={banned ? colors.onAccent : colors.white} />
+                  : <Text style={banned ? styles.actionTextOnSuccess : styles.actionTextOnDanger}>{banned ? 'Разбанить' : 'Бан'}</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -518,25 +520,16 @@ export default function AdminScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.top}>
-        <View style={styles.titleRow}>
-          <View style={styles.titleIcon}>
-            <Ionicons name="shield-checkmark-outline" size={27} color={colors.text} />
-          </View>
-          <View style={styles.titleBlock}>
-            <Text style={styles.title}>Админ</Text>
-            <Text style={styles.subtitle}>Статистика, модерация маркета и пользователи</Text>
-          </View>
-        </View>
         {renderTabs()}
       </View>
 
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       >
         {error ? (
           <View style={styles.errorBox}>
-            <Ionicons name="alert-circle-outline" size={22} color="#b91c1c" />
+            <Ionicons name="alert-circle-outline" size={22} color={colors.danger} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
@@ -551,30 +544,25 @@ export default function AdminScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.surface },
-  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  titleIcon: { width: 50, height: 50, borderRadius: 16, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  titleBlock: { flex: 1 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 3, color: colors.textMuted, fontSize: 13 },
-  tabs: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3, marginTop: 14 },
+  centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.bg },
+  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  tabs: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3 },
   tabBtn: { flex: 1, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 5 },
-  tabBtnActive: { backgroundColor: colors.surfaceHi },
+  tabBtnActive: { backgroundColor: colors.accent },
   tabText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
-  tabTextActive: { color: '#fff' },
+  tabTextActive: { color: colors.onAccent },
   content: { padding: 12, paddingBottom: 28 },
   section: { gap: 10 },
   rangeList: { gap: 8, paddingBottom: 2 },
-  rangeBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  rangeBtnActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
+  rangeBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  rangeBtnActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   rangeText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  rangeTextActive: { color: '#fff' },
+  rangeTextActive: { color: colors.onAccent },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  statCard: { width: '48.7%', backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 14 },
+  statCard: { width: '48.7%', backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14 },
   statValue: { color: colors.text, fontSize: 25, fontWeight: '900' },
   statLabel: { marginTop: 3, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
-  overviewCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 8 },
+  overviewCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14, gap: 8 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   overviewText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
@@ -582,45 +570,46 @@ const styles = StyleSheet.create({
   dailyDate: { flex: 1, color: colors.text, fontSize: 12, fontWeight: '900' },
   dailyValue: { color: colors.textMuted, fontSize: 11, fontWeight: '800' },
   categoryList: { gap: 8, paddingBottom: 2 },
-  categoryBtn: { height: 38, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  categoryBtnActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
+  categoryBtn: { height: 38, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  categoryBtnActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   categoryText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  categoryTextActive: { color: '#fff' },
-  switchRow: { flexDirection: 'row', backgroundColor: '#ececec', borderRadius: 12, padding: 3 },
+  categoryTextActive: { color: colors.onAccent },
+  switchRow: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3 },
   switchBtn: { flex: 1, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  switchBtnActive: { backgroundColor: colors.surfaceHi },
+  switchBtnActive: { backgroundColor: colors.accent },
   switchText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  switchTextActive: { color: '#fff' },
+  switchTextActive: { color: colors.onAccent },
   inlineLoader: { minHeight: 90, alignItems: 'center', justifyContent: 'center' },
-  listingCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 13 },
+  listingCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 13 },
   listingTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   listingIcon: { width: 44, height: 44, borderRadius: 13, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   listingInfo: { flex: 1 },
   cardTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
   cardMeta: { marginTop: 3, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   description: { marginTop: 10, color: colors.textMuted, fontSize: 13, lineHeight: 19 },
-  reasonText: { marginTop: 8, color: '#b45309', fontSize: 12, fontWeight: '800' },
+  reasonText: { marginTop: 8, color: colors.warning, fontSize: 12, fontWeight: '800' },
   actionsRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  approveBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: '#15803d', alignItems: 'center', justifyContent: 'center' },
+  approveBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: colors.success, alignItems: 'center', justifyContent: 'center' },
   rejectBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
-  secondaryActionBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: '#e2e2e2', alignItems: 'center', justifyContent: 'center' },
-  actionTextLight: { color: '#fff', fontSize: 13, fontWeight: '900' },
+  secondaryActionBtn: { flex: 1, height: 42, borderRadius: 10, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  actionTextOnSuccess: { color: colors.onAccent, fontSize: 13, fontWeight: '900' },
+  actionTextOnDanger: { color: colors.white, fontSize: 13, fontWeight: '900' },
   actionTextDark: { color: colors.text, fontSize: 13, fontWeight: '900' },
-  searchBox: { height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  searchBox: { height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
   searchInput: { flex: 1, color: colors.text, fontSize: 15 },
   usersTotal: { color: colors.textMuted, fontSize: 12, fontWeight: '800', paddingHorizontal: 2 },
-  userCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 13 },
+  userCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 13 },
   userTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatar: { width: 46, height: 46, borderRadius: 15, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
   avatarDanger: { backgroundColor: colors.danger },
-  avatarText: { color: '#fff', fontSize: 17, fontWeight: '900' },
+  avatarText: { color: colors.white, fontSize: 17, fontWeight: '900' },
   userInfo: { flex: 1 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 10 },
-  adminBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: colors.surfaceHi, color: '#fff', paddingHorizontal: 9, paddingVertical: 5, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  adminBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: colors.surfaceHi, color: colors.white, paddingHorizontal: 9, paddingVertical: 5, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   bannedBadge: { overflow: 'hidden', borderRadius: 999, backgroundColor: 'rgba(255,90,95,0.12)', color: colors.danger, paddingHorizontal: 9, paddingVertical: 5, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  emptyBox: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 24, alignItems: 'center' },
+  emptyBox: { alignItems: 'center', paddingVertical: 42, paddingHorizontal: 20 },
   emptyTitle: { marginTop: 10, color: colors.text, fontSize: 17, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  errorBox: { borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: 1, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  errorBox: { borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
 });

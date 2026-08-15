@@ -123,6 +123,13 @@ export default function ProfileScreen({ navigation }: Props) {
 
   const refresh = () => {
     setRefreshing(true);
+    // Also silently reload the data of the currently open tab.
+    if (tab === 'saved') {
+      getSavedPosts().then(setSaved).catch(() => {});
+    }
+    if (tab === 'reviews' && user?._id) {
+      getReviews({ targetUserId: user._id }).then((r) => setReviews(r.reviews)).catch(() => {});
+    }
     load(true);
   };
 

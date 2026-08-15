@@ -34,6 +34,7 @@ import {
 } from '../api/kidsGames';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import GamePreview from '../components/GamePreview';
+import { useAuthStore } from '../store/authStore';
 import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'KidsGames'> };
@@ -197,15 +198,21 @@ export default function KidsGamesScreen({ navigation }: Props) {
     load();
   }, [load]));
 
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = !!user?.isAdmin;
+
+  // Only admins can create games — hide the "+" header button for everyone else.
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity style={styles.headerAdd} onPress={() => setCreateOpen(true)} activeOpacity={0.85} hitSlop={8}>
-          <Ionicons name="add" size={22} color={colors.onAccent} />
-        </TouchableOpacity>
-      ),
+      headerRight: isAdmin
+        ? () => (
+          <TouchableOpacity style={styles.headerAdd} onPress={() => setCreateOpen(true)} activeOpacity={0.85} hitSlop={8}>
+            <Ionicons name="add" size={22} color={colors.onAccent} />
+          </TouchableOpacity>
+        )
+        : undefined,
     });
-  }, [navigation]);
+  }, [isAdmin, navigation]);
 
   const categories = useMemo(() => {
     const values = new Set<string>();

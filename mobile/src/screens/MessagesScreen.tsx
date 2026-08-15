@@ -81,6 +81,7 @@ export default function MessagesScreen({ navigation }: Props) {
           try {
             await deleteConversation(item._id);
             setChats((prev) => prev.filter((chat) => chat._id !== item._id));
+            useBadgeStore.getState().refresh();
           } catch (e: any) {
             Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось удалить переписку');
           } finally {

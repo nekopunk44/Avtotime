@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../theme';
+import { Skeleton } from '../components/ui';
 import {
   CompareItem,
   CompareItemType,
@@ -151,8 +152,16 @@ export default function CompareScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.text} />
+      <View style={[styles.container, styles.content]}>
+        <View style={styles.cardsRow}>
+          {[0, 1].map((i) => (
+            <View key={i} style={styles.skeletonCard}>
+              <Skeleton style={styles.skeletonImage} />
+              <Skeleton style={styles.skeletonLine} />
+              <Skeleton style={styles.skeletonLineShort} />
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -237,7 +246,10 @@ export default function CompareScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { flexGrow: 1, padding: 16, paddingBottom: 28 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+  skeletonCard: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden', paddingBottom: 14 },
+  skeletonImage: { width: '100%', height: 112, borderRadius: 0 },
+  skeletonLine: { marginTop: 10, marginHorizontal: 10, height: 14, width: '80%' },
+  skeletonLineShort: { marginTop: 8, marginHorizontal: 10, height: 12, width: '55%' },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   emptyTitle: { marginTop: 10, color: colors.text, fontSize: 17, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
