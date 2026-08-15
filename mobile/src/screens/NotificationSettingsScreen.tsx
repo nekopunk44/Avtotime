@@ -112,11 +112,9 @@ export default function NotificationSettingsScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
     >
-      <View style={styles.hero}>
-        <Text style={styles.subtitle}>Выберите, какие события показывать в приложении и отправлять на email.</Text>
-      </View>
+      <Text style={styles.intro}>Выберите, какие события показывать в приложении и отправлять на email.</Text>
 
       {TOGGLE_GROUPS.map((group) => (
         <View key={group.title} style={styles.section}>
@@ -154,8 +152,8 @@ export default function NotificationSettingsScreen() {
           <Switch
             value={preferences.emailNotifications}
             onValueChange={(value) => setToggle('emailNotifications', value)}
-            trackColor={{ false: '#ddd', true: '#111' }}
-            thumbColor="#fff"
+            trackColor={{ false: colors.surfaceHi, true: colors.success }}
+            thumbColor={colors.white}
           />
         </View>
 
@@ -201,24 +199,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32 },
-  hero: { alignItems: 'center', paddingVertical: 14 },
-  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '900', textAlign: 'center' },
-  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  section: { marginTop: 12, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingTop: 14, paddingBottom: 4 },
+  intro: { color: colors.textMuted, fontSize: 14, lineHeight: 20, marginBottom: 2 },
+  section: { marginTop: 12, borderRadius: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 12, paddingTop: 14, paddingBottom: 4 },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 6 },
-  row: { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 11, borderTopWidth: 1, borderTopColor: colors.border, paddingVertical: 12 },
+  row: { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 11, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingVertical: 12 },
   rowIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   rowBody: { flex: 1 },
   rowTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
   rowDescription: { marginTop: 3, color: colors.textMuted, fontSize: 12, lineHeight: 17, fontWeight: '700' },
   digestTitle: { color: colors.textMuted, fontSize: 13, fontWeight: '900', marginTop: 12, marginBottom: 8 },
   digestList: { gap: 8, paddingBottom: 10 },
-  digestOption: { minHeight: 58, borderRadius: 8, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 8 },
-  digestOptionActive: { borderColor: colors.border, backgroundColor: colors.surfaceAlt },
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#bbb', alignItems: 'center', justifyContent: 'center' },
-  radioActive: { borderColor: colors.border },
-  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.surfaceHi },
+  digestOption: { minHeight: 58, borderRadius: 12, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 8 },
+  digestOptionActive: { backgroundColor: colors.surfaceHi },
+  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.textFaint, alignItems: 'center', justifyContent: 'center' },
+  radioActive: { borderColor: colors.accent },
+  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
   digestBody: { flex: 1 },
   digestLabel: { color: colors.text, fontSize: 14, fontWeight: '900' },
   digestDescription: { marginTop: 2, color: colors.textMuted, fontSize: 12, lineHeight: 17, fontWeight: '700' },

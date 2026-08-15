@@ -53,7 +53,7 @@ function Stars({ value, size = 17 }: { value: number; size?: number }) {
           key={star}
           name={star <= value ? 'star' : 'star-outline'}
           size={size}
-          color={star <= value ? '#f5a400' : '#ccc'}
+          color={star <= value ? colors.star : colors.textFaint}
         />
       ))}
     </View>
@@ -109,16 +109,8 @@ export default function UserReviewsScreen({ route, navigation }: Props) {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
     >
-      <View style={styles.hero}>
-        <View style={styles.heroIcon}>
-          <Ionicons name="star-outline" size={28} color={colors.text} />
-        </View>
-        <Text style={styles.title}>Отзывы пользователя</Text>
-        <Text style={styles.subtitle}>Оценки покупателей и клиентов по объявлениям в маркете Avtotime</Text>
-      </View>
-
       <View style={styles.summary}>
         <View style={styles.scoreBox}>
           <Text style={styles.score}>{avg.toFixed(1)}</Text>
@@ -194,12 +186,8 @@ export default function UserReviewsScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  content: { padding: 12, paddingBottom: 30, gap: 10 },
-  hero: { alignItems: 'center', paddingVertical: 14 },
-  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  title: { color: colors.text, fontSize: 30, fontWeight: '900', textAlign: 'center' },
-  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center', fontWeight: '700' },
-  summary: { flexDirection: 'row', gap: 12, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  content: { flexGrow: 1, padding: 12, paddingBottom: 30, gap: 10 },
+  summary: { flexDirection: 'row', gap: 12, backgroundColor: colors.surface, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12 },
   scoreBox: { width: 108, alignItems: 'center', justifyContent: 'center' },
   score: { color: colors.text, fontSize: 34, fontWeight: '900' },
   stars: { flexDirection: 'row', alignItems: 'center', gap: 2 },
@@ -208,11 +196,11 @@ const styles = StyleSheet.create({
   breakdownRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   breakdownLabel: { width: 12, color: colors.textMuted, fontSize: 12, fontWeight: '900' },
   breakdownTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
-  breakdownFill: { height: '100%', borderRadius: 4, backgroundColor: '#f5a400' },
+  breakdownFill: { height: '100%', borderRadius: 4, backgroundColor: colors.star },
   breakdownCount: { width: 24, color: colors.textMuted, fontSize: 12, fontWeight: '800', textAlign: 'right' },
-  errorBox: { borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: 1, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  errorBox: { borderRadius: 12, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   errorText: { flex: 1, color: colors.danger, fontSize: 13, lineHeight: 18, fontWeight: '800' },
-  card: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  card: { backgroundColor: colors.surface, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12 },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt },
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
@@ -222,12 +210,12 @@ const styles = StyleSheet.create({
   dateText: { marginTop: 2, color: colors.textFaint, fontSize: 11, fontWeight: '700' },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
   typePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: colors.surfaceAlt, color: colors.text, fontSize: 11, fontWeight: '900' },
-  verifiedPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: 'rgba(61,214,140,0.14)', color: '#14843b', fontSize: 11, fontWeight: '900' },
+  verifiedPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: 'rgba(61,214,140,0.14)', color: colors.success, fontSize: 11, fontWeight: '900' },
   reviewTitle: { marginTop: 10, color: colors.text, fontSize: 15, fontWeight: '900' },
   comment: { marginTop: 5, color: colors.textMuted, fontSize: 14, lineHeight: 20 },
   listText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 18 },
   listStrong: { color: colors.text, fontWeight: '900' },
-  empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 42, paddingHorizontal: 20 },
+  empty: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 42, paddingHorizontal: 20 },
   emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
 });

@@ -205,7 +205,7 @@ export default function HelpRequestsScreen({ navigation }: Props) {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={[styles.iconCircle, active ? styles.iconCircleActive : styles.iconCircleResolved]}>
-            <Ionicons name={active ? 'warning-outline' : 'checkmark-circle-outline'} size={22} color={active ? '#d92323' : '#14843b'} />
+            <Ionicons name={active ? 'warning-outline' : 'checkmark-circle-outline'} size={22} color={active ? colors.danger : colors.success} />
           </View>
           <View style={styles.cardTitleBlock}>
             <Text style={styles.cardUser} numberOfLines={1}>{item.user || (isMine ? 'Вы' : 'Пользователь')}</Text>
@@ -225,7 +225,7 @@ export default function HelpRequestsScreen({ navigation }: Props) {
 
         <View style={styles.actionRow}>
           <TouchableOpacity style={styles.routeBtn} onPress={() => openRoute(item)}>
-            <Ionicons name="navigate-outline" size={17} color="#fff" />
+            <Ionicons name="navigate-outline" size={17} color={colors.onAccent} />
             <Text style={styles.routeText}>Маршрут</Text>
           </TouchableOpacity>
 
@@ -247,16 +247,6 @@ export default function HelpRequestsScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.top}>
-        <View style={styles.titleRow}>
-          <View style={styles.titleBlock}>
-            <Text style={styles.title}>Помощь</Text>
-            <Text style={styles.subtitle}>Запросы водителей из сообщества Avtotime</Text>
-          </View>
-          <TouchableOpacity style={styles.addBtn} onPress={openCreate}>
-            <Ionicons name="add" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{activeRequests.length}</Text>
@@ -266,6 +256,9 @@ export default function HelpRequestsScreen({ navigation }: Props) {
             <Text style={styles.statValue}>{resolvedRequests.length}</Text>
             <Text style={styles.statLabel}>Решенные</Text>
           </View>
+          <TouchableOpacity style={styles.addBtn} onPress={openCreate}>
+            <Ionicons name="add" size={24} color={colors.onAccent} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.scopeRow}>
@@ -294,7 +287,7 @@ export default function HelpRequestsScreen({ navigation }: Props) {
           keyExtractor={(item, index) => getHelpRequestKey(item) || `help-${index}`}
           renderItem={renderRequest}
           contentContainerStyle={displayList.length ? styles.list : styles.emptyList}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons name={error ? 'alert-circle-outline' : 'heart-outline'} size={38} color={colors.textFaint} />
@@ -371,28 +364,24 @@ export default function HelpRequestsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  titleBlock: { flex: 1 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13 },
-  addBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
-  statsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
-  statItem: { flex: 1, borderRadius: 8, backgroundColor: colors.surfaceAlt, padding: 12 },
+  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  addBtn: { width: 48, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  statsRow: { flexDirection: 'row', gap: 10 },
+  statItem: { flex: 1, borderRadius: 12, backgroundColor: colors.surfaceAlt, padding: 12 },
   statValue: { color: colors.text, fontSize: 22, fontWeight: '900' },
   statLabel: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   scopeRow: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3, marginTop: 12 },
   scopeBtn: { flex: 1, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  scopeBtnActive: { backgroundColor: colors.surfaceHi },
+  scopeBtnActive: { backgroundColor: colors.accent },
   scopeText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
-  scopeTextActive: { color: '#fff' },
+  scopeTextActive: { color: colors.onAccent },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: 12, gap: 10 },
   emptyList: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   emptyState: { alignItems: 'center' },
   emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  card: { backgroundColor: colors.surface, borderRadius: 8, padding: 14, borderWidth: 1, borderColor: colors.border },
+  card: { backgroundColor: colors.surface, borderRadius: 14, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconCircle: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   iconCircleActive: { backgroundColor: 'rgba(255,90,95,0.12)' },
@@ -401,31 +390,31 @@ const styles = StyleSheet.create({
   cardUser: { color: colors.text, fontSize: 15, fontWeight: '900' },
   cardTime: { marginTop: 2, color: colors.textFaint, fontSize: 12, fontWeight: '700' },
   statusPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  statusActive: { color: '#fff', backgroundColor: colors.danger },
-  statusResolved: { color: '#14843b', backgroundColor: 'rgba(61,214,140,0.14)' },
+  statusActive: { color: colors.danger, backgroundColor: 'rgba(255,90,95,0.12)' },
+  statusResolved: { color: colors.success, backgroundColor: 'rgba(61,214,140,0.14)' },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 14 },
   locationText: { flex: 1, color: colors.textMuted, fontSize: 14, fontWeight: '700' },
   description: { marginTop: 10, color: colors.text, fontSize: 15, lineHeight: 21, fontWeight: '600' },
   actionRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
-  routeBtn: { flex: 1, height: 42, borderRadius: 8, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  routeText: { color: '#fff', fontSize: 14, fontWeight: '900' },
-  secondaryBtn: { width: 42, height: 42, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  routeBtn: { flex: 1, height: 42, borderRadius: 12, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  routeText: { color: colors.onAccent, fontSize: 14, fontWeight: '900' },
+  secondaryBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   sheet: { backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
   sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: colors.surfaceHi, marginBottom: 12 },
   sheetTitle: { color: colors.text, fontSize: 20, fontWeight: '900', marginBottom: 14 },
   inputLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '800', marginBottom: 7 },
-  input: { minHeight: 46, borderRadius: 8, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 15, marginBottom: 13 },
+  input: { minHeight: 46, borderRadius: 12, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 15, marginBottom: 13 },
   textArea: { minHeight: 112, paddingTop: 12, lineHeight: 21 },
   statusSwitch: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3, marginBottom: 14 },
   statusSwitchBtn: { flex: 1, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  statusSwitchActive: { backgroundColor: colors.surfaceHi },
+  statusSwitchActive: { backgroundColor: colors.accent },
   statusSwitchText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  statusSwitchTextActive: { color: '#fff' },
+  statusSwitchTextActive: { color: colors.onAccent },
   modalActions: { flexDirection: 'row', gap: 10 },
-  cancelBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  cancelBtn: { flex: 1, height: 46, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   cancelText: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  saveBtn: { flex: 1, height: 46, borderRadius: 8, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  saveBtn: { flex: 1, height: 46, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   saveText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
 });

@@ -114,24 +114,14 @@ export default function EmailVerificationScreen({ navigation }: Props) {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => refreshUser()} />
+          <RefreshControl refreshing={refreshing} onRefresh={() => refreshUser()} tintColor={colors.accent} />
         }
       >
-        <View style={styles.hero}>
-          <View style={[styles.heroIcon, verified && styles.heroIconOk]}>
-            <Ionicons
-              name={verified ? 'checkmark-circle-outline' : 'mail-unread-outline'}
-              size={30}
-              color={verified ? '#14843b' : '#111'}
-            />
-          </View>
-          <Text style={styles.title}>Подтверждение email</Text>
-          <Text style={styles.subtitle}>
-            {verified
-              ? 'Email подтверждён. Можно публиковать посты, loops и объявления.'
-              : 'Подтвердите email, чтобы создавать посты, loops, объявления и заявки.'}
-          </Text>
-        </View>
+        <Text style={styles.intro}>
+          {verified
+            ? 'Email подтверждён. Можно публиковать посты, loops и объявления.'
+            : 'Подтвердите email, чтобы создавать посты, loops, объявления и заявки.'}
+        </Text>
 
         <View style={styles.statusCard}>
           <View style={styles.statusTop}>
@@ -194,10 +184,10 @@ export default function EmailVerificationScreen({ navigation }: Props) {
                 activeOpacity={0.86}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={colors.onAccent} />
                 ) : (
                   <>
-                    <Ionicons name="checkmark-outline" size={18} color="#fff" />
+                    <Ionicons name="checkmark-outline" size={18} color={colors.onAccent} />
                     <Text style={styles.verifyText}>Проверить token</Text>
                   </>
                 )}
@@ -219,25 +209,11 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32 },
-  hero: { alignItems: 'center', paddingVertical: 18 },
-  heroIcon: {
-    width: 62,
-    height: 62,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  heroIconOk: { backgroundColor: 'rgba(61,214,140,0.14)', borderColor: 'rgba(61,214,140,0.3)' },
-  title: { color: colors.text, fontSize: 29, lineHeight: 35, fontWeight: '900', textAlign: 'center' },
-  subtitle: { marginTop: 6, color: colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center', fontWeight: '700' },
+  intro: { color: colors.textMuted, fontSize: 14, lineHeight: 20, fontWeight: '700', marginBottom: 14 },
   statusCard: {
     backgroundColor: colors.surface,
-    borderRadius: 8,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     padding: 14,
     marginBottom: 10,
@@ -249,11 +225,11 @@ const styles = StyleSheet.create({
   statusPillOk: { backgroundColor: 'rgba(61,214,140,0.14)' },
   statusPillWarn: { backgroundColor: 'rgba(246,178,61,0.14)' },
   statusPillText: { fontSize: 11, fontWeight: '900' },
-  statusPillTextOk: { color: '#14843b' },
-  statusPillTextWarn: { color: '#a85b00' },
+  statusPillTextOk: { color: colors.success },
+  statusPillTextWarn: { color: colors.warning },
   messageBox: {
     marginTop: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     backgroundColor: colors.surfaceAlt,
     padding: 10,
     flexDirection: 'row',
@@ -263,7 +239,7 @@ const styles = StyleSheet.create({
   messageText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   primaryBtn: {
     height: 48,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
@@ -274,8 +250,8 @@ const styles = StyleSheet.create({
   primaryText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
   formCard: {
     backgroundColor: colors.surface,
-    borderRadius: 8,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     padding: 14,
   },
@@ -284,7 +260,7 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 86,
     marginTop: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: colors.surfaceAlt,
     color: colors.text,
     fontSize: 14,
@@ -295,20 +271,20 @@ const styles = StyleSheet.create({
   },
   verifyBtn: {
     height: 46,
-    borderRadius: 8,
-    backgroundColor: colors.danger,
+    borderRadius: 12,
+    backgroundColor: colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
     marginTop: 12,
   },
-  verifyText: { color: '#fff', fontSize: 15, fontWeight: '900' },
+  verifyText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
   doneBtn: {
     height: 46,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',

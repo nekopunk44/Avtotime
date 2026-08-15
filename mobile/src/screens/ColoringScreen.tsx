@@ -118,16 +118,6 @@ export default function ColoringScreen({ navigation }: Props) {
 
   const renderHeader = () => (
     <View style={styles.top}>
-      <View style={styles.titleRow}>
-        <View style={styles.titleIcon}>
-          <Ionicons name="color-palette-outline" size={28} color={colors.text} />
-        </View>
-        <View style={styles.titleText}>
-          <Text style={styles.title}>Раскраски</Text>
-          <Text style={styles.subtitle}>Шаблоны, автораскраска и сохраненные рисунки</Text>
-        </View>
-      </View>
-
       <View style={styles.tabs}>
         {SECTIONS.map((section) => {
           const active = activeSection === section.id;
@@ -138,7 +128,7 @@ export default function ColoringScreen({ navigation }: Props) {
               onPress={() => setActiveSection(section.id)}
               activeOpacity={0.86}
             >
-              <Ionicons name={section.icon as any} size={17} color={active ? '#fff' : '#777'} />
+              <Ionicons name={section.icon as any} size={17} color={active ? colors.onAccent : colors.textMuted} />
               <Text style={[styles.tabText, active && styles.tabTextActive]}>{section.label}</Text>
             </TouchableOpacity>
           );
@@ -203,7 +193,7 @@ export default function ColoringScreen({ navigation }: Props) {
               onPress={() => setCollection(item.id)}
               activeOpacity={0.86}
             >
-              <Ionicons name={item.icon as any} size={17} color={active ? '#fff' : '#555'} />
+              <Ionicons name={item.icon as any} size={17} color={active ? colors.onAccent : colors.textMuted} />
               <Text style={[styles.collectionText, active && styles.collectionTextActive]}>{item.label}</Text>
             </TouchableOpacity>
           );
@@ -243,7 +233,7 @@ export default function ColoringScreen({ navigation }: Props) {
         return (
           <View key={getDrawingKey(drawing, index)} style={styles.drawingCard}>
             <View style={styles.drawingIcon}>
-              <Ionicons name={progress >= 100 ? 'checkmark-circle-outline' : 'brush-outline'} size={28} color={progress >= 100 ? '#15803d' : '#d92323'} />
+              <Ionicons name={progress >= 100 ? 'checkmark-circle-outline' : 'brush-outline'} size={28} color={progress >= 100 ? colors.success : colors.danger} />
             </View>
             <View style={styles.drawingInfo}>
               <Text style={styles.cardTitle}>{drawing.title}</Text>
@@ -282,11 +272,11 @@ export default function ColoringScreen({ navigation }: Props) {
       ) : (
         <ScrollView
           contentContainerStyle={styles.content}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
         >
           {error ? (
             <View style={styles.errorBox}>
-              <Ionicons name="alert-circle-outline" size={22} color="#b91c1c" />
+              <Ionicons name="alert-circle-outline" size={22} color={colors.danger} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
@@ -299,51 +289,44 @@ export default function ColoringScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  titleIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center' },
-  titleText: { flex: 1 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 3, color: colors.textMuted, fontSize: 13, lineHeight: 18 },
-  tabs: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3, marginTop: 14 },
+  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  tabs: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3 },
   tabBtn: { flex: 1, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 5 },
-  tabBtnActive: { backgroundColor: colors.surfaceHi },
+  tabBtnActive: { backgroundColor: colors.accent },
   tabText: { color: colors.textMuted, fontSize: 12, fontWeight: '900' },
-  tabTextActive: { color: '#fff' },
+  tabTextActive: { color: colors.onAccent },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 12, paddingBottom: 28 },
-  section: { gap: 12 },
+  content: { flexGrow: 1, padding: 12, paddingBottom: 28 },
+  section: { flexGrow: 1, gap: 12 },
   collectionList: { gap: 8, paddingBottom: 2 },
-  collectionBtn: { height: 38, borderRadius: 10, paddingHorizontal: 13, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  collectionBtnActive: { backgroundColor: colors.surfaceHi, borderColor: colors.border },
+  collectionBtn: { height: 38, borderRadius: 10, paddingHorizontal: 13, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  collectionBtnActive: { backgroundColor: colors.accent },
   collectionText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  collectionTextActive: { color: '#fff' },
+  collectionTextActive: { color: colors.onAccent },
   statsRow: { flexDirection: 'row', gap: 10 },
-  statBox: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, padding: 14, borderWidth: 1, borderColor: colors.border },
+  statBox: { flex: 1, borderRadius: 12, backgroundColor: colors.surface, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   statValue: { color: colors.text, fontSize: 24, fontWeight: '900' },
   statLabel: { marginTop: 3, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   groupBlock: { gap: 9 },
   groupTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   templateList: { gap: 10 },
-  templateCard: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  templateCard: { borderRadius: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
   templatePreview: { minHeight: 132, backgroundColor: 'rgba(246,178,61,0.14)', alignItems: 'center', justifyContent: 'center', gap: 12 },
   templateEmoji: { fontSize: 46 },
   swatches: { flexDirection: 'row', gap: 6 },
-  swatch: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#fff' },
+  swatch: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: colors.white },
   templateBody: { padding: 13 },
   cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   typePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: 'rgba(255,90,95,0.12)', color: colors.danger, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   fileText: { flex: 1, color: colors.textFaint, fontSize: 11, fontWeight: '700', textAlign: 'right' },
   cardTitle: { marginTop: 10, color: colors.text, fontSize: 18, lineHeight: 23, fontWeight: '900' },
   cardText: { marginTop: 5, color: colors.textMuted, fontSize: 13, lineHeight: 19 },
-  saveBtn: { marginTop: 13, height: 44, borderRadius: 10, backgroundColor: colors.surfaceHi, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   saveBtnDisabled: { opacity: 0.7 },
-  saveText: { color: '#fff', fontSize: 14, fontWeight: '900' },
   actionRow: { marginTop: 13, flexDirection: 'row', gap: 8 },
   paintBtn: { flex: 1, height: 44, borderRadius: 10, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   paintText: { color: colors.onAccent, fontSize: 14, fontWeight: '900' },
   autoBtn: { width: 48, height: 44, borderRadius: 10, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
-  drawingCard: { flexDirection: 'row', gap: 12, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 13 },
+  drawingCard: { flexDirection: 'row', gap: 12, borderRadius: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 13 },
   drawingIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center' },
   drawingInfo: { flex: 1 },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, marginBottom: 6 },
@@ -352,11 +335,11 @@ const styles = StyleSheet.create({
   progressTrack: { height: 7, borderRadius: 4, backgroundColor: colors.surfaceHi, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4, backgroundColor: colors.danger },
   savedDate: { marginTop: 8, color: colors.textFaint, fontSize: 12, fontWeight: '800' },
-  errorBox: { borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: 1, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  errorBox: { borderRadius: 12, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
-  emptyBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 24, alignItems: 'center' },
+  emptyBox: { flexGrow: 1, padding: 24, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { marginTop: 9, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  emptyBtn: { marginTop: 15, height: 42, borderRadius: 10, paddingHorizontal: 18, backgroundColor: colors.surfaceHi, justifyContent: 'center' },
-  emptyBtnText: { color: '#fff', fontSize: 14, fontWeight: '900' },
+  emptyBtn: { marginTop: 15, height: 42, borderRadius: 12, paddingHorizontal: 18, backgroundColor: colors.accent, justifyContent: 'center' },
+  emptyBtnText: { color: colors.onAccent, fontSize: 14, fontWeight: '900' },
 });
