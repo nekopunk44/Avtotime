@@ -26,6 +26,7 @@ import {
   updateMarketListing,
 } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 import { colors } from '../theme';
 
 type Props = {
@@ -98,6 +99,8 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
   const category = useMemo(() => getMarketCategory(categoryId), [categoryId]);
   const [form, setForm] = useState<FormState>(() => getInitialForm(listing, categoryId));
   const [images, setImages] = useState<string[]>([]);
+  const initialFormRef = React.useRef(form);
+  const { markSaved } = useUnsavedGuard(navigation, images.length > 0 || JSON.stringify(form) !== JSON.stringify(initialFormRef.current));
   const [loading, setLoading] = useState(false);
 
   const isVehicle = isVehicleMode(categoryId);
@@ -202,6 +205,7 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
       });
 
       Alert.alert('Готово', 'Объявление обновлено');
+      markSaved();
       navigation.replace('MarketListingDetails', { listing: updated, categoryId });
     } catch (e: any) {
       Alert.alert('Ошибка', e.response?.data?.message || e.message || 'Не удалось обновить объявление');

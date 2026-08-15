@@ -27,6 +27,7 @@ import { useSocketEvent } from '../hooks/useSocket';
 import { useBadgeStore } from '../store/badgeStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
+import { Skeleton } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 type FilterMode = 'all' | 'unread';
@@ -404,8 +405,18 @@ export default function NotificationsScreen({ navigation }: Props) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.text} />
+      <View style={styles.container}>
+        <View style={styles.skeletonList}>
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <View key={i} style={styles.skeletonRow}>
+              <Skeleton style={styles.skeletonIcon} />
+              <View style={{ flex: 1, gap: 8 }}>
+                <Skeleton style={{ width: '62%', height: 13 }} />
+                <Skeleton style={{ width: '85%', height: 11 }} />
+              </View>
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -433,6 +444,9 @@ export default function NotificationsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+  skeletonList: { padding: 12, gap: 10 },
+  skeletonRow: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderRadius: 12, padding: 12 },
+  skeletonIcon: { width: 40, height: 40, borderRadius: 20 },
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   header: { gap: 10, marginBottom: 4 },

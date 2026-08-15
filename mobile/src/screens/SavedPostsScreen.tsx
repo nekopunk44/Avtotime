@@ -17,6 +17,7 @@ import { getPostThumb, getSavedPosts, Post, toggleLike, toggleSavePost } from '.
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
+import { Skeleton } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'SavedPosts'> };
 
@@ -148,8 +149,18 @@ export default function SavedPostsScreen({ navigation }: Props) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.text} />
+      <View style={styles.container}>
+        <View style={styles.skeletonList}>
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={styles.skeletonRow}>
+              <Skeleton style={styles.skeletonThumb} />
+              <View style={{ flex: 1, gap: 8 }}>
+                <Skeleton style={{ width: '55%', height: 13 }} />
+                <Skeleton style={{ width: '80%', height: 11 }} />
+              </View>
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -177,6 +188,9 @@ export default function SavedPostsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+  skeletonList: { padding: 12, gap: 10 },
+  skeletonRow: { minHeight: 96, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderRadius: 12, padding: 12 },
+  skeletonThumb: { width: 72, height: 72, borderRadius: 10 },
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   countLine: { paddingVertical: 6, color: colors.textMuted, fontSize: 13, fontWeight: '800' },

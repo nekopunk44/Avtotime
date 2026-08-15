@@ -18,6 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createPost } from '../api/posts';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'CreatePost'> };
@@ -32,6 +33,7 @@ export default function CreatePostScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
 
   const isVideo = mediaType === 'video';
+  const { markSaved } = useUnsavedGuard(navigation, Boolean(caption.trim() || mediaUris.length));
 
   const addImages = (uris: string[]) => {
     // Switching to photos discards a previously picked video
@@ -112,6 +114,7 @@ export default function CreatePostScreen({ navigation }: Props) {
         mediaUris,
         mediaType,
       });
+      markSaved();
       navigation.goBack();
     } catch (e: any) {
       Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось опубликовать');

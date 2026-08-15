@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   FlatList,
   Image,
@@ -68,6 +69,10 @@ export default function MarketScreen({ navigation }: Props) {
   const requestIdRef = useRef(0);
   const hasLoadedRef = useRef(false);
   const prevQueryRef = useRef(query);
+  const PAGE_SIZE = 40;
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const loadListings = useCallback(async (silent = false) => {
     const requestId = ++requestIdRef.current;
@@ -75,9 +80,11 @@ export default function MarketScreen({ navigation }: Props) {
     if (!silent) setLoading(true);
     setError('');
     try {
-      const data = await loadMarketListings(categoryId, { q: query, limit: 40 });
+      const data = await loadMarketListings(categoryId, { q: query, page: 1, limit: PAGE_SIZE });
       if (requestId !== requestIdRef.current) return;
       setListings(data);
+      setPage(1);
+      setHasMore(data.length === PAGE_SIZE);
     } catch (e: any) {
       if (requestId !== requestIdRef.current) return;
       setError(e.response?.data?.message || 'Не удалось загрузить объявления');
@@ -88,6 +95,27 @@ export default function MarketScreen({ navigation }: Props) {
       }
     }
   }, [categoryId, query]);
+
+  const loadMore = useCallback(async () => {
+    if (loading || loadingMore || refreshing || !hasMore) return;
+    const requestId = requestIdRef.current;
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const more = await loadMarketListings(categoryId, { q: query, page: next, limit: PAGE_SIZE });
+      if (requestId !== requestIdRef.current) return;
+      setListings((prev) => {
+        const seen = new Set(prev.map((item) => String(item._id || item.id)));
+        return [...prev, ...more.filter((item) => !seen.has(String(item._id || item.id)))];
+      });
+      setPage(next);
+      setHasMore(more.length === PAGE_SIZE);
+    } catch {
+      // scrolling again retries
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [categoryId, query, page, hasMore, loading, loadingMore, refreshing]);
 
   const loadListingsRef = useRef(loadListings);
   loadListingsRef.current = loadListings;
@@ -233,6 +261,9 @@ export default function MarketScreen({ navigation }: Props) {
       ListHeaderComponent={Header}
       columnWrapperStyle={styles.grid}
       contentContainerStyle={listings.length ? styles.listContent : styles.emptyContent}
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.6}
+      ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerSpinner} color={colors.text} /> : null}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       ListEmptyComponent={
         <EmptyState
@@ -249,6 +280,7 @@ export default function MarketScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
+  footerSpinner: { paddingVertical: 16 },
   header: { paddingHorizontal: space.md, paddingTop: space.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: font.display, fontWeight: '900', color: colors.text },

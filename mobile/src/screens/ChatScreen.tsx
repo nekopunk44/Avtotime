@@ -125,14 +125,21 @@ export default function ChatScreen({ route, navigation }: Props) {
     setMessages((prev) => (prev.some((item) => item._id === msg._id) ? prev : [msg, ...prev]));
   }, [isMessageInChat]);
 
+  const CHAT_PAGE_SIZE = 50;
+  const pageRef = useRef(1);
+  const hasMoreRef = useRef(true);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
       const [data, blocked] = await Promise.all([
-        getMessages(userId),
+        getMessages(userId, { page: 1, limit: CHAT_PAGE_SIZE }),
         getBlockedStatus(userId).catch(() => ({ isBlocked: false })),
       ]);
       setMessages(data.reverse());
+      pageRef.current = 1;
+      hasMoreRef.current = data.length === CHAT_PAGE_SIZE;
       setIsBlocked(blocked.isBlocked);
       // Opening the chat marked messages read on the server — refresh tab badges
       useBadgeStore.getState().refresh();
@@ -143,6 +150,29 @@ export default function ChatScreen({ route, navigation }: Props) {
       setRefreshing(false);
     }
   }, [userId]);
+
+  // The list is inverted, so "end reached" means the user scrolled up to the
+  // oldest loaded message — fetch the next (older) page and append it.
+  const loadOlder = useCallback(async () => {
+    if (loading || loadingOlder || !hasMoreRef.current) return;
+    setLoadingOlder(true);
+    try {
+      const next = pageRef.current + 1;
+      const older = await getMessages(userId, { page: next, limit: CHAT_PAGE_SIZE });
+      pageRef.current = next;
+      hasMoreRef.current = older.length === CHAT_PAGE_SIZE;
+      if (older.length) {
+        setMessages((prev) => {
+          const seen = new Set(prev.map((item) => item._id));
+          return [...prev, ...older.reverse().filter((item) => !seen.has(item._id))];
+        });
+      }
+    } catch {
+      // scrolling again retries
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [loading, loadingOlder, userId]);
 
   const refresh = () => {
     setRefreshing(true);
@@ -480,7 +510,10 @@ export default function ChatScreen({ route, navigation }: Props) {
         renderItem={renderMessage}
         inverted
         contentContainerStyle={messages.length ? styles.list : styles.emptyList}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+        onEndReached={loadOlder}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={loadingOlder ? <ActivityIndicator style={styles.olderSpinner} color={colors.text} /> : null}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="chatbubble-ellipses-outline" size={42} color={colors.textFaint} />
@@ -567,6 +600,7 @@ const styles = StyleSheet.create({
   blockedBanner: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: 'rgba(255,90,95,0.12)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,90,95,0.25)' },
   blockedText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
   unblockText: { color: colors.text, fontSize: 13, fontWeight: '900' },
+  olderSpinner: { paddingVertical: 14 },
   list: { paddingHorizontal: 12, paddingVertical: 10 },
   emptyList: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   emptyState: { alignItems: 'center' },

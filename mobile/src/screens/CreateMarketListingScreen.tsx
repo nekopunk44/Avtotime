@@ -24,6 +24,7 @@ import {
   MarketCategoryId,
 } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'CreateMarketListing'> };
@@ -90,6 +91,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   const [mode, setMode] = useState<MarketCategoryId>('cars');
   const [form, setForm] = useState<FormState>(initialForm);
   const [images, setImages] = useState<string[]>([]);
+  const { markSaved } = useUnsavedGuard(navigation, images.length > 0 || Object.values(form).some((value) => String(value).trim() !== ''));
   const [loading, setLoading] = useState(false);
 
   const activeCategory = useMemo(() => getMarketCategory(mode), [mode]);
@@ -209,6 +211,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
         });
 
         Alert.alert('Готово', 'Объявление опубликовано');
+        markSaved();
         navigation.replace('MarketListingDetails', { listing, categoryId: mode });
         return;
       }
@@ -230,7 +233,8 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
       });
 
       Alert.alert('Готово', 'Объявление опубликовано');
-      navigation.replace('MarketListingDetails', { listing, categoryId: mode });
+      markSaved();
+        navigation.replace('MarketListingDetails', { listing, categoryId: mode });
     } catch (e: any) {
       Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось создать объявление');
     } finally {

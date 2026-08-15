@@ -16,6 +16,7 @@ import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { editPost } from '../api/posts';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 import { colors } from '../theme';
 
 type Props = {
@@ -30,6 +31,7 @@ export default function EditPostScreen({ navigation, route }: Props) {
   const [caption, setCaption] = useState(post.caption || '');
   const [replacementUris, setReplacementUris] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const { markSaved } = useUnsavedGuard(navigation, caption !== (post.caption || '') || replacementUris.length > 0);
   const existingMediaUris = useMemo(
     () => (post.mediaList?.length ? post.mediaList : post.media ? [post.media] : []),
     [post.media, post.mediaList],
@@ -82,6 +84,7 @@ export default function EditPostScreen({ navigation, route }: Props) {
         mediaType: 'image',
       });
       Alert.alert('Готово', 'Публикация обновлена');
+      markSaved();
       navigation.replace('PostComments', { postId: updated._id });
     } catch (e: any) {
       Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось сохранить публикацию');

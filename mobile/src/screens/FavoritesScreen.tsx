@@ -23,6 +23,7 @@ import {
 import { getMarketCategory, MarketCategoryId, MarketListing } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
+import { Skeleton } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
@@ -175,8 +176,16 @@ export default function FavoritesScreen({ navigation }: Props) {
       </View>
 
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.text} />
+        <View style={styles.skeletonList}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <View key={i} style={styles.skeletonRow}>
+              <Skeleton style={styles.skeletonThumb} />
+              <View style={{ flex: 1, gap: 8 }}>
+                <Skeleton style={{ width: '70%', height: 13 }} />
+                <Skeleton style={{ width: '45%', height: 11 }} />
+              </View>
+            </View>
+          ))}
         </View>
       ) : (
         <FlatList
@@ -213,6 +222,9 @@ const styles = StyleSheet.create({
   filterText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   filterTextActive: { color: colors.onAccent },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  skeletonList: { padding: 12, gap: 10 },
+  skeletonRow: { minHeight: 104, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderRadius: 8, padding: 10 },
+  skeletonThumb: { width: 84, height: 84, borderRadius: 8 },
   list: { padding: 12, gap: 10 },
   emptyList: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   card: { minHeight: 104, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderRadius: 8, padding: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
