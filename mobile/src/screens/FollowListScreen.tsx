@@ -48,8 +48,9 @@ export default function FollowListScreen({ navigation, route }: Props) {
   }, [mode, navigation, title, userId]);
 
   useFocusEffect(useCallback(() => {
-    load();
-  }, [load]));
+    // Silent when data already exists — no full-screen spinner on every return
+    load(users.length > 0);
+  }, [load, users.length]));
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -59,7 +60,7 @@ export default function FollowListScreen({ navigation, route }: Props) {
       user.userName,
       user.bio,
       user.location,
-    ].join(' ').toLowerCase().includes(normalized));
+    ].filter(Boolean).join(' ').toLowerCase().includes(normalized));
   }, [query, users]);
 
   const refresh = () => {
@@ -77,15 +78,7 @@ export default function FollowListScreen({ navigation, route }: Props) {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.hero}>
-        <View style={styles.heroIcon}>
-          <Ionicons name={mode === 'followers' ? 'people-outline' : 'person-add-outline'} size={27} color={colors.text} />
-        </View>
-        <View style={styles.heroText}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>{users.length} профилей</Text>
-        </View>
-      </View>
+      <Text style={styles.countLine}>{users.length} профилей</Text>
 
       <View style={styles.searchBox}>
         <Ionicons name="search-outline" size={18} color={colors.textMuted} />
@@ -140,9 +133,9 @@ export default function FollowListScreen({ navigation, route }: Props) {
       data={filtered}
       keyExtractor={(item) => item._id}
       renderItem={renderItem}
-      ListHeaderComponent={renderHeader}
+      ListHeaderComponent={renderHeader()}
       contentContainerStyle={filtered.length ? styles.list : styles.emptyList}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       ListEmptyComponent={
         <View style={styles.emptyState}>
           <Ionicons name="people-outline" size={42} color={colors.textFaint} />
@@ -160,17 +153,13 @@ const styles = StyleSheet.create({
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   header: { gap: 10, marginBottom: 2 },
-  hero: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  heroText: { flex: 1 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
-  searchBox: { height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  countLine: { paddingTop: 6, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  searchBox: { height: 44, borderRadius: 12, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
   searchInput: { flex: 1, color: colors.text, fontSize: 15 },
-  card: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  card: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11 },
   avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.surfaceAlt },
   avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceHi },
-  avatarText: { color: '#fff', fontSize: 18, fontWeight: '900' },
+  avatarText: { color: colors.text, fontSize: 18, fontWeight: '900' },
   userBody: { flex: 1 },
   name: { color: colors.text, fontSize: 16, fontWeight: '900' },
   userName: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '800' },

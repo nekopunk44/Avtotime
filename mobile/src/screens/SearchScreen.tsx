@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -40,6 +40,9 @@ export default function SearchScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // Increments per request; stale responses are ignored so a slow discover/search
+  // cannot overwrite the results of a newer one.
+  const requestIdRef = useRef(0);
 
   const trimmedQuery = query.trim();
   const hasQuery = trimmedQuery.length >= 2;
@@ -48,25 +51,30 @@ export default function SearchScreen({ navigation }: Props) {
   const posts = hasQuery ? postResults : suggestedPosts;
 
   const loadDiscover = useCallback(async (silent = false) => {
+    const requestId = ++requestIdRef.current;
     if (!silent) setLoading(true);
     try {
       const [usersData, feedData] = await Promise.all([
         getSuggestedUsers().catch(() => []),
         getFeed().catch(() => []),
       ]);
+      if (requestId !== requestIdRef.current) return;
       setSuggestedUsers(usersData);
       setSuggestedPosts(feedData.slice(0, 20));
     } catch (e: any) {
       Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить рекомендации');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
   useFocusEffect(useCallback(() => {
-    loadDiscover();
-  }, [loadDiscover]));
+    // Silent when discover data already exists — no full-screen spinner on every return
+    loadDiscover(suggestedUsers.length > 0 || suggestedPosts.length > 0);
+  }, [loadDiscover, suggestedUsers.length, suggestedPosts.length]));
 
   useEffect(() => {
     if (!trimmedQuery) {
@@ -84,16 +92,18 @@ export default function SearchScreen({ navigation }: Props) {
     }
 
     const timer = setTimeout(async () => {
+      const requestId = ++requestIdRef.current;
       setSearching(true);
       try {
         const [foundUsers, foundPosts] = await Promise.all([
           searchUsers(trimmedQuery).catch(() => []),
           searchPosts(trimmedQuery).catch(() => []),
         ]);
+        if (requestId !== requestIdRef.current) return;
         setUserResults(foundUsers);
         setPostResults(foundPosts);
       } finally {
-        setSearching(false);
+        if (requestId === requestIdRef.current) setSearching(false);
       }
     }, 350);
 
@@ -103,13 +113,17 @@ export default function SearchScreen({ navigation }: Props) {
   const refresh = () => {
     setRefreshing(true);
     if (hasQuery) {
+      const requestId = ++requestIdRef.current;
       Promise.all([
         searchUsers(trimmedQuery).catch(() => []),
         searchPosts(trimmedQuery).catch(() => []),
       ]).then(([foundUsers, foundPosts]) => {
+        if (requestId !== requestIdRef.current) return;
         setUserResults(foundUsers);
         setPostResults(foundPosts);
-      }).finally(() => setRefreshing(false));
+      }).finally(() => {
+        if (requestId === requestIdRef.current) setRefreshing(false);
+      });
       return;
     }
 
@@ -271,10 +285,10 @@ export default function SearchScreen({ navigation }: Props) {
       renderSectionHeader={({ section }: any) => <Text style={styles.sectionTitle}>{section.title}</Text>}
       SectionSeparatorComponent={() => <View style={{ height: 10 }} />}
       ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-      ListHeaderComponent={renderHeader}
+      ListHeaderComponent={renderHeader()}
       stickySectionHeadersEnabled={false}
       contentContainerStyle={sections.length ? styles.list : styles.emptyList}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       keyboardShouldPersistTaps="handled"
       ListEmptyComponent={
         searching ? null : (
@@ -305,17 +319,17 @@ const styles = StyleSheet.create({
   hintText: { flex: 1, color: colors.textMuted, fontSize: 13, fontWeight: '700' },
   searchingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', paddingVertical: 8 },
   searchingText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
-  userCard: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  userCard: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
   userMain: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12 },
   avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.surfaceAlt },
   userInfo: { flex: 1 },
   name: { color: colors.text, fontSize: 15, fontWeight: '900' },
   username: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   userMeta: { marginTop: 4, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  userActions: { flexDirection: 'row', gap: 8, borderTopWidth: 1, borderTopColor: colors.border, padding: 8 },
+  userActions: { flexDirection: 'row', gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, padding: 8 },
   userActionBtn: { flex: 1, height: 36, borderRadius: 8, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   userActionText: { color: colors.text, fontSize: 12, fontWeight: '900' },
-  postCard: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  postCard: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
   postAuthor: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
   postAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt },
   postAuthorText: { flex: 1 },

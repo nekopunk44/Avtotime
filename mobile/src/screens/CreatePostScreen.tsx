@@ -3,6 +3,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -48,7 +50,7 @@ export default function CreatePostScreen({ navigation }: Props) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
       selectionLimit: MEDIA_LIMIT,
       quality: 0.82,
@@ -80,7 +82,7 @@ export default function CreatePostScreen({ navigation }: Props) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      mediaTypes: ['videos'],
       allowsMultipleSelection: false,
       videoMaxDuration: 120,
       quality: 0.82,
@@ -121,7 +123,10 @@ export default function CreatePostScreen({ navigation }: Props) {
   const canPost = mediaUris.length > 0 && !loading;
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()} disabled={loading} hitSlop={8}>
           <Ionicons name="close" size={24} color={colors.text} />
@@ -153,7 +158,7 @@ export default function CreatePostScreen({ navigation }: Props) {
         ) : isVideo ? (
           <View style={styles.videoPreview}>
             <View style={styles.videoPlayCircle}>
-              <Ionicons name="play" size={28} color={colors.text} />
+              <Ionicons name="play" size={28} color={colors.onAccent} />
             </View>
             <Text style={styles.videoPreviewText}>Видео готово к публикации</Text>
             <TouchableOpacity style={styles.removeBtn} onPress={() => removeMedia(mediaUris[0])}>
@@ -203,7 +208,7 @@ export default function CreatePostScreen({ navigation }: Props) {
           <Text style={styles.charCount}>{caption.length}/500</Text>
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

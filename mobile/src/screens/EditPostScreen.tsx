@@ -45,7 +45,7 @@ export default function EditPostScreen({ navigation, route }: Props) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
       selectionLimit: MEDIA_LIMIT,
       quality: 0.82,
@@ -92,11 +92,6 @@ export default function EditPostScreen({ navigation, route }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <View style={styles.header}>
-        <Text style={styles.title}>Редактировать публикацию</Text>
-        <Text style={styles.subtitle}>Измените подпись или замените фото. Старые медиа сохранятся, пока вы не нажмете сохранить.</Text>
-      </View>
-
       <View style={styles.mediaPanel}>
         <View style={styles.mediaHeader}>
           <View>
@@ -112,7 +107,7 @@ export default function EditPostScreen({ navigation, route }: Props) {
               <View key={`${uri}-${index}`} style={styles.previewItem}>
                 {post.mediaType === 'video' && !isReplacingMedia ? (
                   <View style={styles.videoPreview}>
-                    <Ionicons name="play-circle" size={36} color="#fff" />
+                    <Ionicons name="play-circle" size={36} color={colors.white} />
                   </View>
                 ) : (
                   <Image source={{ uri }} style={styles.previewImage} />
@@ -120,7 +115,7 @@ export default function EditPostScreen({ navigation, route }: Props) {
                 <Text style={styles.previewIndex}>{index + 1}</Text>
                 {isReplacingMedia ? (
                   <TouchableOpacity style={styles.removeBtn} onPress={() => removeReplacement(uri)} disabled={saving}>
-                    <Ionicons name="close" size={15} color="#fff" />
+                    <Ionicons name="close" size={15} color={colors.white} />
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -179,12 +174,9 @@ export default function EditPostScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 30 },
-  header: { marginBottom: 14 },
-  title: { color: colors.text, fontSize: 26, fontWeight: '900' },
-  subtitle: { marginTop: 4, color: colors.textMuted, fontSize: 13, lineHeight: 19 },
-  mediaPanel: { marginBottom: 16, borderRadius: 8, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 12 },
+  mediaPanel: { marginBottom: 16, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, backgroundColor: colors.surface, padding: 12 },
   mediaHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   sectionHint: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
@@ -193,16 +185,16 @@ const styles = StyleSheet.create({
   previewItem: { width: '31.8%', aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: colors.surfaceAlt },
   previewImage: { width: '100%', height: '100%' },
   videoPreview: { width: '100%', height: '100%', backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
-  previewIndex: { position: 'absolute', left: 6, bottom: 6, overflow: 'hidden', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, fontWeight: '900' },
+  previewIndex: { position: 'absolute', left: 6, bottom: 6, overflow: 'hidden', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: 'rgba(0,0,0,0.65)', color: colors.white, fontSize: 10, fontWeight: '900' },
   removeBtn: { position: 'absolute', top: 5, right: 5, width: 23, height: 23, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' },
   emptyMedia: { minHeight: 150, borderRadius: 8, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { marginTop: 8, color: colors.textMuted, fontSize: 14, fontWeight: '900' },
   mediaButtons: { flexDirection: 'row', gap: 8, marginTop: 12 },
   mediaBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   mediaBtnText: { color: colors.text, fontSize: 14, fontWeight: '900' },
-  resetBtn: { marginTop: 10, height: 42, borderRadius: 8, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  resetBtn: { marginTop: 10, height: 42, borderRadius: 8, backgroundColor: colors.bg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   resetText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  input: { minHeight: 130, borderRadius: 10, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.border, color: colors.text, fontSize: 16, lineHeight: 23, padding: 12 },
+  input: { minHeight: 130, borderRadius: 10, backgroundColor: colors.bg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, color: colors.text, fontSize: 16, lineHeight: 23, padding: 12 },
   counter: { marginTop: 6, color: colors.textFaint, fontSize: 12, fontWeight: '700', textAlign: 'right' },
   saveBtn: { marginTop: 18, height: 52, borderRadius: 12, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   saveBtnDisabled: { opacity: 0.65 },

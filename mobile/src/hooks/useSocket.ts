@@ -6,7 +6,7 @@ import { API_URL } from '../api/client';
 let sharedSocket: Socket | null = null;
 
 export async function getSocket(): Promise<Socket> {
-  if (sharedSocket?.connected) return sharedSocket;
+  if (sharedSocket) return sharedSocket;
 
   const token = await SecureStore.getItemAsync('auth_token');
   sharedSocket = io(API_URL, {

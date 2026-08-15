@@ -59,7 +59,7 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
             </View>
           </PressableScale>
           {isMine ? (
-            <PressableScale style={styles.moreBtn} onPress={onActions}>
+            <PressableScale style={styles.moreBtn} onPress={onActions} hitSlop={8}>
               <Ionicons name="ellipsis-horizontal" size={20} color={colors.textMuted} />
             </PressableScale>
           ) : null}
@@ -184,8 +184,10 @@ export default function FeedScreen({ navigation }: Props) {
   }, [loadingMore, hasMore, loading, refreshing, page]);
 
   useFocusEffect(useCallback(() => {
-    loadFeed();
-  }, [loadFeed]));
+    // Only load when the list is empty — reloading on every focus would reset
+    // pagination and jump the scroll position. Pull-to-refresh reloads manually.
+    if (posts.length === 0) loadFeed();
+  }, [posts.length, loadFeed]));
 
   const pickAndUploadStory = async (mediaType: 'image' | 'video') => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -195,7 +197,7 @@ export default function FeedScreen({ navigation }: Props) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: mediaType === 'video' ? ImagePicker.MediaTypeOptions.Videos : ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: mediaType === 'video' ? ['videos'] : ['images'],
       allowsEditing: true,
       quality: 0.85,
       videoMaxDuration: 60,
@@ -224,10 +226,21 @@ export default function FeedScreen({ navigation }: Props) {
   };
 
   const handleLike = async (postId: string) => {
+    if (!user) return;
+    // Optimistic: flip the like locally right away, roll back if the API fails.
+    const flip = (p: Post): Post => p._id !== postId ? p : {
+      ...p,
+      likes: p.likes.includes(user._id)
+        ? p.likes.filter((id) => id !== user._id)
+        : [...p.likes, user._id],
+    };
+    setPosts((prev) => prev.map(flip));
     try {
       const updated = await toggleLike(postId);
       setPosts((prev) => prev.map((p) => p._id === postId ? { ...p, ...updated } : p));
-    } catch {}
+    } catch {
+      setPosts((prev) => prev.map(flip));
+    }
   };
 
   const handleSave = async (postId: string) => {
@@ -272,7 +285,10 @@ export default function FeedScreen({ navigation }: Props) {
       liked={user ? item.likes.includes(user._id) : false}
       saved={isPostSaved(user, item._id)}
       isMine={item.author?._id === user?._id}
-      onProfile={() => navigation.navigate('UserProfile', { userId: item.author._id })}
+      onProfile={() => {
+        const authorId = item.author?._id;
+        if (authorId) navigation.navigate('UserProfile', { userId: authorId });
+      }}
       onOpen={() => navigation.navigate('PostComments', { postId: item._id })}
       onLike={() => handleLike(item._id)}
       onSave={() => handleSave(item._id)}

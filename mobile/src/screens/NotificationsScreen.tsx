@@ -36,18 +36,18 @@ const FILTERS: Array<{ value: FilterMode; label: string }> = [
   { value: 'unread', label: 'Непрочитанные' },
 ];
 
-const ICONS: Record<string, { name: keyof typeof Ionicons.glyphMap; color: string }> = {
-  like: { name: 'heart', color: colors.danger },
-  comment: { name: 'chatbubble', color: '#1e88e5' },
-  follow: { name: 'person-add', color: '#43a047' },
-  message: { name: 'mail', color: '#8e24aa' },
-  mention: { name: 'at', color: colors.text },
-  listing_comment: { name: 'chatbubbles', color: '#0f8c72' },
-  listing_rejected: { name: 'alert-circle', color: colors.danger },
-  listing_approved: { name: 'checkmark-circle', color: '#14843b' },
-  listing_appeal: { name: 'flag', color: '#9a5a00' },
-  system: { name: 'settings', color: colors.textMuted },
-  default: { name: 'notifications', color: '#fb8c00' },
+const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  like: 'heart',
+  comment: 'chatbubble',
+  follow: 'person-add',
+  message: 'mail',
+  mention: 'at',
+  listing_comment: 'chatbubbles',
+  listing_rejected: 'alert-circle',
+  listing_approved: 'checkmark-circle',
+  listing_appeal: 'flag',
+  system: 'settings',
+  default: 'notifications',
 };
 
 const formatDate = (value?: string) => {
@@ -79,7 +79,7 @@ export default function NotificationsScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState('');
-  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState<'read' | 'clear' | ''>('');
   const [segLayouts, setSegLayouts] = useState<Array<{ x: number; width: number }>>([]);
   const thumbX = useRef(new Animated.Value(0)).current;
   const thumbW = useRef(new Animated.Value(0)).current;
@@ -174,7 +174,7 @@ export default function NotificationsScreen({ navigation }: Props) {
   };
 
   const handleMarkAll = async () => {
-    setBulkBusy(true);
+    setBulkBusy('read');
     try {
       await markAllAsRead();
       setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
@@ -182,7 +182,7 @@ export default function NotificationsScreen({ navigation }: Props) {
     } catch (e: any) {
       Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось отметить уведомления');
     } finally {
-      setBulkBusy(false);
+      setBulkBusy('');
     }
   };
 
@@ -216,7 +216,7 @@ export default function NotificationsScreen({ navigation }: Props) {
         text: 'Очистить',
         style: 'destructive',
         onPress: async () => {
-          setBulkBusy(true);
+          setBulkBusy('clear');
           try {
             await clearAllNotifications();
             setNotifications([]);
@@ -224,16 +224,17 @@ export default function NotificationsScreen({ navigation }: Props) {
           } catch (e: any) {
             Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось очистить уведомления');
           } finally {
-            setBulkBusy(false);
+            setBulkBusy('');
           }
         },
       },
     ]);
   };
 
-  const openNotification = async (item: AppNotification) => {
+  const openNotification = (item: AppNotification) => {
+    // Mark as read in the background — navigate immediately, don't block the tap
     if (!item.isRead) {
-      await markOne(item);
+      markOne(item).catch(() => {});
     }
 
     const linkPath = normalizeLinkPath(item.link);
@@ -354,13 +355,13 @@ export default function NotificationsScreen({ navigation }: Props) {
           <TouchableOpacity
             style={[styles.bulkBtn, unreadCount === 0 && styles.bulkBtnDisabled]}
             onPress={handleMarkAll}
-            disabled={!unreadCount || bulkBusy}
+            disabled={!unreadCount || !!bulkBusy}
           >
-            {bulkBusy ? <ActivityIndicator color={colors.text} size="small" /> : <Ionicons name="checkmark-done-outline" size={16} color={colors.text} />}
+            {bulkBusy === 'read' ? <ActivityIndicator color={colors.text} size="small" /> : <Ionicons name="checkmark-done-outline" size={16} color={colors.text} />}
             <Text style={styles.bulkText}>Прочитать все</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.bulkBtn} onPress={clearAll} disabled={bulkBusy}>
-            <Ionicons name="trash-outline" size={16} color={colors.danger} />
+          <TouchableOpacity style={styles.bulkBtn} onPress={clearAll} disabled={!!bulkBusy}>
+            {bulkBusy === 'clear' ? <ActivityIndicator color={colors.danger} size="small" /> : <Ionicons name="trash-outline" size={16} color={colors.danger} />}
             <Text style={[styles.bulkText, styles.bulkTextDanger]}>Очистить</Text>
           </TouchableOpacity>
         </View>
@@ -369,7 +370,7 @@ export default function NotificationsScreen({ navigation }: Props) {
   );
 
   const renderItem = ({ item }: { item: AppNotification }) => {
-    const icon = ICONS[item.type] ?? ICONS.default;
+    const iconName = ICONS[item.type] ?? ICONS.default;
     const message = item.description || item.title || 'Уведомление';
     const avatar = item.actor?.profileImage || item.image;
     const danger = item.type === 'listing_rejected';
@@ -386,7 +387,7 @@ export default function NotificationsScreen({ navigation }: Props) {
           <Image source={{ uri: avatar }} style={styles.avatar} />
         ) : (
           <View style={styles.iconWrap}>
-            <Ionicons name={icon.name} size={20} color={danger ? colors.danger : colors.text} />
+            <Ionicons name={iconName} size={20} color={danger ? colors.danger : colors.text} />
           </View>
         )}
         <View style={styles.cardContent}>
@@ -436,7 +437,9 @@ const styles = StyleSheet.create({
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   header: { gap: 10, marginBottom: 4 },
   headerSettings: { marginRight: 12, padding: 4 },
-  segment: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceAlt, borderRadius: 999, height: 42 },
+  // paddingHorizontal insets the thumb on all sides (thumb top: 4). Buttons'
+  // onLayout x already includes this padding, so thumb left matches button x.
+  segment: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceAlt, borderRadius: 999, height: 42, paddingHorizontal: 4 },
   segThumb: { position: 'absolute', top: 4, height: 34, borderRadius: 999, backgroundColor: colors.accent },
   segmentBtn: { height: 34, marginVertical: 4, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
   segmentText: { color: colors.textMuted, fontSize: 14, fontWeight: '900' },

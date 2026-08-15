@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   StyleSheet,
@@ -12,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Story, viewStory } from '../api/stories';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
@@ -29,6 +29,7 @@ export default function StoryViewerScreen({ navigation, route }: Props) {
   const [progress, setProgress] = useState(0);
   const [showViewers, setShowViewers] = useState(false);
   const [muted, setMuted] = useState(false);
+  const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const isMine = user?.userName === story.author?.userName;
   const isVideo = story.mediaType === 'video';
@@ -44,25 +45,22 @@ export default function StoryViewerScreen({ navigation, route }: Props) {
     viewStory(story._id).then(setStory).catch(() => {});
   }, [story._id]);
 
-  // Image stories advance on a fixed timer
+  // Image stories advance on a fixed timer (paused while the viewers panel is open)
   useEffect(() => {
-    if (isVideo) return;
+    if (isVideo || showViewers) return;
 
     const tickMs = 150;
     const id = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev + (tickMs / STORY_DURATION_MS) * 100;
-        if (next >= 100) {
-          clearInterval(id);
-          navigation.goBack();
-          return 100;
-        }
-        return next;
-      });
+      setProgress((prev) => Math.min(100, prev + (tickMs / STORY_DURATION_MS) * 100));
     }, tickMs);
 
     return () => clearInterval(id);
-  }, [navigation, isVideo]);
+  }, [isVideo, showViewers]);
+
+  // Close the image story once the timer completes (outside the state updater)
+  useEffect(() => {
+    if (!isVideo && progress >= 100) navigation.goBack();
+  }, [progress, isVideo, navigation]);
 
   // Video stories drive progress from playback and close when finished
   useEffect(() => {
@@ -90,13 +88,13 @@ export default function StoryViewerScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.progressTrack}>
+      <View style={[styles.progressTrack, { top: insets.top + 8 }]}>
         <View style={[styles.progressFill, { width: `${progress}%` }]} />
       </View>
 
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { top: insets.top + 16 }]}>
         <TouchableOpacity style={styles.closeBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={28} color="#fff" />
+          <Ionicons name="chevron-back" size={28} color={colors.white} />
         </TouchableOpacity>
         <Image
           source={story.author?.profileImage ? { uri: story.author.profileImage } : require('../../assets/icon.png')}
@@ -108,7 +106,7 @@ export default function StoryViewerScreen({ navigation, route }: Props) {
         </View>
         {isVideo ? (
           <TouchableOpacity style={styles.soundBtn} onPress={() => setMuted((prev) => !prev)}>
-            <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={20} color="#fff" />
+            <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={20} color={colors.white} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -131,7 +129,7 @@ export default function StoryViewerScreen({ navigation, route }: Props) {
       {isMine ? (
         <View style={styles.bottomBar}>
           <TouchableOpacity style={styles.viewersButton} onPress={() => setShowViewers((prev) => !prev)}>
-            <Ionicons name="eye-outline" size={19} color="#fff" />
+            <Ionicons name="eye-outline" size={19} color={colors.white} />
             <Text style={styles.viewersText}>{viewers.length}</Text>
             <Text style={styles.viewersLabel}>просмотров</Text>
           </TouchableOpacity>
@@ -165,7 +163,6 @@ export default function StoryViewerScreen({ navigation, route }: Props) {
             />
           ) : (
             <View style={styles.emptyViewers}>
-              <ActivityIndicator color={colors.text} />
               <Text style={styles.emptyText}>Пока нет просмотров</Text>
             </View>
           )}
@@ -177,21 +174,21 @@ export default function StoryViewerScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  progressTrack: { position: 'absolute', top: 8, left: 8, right: 8, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)', zIndex: 10, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: colors.surface },
-  topBar: { position: 'absolute', top: 22, left: 10, right: 10, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  progressTrack: { position: 'absolute', left: 8, right: 8, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)', zIndex: 10, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: colors.white },
+  topBar: { position: 'absolute', left: 10, right: 10, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
   closeBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#333' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceHi },
   authorTextWrap: { flex: 1 },
-  authorName: { color: '#fff', fontSize: 15, fontWeight: '900' },
-  authorUserName: { color: '#ddd', fontSize: 12, fontWeight: '700', marginTop: 1 },
+  authorName: { color: colors.white, fontSize: 15, fontWeight: '900' },
+  authorUserName: { color: colors.textMuted, fontSize: 12, fontWeight: '700', marginTop: 1 },
   soundBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' },
   mediaWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   media: { width: '100%', height: '78%' },
   bottomBar: { position: 'absolute', bottom: 18, left: 14, right: 14 },
   viewersButton: { alignSelf: 'flex-start', height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.16)', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 13 },
-  viewersText: { color: '#fff', fontWeight: '900', fontSize: 14 },
-  viewersLabel: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  viewersText: { color: colors.white, fontWeight: '900', fontSize: 14 },
+  viewersLabel: { color: colors.white, fontWeight: '700', fontSize: 13 },
   viewersPanel: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '52%', backgroundColor: colors.surface, borderTopLeftRadius: 14, borderTopRightRadius: 14, paddingTop: 12 },
   viewersHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   viewersTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },

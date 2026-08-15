@@ -27,6 +27,7 @@ import VoiceMessage from '../components/VoiceMessage';
 import ImageViewer from '../components/ImageViewer';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useHeaderHeight } from '@react-navigation/elements';
 import {
   blockUser,
   deleteConversation,
@@ -97,6 +98,7 @@ export default function ChatScreen({ route, navigation }: Props) {
   const [viewerUri, setViewerUri] = useState<string | undefined>();
   const flatRef = useRef<FlatList>(null);
   const me = useAuthStore((s) => s.user);
+  const headerHeight = useHeaderHeight();
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [recording, setRecording] = useState(false);
@@ -224,6 +226,7 @@ export default function ChatScreen({ route, navigation }: Props) {
   useEffect(() => {
     load();
     let socket: any;
+    let mounted = true;
     const handler = (msg: Message) => {
       prependMessage(msg);
       // Incoming message from the peer while the chat is open — mark it read
@@ -235,11 +238,15 @@ export default function ChatScreen({ route, navigation }: Props) {
     };
 
     getSocket().then((s) => {
+      if (!mounted) return;
       socket = s;
       socket.on('newMessage', handler);
     });
 
-    return () => socket?.off('newMessage', handler);
+    return () => {
+      mounted = false;
+      socket?.off('newMessage', handler);
+    };
   }, [load, prependMessage, isMessageInChat, userId]);
 
   const pickImage = async () => {
@@ -250,7 +257,7 @@ export default function ChatScreen({ route, navigation }: Props) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.82,
     });
@@ -389,7 +396,8 @@ export default function ChatScreen({ route, navigation }: Props) {
       });
       prependMessage(msg);
     } catch (e: any) {
-      setText(draft);
+      // Restore the draft only if the input is still empty — don't clobber text typed meanwhile
+      setText((current) => (current ? current : draft));
       setAttachment(pickedAttachment);
       Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось отправить сообщение');
     } finally {
@@ -450,10 +458,14 @@ export default function ChatScreen({ route, navigation }: Props) {
   const canSend = hasContent && !sending && !isBlocked;
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={headerHeight}
+    >
       {isBlocked ? (
         <View style={styles.blockedBanner}>
-          <Ionicons name="ban-outline" size={18} color="#d92323" />
+          <Ionicons name="ban-outline" size={18} color={colors.danger} />
           <Text style={styles.blockedText}>Пользователь заблокирован вами</Text>
           <TouchableOpacity onPress={toggleBlock}>
             <Text style={styles.unblockText}>Разблокировать</Text>

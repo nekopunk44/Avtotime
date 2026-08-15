@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { addComment, deletePost, getPostById, isPostSaved, Post, PostComment, toggleLike, toggleSavePost } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
@@ -33,6 +34,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
   const [sending, setSending] = useState(false);
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
+  const headerHeight = useHeaderHeight();
 
   const load = useCallback(async () => {
     try {
@@ -127,7 +129,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
         {post.caption ? <Text style={styles.caption}>{post.caption}</Text> : null}
         <View style={styles.postActions}>
           <TouchableOpacity style={styles.postActionBtn} onPress={handleLike}>
-            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? '#e53935' : '#555'} />
+            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? colors.danger : colors.textFaint} />
             <Text style={styles.postActionText}>{post.likes?.length ?? 0}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.postActionBtn} onPress={handleSave}>
@@ -170,7 +172,11 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={headerHeight}
+    >
       <FlatList
         data={post?.comments ?? []}
         keyExtractor={(item) => item._id}
@@ -208,15 +214,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContent: { paddingBottom: 16 },
-  postHeader: { borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 14 },
+  postHeader: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, paddingBottom: 14 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt },
   authorText: { flex: 1 },
   name: { fontSize: 14, fontWeight: '700', color: colors.text },
   username: { fontSize: 12, color: colors.textFaint, marginTop: 1 },
-  postImage: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceAlt },
-  mediaCounter: { position: 'absolute', right: 10, top: 10, borderRadius: 14, paddingHorizontal: 8, height: 28, backgroundColor: 'rgba(0,0,0,0.62)', flexDirection: 'row', alignItems: 'center', gap: 4 },
-  mediaCounterText: { color: '#fff', fontSize: 12, fontWeight: '900' },
   caption: { paddingHorizontal: 14, paddingTop: 12, fontSize: 14, color: colors.text, lineHeight: 20 },
   postActions: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14, paddingTop: 12 },
   postActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -233,7 +236,7 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 8,
     paddingHorizontal: 12, paddingVertical: 10,
-    backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border,
+    backgroundColor: colors.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border,
   },
   input: {
     flex: 1, minHeight: 40, maxHeight: 110, backgroundColor: colors.surfaceAlt,

@@ -43,7 +43,7 @@ function Stars({ value }: { value: number }) {
           key={star}
           name={star <= value ? 'star' : 'star-outline'}
           size={17}
-          color={star <= value ? '#f5a400' : '#ccc'}
+          color={star <= value ? colors.star : colors.surfaceHi}
         />
       ))}
     </View>
@@ -85,9 +85,11 @@ export default function UserProfileScreen({ route, navigation }: Props) {
     }
   }, [navigation, userId]);
 
+  const hasProfile = !!user;
   useFocusEffect(useCallback(() => {
-    loadProfile();
-  }, [loadProfile]));
+    // Silent when profile data already exists — no full-screen spinner on every return
+    loadProfile(hasProfile);
+  }, [loadProfile, hasProfile]));
 
   const refresh = () => {
     setRefreshing(true);
@@ -181,7 +183,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
         })}
       >
         <View style={styles.ratingIcon}>
-          <Ionicons name="star-outline" size={22} color="#f5a400" />
+          <Ionicons name="star-outline" size={22} color={colors.star} />
         </View>
         <View style={styles.ratingBody}>
           <Text style={styles.ratingTitle}>Рейтинг продавца</Text>
@@ -269,7 +271,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
           <Image source={{ uri: getPostThumb(item) }} style={styles.gridImage} />
           {item.mediaType === 'video' ? (
             <View style={styles.gridVideoBadge}>
-              <Ionicons name="play" size={13} color="#fff" />
+              <Ionicons name="play" size={13} color={colors.white} />
             </View>
           ) : null}
         </View>
@@ -291,7 +293,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
       numColumns={3}
       ListHeaderComponent={renderHeader}
       contentContainerStyle={posts.length ? styles.list : styles.emptyList}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       ListEmptyComponent={
         <View style={styles.emptyState}>
           <Ionicons name="images-outline" size={42} color={colors.textFaint} />
@@ -309,18 +311,18 @@ const styles = StyleSheet.create({
   list: { padding: 12, paddingBottom: 28 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
   header: { gap: 12, marginBottom: 12 },
-  profileTop: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  profileTop: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12 },
   avatar: { width: 74, height: 74, borderRadius: 37, backgroundColor: colors.surfaceAlt },
   profileInfo: { flex: 1 },
   name: { color: colors.text, fontSize: 22, fontWeight: '900' },
   username: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
   meta: { marginTop: 6, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
-  bio: { color: colors.textMuted, fontSize: 14, lineHeight: 21, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  bio: { color: colors.textMuted, fontSize: 14, lineHeight: 21, backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12 },
   stats: { flexDirection: 'row', gap: 8 },
-  stat: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', paddingVertical: 12 },
+  stat: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, alignItems: 'center', paddingVertical: 12 },
   statNum: { color: colors.text, fontSize: 20, fontWeight: '900' },
   statLabel: { marginTop: 2, color: colors.textMuted, fontSize: 11, fontWeight: '800' },
-  ratingCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12 },
+  ratingCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12 },
   ratingIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: 'rgba(246,178,61,0.14)', alignItems: 'center', justifyContent: 'center' },
   ratingBody: { flex: 1 },
   ratingTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
@@ -331,11 +333,11 @@ const styles = StyleSheet.create({
   mainActions: { flexDirection: 'row', gap: 8 },
   primaryBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   primaryText: { color: colors.onAccent, fontSize: 14, fontWeight: '900' },
-  followingBtn: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  followingBtn: { backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   followingText: { color: colors.text },
-  secondaryBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  secondaryBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   secondaryText: { color: colors.text, fontSize: 14, fontWeight: '900' },
-  infoCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12, gap: 8 },
+  infoCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12, gap: 8 },
   infoLine: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   infoText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
   infoLink: { flex: 1, color: colors.text, fontSize: 13, fontWeight: '800' },
@@ -343,7 +345,7 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
   gridItem: { width: '33.333%', aspectRatio: 1, padding: 1.5 },
   gridImage: { width: '100%', height: '100%', borderRadius: 4, backgroundColor: colors.surfaceAlt },
-  gridNoImage: { alignItems: 'center', justifyContent: 'center', padding: 7, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  gridNoImage: { alignItems: 'center', justifyContent: 'center', padding: 7, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   gridVideoBadge: { position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   textPost: { marginTop: 5, color: colors.textMuted, fontSize: 10, textAlign: 'center', lineHeight: 14 },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },

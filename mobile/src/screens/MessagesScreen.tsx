@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -58,7 +58,7 @@ export default function MessagesScreen({ navigation }: Props) {
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return chats;
-    return chats.filter((item) => [item.name, item.userName, item.lastMessage].join(' ').toLowerCase().includes(normalized));
+    return chats.filter((item) => [item.name, item.userName, item.lastMessage].filter(Boolean).join(' ').toLowerCase().includes(normalized));
   }, [chats, query]);
 
   const refresh = () => {
@@ -104,7 +104,9 @@ export default function MessagesScreen({ navigation }: Props) {
           autoCapitalize="none"
         />
         {query ? (
-          <Ionicons name="close-circle" size={18} color={colors.textFaint} onPress={() => setQuery('')} />
+          <TouchableOpacity onPress={() => setQuery('')} hitSlop={10}>
+            <Ionicons name="close-circle" size={18} color={colors.textFaint} />
+          </TouchableOpacity>
         ) : null}
       </View>
     </View>
@@ -168,7 +170,7 @@ export default function MessagesScreen({ navigation }: Props) {
       data={filtered}
       keyExtractor={(item) => item._id}
       renderItem={renderItem}
-      ListHeaderComponent={renderHeader}
+      ListHeaderComponent={renderHeader()}
       contentContainerStyle={filtered.length ? styles.list : styles.emptyList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       ListEmptyComponent={
@@ -190,9 +192,6 @@ const styles = StyleSheet.create({
   emptyList: { flexGrow: 1, padding: space.md },
   emptyWrap: { flex: 1, justifyContent: 'center' },
   header: { gap: space.md },
-  hero: { paddingTop: 2 },
-  title: { color: colors.text, fontSize: font.h1, fontWeight: '900' },
-  subtitle: { marginTop: 2, color: colors.textMuted, fontSize: font.small, fontWeight: '700' },
   searchBox: { height: 46, borderRadius: radius.md, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, ...shadow.card },
   searchInput: { flex: 1, color: colors.text, fontSize: font.body },
 

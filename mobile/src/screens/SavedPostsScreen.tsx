@@ -20,6 +20,15 @@ import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'SavedPosts'> };
 
+// Russian pluralization: plural(1, [...]) → 'публикация', plural(2, [...]) → 'публикации', plural(5, [...]) → 'публикаций'
+const plural = (n: number, forms: [string, string, string]) => {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return forms[0];
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return forms[1];
+  return forms[2];
+};
+
 export default function SavedPostsScreen({ navigation }: Props) {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
@@ -71,15 +80,11 @@ export default function SavedPostsScreen({ navigation }: Props) {
   };
 
   const renderHeader = () => (
-    <View style={styles.header}>
-      <View style={styles.heroIcon}>
-        <Ionicons name="bookmark-outline" size={27} color={colors.text} />
-      </View>
-      <View style={styles.heroText}>
-        <Text style={styles.title}>Сохранённые</Text>
-        <Text style={styles.subtitle}>{posts.length ? `${posts.length} публикаций` : 'Пока пусто'}</Text>
-      </View>
-    </View>
+    posts.length ? (
+      <Text style={styles.countLine}>
+        {posts.length} {plural(posts.length, ['публикация', 'публикации', 'публикаций'])}
+      </Text>
+    ) : null
   );
 
   const renderPost = ({ item }: { item: Post }) => {
@@ -126,7 +131,7 @@ export default function SavedPostsScreen({ navigation }: Props) {
 
         <View style={styles.actions}>
           <TouchableOpacity style={styles.actionBtn} onPress={() => handleLike(item._id)}>
-            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={21} color={liked ? '#e53935' : '#555'} />
+            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={21} color={liked ? colors.danger : colors.textFaint} />
             <Text style={styles.actionText}>{item.likes?.length ?? 0}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('PostComments', { postId: item._id })}>
@@ -157,7 +162,7 @@ export default function SavedPostsScreen({ navigation }: Props) {
       renderItem={renderPost}
       ListHeaderComponent={renderHeader}
       contentContainerStyle={posts.length ? styles.list : styles.emptyList}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       ListEmptyComponent={
         <View style={styles.emptyState}>
           <Ionicons name="bookmark-outline" size={44} color={colors.textFaint} />
@@ -174,12 +179,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   list: { padding: 12, paddingBottom: 28, gap: 10 },
   emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  heroIcon: { width: 54, height: 54, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  heroText: { flex: 1 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
-  subtitle: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
-  card: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  countLine: { paddingVertical: 6, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  card: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt },
   authorText: { flex: 1 },

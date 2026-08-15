@@ -40,13 +40,14 @@ type LoopCardProps = {
   loop: Loop;
   active: boolean;
   height: number;
+  muted: boolean;
+  onToggleMute: () => void;
   onLike: (loopId: string) => void;
   onCommentOpen: (loop: Loop) => void;
   onAuthorPress: (userId?: string) => void;
 };
 
-function LoopCard({ loop, active, height, onLike, onCommentOpen, onAuthorPress }: LoopCardProps) {
-  const [muted, setMuted] = useState(true);
+function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onCommentOpen, onAuthorPress }: LoopCardProps) {
   const [progress, setProgress] = useState(0);
   const user = useAuthStore((s) => s.user);
   const liked = !!user?._id && loop.likes?.includes(user._id);
@@ -101,7 +102,7 @@ function LoopCard({ loop, active, height, onLike, onCommentOpen, onAuthorPress }
           <Ionicons name="chatbubble-outline" size={28} color="#fff" />
           <Text style={styles.railText}>{commentsCount}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.railButton} onPress={() => setMuted((prev) => !prev)} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.railButton} onPress={onToggleMute} activeOpacity={0.85}>
           <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={26} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -218,6 +219,7 @@ export default function LoopsScreen({ navigation }: Props) {
   const [commentText, setCommentText] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
   const [pendingVideo, setPendingVideo] = useState<{ uri: string; mimeType?: string } | null>(null);
+  const [muted, setMuted] = useState(true);
   const [uploadCaption, setUploadCaption] = useState('');
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
@@ -362,6 +364,7 @@ export default function LoopsScreen({ navigation }: Props) {
   };
 
   const sendComment = async () => {
+    if (sendingComment) return;
     if (!activeLoop || !commentText.trim()) return;
 
     setSendingComment(true);
@@ -386,6 +389,8 @@ export default function LoopsScreen({ navigation }: Props) {
       loop={item}
       active={focused && index === activeIndex}
       height={listHeight}
+      muted={muted}
+      onToggleMute={() => setMuted((prev) => !prev)}
       onLike={handleLike}
       onCommentOpen={setCommentTarget}
       onAuthorPress={openAuthor}
@@ -412,6 +417,10 @@ export default function LoopsScreen({ navigation }: Props) {
         snapToAlignment="start"
         decelerationRate="fast"
         showsVerticalScrollIndicator={false}
+        initialNumToRender={1}
+        maxToRenderPerBatch={2}
+        windowSize={3}
+        removeClippedSubviews
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         onEndReached={loadMore}
@@ -553,9 +562,9 @@ export default function LoopsScreen({ navigation }: Props) {
                 disabled={!commentText.trim() || sendingComment}
               >
                 {sendingComment ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color={colors.onAccent} size="small" />
                 ) : (
-                  <Ionicons name="send" size={18} color="#fff" />
+                  <Ionicons name="send" size={18} color={colors.onAccent} />
                 )}
               </TouchableOpacity>
             </View>
@@ -582,12 +591,12 @@ const styles = StyleSheet.create({
   railText: { color: '#fff', fontSize: 12, fontWeight: '900', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
   infoOverlay: { position: 'absolute', left: 14, right: 76, bottom: 36 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  avatar: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: '#fff', backgroundColor: '#333' },
+  avatar: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: '#fff', backgroundColor: colors.surfaceHi },
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
   authorName: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '900', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
   caption: { marginTop: 10, color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
   progressTrack: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.18)' },
-  progressFill: { height: '100%', backgroundColor: '#ff335f' },
+  progressFill: { height: '100%', backgroundColor: colors.accent },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   emptyTitle: { marginTop: 12, color: '#fff', fontSize: 18, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 8, color: colors.textFaint, fontSize: 14, textAlign: 'center', lineHeight: 20 },
@@ -595,7 +604,7 @@ const styles = StyleSheet.create({
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   commentsSheet: { maxHeight: '72%', minHeight: '50%', backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingTop: 8 },
   sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: colors.surfaceHi, marginBottom: 8 },
-  sheetHeader: { height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: colors.border },
+  sheetHeader: { height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   sheetTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   closeBtn: { position: 'absolute', right: 12, width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   commentsList: { flex: 1 },
@@ -607,9 +616,9 @@ const styles = StyleSheet.create({
   commentBody: { flex: 1 },
   commentAuthor: { color: colors.text, fontSize: 13, fontWeight: '900' },
   commentMessage: { marginTop: 3, color: colors.textMuted, fontSize: 14, lineHeight: 20 },
-  commentInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 14, borderTopWidth: 1, borderTopColor: colors.border },
+  commentInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   commentInput: { flex: 1, minHeight: 42, borderRadius: 12, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 14 },
-  sendBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' },
+  sendBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   sendBtnDisabled: { opacity: 0.45 },
   uploadSheet: { backgroundColor: colors.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, paddingHorizontal: space.lg, paddingTop: space.sm },
   uploadTitle: { color: colors.text, fontSize: 21, fontWeight: '900', textAlign: 'center' },
