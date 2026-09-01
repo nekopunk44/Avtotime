@@ -14,7 +14,12 @@ node_modules/
 # Parsed data files (local utility scripts)
 all_tickets_parsed.json
 new_tickets_raw.txt
-package-lock.json
+
+# Only the throwaway root lockfile is ignored. Sub-project lockfiles MUST be
+# committed: the backend and market Dockerfiles build with `npm ci`, which
+# refuses to run without one. Keep the leading slash — without it this pattern
+# matches every package-lock.json in the tree.
+/package-lock.json
 
 # Logs
 *.log

@@ -1,0 +1,70 @@
+version: 2
+
+updates:
+  # ── npm: one entry per workspace (this repo has no npm workspaces root) ────
+  - package-ecosystem: npm
+    directory: /Avtotime-1/backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Moscow
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - backend
+
+  - package-ecosystem: npm
+    directory: /Avtotime-1/frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Moscow
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - frontend
+
+  - package-ecosystem: npm
+    directory: /frontend_market
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Moscow
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - frontend
+
+  - package-ecosystem: npm
+    directory: /mobile
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Moscow
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - mobile
+    # Expo pins its own SDK-compatible versions; bumping expo-* packages
+    # outside an SDK upgrade breaks the native build.
+    ignore:
+      - dependency-name: expo
+      - dependency-name: expo-*
+      - dependency-name: react-native
+
+  # ── GitHub Actions used by the workflows in .github/workflows ─────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Moscow
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci

@@ -1,8 +1,13 @@
 # The EAS (Expo) build only needs the mobile/ app. Everything below is
 # excluded from the uploaded build archive to keep it small and fast.
+#
+# NOTE: when .easignore exists, EAS ignores .gitignore entirely — so every
+# secret-bearing or bulky path has to be repeated here, not just inherited.
+
 Avtotime-1/
 frontend_market/
 scripts/
+docs/
 .venv/
 .github/
 node_modules/
@@ -11,3 +16,27 @@ node_modules/
 **/.mongo-*/
 **/.mongo-binaries/
 **/*.log
+
+# Credentials and signing material — must never leave the machine.
+# google-services.json / GoogleService-Info.plist are deliberately NOT here:
+# the Android/iOS FCM client configs must ship with the build.
+*firebase-adminsdk*.json
+**/*firebase-adminsdk*.json
+*.p8
+*.p12
+*.jks
+*.key
+*.pem
+.mcp.json
+
+# Tooling / editor state
+.expo/
+.claude/
+.codex/
+.vscode/
+
+# Local data dumps and internal notes
+all_tickets_parsed.json
+new_tickets_raw.txt
+INFRASTRUCTURE.md
+README.md

@@ -1,0 +1,372 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One CI run per ref. Superseded PR runs are cancelled; runs on main are not,
+# because they carry the deploy jobs and killing a deploy mid-rsync would leave
+# the server in a half-updated state.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # ── which parts of the monorepo were touched (gates the deploy jobs) ──────
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare against the previous main commit
+        id: filter
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          # Anything but a push (manual dispatch) is treated as "everything
+          # changed" so a dispatch can force a redeploy.
+          if [ "$EVENT_NAME" != "push" ]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # A brand-new branch or a force-push leaves no usable base commit.
+          if [ -z "$BEFORE_SHA" ] \
+            || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ] \
+            || ! git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            changed="$(git ls-files)"
+          else
+            changed="$(git diff --name-only "$BEFORE_SHA" "$CURRENT_SHA")"
+          fi
+
+          if printf '%s\n' "$changed" | grep -q '^Avtotime-1/backend/'; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "backend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # The social frontend compiles frontend_market sources into its
+          # bundle, so a market change also needs a web redeploy.
+          if printf '%s\n' "$changed" | grep -qE '^(Avtotime-1/frontend/|frontend_market/)'; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ── checks ────────────────────────────────────────────────────────────────
+  # The check jobs below declare no `needs` on each other on purpose: a red
+  # mobile typecheck must not hide the backend result (same effect as
+  # strategy.fail-fast: false, which needs a matrix to be legal).
+
+  lint-backend:
+    name: Backend syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # No `npm ci` here on purpose: `node --check` only parses files and the
+      # backend's optional deps (TensorFlow, sharp) cost several minutes to
+      # install for no benefit.
+      - name: Parse every backend source file
+        shell: bash
+        run: |
+          # git pathspec `*` crosses directory separators, so this covers both
+          # top-level files (index.js, cluster.js) and every subdirectory.
+          files="$(git ls-files 'Avtotime-1/backend/*.js' 'Avtotime-1/backend/*.mjs')"
+          count="$(printf '%s\n' "$files" | grep -c . || true)"
+          echo "Checking $count file(s)"
+          printf '%s\n' "$files" | xargs -n1 node --check
+
+  test-backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: Avtotime-1/backend/package-lock.json
+
+      # Same omissions as the production Dockerfile (optional TensorFlow/sharp
+      # are not importable there either), but devDependencies stay so vitest
+      # is available.
+      - name: Install dependencies
+        working-directory: Avtotime-1/backend
+        run: npm ci --omit=optional --legacy-peer-deps
+
+      - name: Run tests
+        working-directory: Avtotime-1/backend
+        run: npm test
+
+  lint-social:
+    name: Social frontend lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: Avtotime-1/frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: Avtotime-1/frontend
+        run: npm ci
+
+      - name: ESLint
+        working-directory: Avtotime-1/frontend
+        run: npm run lint
+
+  build-social:
+    name: Build social frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            Avtotime-1/frontend/package-lock.json
+            frontend_market/package-lock.json
+
+      # The social frontend imports frontend_market sources directly, so the
+      # market's dependencies must be installed for the bundle to resolve.
+      - name: Install market dependencies
+        working-directory: frontend_market
+        run: npm ci
+
+      - name: Install dependencies
+        working-directory: Avtotime-1/frontend
+        run: npm ci
+
+      - name: Create .env.production
+        working-directory: Avtotime-1/frontend
+        run: |
+          echo "VITE_API_URL=https://avtotime.org" > .env.production
+          echo "VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}" >> .env.production
+
+      - name: Build
+        working-directory: Avtotime-1/frontend
+        run: npm run build
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: social-frontend-dist
+          path: Avtotime-1/frontend/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  typecheck-market:
+    name: Market frontend typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend_market/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend_market
+        run: npm ci
+
+      # frontend_market's "lint" script is `tsc --noEmit`.
+      - name: Typecheck
+        working-directory: frontend_market
+        run: npm run lint
+
+  typecheck-mobile:
+    name: Mobile typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: mobile
+        run: npx tsc --noEmit
+
+  # ── deploys (main only, and only after the relevant checks pass) ──────────
+  deploy-backend:
+    name: Deploy backend
+    needs: [changes, lint-backend, test-backend]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    # Never run two production deploys at once, and never cancel one in flight.
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Sync backend to server
+        # The deploy user has ACL rwx on the project but does not own the
+        # existing root-created files, so it cannot set their times/perms.
+        # Skip dir-times and perms — the docker daemon (root) reads the files
+        # regardless, and the container is rebuilt anyway.
+        run: |
+          rsync -az --omit-dir-times --no-perms \
+            --exclude=node_modules \
+            --exclude=public \
+            --exclude='*.log' \
+            --exclude='.mongo-*' \
+            -e "ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes" \
+            Avtotime-1/backend/ \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/avtotime/backend/"
+
+      - name: Rebuild and restart backend
+        run: |
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'cd /root/avtotime && docker compose up -d --build backend && docker image prune -f >/dev/null && docker compose ps backend'
+
+      - name: Health check
+        shell: bash
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 5 https://avtotime.org/api/health >/dev/null; then
+              echo "Healthy after ${attempt} attempt(s)."
+              exit 0
+            fi
+            echo "Attempt ${attempt}/30 failed, retrying in 2s..."
+            sleep 2
+          done
+
+          echo "::error::Backend did not become healthy within 60s"
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'cd /root/avtotime && docker compose logs --tail=200 backend' || true
+          exit 1
+
+  deploy-frontend:
+    name: Deploy web frontend
+    needs: [changes, build-social]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-prod-frontend
+      cancel-in-progress: false
+    steps:
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: social-frontend-dist
+          path: dist
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Upload build to a staging directory
+        # Staged next to the live dir so the swap below is a rename on the same
+        # filesystem. --delete clears leftovers from an aborted earlier run.
+        run: |
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'mkdir -p /root/avtotime/frontend'
+          rsync -az --delete --omit-dir-times --no-perms \
+            -e "ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes" \
+            dist/ \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/avtotime/frontend/dist.new/"
+
+      - name: Swap in the new build and reload nginx
+        # nginx bind-mounts ./frontend/dist; renaming the directory changes its
+        # inode, so the running container keeps serving the old files until it
+        # is force-recreated.
+        run: |
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'set -e
+             cd /root/avtotime/frontend
+             rm -rf dist.old
+             if [ -d dist ]; then mv dist dist.old; fi
+             mv dist.new dist
+             rm -rf dist.old
+             cd /root/avtotime
+             docker compose up -d --force-recreate nginx
+             docker compose ps nginx'
+
+      - name: Health check
+        shell: bash
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS --max-time 5 https://avtotime.org/ >/dev/null; then
+              echo "Site responding after ${attempt} attempt(s)."
+              exit 0
+            fi
+            echo "Attempt ${attempt}/30 failed, retrying in 2s..."
+            sleep 2
+          done
+
+          echo "::error::Site did not respond within 60s"
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'cd /root/avtotime && docker compose logs --tail=200 nginx' || true
+          exit 1
