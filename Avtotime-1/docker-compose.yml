@@ -2,19 +2,59 @@ services:
   mongodb:
     image: mongo:7-jammy
     restart: unless-stopped
+    # WiredTiger sizes its cache from the HOST's RAM, not the container limit,
+    # so it must be pinned explicitly or mongod is the first OOM-kill victim.
+    command: ["mongod", "--bind_ip_all", "--wiredTigerCacheSizeGB", "0.4"]
     volumes:
       - mongo_data:/data/db
     expose:
       - "27017"
+    mem_limit: 700m
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: ["redis-server", "--save", "60", "1000", "--appendonly", "yes"]
+    # Everything stored here is a regenerable cache (auth sessions, market
+    # lists, response cache) plus socket.io pub/sub, so LRU eviction is safer
+    # than the default noeviction, which makes writes fail once the cap is hit.
+    command:
+      - redis-server
+      - --save
+      - "60"
+      - "1000"
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 150mb
+      - --maxmemory-policy
+      - allkeys-lru
     volumes:
       - redis_data:/data
     expose:
       - "6379"
+    mem_limit: 200m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     build:
@@ -22,8 +62,10 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      - mongodb
-      - redis
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - .env.production
     environment:
@@ -33,10 +75,25 @@ services:
       REDIS_SOCKET_ADAPTER_ENABLED: "true"
       TRUST_PROXY: "1"
       PORT: "8000"
+      # Heap cap per process. cluster.js forks one worker per CPU, so this must
+      # stay well under mem_limit divided by the worker count below.
+      NODE_OPTIONS: "--max-old-space-size=350"
+      # Without this cluster.js uses availableParallelism(), which reports the
+      # HOST's core count and would fork more workers than 800m can hold.
+      CLUSTER_WORKERS: "2"
     volumes:
       - uploads:/app/public
     expose:
       - "8000"
+    mem_limit: 800m
+    # Graceful shutdown waits for open websocket connections to drain; the
+    # 10s default SIGKILLs the workers mid-flight.
+    stop_grace_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   nginx:
     image: nginx:1.27-alpine
@@ -52,14 +109,38 @@ services:
       - certbot_www:/var/www/certbot:ro
       - ./frontend/dist:/var/www/frontend:ro
       - uploads:/var/www/uploads:ro
+    # Certbot renews the certificate in its own container; nginx keeps the old
+    # files open until it is told to reload, so without this loop every client
+    # hits ERR_CERT_DATE_INVALID ~90 days after the last manual restart.
+    command:
+      - /bin/sh
+      - -c
+      - |
+        while :; do sleep 6h; nginx -s reload 2>/dev/null || true; done &
+        exec nginx -g 'daemon off;'
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   certbot:
     image: certbot/certbot:latest
+    # Without restart the renewal loop never comes back after a server reboot.
+    restart: unless-stopped
     volumes:
       - letsencrypt:/etc/letsencrypt
       - certbot_www:/var/www/certbot
-    # Auto-renew every 12h (Let's Encrypt certs last 90 days)
+    # Auto-renew every 12h (Let's Encrypt certs last 90 days).
+    # Deliberately left without mem_limit: an OOM-killed renewal would expire
+    # the certificate, and the process only runs for a few seconds per cycle.
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet; sleep 12h & wait $${!}; done;'"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   mongo_data:

@@ -1,30 +1,68 @@
+# Keep the build context small: every file listed here is uploaded to the
+# docker daemon on each build, and `public/` alone is hundreds of MB.
+
+# ── Dependencies (reinstalled in the deps stage) ────────────────────────────
 node_modules
+**/node_modules
+npm-debug.log*
+
+# ── Secrets / env ──────────────────────────────────────────────────────────
+# bootstrapEnv.js never reads a dotenv file when NODE_ENV=production, so none
+# of these belong in the image.
 .env
 .env.*
-!.env.production.example
-!.env.example
+*.pem
+*.key
 
-# Local MongoDB data
+# ── User uploads ───────────────────────────────────────────────────────────
+# `public/` is a named docker volume at runtime (uploads:/app/public) and is
+# excluded from the deploy rsync as well; baking it in would only bloat the
+# image with stale copies.
+public
+
+# ── Local MongoDB data ─────────────────────────────────────────────────────
 .mongo-data*
+**/.mongo-data*
 .mongo-binaries
 .mongo-tmp
 
-# Dev/test artifacts
-*.log
-*.pid
-coverage
-.nyc_output
-
-# One-off scripts (not needed at runtime)
-scripts/inspect_users.js
-scripts/inspect_db_structure.js
-scripts/load
-scripts/seed_dev_user.js
-scripts/kill_port.mjs
-
-# Large data files
-questions_11-20.json
-
-# OS files
+# ── VCS / editors / OS ─────────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+.github
+.vscode
+.idea
 .DS_Store
 Thumbs.db
+
+# ── Tests, benchmarks and one-off maintenance scripts ──────────────────────
+# NOTE: scripts/upload_driving_questions.js and scripts/upload_all_tickets.js
+# are READ AT RUNTIME by services/drivingQuestionFallback.js — do not exclude.
+test
+tests
+__tests__
+**/*.test.js
+**/*.spec.js
+**/*.smoke_test.mjs
+coverage
+.nyc_output
+scripts/load
+scripts/__pycache__
+scripts/inspect_users.js
+scripts/inspect_db_structure.js
+scripts/seed_dev_user.js
+scripts/kill_port.mjs
+scripts/download_nsfw_model.js
+scripts/upload_images_to_cloudinary.js
+scripts/import_tickets_from_docx.js
+
+# ── Logs / runtime junk ────────────────────────────────────────────────────
+*.log
+*.pid
+tmp
+
+# ── Docs and build metadata (not needed at runtime) ────────────────────────
+*.md
+Dockerfile
+.dockerignore

@@ -127,3 +127,44 @@ docker compose down
 - База данных хранится в Docker volume `mongo_data` — не удаляется при перезапуске
 - Загруженные пользователями файлы — в volume `uploads`
 - SSL-сертификаты — в volume `letsencrypt`, обновляются автоматически каждые 12 ч
+  (контейнер nginx сам перечитывает их раз в 6 ч, поэтому продлённый сертификат
+  подхватывается без ручного перезапуска)
+
+---
+
+## Лимиты ресурсов
+
+Сервер рассчитан на 2 ГБ RAM, лимиты проставлены в `docker-compose.yml`:
+
+| Сервис | `mem_limit` | Дополнительно |
+|---|---|---|
+| mongodb | 700 MB | `--wiredTigerCacheSizeGB 0.4` — иначе mongod считает кэш от памяти хоста |
+| redis | 200 MB | `--maxmemory 150mb --maxmemory-policy allkeys-lru` |
+| backend | 800 MB | `NODE_OPTIONS=--max-old-space-size=350`, `CLUSTER_WORKERS=2` |
+| nginx | 128 MB | — |
+
+Логи всех контейнеров ограничены (`json-file`, 10 MB × 3 файла на сервис) —
+без этого access_log nginx забивал диск.
+
+Проверить фактическое потребление: `docker stats --no-stream`.
+
+---
+
+## Бэкапы
+
+Настраиваются отдельно и **обязательны** — см. [BACKUP.md](BACKUP.md).
+
+Коротко:
+
+```bash
+chmod +x scripts/backup.sh
+docker pull alpine:3.20
+./scripts/backup.sh                     # пробный прогон
+
+crontab -e
+# 20 3 * * * HEALTHCHECK_URL=https://hc-ping.com/<uuid> /root/avtotime/scripts/backup.sh >> /var/log/avtotime-backup.log 2>&1
+```
+
+`HEALTHCHECK_URL` (dead-man's switch на healthchecks.io) — не опция: без него
+о сломанном cron станет известно только при попытке восстановиться.
+Инструкция по восстановлению базы и файлов — там же, в `BACKUP.md`.
