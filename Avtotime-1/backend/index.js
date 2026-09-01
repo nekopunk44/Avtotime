@@ -1,118 +1,16 @@
 import "./config/bootstrapEnv.js"
-import express from "express"
+import cluster from "node:cluster"
 import connectDb from "./config/db.js"
-import cookieParser from "cookie-parser"
-import cors from 'cors'
-import helmet from "helmet"
-import compression from "compression"
-import mongoSanitize from "express-mongo-sanitize"
-import hpp from "hpp"
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { makeReqQueryWritable } from "./middlewars/express5Compat.js"
-import authRouter from "./routes/auth.routes.js"
-import userRouter from "./routes/user.routes.js"
-import postRouter from "./routes/post.routes.js"
-import loopRouter from "./routes/loop.routes.js"
-import storyRouter from "./routes/story.routes.js"
-import messageRouter from "./routes/message.routes.js"
-import marketRouter from "./routes/market.routes.js"
-import favoriteRouter from "./routes/favorite.routes.js"
-import notificationRouter from "./routes/notification.routes.js"
-import reviewRouter from "./routes/review.routes.js"
-import drivingCourseRouter from "./routes/drivingCourse.routes.js"
-import gamesRouter from "./routes/games.routes.js"
-import carRequestRouter from "./routes/carRequest.routes.js"
-import coloringRouter from "./routes/coloring.routes.js"
-import adminRouter from "./routes/admin.routes.js"
-import paymentRouter from "./routes/payment.routes.js"
-import { stripeWebhook } from "./controllers/payment.controllers.js"
+import { createApp } from "./app.js"
+import { createSocketServer, initializeSocketInfrastructure } from "./socket.js"
 import { startMarketModerationWorker } from "./moderation/marketModerationWorker.js"
 import { startPlanExpirationCron } from "./services/planExpirationCron.js"
-import cluster from "node:cluster"
-import {app, server, initializeSocketInfrastructure} from './socket.js'
 import { ensureDevSeed } from "./services/devSeed.js"
-import { getAllowedOrigins } from "./config/origins.js"
-import { apiLimiter } from "./middlewars/rateLimiters.js"
-import { notFoundHandler, errorHandler } from "./middlewars/errorHandlers.js"
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
- 
-const port=process.env.PORT || 8000
+const port = process.env.PORT || 8000
 
-const trustProxyEnv = process.env.TRUST_PROXY;
-const trustProxyValue = trustProxyEnv ?? (process.env.NODE_ENV === 'production' ? '1' : null);
-if (trustProxyValue !== null && trustProxyValue !== 'false' && trustProxyValue !== '0') {
-    const parsed = Number(trustProxyValue);
-    app.set('trust proxy', Number.isFinite(parsed) && !isNaN(parsed) ? parsed : trustProxyValue);
-}
-
-app.disable("x-powered-by")
-app.use(helmet({
-    contentSecurityPolicy: {
-        useDefaults: false,
-        directives: {
-            defaultSrc: ["'none'"],
-            frameAncestors: ["'none'"],
-            formAction: ["'self'"],
-            baseUri: ["'self'"],
-        },
-    },
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-}))
-app.use(compression())
-
-// Stripe webhook needs raw body — must come before express.json()
-app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), stripeWebhook)
-
-app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "2mb" }));
-app.use(express.urlencoded({ extended: true, limit: process.env.URLENCODED_BODY_LIMIT || "2mb" }))
-app.use(cookieParser())
-
-// Express v5 exposes `req.query` as a getter; `express-mongo-sanitize` expects it to be writable.
-app.use(makeReqQueryWritable)
-app.use(mongoSanitize())
-app.use(hpp())
-
-app.use(cors({
-    origin: getAllowedOrigins(),
-    credentials: true, 
-}))
-app.use("/api", apiLimiter)
-
-// Serve local static assets from backend/public under the API origin
-app.use("/api/public", express.static(path.join(__dirname, "public")));
-
-app.use('/api/auth', authRouter)
-app.use('/api/user', userRouter)
-app.use('/api/post', postRouter)
-app.use('/api/loop', loopRouter)
-app.use('/api/story', storyRouter)
-app.use('/api/message', messageRouter)
-app.use('/api/market', marketRouter)
-app.use('/api/favorites', favoriteRouter)
-app.use('/api/notifications', notificationRouter)
-app.use('/api/reviews', reviewRouter)
-app.use('/api/driving-courses', drivingCourseRouter)
-app.use('/api/games', gamesRouter)
-app.use('/api/car-request', carRequestRouter)
-app.use('/api/coloring', coloringRouter)
-app.use('/api/admin', adminRouter)
-app.use('/api/payment', paymentRouter)
-
-app.get("/api/health", (_req, res) => {
-    res.status(200).json({
-        ok: true,
-        uptime: process.uptime(),
-        env: process.env.NODE_ENV || "unknown",
-        timestamp: new Date().toISOString(),
-    })
-})
-
-app.get("/", (req, res)=> {
-    res.send('hello')
-})
+const app = createApp()
+const { server } = createSocketServer(app)
 
 // Global error handlers — prevent unhandled rejections from crashing workers silently
 process.on('unhandledRejection', (reason) => {
@@ -188,7 +86,6 @@ const startServer = async () => {
     }
 }
 
-app.use(notFoundHandler)
-app.use(errorHandler)
-
+// Importing this module starts a real server. Anything that only needs the
+// Express app (tests, tooling) must import createApp() from ./app.js instead.
 startServer()
