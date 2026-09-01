@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import DrivingQuestion from "../models/drivingQuestion.model.js";
 import DrivingTestResult from "../models/drivingTestResult.model.js";
 import { findFallbackDrivingQuestions, getFallbackDrivingQuestions } from "../services/drivingQuestionFallback.js";
@@ -8,6 +9,43 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.resolve(__dirname, "..", "public");
+const ticketsAbsDir = path.join(publicDir, "driving-courses", "tickets");
+
+const TICKET_IMAGE_INDEX_TTL_MS = 5 * 60 * 1000;
+
+let ticketImageIndex = null; // Map<ticketNumber, Set<fileName>>
+let ticketImageIndexBuiltAt = 0;
+
+// One fs.existsSync per candidate path blocks the event loop: the marathon
+// endpoint resolves 800 questions × up to 8 candidates. Read the ticket folders
+// once into a Map and answer lookups from memory; the TTL only exists so images
+// deployed after the process started still show up.
+const getTicketImageIndex = () => {
+  const now = Date.now();
+  if (ticketImageIndex && now - ticketImageIndexBuiltAt < TICKET_IMAGE_INDEX_TTL_MS) {
+    return ticketImageIndex;
+  }
+
+  const index = new Map();
+  try {
+    for (const entry of fs.readdirSync(ticketsAbsDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const match = /^ticket(\d+)$/i.exec(entry.name);
+      if (!match) continue;
+      try {
+        index.set(Number(match[1]), new Set(fs.readdirSync(path.join(ticketsAbsDir, entry.name))));
+      } catch {
+        // unreadable ticket folder — treat it as having no images
+      }
+    }
+  } catch {
+    // no bundled ticket images at all (fresh deploy, CDN-only setup)
+  }
+
+  ticketImageIndex = index;
+  ticketImageIndexBuiltAt = now;
+  return index;
+};
 
 const getRequestOrigin = (req) => {
   const host = req.get("host");
@@ -24,16 +62,18 @@ const getLocalQuestionImageUrl = (req, question) => {
   const origin = getRequestOrigin(req);
   if (!origin) return null;
 
+  const files = getTicketImageIndex().get(ticketNumber);
+  if (!files || files.size === 0) return null;
+
   const ticketDir = `driving-courses/tickets/ticket${ticketNumber}`;
   const baseFiles = [`question${questionNumber}`, `${questionNumber}`];
   const exts = ["png", "jpg", "jpeg", "webp"];
 
   for (const baseFile of baseFiles) {
     for (const ext of exts) {
-      const rel = `${ticketDir}/${baseFile}.${ext}`;
-      const abs = path.join(publicDir, rel);
-      if (fs.existsSync(abs)) {
-        return `${origin}/api/public/${rel}`;
+      const fileName = `${baseFile}.${ext}`;
+      if (files.has(fileName)) {
+        return `${origin}/api/public/${ticketDir}/${fileName}`;
       }
     }
   }
@@ -224,8 +264,12 @@ export const getPracticeQuestions = async (req, res) => {
 // Получить вопросы для режима Марафона (800 вопросов - все вопросы, повторяющиеся)
 export const getMarathonQuestions = async (req, res) => {
   try {
+    // Никогда не нужно больше totalNeeded — дальше список всё равно режется.
+    const totalNeeded = 800;
+
     let questions = await DrivingQuestion.find({ isActive: true })
       .select("-correctAnswerNumber -explanation")
+      .limit(totalNeeded)
       .lean();
 
     if (!questions || questions.length === 0) {
@@ -234,10 +278,15 @@ export const getMarathonQuestions = async (req, res) => {
         .map(({ correctAnswerNumber, explanation, ...question }) => question);
     }
 
-    // Если вопросов меньше 800, повторим их
-    const totalNeeded = 800;
     const originalCount = questions.length;
 
+    // Without this guard the repeat loop below runs `Math.ceil(800 / 0)`
+    // iterations, i.e. forever, and hangs the process.
+    if (originalCount === 0) {
+      return res.status(404).json({ message: "Вопросы не найдены" });
+    }
+
+    // Если вопросов меньше 800, повторим их
     if (originalCount < totalNeeded) {
       const repeatTimes = Math.ceil(totalNeeded / originalCount);
       const extended = [];
@@ -287,13 +336,20 @@ export const getQuestionWithExplanation = async (req, res) => {
 // Получить все билеты и их статус для пользователя
 export const getTicketsList = async (req, res) => {
   try {
-    const tickets = [];
+    // One grouped count instead of 40 sequential countDocuments round trips.
+    const rows = await DrivingQuestion.aggregate([
+      { $match: { ticketNumber: { $gte: 1, $lte: 40 } } },
+      { $group: { _id: "$ticketNumber", count: { $sum: 1 } } },
+    ]);
 
+    const countsByTicket = new Map();
+    for (const row of rows || []) {
+      countsByTicket.set(Number(row?._id), Number(row?.count) || 0);
+    }
+
+    const tickets = [];
     for (let i = 1; i <= 40; i++) {
-      let count = await DrivingQuestion.countDocuments({ ticketNumber: i });
-      if (count === 0) {
-        count = findFallbackDrivingQuestions({ ticketNumber: i }).length;
-      }
+      const count = countsByTicket.get(i) || findFallbackDrivingQuestions({ ticketNumber: i }).length;
       tickets.push({
         number: i,
         totalQuestions: count,
@@ -397,10 +453,26 @@ export const getUserTestResults = async (req, res) => {
 // Получить статистику пользователя
 export const getUserStatistics = async (req, res) => {
   try {
-    const allResults = await DrivingTestResult.find({ user: req.userId }).lean();
+    // Grouped in Mongo: loading every result pulled the whole `answers` array
+    // (up to 800 subdocuments per marathon run) just to sum four numbers.
+    // `$match` in an aggregation is not cast by mongoose — pass a real ObjectId.
+    const rows = mongoose.isValidObjectId(req.userId)
+      ? await DrivingTestResult.aggregate([
+          { $match: { user: new mongoose.Types.ObjectId(String(req.userId)) } },
+          {
+            $group: {
+              _id: "$mode",
+              tests: { $sum: 1 },
+              totalQuestions: { $sum: "$totalQuestions" },
+              correctAnswers: { $sum: "$correctAnswers" },
+              passed: { $sum: { $cond: ["$passed", 1, 0] } },
+            },
+          },
+        ])
+      : [];
 
     const stats = {
-      totalTests: allResults.length,
+      totalTests: 0,
       totalQuestionsPassed: 0,
       totalQuestionsCorrect: 0,
       averagePercentage: 0,
@@ -419,21 +491,27 @@ export const getUserStatistics = async (req, res) => {
       },
     };
 
-    allResults.forEach((result) => {
-      stats.totalQuestionsPassed += result.totalQuestions;
-      stats.totalQuestionsCorrect += result.correctAnswers;
+    for (const row of rows || []) {
+      const mode = String(row?._id || "");
+      const tests = Number(row?.tests) || 0;
+      const totalQuestions = Number(row?.totalQuestions) || 0;
+      const correctAnswers = Number(row?.correctAnswers) || 0;
 
-      if (result.mode === "exam") {
-        stats.examStats.total += 1;
-        if (result.passed) stats.examStats.passed += 1;
-      } else if (result.mode === "practice") {
-        stats.practiceStats.total += 1;
-        stats.practiceStats.questions += result.totalQuestions;
-      } else if (result.mode === "marathon") {
-        stats.marathonStats.total += 1;
-        stats.marathonStats.questions += result.totalQuestions;
+      stats.totalTests += tests;
+      stats.totalQuestionsPassed += totalQuestions;
+      stats.totalQuestionsCorrect += correctAnswers;
+
+      if (mode === "exam") {
+        stats.examStats.total += tests;
+        stats.examStats.passed += Number(row?.passed) || 0;
+      } else if (mode === "practice") {
+        stats.practiceStats.total += tests;
+        stats.practiceStats.questions += totalQuestions;
+      } else if (mode === "marathon") {
+        stats.marathonStats.total += tests;
+        stats.marathonStats.questions += totalQuestions;
       }
-    });
+    }
 
     if (stats.totalQuestionsPassed > 0) {
       stats.averagePercentage = Math.round(

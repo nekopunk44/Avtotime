@@ -33,5 +33,8 @@ const storySchema= new mongoose.Schema({
             }
 }, {timestamps:true,})
 
+// Both story queries filter by author; without this they scan the collection.
+storySchema.index({ author: 1, createdAt: -1 })
+
 const Story = mongoose.model('Story', storySchema)
 export default Story

@@ -54,6 +54,9 @@ const drivingTestResultSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// History list (match on user, sort by createdAt) and the statistics aggregation.
+drivingTestResultSchema.index({ user: 1, createdAt: -1 });
+
 const DrivingTestResult = mongoose.model("DrivingTestResult", drivingTestResultSchema);
 
 export default DrivingTestResult;

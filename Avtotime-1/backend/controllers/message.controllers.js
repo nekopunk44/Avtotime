@@ -6,9 +6,16 @@ import Message from '../models/messages.model.js';
 import User from '../models/user.model.js';
 import { io } from '../socket.js';
 import { sendExpoPushToUser } from '../services/expoPush.js';
+import { decryptString, encryptString } from '../services/crypto/fieldEncryption.js';
 
 const DEFAULT_MESSAGES_PAGE_SIZE = 50;
 const MAX_MESSAGES_PAGE_SIZE = 100;
+
+const buildMessagePreview = (msg) =>
+    msg?.message
+    || (msg?.image ? 'Фото' : '')
+    || (msg?.file ? 'Файл' : '')
+    || (msg?.audioUrl ? 'Голосовое сообщение' : '');
 
 export const sendMessage = async (req, res) => {
     try {
@@ -77,10 +84,21 @@ export const sendMessage = async (req, res) => {
 
         // Atomic upsert: two concurrent first messages would otherwise both
         // pass the findOne-null check and create duplicate conversations.
+        // The last-message fields are denormalized here so the chat list needs
+        // no per-conversation message lookup. encryptString is applied
+        // explicitly (and is idempotent) so the preview is encrypted at rest
+        // even if schema setters are skipped on update queries.
         await Conversation.findOneAndUpdate(
             { participants: { $all: [senderId, receiverId] } },
             {
                 $push: { messages: newMessage._id },
+                $set: {
+                    lastMessagePreview: encryptString(
+                        buildMessagePreview({ message, image: imageUrl, file: fileUrl, audioUrl })
+                    ),
+                    lastMessageAt: newMessage.createdAt || new Date(),
+                    lastMessageSender: senderId,
+                },
                 $setOnInsert: { participants: [senderId, receiverId] },
             },
             { upsert: true, new: true }
@@ -174,19 +192,34 @@ export const getPrevUserChats = async (req, res) => {
         const currentUserId = req.userId;
         const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
 
+        // No message populate here: with perDocumentLimit mongoose issues one
+        // extra query per conversation (N+1). The preview comes from the
+        // denormalized fields, and `$slice: -1` keeps only the id of the last
+        // message for the legacy fallback below.
         const conversations = await Conversation.find({
             participants: currentUserId
         })
-        .select('participants messages updatedAt')
+        .select('participants updatedAt lastMessagePreview lastMessageAt lastMessageSender')
+        .slice('messages', -1)
         .populate('participants', 'name userName profileImage')
-        .populate({
-            path: 'messages',
-            options: { sort: { createdAt: -1 } },
-            perDocumentLimit: 1,
-        })
         .sort({ updatedAt: -1 })
         .limit(limit)
         .lean({ getters: true });
+
+        // Conversations created before the denormalized fields existed: fetch
+        // their last message in ONE batched query instead of one per chat.
+        const legacyIds = conversations
+            .filter(conv => !conv.lastMessageAt)
+            .map(conv => (Array.isArray(conv.messages) ? conv.messages[conv.messages.length - 1] : null))
+            .filter(Boolean);
+
+        const legacyById = new Map();
+        if (legacyIds.length > 0) {
+            const legacyMessages = await Message.find({ _id: { $in: legacyIds } })
+                .select('message image file audioUrl createdAt')
+                .lean({ getters: true });
+            legacyMessages.forEach(msg => { legacyById.set(String(msg._id), msg); });
+        }
 
         // Count unread messages sent to the current user, grouped by sender
         const unreadAgg = await Message.aggregate([
@@ -201,16 +234,25 @@ export const getPrevUserChats = async (req, res) => {
                 const user = conv.participants.find(user => user._id.toString() !== currentUserId.toString());
                 if (!user) return null;
 
-                const last = Array.isArray(conv.messages) ? conv.messages[0] : null;
-                const lastMessage = last?.message
-                    || (last?.image ? 'Фото' : '')
-                    || (last?.file ? 'Файл' : '')
-                    || (last?.audioUrl ? 'Голосовое сообщение' : '');
+                let lastMessage = '';
+                let lastMessageAt = conv.updatedAt;
+
+                if (conv.lastMessageAt) {
+                    lastMessage = conv.lastMessagePreview || '';
+                    lastMessageAt = conv.lastMessageAt;
+                } else {
+                    const lastId = Array.isArray(conv.messages) ? conv.messages[conv.messages.length - 1] : null;
+                    const last = lastId ? legacyById.get(String(lastId)) : null;
+                    lastMessage = buildMessagePreview(last);
+                    lastMessageAt = last?.createdAt || conv.updatedAt;
+                }
 
                 return {
                     ...user,
-                    lastMessage,
-                    lastMessageAt: last?.createdAt || conv.updatedAt,
+                    // Decrypt defensively: lean getters already handle it, but a
+                    // raw `enc:v1:` string would leak straight into the chat list.
+                    lastMessage: decryptString(lastMessage),
+                    lastMessageAt,
                     unreadCount: unreadBySender[String(user._id)] || 0,
                 };
             })

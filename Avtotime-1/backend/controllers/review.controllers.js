@@ -1,6 +1,39 @@
+import mongoose from "mongoose";
 import Review from "../models/review.model.js";
 import User from "../models/user.model.js";
 import { createNotification } from "./notification.controllers.js";
+
+const toObjectId = (value) =>
+  mongoose.isValidObjectId(value) ? new mongoose.Types.ObjectId(String(value)) : null;
+
+// Counts come from one $group instead of loading every rating into Node and
+// scanning the array five times. `$match` in an aggregation is NOT cast by
+// mongoose, so ids must be real ObjectIds here.
+const buildRatingStats = async (match) => {
+  const rows = await Review.aggregate([
+    { $match: match },
+    { $group: { _id: "$rating", count: { $sum: 1 } } },
+  ]);
+
+  const ratingBreakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  let totalReviews = 0;
+  let ratingSum = 0;
+
+  for (const row of rows || []) {
+    const rating = Number(row?._id);
+    const count = Number(row?.count) || 0;
+    if (!Number.isFinite(rating)) continue;
+    totalReviews += count;
+    ratingSum += rating * count;
+    if (ratingBreakdown[rating] !== undefined) ratingBreakdown[rating] += count;
+  }
+
+  return {
+    totalReviews,
+    avgRating: totalReviews > 0 ? (ratingSum / totalReviews).toFixed(1) : 0,
+    ratingBreakdown,
+  };
+};
 
 export const addReview = async (req, res) => {
   try {
@@ -86,55 +119,37 @@ export const getReviews = async (req, res) => {
   try {
     const { targetUserId, listingType, listingId } = req.query;
 
-    if (!targetUserId) {
+    const targetId = toObjectId(targetUserId);
+    if (!targetId) {
       return res.status(400).json({ message: "Требуется targetUserId" });
     }
 
-    const filter = { targetUser: targetUserId };
+    const filter = { targetUser: targetId };
 
     if (listingType) {
       filter.listingType = String(listingType).toLowerCase();
     }
 
     if (listingId) {
-      filter.listing = listingId;
+      const listingObjectId = toObjectId(listingId);
+      if (!listingObjectId) {
+        return res.status(400).json({ message: "Некорректный listingId" });
+      }
+      filter.listing = listingObjectId;
     }
 
-    // The list is capped, but stats are computed over ALL matching ratings via
-    // a ratings-only projection so the numbers stay exact and cheap.
-    const [reviews, ratings] = await Promise.all([
+    // The list is capped; the stats come from an aggregation over ALL matching
+    // ratings, so the numbers stay exact without loading the documents.
+    const [reviews, stats] = await Promise.all([
       Review.find(filter)
         .populate("reviewer", "name userName profileImage")
         .populate("targetUser", "name userName profileImage")
         .sort({ createdAt: -1 })
         .limit(200),
-      Review.find(filter).select("rating").lean(),
+      buildRatingStats(filter),
     ]);
 
-    const totalReviews = ratings.length;
-    const avgRating =
-      totalReviews > 0
-        ? (ratings.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(
-            1
-          )
-        : 0;
-
-    const ratingBreakdown = {
-      5: ratings.filter((r) => r.rating === 5).length,
-      4: ratings.filter((r) => r.rating === 4).length,
-      3: ratings.filter((r) => r.rating === 3).length,
-      2: ratings.filter((r) => r.rating === 2).length,
-      1: ratings.filter((r) => r.rating === 1).length,
-    };
-
-    return res.status(200).json({
-      reviews,
-      stats: {
-        totalReviews,
-        avgRating,
-        ratingBreakdown,
-      },
-    });
+    return res.status(200).json({ reviews, stats });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -144,23 +159,14 @@ export const getUserRatingStats = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const reviews = await Review.find({ targetUser: userId }).select("rating").lean();
+    const targetId = toObjectId(userId);
+    if (!targetId) {
+      return res.status(400).json({ message: "Некорректный userId" });
+    }
 
-    const totalReviews = reviews.length;
-    const avgRating =
-      totalReviews > 0
-        ? (reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(
-            1
-          )
-        : 0;
-
-    const ratingBreakdown = {
-      5: reviews.filter((r) => r.rating === 5).length,
-      4: reviews.filter((r) => r.rating === 4).length,
-      3: reviews.filter((r) => r.rating === 3).length,
-      2: reviews.filter((r) => r.rating === 2).length,
-      1: reviews.filter((r) => r.rating === 1).length,
-    };
+    const { totalReviews, avgRating, ratingBreakdown } = await buildRatingStats({
+      targetUser: targetId,
+    });
 
     return res.status(200).json({
       avgRating: Number(avgRating),

@@ -1,33 +1,11 @@
 import User from "../models/user.model.js";
 import Post from "../models/post.model.js";
-import MarketCarListing from "../models/marketCarListing.model.js";
-import MarketPartListing from "../models/marketPartListing.model.js";
-import MarketCarServiceListing from "../models/marketCarServiceListing.model.js";
-import MarketAutoTuningListing from "../models/marketAutoTuningListing.model.js";
-import MarketDryCleaningListing from "../models/marketDryCleaningListing.model.js";
-import MarketConsultationExpert from "../models/marketConsultationExpert.model.js";
+import { MARKET_KINDS, MARKET_KIND_MODELS, getMarketModelByKind } from "../config/marketKinds.js";
 import { checkIsAdminByUser } from "../config/admin.js";
 import { createNotification } from "./notification.controllers.js";
 import { invalidateAuthSession } from "../services/authSessionCache.js";
 
-const getModelByKind = (kind) => {
-  switch (String(kind || "").toLowerCase()) {
-    case "cars":
-      return MarketCarListing;
-    case "parts":
-      return MarketPartListing;
-    case "car-services":
-      return MarketCarServiceListing;
-    case "auto-tuning":
-      return MarketAutoTuningListing;
-    case "dry-cleaning":
-      return MarketDryCleaningListing;
-    case "consultations":
-      return MarketConsultationExpert;
-    default:
-      return null;
-  }
-};
+const getModelByKind = (kind) => getMarketModelByKind(kind);
 
 export const getAdminStatus = async (req, res) => {
   try {
@@ -315,13 +293,10 @@ export const getAdminStats = async (req, res) => {
       usersDailyMap.set(String(row?._id || ""), Number(row?.count || 0) || 0);
     }
 
-    const kinds = [
-      { kind: "cars", Model: MarketCarListing },
-      { kind: "car-services", Model: MarketCarServiceListing },
-      { kind: "auto-tuning", Model: MarketAutoTuningListing },
-      { kind: "dry-cleaning", Model: MarketDryCleaningListing },
-      { kind: "consultations", Model: MarketConsultationExpert },
-    ];
+    // Every kind from the shared registry: the local copy this replaced was
+    // missing "parts", so the section was absent from the counters, from the
+    // pending total and from the charts.
+    const kinds = MARKET_KINDS;
 
     const listingsByType = {};
     let listingsTotal = 0;
@@ -329,26 +304,32 @@ export const getAdminStats = async (req, res) => {
     let listingsPending = 0;
     const listingsDailyMap = new Map();
 
-    for (const { kind, Model } of kinds) {
-      // Per-type counters
-      const [total, newToday, pending, approved, rejected, dailyAgg] = await Promise.all([
-        Model.estimatedDocumentCount(),
-        Model.countDocuments({ createdAt: { $gte: todayStart } }),
-        Model.countDocuments({ moderationStatus: "pending" }),
-        Model.countDocuments({ moderationStatus: "approved" }),
-        Model.countDocuments({ moderationStatus: "rejected" }),
-        Model.aggregate([
-          { $match: { createdAt: { $gte: seriesConfig.since } } },
-          {
-            $group: {
-              _id: { $dateToString: { format: formatForBucket(seriesConfig.bucket), date: "$createdAt" } },
-              count: { $sum: 1 },
+    // Per-type counters, all kinds in flight at once: sequentially this was
+    // six round trips per kind, and adding "parts" made the wait longer still.
+    const perKind = await Promise.all(
+      kinds.map(async ({ key, Model }) => {
+        const [total, newToday, pending, approved, rejected, dailyAgg] = await Promise.all([
+          Model.estimatedDocumentCount(),
+          Model.countDocuments({ createdAt: { $gte: todayStart } }),
+          Model.countDocuments({ moderationStatus: "pending" }),
+          Model.countDocuments({ moderationStatus: "approved" }),
+          Model.countDocuments({ moderationStatus: "rejected" }),
+          Model.aggregate([
+            { $match: { createdAt: { $gte: seriesConfig.since } } },
+            {
+              $group: {
+                _id: { $dateToString: { format: formatForBucket(seriesConfig.bucket), date: "$createdAt" } },
+                count: { $sum: 1 },
+              },
             },
-          },
-        ]),
-      ]);
+          ]),
+        ]);
+        return { key, total, newToday, pending, approved, rejected, dailyAgg };
+      }),
+    );
 
-      listingsByType[kind] = {
+    for (const { key, total, newToday, pending, approved, rejected, dailyAgg } of perKind) {
+      listingsByType[key] = {
         total: Number(total || 0) || 0,
         newToday: Number(newToday || 0) || 0,
         pending: Number(pending || 0) || 0,
@@ -445,10 +426,9 @@ export const getAdminUserStats = async (req, res) => {
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const listingModels = [
-      MarketCarListing, MarketCarServiceListing,
-      MarketAutoTuningListing, MarketDryCleaningListing, MarketConsultationExpert,
-    ];
+    // Shared registry, so "parts" is counted here too — the local list this
+    // replaced left it out.
+    const listingModels = MARKET_KIND_MODELS;
 
     const [postsCount, listingsCounts] = await Promise.all([
       Post.countDocuments({ author: id }),

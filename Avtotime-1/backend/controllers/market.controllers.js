@@ -7,6 +7,7 @@ import MarketPartListing from "../models/marketPartListing.model.js";
 import MarketDryCleaningListing from "../models/marketDryCleaningListing.model.js";
 import uploadOnCloudinary from "../config/cloudinary.js";
 import { buildPublicFileUrl } from "../config/publicFiles.js";
+import { getMarketModelByKind } from "../config/marketKinds.js";
 import { getAiModerationProvider, isAiModerationEnabled } from "../services/aiModeration.js";
 import {
   getCachedMarketList,
@@ -230,13 +231,32 @@ const hasFilters = (query) => {
   return Object.keys(query).some((k) => !skip.has(k) && query[k] != null && String(query[k]).trim() !== "");
 };
 
-const getMarketList = async ({ scope, model, filter, page, limit, skip, sort }) => {
+// One minute, matching the cache key bucket in marketListCache.js.
+const CACHE_TIME_BUCKET_MS = 60000;
+
+// The cache key must come from normalized request parameters, never from the
+// Mongo filter object: the filter carries a fresh `new Date()` (unique key on
+// every request, so the cache never hit) and RegExp instances that stringify
+// away to `{}`. These endpoints only cache the unfiltered listing pages, so
+// mine/page/limit fully describe the query.
+const buildListCacheKey = ({ isMine, userId, page, limit, timeSensitive = false }) => ({
+  v: 1,
+  mine: isMine ? String(userId || "") : "",
+  page,
+  limit,
+  // The `expiresAt > now` bound moves with the clock; bucketing it keeps the
+  // key reusable while capping how long an expired listing can be served.
+  bucket: timeSensitive ? Math.floor(Date.now() / CACHE_TIME_BUCKET_MS) : 0,
+});
+
+const getMarketList = async ({ scope, model, filter, page, limit, skip, sort, cacheKey }) => {
   const effectiveSort = sort || { createdAt: -1 };
-  const cached = await getCachedMarketList(scope, { filter, page, limit });
+  const key = cacheKey || { filter, page, limit };
+  const cached = await getCachedMarketList(scope, key);
   if (cached) return cached;
 
   const listings = await model.find(filter).sort(effectiveSort).skip(skip).limit(limit).lean();
-  return setCachedMarketList(scope, { filter, page, limit }, listings);
+  return setCachedMarketList(scope, key, listings);
 };
 
 export const getCarListings = async (req, res) => {
@@ -269,7 +289,20 @@ export const getCarListings = async (req, res) => {
     if (filtered) {
       listings = await MarketCarListing.find(filter).sort(sort).skip(queryOptions.skip).limit(queryOptions.limit).lean();
     } else {
-      listings = await getMarketList({ scope: "cars", model: MarketCarListing, filter, sort, ...queryOptions });
+      listings = await getMarketList({
+        scope: "cars",
+        model: MarketCarListing,
+        filter,
+        sort,
+        ...queryOptions,
+        cacheKey: buildListCacheKey({
+          isMine,
+          userId: req.userId,
+          page: queryOptions.page,
+          limit: queryOptions.limit,
+          timeSensitive: !isMine,
+        }),
+      });
     }
 
     return res.status(200).json(listings);
@@ -307,7 +340,20 @@ export const getPartListings = async (req, res) => {
     if (filtered) {
       listings = await MarketPartListing.find(filter).sort(sort).skip(queryOptions.skip).limit(queryOptions.limit).lean();
     } else {
-      listings = await getMarketList({ scope: "parts", model: MarketPartListing, filter, sort, ...queryOptions });
+      listings = await getMarketList({
+        scope: "parts",
+        model: MarketPartListing,
+        filter,
+        sort,
+        ...queryOptions,
+        cacheKey: buildListCacheKey({
+          isMine,
+          userId: req.userId,
+          page: queryOptions.page,
+          limit: queryOptions.limit,
+          timeSensitive: !isMine,
+        }),
+      });
     }
 
     return res.status(200).json(listings);
@@ -682,7 +728,18 @@ export const getCarServiceListings = async (req, res) => {
     if (filtered) {
       listings = await MarketCarServiceListing.find(filter).sort({ createdAt: -1 }).skip(queryOptions.skip).limit(queryOptions.limit).lean();
     } else {
-      listings = await getMarketList({ scope: "car-services", model: MarketCarServiceListing, filter, ...queryOptions });
+      listings = await getMarketList({
+        scope: "car-services",
+        model: MarketCarServiceListing,
+        filter,
+        ...queryOptions,
+        cacheKey: buildListCacheKey({
+          isMine,
+          userId: req.userId,
+          page: queryOptions.page,
+          limit: queryOptions.limit,
+        }),
+      });
     }
     return res.status(200).json(listings);
   } catch (error) {
@@ -769,7 +826,18 @@ export const getAutoTuningListings = async (req, res) => {
     if (filtered) {
       listings = await MarketAutoTuningListing.find(filter).sort({ createdAt: -1 }).skip(queryOptions.skip).limit(queryOptions.limit).lean();
     } else {
-      listings = await getMarketList({ scope: "auto-tuning", model: MarketAutoTuningListing, filter, ...queryOptions });
+      listings = await getMarketList({
+        scope: "auto-tuning",
+        model: MarketAutoTuningListing,
+        filter,
+        ...queryOptions,
+        cacheKey: buildListCacheKey({
+          isMine,
+          userId: req.userId,
+          page: queryOptions.page,
+          limit: queryOptions.limit,
+        }),
+      });
     }
     return res.status(200).json(listings);
   } catch (error) {
@@ -859,7 +927,18 @@ export const getConsultationExperts = async (req, res) => {
     if (filtered) {
       experts = await MarketConsultationExpert.find(filter).sort({ createdAt: -1 }).skip(queryOptions.skip).limit(queryOptions.limit).lean();
     } else {
-      experts = await getMarketList({ scope: "consultations", model: MarketConsultationExpert, filter, ...queryOptions });
+      experts = await getMarketList({
+        scope: "consultations",
+        model: MarketConsultationExpert,
+        filter,
+        ...queryOptions,
+        cacheKey: buildListCacheKey({
+          isMine,
+          userId: req.userId,
+          page: queryOptions.page,
+          limit: queryOptions.limit,
+        }),
+      });
     }
     return res.status(200).json(experts);
   } catch (error) {
@@ -1245,19 +1324,10 @@ export const deleteConsultationExpert = async (req, res) => {
 // Full listing by id — search/filter return trimmed projections, so clients
 // (mobile details screen) refetch the complete document here. Accepts either
 // the Mongo _id or the numeric public id.
-const LISTING_MODELS = {
-  cars: MarketCarListing,
-  parts: MarketPartListing,
-  "car-services": MarketCarServiceListing,
-  "auto-tuning": MarketAutoTuningListing,
-  consultations: MarketConsultationExpert,
-  "dry-cleaning": MarketDryCleaningListing,
-};
-
 export const getMarketListingById = async (req, res) => {
   try {
     const { listingType, id } = req.params;
-    const model = LISTING_MODELS[String(listingType || "").toLowerCase()];
+    const model = getMarketModelByKind(listingType);
     if (!model) {
       return res.status(400).json({ message: "Неизвестный тип объявления" });
     }

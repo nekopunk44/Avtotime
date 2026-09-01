@@ -64,6 +64,10 @@ const marketCarListingSchema = new mongoose.Schema(
 
 marketCarListingSchema.index({ moderationStatus: 1, createdAt: -1 });
 marketCarListingSchema.index({ author: 1, createdAt: -1 });
+// Storefront sort ({ priority: -1, createdAt: -1 }) — without this the query
+// falls back to a collection scan plus an in-memory sort, which starts failing
+// with "Sort exceeded memory limit" once the collection grows.
+marketCarListingSchema.index({ moderationStatus: 1, priority: -1, createdAt: -1 });
 
 const MarketCarListing = mongoose.model("MarketCarListing", marketCarListingSchema);
 

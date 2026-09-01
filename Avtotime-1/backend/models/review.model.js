@@ -73,6 +73,9 @@ const reviewSchema = new mongoose.Schema(
 
 // Индексы
 reviewSchema.index({ targetUser: 1, listingType: 1 });
+// Review list + rating aggregation for a profile: match on targetUser, sort by
+// createdAt.
+reviewSchema.index({ targetUser: 1, createdAt: -1 });
 reviewSchema.index({ reviewer: 1, targetUser: 1, listing: 1 }, { unique: true });
 reviewSchema.index({ createdAt: -1 });
 

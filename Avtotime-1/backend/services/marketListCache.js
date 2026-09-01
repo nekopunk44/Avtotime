@@ -28,14 +28,43 @@ const marketListCache = new LRUCache(MAX_LOCAL_ENTRIES);
 const CACHE_TTL_MS = Math.max(0, Number(process.env.MARKET_LIST_CACHE_TTL_MS || 5000));
 const CACHE_TTL_SECONDS = Math.max(1, Math.ceil(CACHE_TTL_MS / 1000));
 
-const buildKey = (scope, filter) => `${scope}::${JSON.stringify(filter)}`;
+// One minute: coarse enough that a moving `expiresAt > now` bound reuses the
+// same key, fine enough that an expired listing cannot linger for long.
+const KEY_TIME_BUCKET_MS = 60000;
 
-const getRedisCacheKey = (scope, filter) => `market-list:${buildKey(scope, filter)}`;
+// JSON.stringify is not a safe key builder for Mongo filters: `new Date()`
+// serializes down to the millisecond (a brand new key on every request — 0%
+// hit rate plus one-shot Redis garbage), and RegExp collapses to `{}` so
+// different filters would collide on one key. Normalize instead: sort object
+// keys, bucket dates, keep regex source and flags.
+const stableSerialize = (value) => {
+  if (value === null) return "null";
+  if (value === undefined) return "undef";
 
-export const getCachedMarketList = async (scope, filter) => {
+  const type = typeof value;
+  if (type === "string") return JSON.stringify(value);
+  if (type === "number" || type === "boolean") return String(value);
+  if (type === "bigint") return `${value}n`;
+  if (type === "function" || type === "symbol") return "fn";
+
+  if (value instanceof Date) return `D:${Math.floor(value.getTime() / KEY_TIME_BUCKET_MS)}`;
+  if (value instanceof RegExp) return `R:${value.source}/${value.flags}`;
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(",")}]`;
+  // ObjectId & friends: the hex string fully describes the value
+  if (typeof value.toHexString === "function") return `O:${value.toHexString()}`;
+
+  const keys = Object.keys(value).sort();
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(",")}}`;
+};
+
+const buildKey = (scope, keyParts) => `${scope}::${stableSerialize(keyParts)}`;
+
+const getRedisCacheKey = (scope, keyParts) => `market-list:${buildKey(scope, keyParts)}`;
+
+export const getCachedMarketList = async (scope, keyParts) => {
   if (CACHE_TTL_MS <= 0) return null;
 
-  const key = buildKey(scope, filter);
+  const key = buildKey(scope, keyParts);
   const cached = marketListCache.get(key);
   if (cached) {
     if (cached.expiresAt <= Date.now()) {
@@ -48,7 +77,7 @@ export const getCachedMarketList = async (scope, filter) => {
   try {
     const redis = await getSharedRedisClient();
     if (redis) {
-      const redisValue = await redis.get(getRedisCacheKey(scope, filter));
+      const redisValue = await redis.get(getRedisCacheKey(scope, keyParts));
       if (redisValue) {
         const parsed = JSON.parse(redisValue);
         marketListCache.set(key, {
@@ -64,10 +93,10 @@ export const getCachedMarketList = async (scope, filter) => {
   return null;
 };
 
-export const setCachedMarketList = async (scope, filter, value) => {
+export const setCachedMarketList = async (scope, keyParts, value) => {
   if (CACHE_TTL_MS <= 0) return value;
 
-  const key = buildKey(scope, filter);
+  const key = buildKey(scope, keyParts);
   marketListCache.set(key, {
     value,
     expiresAt: Date.now() + CACHE_TTL_MS,
@@ -76,7 +105,7 @@ export const setCachedMarketList = async (scope, filter, value) => {
   try {
     const redis = await getSharedRedisClient();
     if (redis) {
-      await redis.set(getRedisCacheKey(scope, filter), JSON.stringify(value), {
+      await redis.set(getRedisCacheKey(scope, keyParts), JSON.stringify(value), {
         EX: CACHE_TTL_SECONDS,
       });
     }
