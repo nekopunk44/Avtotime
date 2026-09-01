@@ -3,13 +3,12 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 
-import { serverURL } from '../App'
+import { serverURL } from '../config/serverUrl'
 import Post from '../components/social/Post'
 import profileFallback from '../assets/profile.png'
 
 function Search() {
     const navigate = useNavigate()
-    const { userData } = useSelector(state => state.user)
     const { postData } = useSelector(state => state.post)
 
     const [query, setQuery] = useState('')

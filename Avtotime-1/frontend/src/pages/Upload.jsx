@@ -5,7 +5,7 @@ import { ClipLoader } from 'react-spinners'
 import axios from 'axios'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { serverURL } from '../App'
+import { serverURL } from '../config/serverUrl'
 import VideoPlayer from '../components/media/VideoPlayer'
 import { setPostData } from '../redux/postSlice'
 import { setCurrentUserStory } from '../redux/storySlice'
@@ -41,7 +41,7 @@ const getPreviewSummary = (isImageSet, imageCount) => {
     return `Выбрано ${imageCount} фото`
 }
 
-const CollageTile = ({ item, index, imageCount, extraCount, onRemove }) => {
+const CollageTile = ({ item, index, extraCount, onRemove }) => {
     const showOverlay = index === COLLAGE_PREVIEW_LIMIT - 1 && extraCount > 0
     return (
         <div className='relative w-full h-full overflow-hidden rounded-2xl border border-white/10 bg-[#0e1316]'>

@@ -1,21 +1,17 @@
-import React, { Suspense, lazy, useEffect, useRef } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 
-import useGetCurrentUser from "./hooks/getCurrentUser";
-import useGetSuggestedUsers from "./hooks/getSuggestedUsers";
-import useGetAllPost from "./hooks/getAllPost";
-import useGetAllLoops from "./hooks/getAllLoops";
-import { FaGrinBeamSweat } from "react-icons/fa";
-import { RxAlignCenterHorizontally } from "react-icons/rx";
-import getAllStories from "./hooks/getAllStories";
-import { io } from 'socket.io-client';
-import { setOnlineUsers } from "./redux/socketSlise";
-import PageTransition from "./components/layout/PageTransition";
+import useGetCurrentUser from "./hooks/useGetCurrentUser";
+import useGetSuggestedUsers from "./hooks/useGetSuggestedUsers";
+import useGetAllPost from "./hooks/useGetAllPost";
+import useGetAllLoops from "./hooks/useGetAllLoops";
+import useGetAllStories from "./hooks/useGetAllStories";
 import useNotifications from "./hooks/useNotifications";
-import { prependNotification } from "./redux/notificationSlice";
+import PageTransition from "./components/layout/PageTransition";
 import LogoBridgeTransition from "./components/common/LogoBridgeTransition";
 import Nav from "./components/layout/Nav";
+import { AUTH_STATUS } from "./redux/userSlice";
 
 const lazyWithPreload = (factory) => {
   const Component = lazy(factory);
@@ -43,31 +39,6 @@ const NotFound = lazyWithPreload(() => import("./pages/NotFound"));
 const VerifyEmail = lazyWithPreload(() => import("./pages/VerifyEmail"));
 const PrivacyPolicy = lazyWithPreload(() => import("./pages/PrivacyPolicy"));
 
-const normalizeServerUrl = (raw) => {
-  const fallback = typeof window !== "undefined" ? window.location.origin : "http://localhost:8000";
-  if (typeof raw !== "string") return fallback;
-
-  let value = raw.trim();
-  if (!value) return fallback;
-
-  // Some envs are configured as ":8000" (port only) вЂ” normalize to an origin.
-  if (value.startsWith(":")) value = `http://localhost${value}`;
-  if (/^\d+$/.test(value)) value = `http://localhost:${value}`;
-
-  // Remove trailing slashes and accidental "/api" suffix (we append "/api" in requests).
-  value = value.replace(/\/+$/, "");
-  value = value.replace(/\/api$/, "");
-
-  // If a user provided "localhost:8000" (without protocol), add it.
-  if (!/^https?:\/\//i.test(value) && /^[\w.-]+:\d+/.test(value)) {
-    value = `http://${value}`;
-  }
-
-  return value || fallback;
-};
-
-export const serverURL = normalizeServerUrl(import.meta.env.VITE_API_URL);
-
 const RouteLoader = () => (
   <div className="pointer-events-none fixed inset-x-0 top-0 z-[120]">
     <div className="h-[2px] w-full overflow-hidden bg-white/5">
@@ -75,6 +46,39 @@ const RouteLoader = () => (
     </div>
   </div>
 );
+
+const AuthSplash = () => (
+  <div className="w-full min-h-[100vh] bg-black flex items-center justify-center">
+    <div className="flex flex-col items-center gap-[16px]">
+      <div className="w-[42px] h-[42px] rounded-full border-2 border-white/15 border-t-white animate-spin" />
+      <div className="text-gray-500 text-[13px]">Загрузка…</div>
+    </div>
+  </div>
+);
+
+// Routes must not decide anything until the session request has resolved,
+// otherwise a page reload redirects to /signin (then /choose-app) before the
+// httpOnly cookie has been exchanged for a user.
+function RequireAuth({ children }) {
+  const userData = useSelector((state) => state.user.userData);
+  const location = useLocation();
+
+  if (!userData) {
+    return <Navigate to="/signin" replace state={{ from: `${location.pathname}${location.search}` }} />;
+  }
+
+  return children;
+}
+
+function RequireGuest({ children, redirectTo = "/choose-app" }) {
+  const userData = useSelector((state) => state.user.userData);
+
+  if (userData) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  return children;
+}
 
 function App() {
   const location = useLocation();
@@ -84,16 +88,18 @@ function App() {
   useGetSuggestedUsers();
   useGetAllPost();
   useGetAllLoops();
-  getAllStories();
+  useGetAllStories();
   useNotifications();
 
-  const { userData } = useSelector(state => state.user);
+  const userData = useSelector(state => state.user.userData);
+  const authStatus = useSelector(state => state.user.authStatus);
   const { selectedUser } = useSelector(state => state.message);
-  const socketRef = useRef(null);
-  const dispatch = useDispatch();
+
+  const isAuthResolved = authStatus === AUTH_STATUS.AUTHENTICATED || authStatus === AUTH_STATUS.ANONYMOUS;
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
+    if (!isAuthResolved) return undefined;
 
     const authPreloaders = [
       AppChoice,
@@ -121,7 +127,7 @@ function App() {
       NotFound,
     ];
 
-    const targets = (userData ? authPreloaders : guestPreloaders)
+    const targets = (authStatus === AUTH_STATUS.AUTHENTICATED ? authPreloaders : guestPreloaders)
       .map((item) => item?.preload)
       .filter(Boolean);
 
@@ -146,43 +152,17 @@ function App() {
       }
       window.clearTimeout(idleId);
     };
-  }, [userData]);
-
-  useEffect(() => {
-    if (userData) {
-      socketRef.current?.close();
-
-      const socketIo = io(serverURL, {
-        withCredentials: true,
-      });
-      socketRef.current = socketIo;
-
-      socketIo.on('getOnlineUsers', (users) => {
-        dispatch(setOnlineUsers(users));
-      });
-
-      socketIo.on("notification", (notification) => {
-        dispatch(prependNotification(notification));
-      });
-
-      return () => {
-        socketIo.close();
-        if (socketRef.current === socketIo) {
-          socketRef.current = null;
-        }
-      };
-    }
-
-    socketRef.current?.close();
-    socketRef.current = null;
-    dispatch(setOnlineUsers([]));
-  }, [dispatch, userData]);
+  }, [authStatus, isAuthResolved]);
 
   const showNav = Boolean(userData) && !selectedUser && (
     ['/', '/upload', '/loops'].includes(location.pathname) ||
     location.pathname.startsWith('/profile/') ||
     location.pathname.startsWith('/search/')
   )
+
+  if (!isAuthResolved) {
+    return <AuthSplash />;
+  }
 
   return (
     <>
@@ -191,25 +171,25 @@ function App() {
       <PageTransition transition={transition} key={location.pathname}>
         <Suspense fallback={<RouteLoader />}>
           <Routes location={location}>
-            <Route path='/signup' element={!userData ? <SignUp /> : <Navigate to="/choose-app" />} />
-            <Route path='/signin' element={!userData ? <SignIn /> : <Navigate to="/choose-app" />} />
-            <Route path='/choose-app' element={userData ? <AppChoice /> : <Navigate to="/signin" />} />
-            <Route path='/market' element={userData ? <AutoMarketPage /> : <Navigate to="/signin" />} />
-            <Route path='/' element={userData ? <Home /> : <Navigate to="/signin" />} />
-            <Route path='/forgot-password' element={!userData ? <ForgotPassword /> : <Navigate to="/" />} />
-            <Route path='/notifications' element={userData ? <Notifications /> : <Navigate to="/signin" />} />
-            <Route path='/editprofile' element={userData ? <EditProfile /> : <Navigate to="/signin" />} />
-            <Route path='/profile/:userName' element={userData ? <Profile /> : <Navigate to="/signin" />} />
-            <Route path='/profile/:userName/loops' element={userData ? <Profile /> : <Navigate to="/signin" />} />
-            <Route path='/story/:userName' element={userData ? <Story /> : <Navigate to="/signin" />} />
-            <Route path='/upload' element={userData ? <Upload /> : <Navigate to="/signin" />} />
-            <Route path='/loops' element={userData ? <Loops /> : <Navigate to="/signin" />} />
-            <Route path='/search' element={userData ? <Navigate to="/search/posts" replace /> : <Navigate to="/signin" />} />
-            <Route path='/search/posts' element={userData ? <Search initialTab="posts" /> : <Navigate to="/signin" />} />
-            <Route path='/search/users' element={userData ? <Search initialTab="users" /> : <Navigate to="/signin" />} />
-            <Route path='/messages' element={userData ? <Messages /> : <Navigate to="/signin" />} />
-            <Route path='/messagesArea' element={userData ? <MessageArea /> : <Navigate to="/signin" />} />
-            <Route path='/admin' element={userData ? <AdminMarketPage /> : <Navigate to="/signin" />} />
+            <Route path='/signup' element={<RequireGuest><SignUp /></RequireGuest>} />
+            <Route path='/signin' element={<RequireGuest><SignIn /></RequireGuest>} />
+            <Route path='/forgot-password' element={<RequireGuest redirectTo="/"><ForgotPassword /></RequireGuest>} />
+            <Route path='/choose-app' element={<RequireAuth><AppChoice /></RequireAuth>} />
+            <Route path='/market' element={<RequireAuth><AutoMarketPage /></RequireAuth>} />
+            <Route path='/' element={<RequireAuth><Home /></RequireAuth>} />
+            <Route path='/notifications' element={<RequireAuth><Notifications /></RequireAuth>} />
+            <Route path='/editprofile' element={<RequireAuth><EditProfile /></RequireAuth>} />
+            <Route path='/profile/:userName' element={<RequireAuth><Profile /></RequireAuth>} />
+            <Route path='/profile/:userName/loops' element={<RequireAuth><Profile /></RequireAuth>} />
+            <Route path='/story/:userName' element={<RequireAuth><Story /></RequireAuth>} />
+            <Route path='/upload' element={<RequireAuth><Upload /></RequireAuth>} />
+            <Route path='/loops' element={<RequireAuth><Loops /></RequireAuth>} />
+            <Route path='/search' element={<RequireAuth><Navigate to="/search/posts" replace /></RequireAuth>} />
+            <Route path='/search/posts' element={<RequireAuth><Search initialTab="posts" /></RequireAuth>} />
+            <Route path='/search/users' element={<RequireAuth><Search initialTab="users" /></RequireAuth>} />
+            <Route path='/messages' element={<RequireAuth><Messages /></RequireAuth>} />
+            <Route path='/messagesArea' element={<RequireAuth><MessageArea /></RequireAuth>} />
+            <Route path='/admin' element={<RequireAuth><AdminMarketPage /></RequireAuth>} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="*" element={<NotFound />} />

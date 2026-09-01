@@ -24,6 +24,13 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Catches the literal `fetch("${url}")` bug that silently broke the whole
+      // DrivingCourses module (double quotes instead of backticks).
+      'no-template-curly-in-string': 'error',
+      // React-Compiler-oriented rule. The remaining hits are conventional
+      // patterns (mount-time init from the URL, enter/exit animation gating),
+      // not defects. Kept visible as a warning instead of blocking CI.
+      'react-hooks/set-state-in-effect': 'warn',
     },
   },
 ])

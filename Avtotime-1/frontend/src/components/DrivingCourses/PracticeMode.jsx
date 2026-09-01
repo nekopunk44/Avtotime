@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { serverURL } from "../../App";
+import { serverURL } from "../../config/serverUrl";
 import QuestionCard from "./QuestionCard";
 
 const PracticeMode = ({ onComplete, ticketNumber = null }) => {
@@ -17,13 +17,12 @@ const PracticeMode = ({ onComplete, ticketNumber = null }) => {
   const fetchPracticeQuestions = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const url = ticketNumber
         ? `${serverURL}/api/driving-courses/practice?ticket=${ticketNumber}`
-        : "${serverURL}/api/driving-courses/practice";
+        : `${serverURL}/api/driving-courses/practice`;
 
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       const data = await response.json();
       setQuestions(data.questions || []);
@@ -78,14 +77,13 @@ const PracticeMode = ({ onComplete, ticketNumber = null }) => {
     };
 
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
-        "${serverURL}/api/driving-courses/result",
+        `${serverURL}/api/driving-courses/result`,
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(testData),
         }

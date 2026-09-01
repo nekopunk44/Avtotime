@@ -8,7 +8,7 @@ import { HiOutlineDotsHorizontal } from "react-icons/hi";
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { serverURL } from '../../App';
+import { serverURL } from '../../config/serverUrl';
 import { setPostData } from '../../redux/postSlice';
 import { setUserData } from '../../redux/userSlice';
 import FollowButton from './FollowButton';

@@ -1,5 +1,5 @@
 import React from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import profile from '../../assets/profile.png'
 import { useLocation, useNavigate } from 'react-router-dom'
 import FollowButton from './FollowButton'
@@ -7,7 +7,6 @@ import { IoChatbubbleOutline } from 'react-icons/io5'
 import { setMessages, setSelectedUser } from '../../redux/messageSlice'
 
 function OtherUser({user}) {
-    const { userData } = useSelector(state => state.user)
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const location = useLocation()

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
-import { serverURL } from "../App";
+import { serverURL } from "../config/serverUrl";
 import {
   clearNotifications,
   setNotifications,
@@ -10,12 +10,12 @@ import {
 
 export default function useNotifications() {
   const dispatch = useDispatch();
-  const { userData } = useSelector((state) => state.user);
+  const userId = useSelector((state) => state.user.userData?._id);
 
   useEffect(() => {
-    if (!userData) {
+    if (!userId) {
       dispatch(clearNotifications());
-      return;
+      return undefined;
     }
 
     let cancelled = false;
@@ -40,6 +40,5 @@ export default function useNotifications() {
     return () => {
       cancelled = true;
     };
-  }, [dispatch, userData]);
+  }, [dispatch, userId]);
 }
-

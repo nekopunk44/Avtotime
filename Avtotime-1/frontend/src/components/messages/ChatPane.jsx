@@ -10,7 +10,7 @@ import axios from 'axios'
 import SenderMessage from '../social/SenderMessage'
 import ReceiverMessage from '../social/ReceiverMessage'
 import profile from '../../assets/profile.png'
-import { serverURL } from '../../App'
+import { serverURL } from '../../config/serverUrl'
 import { setMessages, setSelectedUser } from '../../redux/messageSlice'
 
 // ─── Confirmation modal ───────────────────────────────────────────────────────

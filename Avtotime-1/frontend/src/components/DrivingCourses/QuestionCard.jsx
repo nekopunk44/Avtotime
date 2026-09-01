@@ -6,7 +6,6 @@ const QuestionCard = ({
   totalQuestions,
   onAnswer,
   selectedAnswer = null,
-  showExplanation = false,
   isAnswered = false,
 }) => {
   const {

@@ -1,7 +1,7 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { serverURL } from '../App'
+import { serverURL } from '../config/serverUrl'
 import { useDispatch, useSelector } from 'react-redux'
 import { setProfileData } from '../redux/userSlice'
 import profile from '../assets/profile.png'

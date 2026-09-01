@@ -2,9 +2,8 @@ import React, { useMemo, useState } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { serverURL } from "../App";
+import { serverURL } from "../config/serverUrl";
 import { markAllAsReadLocal, markAsReadLocal, setUnreadCount } from "../redux/notificationSlice";
-import { setUserData } from "../redux/userSlice";
 import profile from "../assets/profile.png";
 import { IoChevronBack, IoCheckmarkDoneOutline } from "react-icons/io5";
 
@@ -15,7 +14,6 @@ const formatDate = (value) => {
 };
 
 function EmailVerifyCard() {
-  const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.user);
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);

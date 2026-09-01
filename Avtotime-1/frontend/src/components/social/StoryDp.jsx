@@ -4,7 +4,7 @@ import { FiPlusCircle } from "react-icons/fi";
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
-import { serverURL } from '../../App';
+import { serverURL } from '../../config/serverUrl';
 
 
 function StoryDp({ProfileImage, userName, story, compact = false}) {
@@ -29,7 +29,7 @@ useEffect(()=>{
 
 const hadnleViewers=async()=>{
     try {
-        const result=await axios.get(`${serverURL}/api/story/view/${story._id}`, {withCredentials:true})
+        await axios.get(`${serverURL}/api/story/view/${story._id}`, {withCredentials:true})
 
     } catch (error) {
         console.log(error)

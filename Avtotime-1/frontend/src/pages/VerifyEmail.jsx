@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { serverURL } from "../App";
+import { serverURL } from "../config/serverUrl";
 import { useDispatch } from "react-redux";
 import { setUserData } from "../redux/userSlice";
 

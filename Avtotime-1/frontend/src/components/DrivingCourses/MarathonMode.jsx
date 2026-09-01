@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { serverURL } from "../../App";
+import { serverURL } from "../../config/serverUrl";
 import QuestionCard from "./QuestionCard";
 
 const MarathonMode = ({ onComplete }) => {
@@ -18,11 +18,10 @@ const MarathonMode = ({ onComplete }) => {
   const fetchMarathonQuestions = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
-        "${serverURL}/api/driving-courses/marathon",
+        `${serverURL}/api/driving-courses/marathon`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: "include",
         }
       );
       const data = await response.json();
@@ -87,14 +86,13 @@ const MarathonMode = ({ onComplete }) => {
     };
 
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
-        "${serverURL}/api/driving-courses/result",
+        `${serverURL}/api/driving-courses/result`,
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(testData),
         }

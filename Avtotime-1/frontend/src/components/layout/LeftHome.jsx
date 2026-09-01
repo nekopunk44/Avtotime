@@ -4,7 +4,7 @@ import { FaRegBell } from "react-icons/fa";
 import profile from '../../assets/profile.png'
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
-import { serverURL } from '../../App';
+import { serverURL } from '../../config/serverUrl';
 import { setUserData } from '../../redux/userSlice';
 import OtherUser from '../social/OtherUser';
 import { useNavigate } from 'react-router-dom';
@@ -19,7 +19,7 @@ function LeftHome() {
     
     const handleLogOut = async () => {
         try {
-            const result = await axios.get(`${serverURL}/api/auth/signout`, { withCredentials: true })
+            await axios.get(`${serverURL}/api/auth/signout`, { withCredentials: true })
             dispatch(setUserData(null))
         } catch (error) {
             console.log(error)

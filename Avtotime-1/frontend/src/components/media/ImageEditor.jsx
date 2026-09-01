@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Move, ZoomIn, ZoomOut, RotateCw, Download, X } from 'lucide-react';
 
-const ImageEditor = ({ imageUrl, onImageEdited, onClose, aspectRatio = 16/9 }) => {
+const ImageEditor = ({ imageUrl, onImageEdited, onClose }) => {
   const [cropData, setCropData] = useState({
     x: 0,
     y: 0,

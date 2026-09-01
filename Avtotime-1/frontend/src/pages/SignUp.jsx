@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import "../index.css";
-import logoDark from "../assets/лого_5.jpg";
 import logoWhite from "../assets/лого_бел.jpg";
 import { IoMdEye, IoMdEyeOff } from "react-icons/io";
 import axios from "axios";
-import { serverURL } from "../App";
+import { serverURL } from "../config/serverUrl";
 import { ClipLoader } from "react-spinners";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";

@@ -1,6 +1,6 @@
 import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { serverURL } from '../../App'
+import { serverURL } from '../../config/serverUrl'
 import axios from 'axios'
 import { toggleFollow } from '../../redux/userSlice'
 

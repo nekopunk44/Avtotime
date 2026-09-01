@@ -1,5 +1,4 @@
 import React from 'react'
-import profile from '../../assets/profile.png'
 import лого_бел from '../../assets/лого_бел.jpg'
 import { FaRegBell } from "react-icons/fa";
 import  StoryDp from './StoryDp'

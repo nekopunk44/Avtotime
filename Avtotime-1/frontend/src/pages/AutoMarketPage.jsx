@@ -3,7 +3,7 @@ import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
-import { serverURL } from "../App";
+import { serverURL } from "../config/serverUrl";
 import { setUserData } from "../redux/userSlice";
 
 const MarketApp = lazy(() => import("../../../../frontend_market/src/App.tsx"));
@@ -78,7 +78,7 @@ export default function AutoMarketPage() {
         withCredentials: true,
       });
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   };

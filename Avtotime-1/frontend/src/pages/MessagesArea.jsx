@@ -10,7 +10,7 @@ import axios from 'axios';
 import SenderMessage from '../components/social/SenderMessage';
 import ReceiverMessage from '../components/social/ReceiverMessage';
 import profile from '../assets/profile.png';
-import { serverURL } from '../App';
+import { serverURL } from '../config/serverUrl';
 import { setMessages, setSelectedUser } from '../redux/messageSlice';
 
 const DEFAULT_MESSAGES_LIMIT = 50;

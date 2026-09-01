@@ -135,7 +135,7 @@ function StoryCard({storyData}) {
                     <FaEye /><span>{storyData?.viewers?.length}</span><span>Просмотров</span></div>
 
                 <div className='w-full max-w-full flex flex-col gap-[10px] overflow-auto pt-[20px]'>
-                {storyData?.viewers.map((viewer, index)=>(
+                {storyData?.viewers.map((viewer)=>(
                     <div className='w-full flex items-center gap-[20px]'>
                         <div className='w-[40px] h-[40px] lg:w-[55px] lg:h-[55px] border-2 border-gray-600 rounded-full cursor-pointer overflow-hidden flex-shrink-0'>
                     <img 

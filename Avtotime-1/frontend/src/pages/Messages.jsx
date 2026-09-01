@@ -4,7 +4,7 @@ import { FiEdit3, FiSearch } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
-import { serverURL } from '../App';
+import { serverURL } from '../config/serverUrl';
 import OnlineUsers from '../components/social/OnlineUsers.jsx';
 import { setMessages, setSelectedUser } from '../redux/messageSlice';
 import profile from '../assets/profile.png';

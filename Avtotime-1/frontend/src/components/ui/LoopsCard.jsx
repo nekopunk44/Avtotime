@@ -2,13 +2,12 @@ import React, { useEffect, useRef, useState } from 'react'
 import { FiVolume2, FiVolumeX } from "react-icons/fi";
 import profile from '../../assets/profile.png'
 import FollowButton from '../social/FollowButton';
-import { useNavigate } from 'react-router-dom';
 import { GoHeart } from "react-icons/go";
 import { useDispatch, useSelector } from 'react-redux';
 import { GoHeartFill } from "react-icons/go";
 import { MdOutlineComment } from "react-icons/md";
 import axios from 'axios';
-import { serverURL } from '../../App';
+import { serverURL } from '../../config/serverUrl';
 import { IoSendSharp } from "react-icons/io5";
 import { setLoopData } from '../../redux/loopSlice';
 
@@ -27,7 +26,6 @@ function LoopsCard({ loop }) {
     const [message, setMessage]=useState('')
     const dispatch = useDispatch()
     const commentRef = useRef()
-    const navigate = useNavigate()
     const comments = Array.isArray(loop?.commentsPreview) ? loop.commentsPreview : (Array.isArray(loop?.comments) ? loop.comments : [])
     const commentsCount = typeof loop?.commentsCount === 'number' ? loop.commentsCount : comments.length
 
@@ -179,7 +177,7 @@ function LoopsCard({ loop }) {
         {/* Аватар */}
         <div className='w-10 h-10 md:w-12 md:h-12 flex-shrink-0 border border-gray-300 rounded-full overflow-hidden'>
             <img 
-                src={loop.author?.profileImage || defaultProfile} 
+                src={loop.author?.profileImage || profile}
                 alt="avatar" 
                 className='w-20px h-20px object-center' 
             />

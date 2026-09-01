@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import axios from "axios";
-import { serverURL } from "../App";
+import { serverURL } from "../config/serverUrl";
 
 const API_BASE = `${serverURL}/api/driving-courses`;
 
@@ -18,7 +18,7 @@ export const useDrivingCourses = () => {
     try {
       const response = await axios.get(`${API_BASE}/exam`, {
         params: { ticket: ticketNumber },
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        withCredentials: true,
       });
       setQuestions(response.data.questions || []);
       return response.data;
@@ -39,7 +39,7 @@ export const useDrivingCourses = () => {
       const params = ticketNumber ? { ticket: ticketNumber } : {};
       const response = await axios.get(`${API_BASE}/practice`, {
         params,
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        withCredentials: true,
       });
       setQuestions(response.data.questions || []);
       return response.data;
@@ -58,7 +58,7 @@ export const useDrivingCourses = () => {
     setError(null);
     try {
       const response = await axios.get(`${API_BASE}/marathon`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        withCredentials: true,
       });
       setQuestions(response.data.questions || []);
       return response.data;
@@ -77,7 +77,7 @@ export const useDrivingCourses = () => {
     setError(null);
     try {
       const response = await axios.post(`${API_BASE}/result`, testData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        withCredentials: true,
       });
       return response.data;
     } catch (err) {
@@ -101,7 +101,7 @@ export const useDrivingCourses = () => {
 
       const response = await axios.get(`${API_BASE}/results`, {
         params,
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        withCredentials: true,
       });
       setResults(response.data.results || []);
       return response.data;
@@ -120,7 +120,7 @@ export const useDrivingCourses = () => {
     setError(null);
     try {
       const response = await axios.get(`${API_BASE}/statistics`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        withCredentials: true,
       });
       setStatistics(response.data);
       return response.data;

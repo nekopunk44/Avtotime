@@ -1,10 +1,12 @@
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-const projectRoot = __dirname;
+// This config is ESM ("type": "module"), so __dirname does not exist here.
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 const sharedReactPath = path.resolve(projectRoot, "node_modules/react");
 const sharedReactDomPath = path.resolve(projectRoot, "node_modules/react-dom");
 const workspaceRoot = path.resolve(projectRoot, "..", "..");

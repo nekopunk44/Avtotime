@@ -1,34 +1,41 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import axios from 'axios'
-import { serverURL } from '../App'
+import { serverURL } from '../config/serverUrl'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { setStoryList } from '../redux/storySlice' 
+import { setStoryList } from '../redux/storySlice'
 
-function GetAllStories() { 
+function useGetAllStories() {
     const dispatch = useDispatch()
-    const { userData } = useSelector(state => state.user)
-    const { storyData } = useSelector(state => state.story)
+    const userId = useSelector(state => state.user.userData?._id)
 
     useEffect(() => {
-        const fetchStories = async () => {
-           
-            if (!userData) return;
+        if (!userId) {
+            dispatch(setStoryList([]))
+            return undefined
+        }
 
+        let cancelled = false
+
+        const fetchStories = async () => {
             try {
-                
-                const result = await axios.get(`${serverURL}/api/story/getAll`, { 
-                    withCredentials: true 
+                const result = await axios.get(`${serverURL}/api/story/getAll`, {
+                    withCredentials: true
                 })
+                if (cancelled) return
                 dispatch(setStoryList(result.data))
             } catch (error) {
+                if (cancelled) return
                 console.error("Ошибка при получении сторис:", error)
             }
         }
 
         fetchStories()
-    }, [userData, storyData]) 
-    return null; 
+
+        return () => {
+            cancelled = true
+        }
+    }, [dispatch, userId])
 }
 
-export default GetAllStories
+export default useGetAllStories

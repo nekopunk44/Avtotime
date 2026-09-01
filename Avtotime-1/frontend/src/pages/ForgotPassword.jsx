@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ClipLoader } from "react-spinners";
-import { serverURL } from "../App";
+import { serverURL } from "../config/serverUrl";
 import axios from "axios";
 
 function ForgotPassword() {

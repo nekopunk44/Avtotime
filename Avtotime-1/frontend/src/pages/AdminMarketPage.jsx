@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useEffect, useState } from "react";
 import axios from "axios";
 import { Navigate, useNavigate } from "react-router-dom";
 
-import { serverURL } from "../App";
+import { serverURL } from "../config/serverUrl";
 
 const AdminPage = lazy(() =>
   import("../../../../frontend_market/src/components/pages/AdminPage.tsx").then((module) => ({

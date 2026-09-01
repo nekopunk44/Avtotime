@@ -3,7 +3,7 @@ import { MdOutlineKeyboardBackspace } from "react-icons/md";
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import profile from '../assets/profile.png'
-import { serverURL } from '../App';
+import { serverURL } from '../config/serverUrl';
 import { setProfileData, setUserData } from '../redux/userSlice';
 import { ClipLoader } from 'react-spinners';
 import axios from 'axios';

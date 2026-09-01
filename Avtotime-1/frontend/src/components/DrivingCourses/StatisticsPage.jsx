@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { serverURL } from "../../App";
+import { serverURL } from "../../config/serverUrl";
 
 const StatisticsPage = () => {
   const [statistics, setStatistics] = useState(null);
@@ -15,11 +15,10 @@ const StatisticsPage = () => {
 
   const fetchStatistics = async () => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
-        "${serverURL}/api/driving-courses/statistics",
+        `${serverURL}/api/driving-courses/statistics`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: "include",
         }
       );
       const data = await response.json();
@@ -33,11 +32,10 @@ const StatisticsPage = () => {
 
   const fetchResults = async () => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(
-        "${serverURL}/api/driving-courses/results?limit=50",
+        `${serverURL}/api/driving-courses/results?limit=50`,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: "include",
         }
       );
       const data = await response.json();
