@@ -109,7 +109,7 @@ export const comment = async (req, res) => {
         })
         await loop.save()
         await loop.populate('author', 'name userName profileImage')
-        await loop.populate('comments.author')
+        await loop.populate('comments.author', 'name userName profileImage')
 
         // Notify loop author
         if (loop.author.toString() !== req.userId.toString()) {

@@ -71,12 +71,36 @@ const normalizeGender = (raw) => {
     return null;
 };
 
+// Public-safe projection for other people's accounts: never expose email,
+// phone, push tokens, OTP/verification secrets or block lists to third parties.
+const PUBLIC_USER_FIELDS = 'name userName profileImage bio profession location followers following posts'
+// Contact/social details that are meant to be visible on a public profile page.
+const PUBLIC_PROFILE_EXTRA_FIELDS = 'website instagram telegram preferredContact createdAt'
+// Everything the owner is allowed to see about their own account. Secrets
+// (password, OTP hashes, verification tokens, push tokens, Stripe id,
+// tokenVersion) are `select: false` in the schema and stay out on purpose.
+const OWNER_PROFILE_FIELDS = `${PUBLIC_USER_FIELDS} ${PUBLIC_PROFILE_EXTRA_FIELDS} email phone address region gender saved loops story plan planActivatedAt planExpiresAt isEmailVerified isAdmin isBanned banReason notificationPreferences lastSeenAt blockedUsers updatedAt`
+const AUTHOR_FIELDS = 'name userName profileImage'
+
 export const getCurrentUser = async (req, res) => {
     try {
         const userId = req.userId
+        // tokenVersion is select:false but is needed to mint the sliding-session
+        // token below, so it has to be requested explicitly.
         const user = await User.findById(userId)
-            .select('-password')
-            .populate('posts loops posts.author posts.comments saved saved.author story')
+            .select(`${OWNER_PROFILE_FIELDS} +tokenVersion`)
+            .populate([
+                {
+                    path: 'posts',
+                    populate: [
+                        { path: 'author', select: AUTHOR_FIELDS },
+                        { path: 'comments.author', select: AUTHOR_FIELDS },
+                    ],
+                },
+                { path: 'loops', populate: { path: 'author', select: AUTHOR_FIELDS } },
+                { path: 'saved', populate: { path: 'author', select: AUTHOR_FIELDS } },
+                { path: 'story' },
+            ])
         if (!user) {
             return res.status(400).json({ message: 'Пользователь не найден' })
         }
@@ -90,16 +114,13 @@ export const getCurrentUser = async (req, res) => {
         // Sliding session: hand back a fresh token so active clients keep a
         // valid one and don't get bounced to the login screen.
         userObj.token = genToken(user._id, user.tokenVersion ?? 0)
+        delete userObj.tokenVersion
 
         return res.status(200).json(userObj)
     } catch (error) {
         return res.status(500).json({ message: error.message })
     }
 }
-
-// Public-safe projection for other people's accounts: never expose email,
-// phone, push tokens, OTP/verification secrets or block lists to third parties.
-const PUBLIC_USER_FIELDS = 'name userName profileImage bio profession location followers following posts'
 
 export const suggestedUsers = async (req, res) => {
     try {
@@ -139,7 +160,11 @@ export const editProfile = async (req, res) => {
             const filePath = req.file.path;
             const mime = String(req.file.mimetype || "image/jpeg") || "image/jpeg";
 
-            const enableImageModeration = truthy(process.env.AI_PROFILE_IMAGE_MODERATION_ENABLED ?? "true");
+            // Off unless explicitly enabled: the moderation stack
+            // (@tensorflow/tfjs, nsfwjs, sharp) lives in optionalDependencies and
+            // the production image is built with `npm ci --omit=optional`, so
+            // defaulting to "on" turned every avatar upload into a 500.
+            const enableImageModeration = truthy(process.env.AI_PROFILE_IMAGE_MODERATION_ENABLED ?? "false");
             if (enableImageModeration) {
                 try {
                     const buf = fs.readFileSync(filePath);
@@ -208,18 +233,28 @@ export const editProfile = async (req, res) => {
 export const getProfile = async (req, res) => {
     try {
         const userName = req.params.userName;
-        const user = await User.findOne({ userName })
-            .select('-password')
-            .populate([
-                { path: 'posts', populate: { path: 'author', select: 'name userName profileImage' } },
-                { path: 'followers', select: 'name userName profileImage' },
-                { path: 'following', select: 'name userName profileImage' },
-                {
-                    path: 'saved',
-                    populate: { path: 'author', select: 'name userName profileImage' },
-                }
-            ]);
-        
+
+        // Resolve the id first so the projection can depend on who is asking:
+        // the owner gets contact details and saved posts, everybody else gets
+        // the public profile only.
+        const target = await User.findOne({ userName }).select('_id').lean();
+        if (!target) return res.status(400).json({ message: 'Пользователь не найден' });
+
+        const isOwner = String(target._id) === String(req.userId || '');
+
+        const populatePaths = [
+            { path: 'posts', populate: { path: 'author', select: AUTHOR_FIELDS } },
+            { path: 'followers', select: AUTHOR_FIELDS },
+            { path: 'following', select: AUTHOR_FIELDS },
+        ];
+        if (isOwner) {
+            populatePaths.push({ path: 'saved', populate: { path: 'author', select: AUTHOR_FIELDS } });
+        }
+
+        const user = await User.findById(target._id)
+            .select(isOwner ? OWNER_PROFILE_FIELDS : `${PUBLIC_USER_FIELDS} ${PUBLIC_PROFILE_EXTRA_FIELDS}`)
+            .populate(populatePaths);
+
         if (!user) return res.status(400).json({ message: 'Пользователь не найден' });
         return res.status(200).json(user);
     } catch (error) {
@@ -323,11 +358,11 @@ export const getUserById = async (req, res) => {
         }
 
         const user = await User.findById(userId)
-            .select(`${PUBLIC_USER_FIELDS} website instagram telegram preferredContact createdAt`)
+            .select(`${PUBLIC_USER_FIELDS} ${PUBLIC_PROFILE_EXTRA_FIELDS}`)
             .populate([
                 { path: 'posts', limit: 10 },
-                { path: 'followers', select: 'name userName profileImage' },
-                { path: 'following', select: 'name userName profileImage' },
+                { path: 'followers', select: AUTHOR_FIELDS },
+                { path: 'following', select: AUTHOR_FIELDS },
             ]);
 
         if (!user) {
@@ -358,7 +393,8 @@ export const deleteProfile = async (req, res) => {
             return res.status(400).json({ message: 'Пароль требуется' });
         }
 
-        const user = await User.findById(userId);
+        // password is select:false — matchPassword below needs it loaded.
+        const user = await User.findById(userId).select('+password');
         if (!user) {
             return res.status(404).json({ message: 'Пользователь не найден' });
         }
@@ -448,8 +484,13 @@ export const changePassword = async (req, res) => {
             return res.status(400).json({ message: 'Новый пароль должен быть не короче 8 символов' })
         }
 
-        const user = await User.findById(req.userId)
+        // password/tokenVersion are select:false in the schema.
+        const user = await User.findById(req.userId).select('+password +tokenVersion')
         if (!user) return res.status(404).json({ message: 'Пользователь не найден' })
+
+        if (typeof user.password !== 'string' || !user.password) {
+            return res.status(400).json({ message: 'Для этого аккаунта пароль не задан. Восстановите пароль по email.' })
+        }
 
         const isMatch = await bcrypt.compare(currentPassword, user.password)
         if (!isMatch) {
@@ -485,7 +526,7 @@ export const logoutAll = async (req, res) => {
         const sameSite = process.env.COOKIE_SAMESITE || (isProd ? 'None' : 'Lax')
         const secure = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : isProd
 
-        const user = await User.findById(req.userId)
+        const user = await User.findById(req.userId).select('+tokenVersion')
         if (!user) return res.status(404).json({ message: 'Пользователь не найден' })
 
         user.tokenVersion = (user.tokenVersion || 0) + 1
@@ -559,7 +600,10 @@ export const getFollowStatus = async (req, res) => {
             return res.status(200).json({ isFollowing: false, isSelf: true });
         }
 
-        const currentUser = await User.findById(currentUserId);
+        const currentUser = await User.findById(currentUserId).select('following');
+        if (!currentUser) {
+            return res.status(404).json({ message: 'Пользователь не найден' });
+        }
         const isFollowing = currentUser.following.some(id => id.toString() === targetUserId.toString());
 
         return res.status(200).json({ isFollowing });

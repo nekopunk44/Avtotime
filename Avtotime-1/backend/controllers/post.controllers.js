@@ -243,7 +243,7 @@ export const comment = async (req, res) => {
         })
         await post.save()
         await post.populate('author', 'name userName profileImage')
-        await post.populate('comments.author')
+        await post.populate('comments.author', 'name userName profileImage')
 
         if (post.author._id.toString() !== req.userId.toString()) {
             const currentUser = await User.findById(req.userId).select('name userName profileImage')

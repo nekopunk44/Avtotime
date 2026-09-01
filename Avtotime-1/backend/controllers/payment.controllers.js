@@ -138,34 +138,14 @@ export const confirmPayment = async (req, res) => {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + PLAN_DURATION_DAYS * 24 * 60 * 60 * 1000);
 
-    // Atomic update prevents double-activation on concurrent confirmPayment calls
-    const updatedPayment = await Payment.findOneAndUpdate(
-      { _id: payment._id, status: { $ne: 'succeeded' } },
-      { status: 'succeeded', periodStart: now, periodEnd: expiresAt },
-      { new: true },
-    );
-
-    if (!updatedPayment) {
-      // Another concurrent request already activated — return current state
-      const user = await User.findById(req.userId).select('plan planActivatedAt planExpiresAt').lean();
-      const effectivePlan = getEffectivePlan(user?.plan, user?.planExpiresAt);
-      const planLimits = serializePlanLimits(getPlanLimits(effectivePlan));
-
-      return res.status(200).json({
-        plan: user?.plan || plan,
-        effectivePlan,
-        planActivatedAt: user?.planActivatedAt || payment.periodStart || null,
-        planExpiresAt: user?.planExpiresAt || payment.periodEnd || null,
-        planLimits,
-      });
-    }
-
+    // Grant the entitlement first, settle the Payment row last: the row is the
+    // retry marker, so a crash in between leaves it `pending` and the webhook
+    // (or a repeat call) re-runs the activation instead of losing it. Writing
+    // absolute dates keeps repeats idempotent, including concurrent calls.
     await User.updateOne(
       { _id: req.userId },
       { plan, planActivatedAt: now, planExpiresAt: expiresAt, planExpiryWarnedThreshold: null },
     );
-
-    audit('payment.confirmed', { userId: String(req.userId), plan, piId: paymentIntentId, expiresAt });
 
     const effectivePlan = getEffectivePlan(plan, expiresAt);
     const planLimits = serializePlanLimits(getPlanLimits(effectivePlan));
@@ -175,6 +155,13 @@ export const confirmPayment = async (req, res) => {
     } catch (err) {
       console.error('[payment] applyUserPlanToListings failed for user %s: %s', req.userId, err?.message);
     }
+
+    await Payment.updateOne(
+      { _id: payment._id, status: { $ne: 'succeeded' } },
+      { status: 'succeeded', periodStart: now, periodEnd: expiresAt },
+    );
+
+    audit('payment.confirmed', { userId: String(req.userId), plan, piId: paymentIntentId, expiresAt });
 
     return res.status(200).json({
       plan,
@@ -231,40 +218,7 @@ export const stripeWebhook = async (req, res) => {
 
   try {
     if (event.type === 'payment_intent.succeeded') {
-      const pi = event.data.object;
-      const userId = pi.metadata?.userId;
-      const plan = pi.metadata?.plan;
-
-      if (!userId || !Types.ObjectId.isValid(userId) || !plan || !PLAN_PRICES[plan]) {
-        console.error('[webhook] payment_intent.succeeded missing/invalid metadata: pi=%s userId=%s plan=%s', pi.id, userId, plan);
-      } else {
-        const now = new Date();
-        const expiresAt = new Date(now.getTime() + PLAN_DURATION_DAYS * 24 * 60 * 60 * 1000);
-
-        // findOneAndUpdate with $ne ensures idempotency on Stripe webhook retries
-        const payment = await Payment.findOneAndUpdate(
-          { stripePaymentIntentId: pi.id, status: { $ne: 'succeeded' } },
-          { status: 'succeeded', periodStart: now, periodEnd: expiresAt },
-          { new: true },
-        );
-
-        if (payment) {
-          const result = await User.updateOne(
-            { _id: new Types.ObjectId(userId) },
-            { plan, planActivatedAt: now, planExpiresAt: expiresAt, planExpiryWarnedThreshold: null },
-          );
-          if (result.matchedCount === 0) {
-            console.error('[webhook] user not found for userId=%s pi=%s', userId, pi.id);
-          } else {
-            audit('payment.webhook_activated', { userId, plan, piId: pi.id, expiresAt });
-            try {
-              await applyUserPlanToListings(userId, plan);
-            } catch (err) {
-              console.error('[webhook] applyUserPlanToListings failed for user %s: %s', userId, err?.message);
-            }
-          }
-        }
-      }
+      await handlePaymentIntentSucceeded(event.data.object);
     }
 
     if (event.type === 'payment_intent.payment_failed') {
@@ -273,14 +227,86 @@ export const stripeWebhook = async (req, res) => {
         { stripePaymentIntentId: pi.id },
         { status: 'failed' },
         { new: true },
-      ).catch(() => null);
+      );
       if (updated) {
         audit('payment.failed', { userId: String(updated.user), plan: updated.plan, piId: pi.id });
       }
     }
   } catch (err) {
+    // Never answer 200 on a processing failure: Stripe only redelivers on a
+    // non-2xx, and the paid-for entitlement is granted inside the handler.
     console.error('[webhook] processing error for event %s: %s', event.id, err?.message);
+    return res.status(500).json({ message: 'Webhook processing failed' });
   }
 
   return res.status(200).json({ received: true });
+};
+
+/**
+ * Grants the paid plan, then records the payment as settled.
+ *
+ * Order matters: the Payment row is the retry marker, so it is written LAST.
+ * If the process dies half-way the row is still `pending`, Stripe redelivers
+ * and the whole thing runs again. Doing it the other way round (mark paid,
+ * then activate) loses the entitlement permanently, because the retry no
+ * longer matches the `status: { $ne: 'succeeded' }` filter.
+ *
+ * Re-runs are safe: the plan window is written as absolute dates, and an
+ * already-settled payment whose entitlement is present is skipped.
+ * Throws on failure so the caller can answer 500 and trigger a Stripe retry.
+ */
+const handlePaymentIntentSucceeded = async (pi) => {
+  const userId = pi.metadata?.userId;
+  const plan = pi.metadata?.plan;
+
+  if (!userId || !Types.ObjectId.isValid(userId) || !plan || !PLAN_PRICES[plan]) {
+    // Nothing to retry — the metadata will never change. Swallow it.
+    console.error('[webhook] payment_intent.succeeded missing/invalid metadata: pi=%s userId=%s plan=%s', pi.id, userId, plan);
+    return;
+  }
+
+  const existing = await Payment.findOne({ stripePaymentIntentId: pi.id }).lean();
+  const alreadySettled = existing?.status === 'succeeded';
+
+  // Reuse the already-recorded window on a redelivery so a retry cannot keep
+  // sliding the expiry date forward.
+  const periodStart = alreadySettled && existing.periodStart ? new Date(existing.periodStart) : new Date();
+  const periodEnd = alreadySettled && existing.periodEnd
+    ? new Date(existing.periodEnd)
+    : new Date(periodStart.getTime() + PLAN_DURATION_DAYS * 24 * 60 * 60 * 1000);
+
+  const user = await User.findById(userId).select('plan planExpiresAt').lean();
+  if (!user) {
+    // The account is gone; retrying forever helps nobody. Keep the money trail.
+    console.error('[webhook] user not found for userId=%s pi=%s', userId, pi.id);
+  } else {
+    const currentExpiry = user.planExpiresAt ? new Date(user.planExpiresAt).getTime() : 0;
+    const entitlementGranted = user.plan === plan && currentExpiry >= periodEnd.getTime();
+
+    if (!entitlementGranted) {
+      await User.updateOne(
+        { _id: new Types.ObjectId(userId) },
+        { plan, planActivatedAt: periodStart, planExpiresAt: periodEnd, planExpiryWarnedThreshold: null },
+      );
+      audit('payment.webhook_activated', { userId, plan, piId: pi.id, expiresAt: periodEnd });
+      await applyUserPlanToListings(userId, plan);
+    }
+  }
+
+  if (alreadySettled) return;
+
+  await Payment.findOneAndUpdate(
+    { stripePaymentIntentId: pi.id },
+    {
+      $set: { status: 'succeeded', periodStart, periodEnd },
+      $setOnInsert: {
+        user: new Types.ObjectId(userId),
+        plan,
+        amount: pi.amount_received ?? pi.amount ?? PLAN_PRICES[plan].amount,
+        currency: pi.currency || CURRENCY,
+        stripeCustomerId: typeof pi.customer === 'string' ? pi.customer : pi.customer?.id || null,
+      },
+    },
+    { upsert: true },
+  );
 };

@@ -16,10 +16,16 @@ const usersSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    // Secrets and internal fields below are `select: false`: they are stripped
+    // from every query unless a caller asks for them explicitly
+    // (`.select('+password')` or an inclusive projection naming the path).
+    // This is what keeps them out of populate() results and of any handler
+    // that returns a user document as-is.
     password:{
         type: String,
         required: false,
         default: null,
+        select: false,
     },
     googleId: {
         type: String,
@@ -91,9 +97,11 @@ const usersSchema = new mongoose.Schema({
     },
     resetOtp: {
         type: String,
+        select: false,
     },
     otpExpires:{
-        type: Date
+        type: Date,
+        select: false,
     },
     isOtpVerified: {
         type: Boolean,
@@ -117,6 +125,7 @@ const usersSchema = new mongoose.Schema({
     expoPushTokens: {
         type: [String],
         default: [],
+        select: false,
     },
     lastSeenAt: {
         type: Date,
@@ -150,7 +159,7 @@ const usersSchema = new mongoose.Schema({
     planActivatedAt: { type: Date, default: null },
     planExpiresAt:   { type: Date, default: null },
     planExpiryWarnedThreshold: { type: Number, default: null }, // 7 | 3 | 1, последний отправленный порог
-    stripeCustomerId: { type: String, default: null },
+    stripeCustomerId: { type: String, default: null, select: false },
     isEmailVerified: {
         type: Boolean,
         default: false,
@@ -159,10 +168,12 @@ const usersSchema = new mongoose.Schema({
     emailVerifyToken: {
         type: String,
         default: null,
+        select: false,
     },
     emailVerifyExpires: {
         type: Date,
         default: null,
+        select: false,
     },
     isAdmin: {
         type: Boolean,
@@ -185,6 +196,7 @@ const usersSchema = new mongoose.Schema({
     tokenVersion: {
         type: Number,
         default: 0,
+        select: false,
     },
     blockedUsers: [
         { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
@@ -192,6 +204,9 @@ const usersSchema = new mongoose.Schema({
 },{timestamps:true})
 
 usersSchema.methods.matchPassword = async function matchPassword(plainPassword) {
+    // `password` is select:false — a caller that forgot `.select('+password')`
+    // would otherwise blow up inside bcrypt with a confusing error.
+    if (typeof this.password !== 'string' || !this.password) return false
     return bcrypt.compare(plainPassword, this.password)
 }
 
