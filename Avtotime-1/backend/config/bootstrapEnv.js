@@ -13,7 +13,9 @@ const readSecretFile = (filePath) => {
 
 // Local/dev convenience: load backend/.env by default.
 // Production should use hosting secrets or *_FILE secret mounts.
-if (process.env.NODE_ENV !== "production") {
+// Under NODE_ENV=test the developer's .env is deliberately ignored: it points at
+// the real local database, which the test suite wipes between cases.
+if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test") {
   const dotenvPath = process.env.DOTENV_PATH
     ? path.resolve(process.env.DOTENV_PATH)
     : path.join(__dirname, "..", ".env");
