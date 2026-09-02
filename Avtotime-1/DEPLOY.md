@@ -132,6 +132,31 @@ docker compose down
 
 ---
 
+## ⚠️ Что автодеплой НЕ обновляет
+
+CI синхронизирует только каталог `Avtotime-1/backend/`. Файлы ниже живут на
+сервере отдельно и меняются **вручную** — сознательно, чтобы правка инфраструктуры
+не уезжала в прод вместе с обычным коммитом кода:
+
+| Файл в репозитории | Куда на сервере | Чем применяется |
+|---|---|---|
+| `Avtotime-1/docker-compose.yml` | `/root/avtotime/docker-compose.yml` | `docker compose up -d` (пересоздаст затронутые сервисы) |
+| `Avtotime-1/nginx/nginx.conf` | `/root/avtotime/nginx/nginx.conf` | `docker compose up -d --force-recreate nginx` |
+| `Avtotime-1/scripts/backup.sh` | `/root/avtotime/scripts/backup.sh` | вручную + строка в cron |
+| `.env.production` | `/root/avtotime/.env.production` | только вручную, в git его нет |
+
+Порядок применения новых лимитов и healthcheck'ов (делать **после** первого
+успешного бэкапа, потому что mongodb будет пересоздан):
+
+```bash
+scp Avtotime-1/docker-compose.yml root@<host>:/root/avtotime/
+scp Avtotime-1/nginx/nginx.conf   root@<host>:/root/avtotime/nginx/
+scp Avtotime-1/scripts/backup.sh  root@<host>:/root/avtotime/scripts/
+ssh root@<host> 'cd /root/avtotime && ./scripts/backup.sh && docker compose up -d && docker compose ps'
+```
+
+---
+
 ## Лимиты ресурсов
 
 Сервер рассчитан на 2 ГБ RAM, лимиты проставлены в `docker-compose.yml`:
