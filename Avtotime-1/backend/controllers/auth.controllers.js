@@ -65,7 +65,9 @@ const buildSessionUser = async (token) => {
     const effectivePlan = getEffectivePlan(user.plan, user.planExpiresAt)
     const planLimits = serializePlanLimits(getPlanLimits(effectivePlan))
 
-    const userObj = user.toObject()
+    // toSafeUser, not toObject: tokenVersion was pulled in by the projection
+    // above for the comparison and must not travel to the client with it.
+    const userObj = toSafeUser(user)
     userObj.effectivePlan = effectivePlan
     userObj.planLimits = planLimits
 
