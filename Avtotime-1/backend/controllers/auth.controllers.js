@@ -14,9 +14,23 @@ const generateVerifyToken = () => {
     return { token, hash }
 }
 
+// `select: false` only hides fields from queries — a document built by
+// User.create() or fetched with an explicit `+field` projection still carries
+// them, so every secret has to be stripped before the document is serialised.
+const SECRET_FIELDS = [
+    'password',
+    'resetOtp',
+    'otpExpires',
+    'emailVerifyToken',
+    'emailVerifyExpires',
+    'expoPushTokens',
+    'stripeCustomerId',
+    'tokenVersion',
+]
+
 const toSafeUser = (user) => {
     const safeUser = user.toObject()
-    delete safeUser.password
+    for (const field of SECRET_FIELDS) delete safeUser[field]
     return safeUser
 }
 
@@ -27,7 +41,9 @@ const buildSessionUser = async (token) => {
 
     const verifyToken = jwt.verify(token, process.env.JWT_SECRET)
     const user = await User.findById(verifyToken.userId)
-        .select('-password')
+        // tokenVersion is select:false in the schema but is compared with the
+        // JWT below, so it has to be requested explicitly.
+        .select('-password +tokenVersion')
         .populate([
             { path: 'following', select: 'name userName profileImage bio profession' },
             { path: 'followers', select: 'name userName profileImage bio profession' },
@@ -137,13 +153,14 @@ export const signIn = async (req, res) => {
         const { password } = req.body
         const identifier = req.body.identifier?.trim() || req.body.userName?.trim() || req.body.email?.trim()
 
+        // password and tokenVersion are select:false — both are needed here.
         const user = await User.findOne({
             $or: [
                 { userName: identifier },
                 { email: identifier },
                 { email: identifier?.toLowerCase() }
             ]
-        })
+        }).select('+password +tokenVersion')
 
         if (!user) {
             return res.status(400).json({ message: 'Неверный логин или пароль' })
@@ -252,7 +269,7 @@ export const verifyOtp = async (req, res) => {
     try {
         const email = req.body.email?.trim().toLowerCase()
         const { otp } = req.body
-        const user = await User.findOne({ email })
+        const user = await User.findOne({ email }).select('+resetOtp +otpExpires')
 
         if (!user || !user.resetOtp || user.otpExpires < Date.now()) {
             return res.status(400).json({ message: 'Код недействителен или просрочен' })
@@ -285,7 +302,7 @@ export const resetPassword = async (req, res) => {
             return res.status(400).json({ message: 'Пароль должен быть не короче 8 символов' })
         }
 
-        const user = await User.findOne({ email })
+        const user = await User.findOne({ email }).select('+otpExpires +tokenVersion')
         if (!user || !user.isOtpVerified || !user.otpExpires || user.otpExpires < Date.now()) {
             return res.status(400).json({ message: 'Сначала подтвердите OTP-код' })
         }
@@ -309,7 +326,7 @@ export const verifyEmail = async (req, res) => {
         if (!token) return res.status(400).json({ message: 'Токен не указан' })
 
         const hash = createHash('sha256').update(token).digest('hex')
-        const user = await User.findOne({ emailVerifyToken: hash })
+        const user = await User.findOne({ emailVerifyToken: hash }).select('+emailVerifyToken +emailVerifyExpires')
 
         if (!user) {
             return res.status(400).json({ message: 'Ссылка недействительна или истекла' })
@@ -365,7 +382,7 @@ export const signInWithGoogle = async (req, res) => {
             return res.status(400).json({ message: 'Не удалось получить данные из Google аккаунта' })
         }
 
-        let user = await User.findOne({ $or: [{ googleId }, { email: email.toLowerCase() }] })
+        let user = await User.findOne({ $or: [{ googleId }, { email: email.toLowerCase() }] }).select('+tokenVersion')
 
         if (!user) {
             // Генерируем уникальный username из email
