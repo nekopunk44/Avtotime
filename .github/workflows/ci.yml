@@ -367,7 +367,6 @@ jobs:
              rm -rf dist.old
              if [ -d dist ]; then mv dist dist.old; fi
              mv dist.new dist
-             rm -rf dist.old
              cd /root/avtotime
              docker compose up -d --force-recreate nginx
              docker compose ps nginx'
@@ -389,3 +388,29 @@ jobs:
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
             'cd /root/avtotime && docker compose logs --tail=200 nginx' || true
           exit 1
+
+      - name: Restore the previous build
+        if: failure()
+        # The old dist is deliberately kept until the health check passes, so a
+        # broken bundle is undone in seconds instead of waiting for a new run.
+        run: |
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'set -e
+             cd /root/avtotime/frontend
+             if [ ! -d dist.old ]; then
+               echo "No previous build kept, nothing to restore."
+               exit 0
+             fi
+             rm -rf dist.bad
+             mv dist dist.bad
+             mv dist.old dist
+             cd /root/avtotime
+             docker compose up -d --force-recreate nginx
+             echo "Rolled back. The rejected build is left in frontend/dist.bad."'
+
+      - name: Drop the superseded build
+        run: |
+          ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'rm -rf /root/avtotime/frontend/dist.old'
