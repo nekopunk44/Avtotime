@@ -103,6 +103,22 @@ jobs:
   test-backend:
     name: Backend tests
     runs-on: ubuntu-latest
+    # A real MongoDB beats mongodb-memory-server here: no mongod download on a
+    # cold runner, and no breakage when the runner image moves to an Ubuntu
+    # release MongoDB publishes no binary for. Locally the suite still falls
+    # back to the in-memory server (see tests/globalSetup.js).
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_MONGODB_URL: mongodb://127.0.0.1:27017/avtotime_test
     steps:
       - name: Checkout
         uses: actions/checkout@v4

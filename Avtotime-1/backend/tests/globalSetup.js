@@ -15,6 +15,19 @@ let memoryServer;
  * pools that do not inherit it.
  */
 export default async function setup({ provide }) {
+  // CI provides a real MongoDB service container. Downloading a mongod binary
+  // on a fresh runner is slow and breaks whenever the runner image moves to an
+  // Ubuntu release MongoDB has no build for. Opt-in via TEST_MONGODB_URL only —
+  // never plain MONGODB_URL, because the suite drops collections after every
+  // test and must not be able to point at a developer's database by accident.
+  const externalUri = process.env.TEST_MONGODB_URL?.trim();
+  if (externalUri) {
+    process.env.MONGODB_URL = externalUri;
+    process.env.MONGO_IN_MEMORY = "false";
+    provide?.("MONGODB_URL", externalUri);
+    return async () => {};
+  }
+
   const downloadDir =
     process.env.MONGOMS_DOWNLOAD_DIR || path.join(backendRoot, ".mongo-binaries");
   const tmpDir = process.env.MONGOMS_TMP_DIR || path.join(backendRoot, ".mongo-tmp");
