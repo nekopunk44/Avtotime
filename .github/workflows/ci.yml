@@ -130,12 +130,15 @@ jobs:
           cache: npm
           cache-dependency-path: Avtotime-1/backend/package-lock.json
 
-      # Same omissions as the production Dockerfile (optional TensorFlow/sharp
-      # are not importable there either), but devDependencies stay so vitest
-      # is available.
+      # NOT --omit=optional here, unlike the production Dockerfile: JS tooling
+      # ships its platform-specific native bindings as optionalDependencies
+      # (rolldown for vitest, esbuild, …), so that flag makes the test runner
+      # fail to start with "Cannot find native binding". The backend's own heavy
+      # optional deps (TensorFlow/nsfwjs/sharp) are still fine to attempt — npm
+      # tolerates optional-dependency build failures by design.
       - name: Install dependencies
         working-directory: Avtotime-1/backend
-        run: npm ci --omit=optional --legacy-peer-deps
+        run: npm ci --legacy-peer-deps
 
       - name: Run tests
         working-directory: Avtotime-1/backend
