@@ -117,8 +117,20 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
+      # The rate-limit store speaks SCRIPT LOAD / EVALSHA, so only a real Redis
+      # proves it counts. Without TEST_REDIS_URL that suite skips itself.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     env:
       TEST_MONGODB_URL: mongodb://127.0.0.1:27017/avtotime_test
+      TEST_REDIS_URL: redis://127.0.0.1:6379
     steps:
       - name: Checkout
         uses: actions/checkout@v4
