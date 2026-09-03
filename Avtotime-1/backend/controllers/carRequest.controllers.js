@@ -9,6 +9,13 @@ const transporter = nodemailer.createTransport({
         user: process.env.EMAIL,
         pass: process.env.EMAIL_PASS,
     },
+    // Both sendMail calls below are awaited inside the request handler, and
+    // nodemailer defaults to a 10-minute socket timeout — a stalled Gmail would
+    // hold the request, and its connection, for that long. Until sending moves
+    // to a queue, cap it at something a user would actually wait through.
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 15000,
 });
 
 // User-supplied values go into HTML emails — escape them to prevent HTML
