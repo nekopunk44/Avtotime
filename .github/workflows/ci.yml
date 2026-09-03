@@ -310,7 +310,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
-            'cd /root/avtotime && docker compose up -d --build backend && docker image prune -f >/dev/null && docker compose ps backend'
+            'cd /root/avtotime && docker compose up -d --no-deps --build backend && docker image prune -f >/dev/null && docker compose ps backend'
 
       - name: Health check
         shell: bash
@@ -380,7 +380,7 @@ jobs:
              if [ -d dist ]; then mv dist dist.old; fi
              mv dist.new dist
              cd /root/avtotime
-             docker compose up -d --force-recreate nginx
+             docker compose up -d --no-deps --force-recreate nginx
              docker compose ps nginx'
 
       - name: Health check
@@ -418,7 +418,7 @@ jobs:
              mv dist dist.bad
              mv dist.old dist
              cd /root/avtotime
-             docker compose up -d --force-recreate nginx
+             docker compose up -d --no-deps --force-recreate nginx
              echo "Rolled back. The rejected build is left in frontend/dist.bad."'
 
       - name: Drop the superseded build
