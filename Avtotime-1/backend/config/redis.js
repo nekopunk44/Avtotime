@@ -28,6 +28,24 @@ const closeQuietly = (client) => {
 };
 
 /**
+ * `connect()` bounded by a timeout.
+ *
+ * node-redis keeps retrying a refused connection and never settles the promise
+ * it handed back, so every `await client.connect()` in this file is a potential
+ * deadlock rather than a potential error.
+ */
+const connectWithTimeout = (client, what) =>
+  Promise.race([
+    client.connect(),
+    new Promise((_resolve, reject) => {
+      setTimeout(
+        () => reject(new Error(`${what}: connect timed out after ${CONNECT_TIMEOUT_MS}ms`)),
+        CONNECT_TIMEOUT_MS,
+      ).unref?.();
+    }),
+  ]);
+
+/**
  * Resolves to a connected client, or to null — but always resolves.
  *
  * That guarantee is the whole point. node-redis retries a refused connection
@@ -65,12 +83,7 @@ export const getSharedRedisClient = async () => {
         }
       });
 
-      await Promise.race([
-        client.connect(),
-        new Promise((_resolve, reject) =>
-          setTimeout(() => reject(new Error(`connect timed out after ${CONNECT_TIMEOUT_MS}ms`)), CONNECT_TIMEOUT_MS).unref?.(),
-        ),
-      ]);
+      await connectWithTimeout(client, "shared client");
 
       console.log("[redis] shared client connected");
       return client;
@@ -92,6 +105,10 @@ export const initializeSocketRedisAdapter = async (io) => {
   if (socketAdapterInitPromise) return socketAdapterInitPromise;
 
   socketAdapterInitPromise = (async () => {
+    // Declared outside the try so the catch below can close whatever was
+    // already opened when the connect timed out.
+    let pubClient;
+    let subClient;
     try {
       const [{ createAdapter }, { createClient }] = await Promise.all([
         import("@socket.io/redis-adapter"),
@@ -99,8 +116,8 @@ export const initializeSocketRedisAdapter = async (io) => {
       ]);
 
       const redisUrl = process.env.REDIS_URL.trim();
-      const pubClient = createClient({ url: redisUrl });
-      const subClient = pubClient.duplicate();
+      pubClient = createClient({ url: redisUrl, socket: { connectTimeout: CONNECT_TIMEOUT_MS } });
+      subClient = pubClient.duplicate();
 
       pubClient.on("error", (error) => {
         console.error("[redis] pub client error:", error?.message || error);
@@ -109,12 +126,22 @@ export const initializeSocketRedisAdapter = async (io) => {
         console.error("[redis] sub client error:", error?.message || error);
       });
 
-      await Promise.all([pubClient.connect(), subClient.connect()]);
+      // Bounded, because index.js awaits this before server.listen(): an
+      // unreachable Redis used to mean the backend never started listening at
+      // all, so docker health-checked it dead and restarted it forever. Without
+      // the adapter each worker only broadcasts to its own sockets — degraded
+      // realtime, but a running app.
+      await Promise.all([
+        connectWithTimeout(pubClient, "socket pub"),
+        connectWithTimeout(subClient, "socket sub"),
+      ]);
       io.adapter(createAdapter(pubClient, subClient));
 
       console.log("[socket] Redis adapter enabled");
       return { enabled: true, pubClient, subClient };
     } catch (error) {
+      closeQuietly(pubClient);
+      closeQuietly(subClient);
       socketAdapterInitPromise = null;
       console.error("[socket] Redis adapter init failed:", error?.message || error);
       return { enabled: false, reason: "init_failed", error };
