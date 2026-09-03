@@ -54,7 +54,7 @@
   },
   "optionalDependencies": {
     "@tensorflow/tfjs": "^4.22.0",
-    "@tensorflow/tfjs-node": "^0.1.11",
+    "@tensorflow/tfjs-node": "^4.22.0",
     "nsfwjs": "^4.2.1",
     "sharp": "^0.35.4"
   },
