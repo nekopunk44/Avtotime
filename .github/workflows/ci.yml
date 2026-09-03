@@ -343,7 +343,7 @@ jobs:
       cancel-in-progress: false
     steps:
       - name: Download dist
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: social-frontend-dist
           path: dist
