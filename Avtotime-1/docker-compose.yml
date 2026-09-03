@@ -3,13 +3,20 @@ services:
     image: mongo:7-jammy
     restart: unless-stopped
     # WiredTiger sizes its cache from the HOST's RAM, not the container limit,
-    # so it must be pinned explicitly or mongod is the first OOM-kill victim.
-    command: ["mongod", "--bind_ip_all", "--wiredTigerCacheSizeGB", "0.4"]
+    # so once mem_limit is set it must be pinned explicitly or mongod becomes
+    # the first OOM-kill victim. 1 GB is far above what this dataset needs and
+    # still leaves the box mostly free.
+    command: ["mongod", "--bind_ip_all", "--wiredTigerCacheSizeGB", "1.0"]
     volumes:
       - mongo_data:/data/db
     expose:
       - "27017"
-    mem_limit: 700m
+    mem_limit: 2g
+    # The database needs longer than Docker's 10s default to finish a WiredTiger
+    # checkpoint. A SIGKILL mid-checkpoint means journal replay on the next
+    # start, which can overrun the healthcheck window below and then block the
+    # backend through its `service_healthy` gate.
+    stop_grace_period: 60s
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 15s
@@ -36,14 +43,18 @@ services:
       - --appendonly
       - "yes"
       - --maxmemory
-      - 150mb
+      - 384mb
       - --maxmemory-policy
       - allkeys-lru
     volumes:
       - redis_data:/data
     expose:
       - "6379"
-    mem_limit: 200m
+    # Both an RDB save and an AOF rewrite fork(), and copy-on-write can push
+    # combined RSS toward twice the dataset — so the cgroup needs real headroom
+    # over maxmemory, not a thin margin.
+    mem_limit: 1g
+    stop_grace_period: 30s
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 15s
@@ -75,17 +86,20 @@ services:
       REDIS_SOCKET_ADAPTER_ENABLED: "true"
       TRUST_PROXY: "1"
       PORT: "8000"
-      # Heap cap per process. cluster.js forks one worker per CPU, so this must
-      # stay well under mem_limit divided by the worker count below.
-      NODE_OPTIONS: "--max-old-space-size=350"
-      # Without this cluster.js uses availableParallelism(), which reports the
-      # HOST's core count and would fork more workers than 800m can hold.
-      CLUSTER_WORKERS: "2"
+      # Heap cap per process — and EVERY node process in the container inherits
+      # it: the cluster primary, each of CLUSTER_WORKERS workers, and the
+      # short-lived process the image HEALTHCHECK spawns every 30s. Budget as
+      # mem_limit / (CLUSTER_WORKERS + 2); .env.production sets CLUSTER_WORKERS=1
+      # today, so 3 x 768m fits inside 3g. Raising CLUSTER_WORKERS means
+      # recomputing this.
+      # CLUSTER_WORKERS is deliberately NOT set here: `environment` beats
+      # `env_file`, so a value here would silently ignore the server's own.
+      NODE_OPTIONS: "--max-old-space-size=768"
     volumes:
       - uploads:/app/public
     expose:
       - "8000"
-    mem_limit: 800m
+    mem_limit: 3g
     # Graceful shutdown waits for open websocket connections to drain; the
     # 10s default SIGKILLs the workers mid-flight.
     stop_grace_period: 20s
@@ -118,7 +132,7 @@ services:
       - |
         while :; do sleep 6h; nginx -s reload 2>/dev/null || true; done &
         exec nginx -g 'daemon off;'
-    mem_limit: 128m
+    mem_limit: 256m
     logging:
       driver: json-file
       options:
