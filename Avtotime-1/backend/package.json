@@ -56,7 +56,7 @@
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-node": "^0.1.11",
     "nsfwjs": "^4.2.1",
-    "sharp": "^0.34.1"
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.11",
