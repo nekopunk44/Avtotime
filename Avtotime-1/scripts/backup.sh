@@ -100,10 +100,36 @@ trap cleanup EXIT
 # ── 1. MongoDB ──────────────────────────────────────────────────────────────
 # `exec -T` keeps stdout a raw binary pipe (no TTY translation), which is what
 # makes streaming the gzip archive straight out of the container safe.
-FAILED_STEP="mongodump"
+FAILED_STEP="mongo-preflight"
 MONGO_FILE="$DEST/mongo-$MONGO_DB.archive.gz"
-"${DC[@]}" exec -T mongodb \
-  mongodump --db="$MONGO_DB" --archive --gzip --quiet > "$MONGO_FILE"
+
+# mongodump of a database that does not exist still exits 0 and writes a valid,
+# tiny gzip stream, so neither the `-s` test nor `gzip -t` below can tell a real
+# backup from a typo in MONGO_DB. Ask the server whether it is actually there.
+MONGO_CID="$("${DC[@]}" ps -aq mongodb || true)"
+if [ -z "$MONGO_CID" ]; then
+  log "FAILED: no mongodb container in this compose project"
+  ping_healthcheck "/fail"
+  exit 1
+fi
+
+COLLECTIONS="$("${DC[@]}" exec -T mongodb mongosh --quiet --eval "db.getSiblingDB('$MONGO_DB').getCollectionNames().length" 2>/dev/null | tail -n 1 | tr -dc '0-9')"
+if [ -z "$COLLECTIONS" ] || [ "$COLLECTIONS" -eq 0 ]; then
+  log "FAILED: database '$MONGO_DB' reports ${COLLECTIONS:-no} collections - refusing to store an empty backup"
+  ping_healthcheck "/fail"
+  exit 1
+fi
+log "database '$MONGO_DB' has $COLLECTIONS collection(s)"
+
+# Dumped from a SEPARATE container rather than via `exec` into mongodb: `exec`
+# joins the target's cgroup, so the dump's memory would be charged against the
+# database's own mem_limit. Once the dataset grows the kernel would pick the
+# largest RSS in that cgroup - mongod itself - and the nightly backup would
+# take production down at 03:20.
+FAILED_STEP="mongodump"
+MONGO_IMAGE="$(docker inspect -f '{{.Config.Image}}' "$MONGO_CID")"
+MONGO_NET="$(docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$MONGO_CID" | awk '{print $1}')"
+docker run --rm --network "$MONGO_NET" "$MONGO_IMAGE" mongodump --host=mongodb --db="$MONGO_DB" --archive --gzip --quiet > "$MONGO_FILE"
 
 if [ ! -s "$MONGO_FILE" ]; then
   log "FAILED: mongo dump is empty"
