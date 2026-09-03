@@ -48,7 +48,7 @@
     "multer": "^2.0.2",
     "nodemailer": "^8.0.4",
     "rate-limit-redis": "^6.0.1",
-    "redis": "^5.8.2",
+    "redis": "^6.2.1",
     "socket.io": "^4.8.3",
     "stripe": "^22.0.2"
   },
