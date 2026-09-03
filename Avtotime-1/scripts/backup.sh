@@ -84,6 +84,19 @@ ping_healthcheck "/start"
 log "start — dest=$DEST free=${FREE_MB}MB"
 mkdir -p "$DEST"
 
+# From here on the dated directory exists, so a failure would leave a husk that
+# rotation counts as a real snapshot — seven bad nights in a row would evict the
+# last good backup. Remove it unless the run reaches the end.
+COMPLETE=0
+UPLOADS_OK=0
+cleanup() {
+  if [ "$COMPLETE" -ne 1 ]; then
+    rm -rf -- "$DEST"
+    log "incomplete run — removed $DEST so rotation cannot mistake it for a snapshot"
+  fi
+}
+trap cleanup EXIT
+
 # ── 1. MongoDB ──────────────────────────────────────────────────────────────
 # `exec -T` keeps stdout a raw binary pipe (no TTY translation), which is what
 # makes streaming the gzip archive straight out of the container safe.
@@ -105,7 +118,10 @@ log "mongo dump ok ($(du -h "$MONGO_FILE" | cut -f1))"
 # The volume name is derived from the compose project name, so read it off the
 # running backend container instead of hardcoding "avtotime_uploads".
 FAILED_STEP="uploads"
-BACKEND_CID="$("${DC[@]}" ps -q backend || true)"
+# `ps -q` lists only RUNNING containers, and the backend is legitimately down
+# during every CI deploy and for a minute after a reboot. `-a` keeps the volume
+# name discoverable then, because docker inspect works on a stopped container.
+BACKEND_CID="$("${DC[@]}" ps -aq backend || true)"
 UPLOADS_VOL=""
 if [ -n "$BACKEND_CID" ]; then
   UPLOADS_VOL="$(docker inspect -f \
@@ -123,6 +139,7 @@ else
     alpine:3.20 \
     tar -czf /backup/uploads.tar.gz -C /data .
   gzip -t "$UPLOADS_FILE"
+  UPLOADS_OK=1
   log "uploads archive ok ($(du -h "$UPLOADS_FILE" | cut -f1), volume=$UPLOADS_VOL)"
 fi
 
@@ -171,6 +188,17 @@ done
 #   rclone (plain mirror to any cloud remote):
 #     rclone sync "$BACKUP_DIR" remote:avtotime-backups --transfers 2 --checksum
 
+COMPLETE=1
 TOTAL="$(du -sh "$BACKUP_DIR" | cut -f1)"
+
+if [ "$UPLOADS_OK" -ne 1 ]; then
+  # The uploads volume holds essentially all the real data; a snapshot without
+  # it is not a backup. Pinging success here would keep the dead-man's switch
+  # quiet precisely when it should be shouting.
+  log "INCOMPLETE — snapshot $STAMP has the database but NOT the uploads volume"
+  ping_healthcheck "/fail"
+  exit 1
+fi
+
 log "done — snapshot $STAMP complete, $BACKUP_DIR now $TOTAL"
 ping_healthcheck ""
