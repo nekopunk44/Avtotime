@@ -145,12 +145,22 @@ CI синхронизирует только каталог `Avtotime-1/backend/
 | `Avtotime-1/scripts/backup.sh` | `/root/avtotime/scripts/backup.sh` | вручную + строка в cron |
 | `.env.production` | `/root/avtotime/.env.production` | только вручную, в git его нет |
 
-Файлы уже загружены на сервер под именами `*.new` и проверены там:
-`docker compose config` разбирается, а `nginx -t` проходит против **настоящих**
-сертификатов и монтирований. Осталось подменить их и применить.
+**Применено 3 сентября 2026.** Все пять контейнеров пересозданы, mongodb, redis и
+backend поднимают healthcheck, сертификат на месте, лог mongodb сократился с
+2.1 ГБ до сотен килобайт. Предыдущие версии лежат рядом как `docker-compose.yml.prev`
+и `nginx/nginx.conf.prev`.
 
-> **Сначала бэкап.** `docker compose up -d` пересоздаст mongodb (у него меняются
-> `command`, `mem_limit`, `healthcheck` и `logging`).
+Порядок ниже — для следующего раза. Перед выкладкой файл стоит залить под именем
+`*.new` и проверить **на сервере**, не подменяя рабочий: `docker compose -f
+docker-compose.yml.new config -q`, а nginx — в одноразовом контейнере, смонтировав
+настоящий том с сертификатами:
+
+```bash
+docker run --rm -v /root/avtotime/nginx/nginx.conf.new:/etc/nginx/nginx.conf:ro   -v avtotime_letsencrypt:/etc/letsencrypt:ro -v avtotime_certbot_www:/var/www/certbot:ro   -v /root/avtotime/frontend/dist:/var/www/frontend:ro -v avtotime_uploads:/var/www/uploads:ro   nginx:1.27-alpine nginx -t
+```
+
+> **Сначала бэкап.** `docker compose up -d` пересоздаёт mongodb, если у него менялись
+> `command`, `mem_limit`, `healthcheck` или `logging`.
 
 ```bash
 ssh root@89.167.85.110 'set -e
@@ -186,9 +196,13 @@ ssh root@89.167.85.110 'set -e
   cd /root/avtotime
   mv scripts/backup.sh.new scripts/backup.sh && chmod +x scripts/backup.sh
   ./scripts/backup.sh
-  ( crontab -l 2>/dev/null; echo "20 3 * * * /root/avtotime/scripts/backup.sh >> /var/log/avtotime-backup.log 2>&1" ) | crontab -
+  ( crontab -l 2>/dev/null || true; echo "20 3 * * * /root/avtotime/scripts/backup.sh >> /var/log/avtotime-backup.log 2>&1" ) | crontab -
   crontab -l'
 ```
+
+`|| true` обязателен: при пустом crontab `crontab -l` завершается ненулевым
+кодом, и под `set -e` подоболочка умирает раньше `echo` — строка молча не
+ставится, а остальная цепочка обрывается.
 
 Скрипт проверен на этом сервере в урезанном окружении (`env -i PATH=/usr/bin:/bin`),
 как его запустит cron: дамп базы и архив uploads на 362 МБ снимаются за ~35 секунд.
