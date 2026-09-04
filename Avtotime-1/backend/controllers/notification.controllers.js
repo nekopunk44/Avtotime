@@ -3,6 +3,7 @@ import User from "../models/user.model.js";
 import { io } from "../socket.js";
 import { sendExpoPushToUser, isExpoPushToken } from "../services/expoPush.js";
 import { sendViaResend } from "../config/Mail.js";
+import { escapeHtml } from "../utils/html.js";
 import {
   getCachedResponse,
   invalidateCachedResponse,
@@ -18,11 +19,13 @@ const sendEmailNotification = async (recipient, notification, actor) => {
     await sendViaResend({
       to: recipient.email,
       subject: notification.title,
+      // Escaped: title and description carry user-supplied text (usernames,
+      // comment excerpts), and the link is built from config plus a stored path.
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-          <h2 style="color:#111">${notification.title}</h2>
-          <p>${notification.description}</p>
-          <a href="${process.env.CLIENT_URL || ''}${notification.link || ''}"
+          <h2 style="color:#111">${escapeHtml(notification.title)}</h2>
+          <p>${escapeHtml(notification.description)}</p>
+          <a href="${escapeHtml(`${process.env.CLIENT_URL || ''}${notification.link || ''}`)}"
              style="display:inline-block;margin:16px 0;padding:10px 22px;background:#111;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">Открыть</a>
         </div>
       `,
@@ -160,10 +163,16 @@ export const createNotification = async ({
       },
     });
 
-    // Send email if digest is instant
+    // Send email if digest is instant.
+    //
+    // NOT awaited: this is an HTTP round trip to a third party, and awaiting it
+    // put that round trip inside every like, comment and follow request — a slow
+    // mail provider made the whole app slow. The outcome is written back when it
+    // lands, the same way the push above already worked.
     if (recipientUser.notificationPreferences?.digestFrequency === 'instant') {
-      const emailSent = await sendEmailNotification(recipientUser, notification, actor);
-      notification.emailSent = emailSent;
+      sendEmailNotification(recipientUser, notification, actor)
+        .then((emailSent) => Notification.updateOne({ _id: notification._id }, { emailSent }))
+        .catch((error) => console.error("[notification] email dispatch failed:", error?.message || error));
     }
 
     await notification.save();

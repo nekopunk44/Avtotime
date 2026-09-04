@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { createNotification } from './notification.controllers.js';
+import { escapeHtml } from '../utils/html.js';
 
 const transporter = nodemailer.createTransport({
     service: "Gmail",
@@ -18,13 +19,6 @@ const transporter = nodemailer.createTransport({
     socketTimeout: 15000,
 });
 
-// User-supplied values go into HTML emails — escape them to prevent HTML
-// injection into what the admin (and the user) reads.
-const escapeHtml = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 
 export const sendCarRequest = async (req, res) => {
     try {
