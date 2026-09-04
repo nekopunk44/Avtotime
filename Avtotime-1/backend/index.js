@@ -6,6 +6,7 @@ import { createSocketServer, initializeSocketInfrastructure } from "./socket.js"
 import { startMarketModerationWorker } from "./moderation/marketModerationWorker.js"
 import { startPlanExpirationCron } from "./services/planExpirationCron.js"
 import { ensureDevSeed } from "./services/devSeed.js"
+import { shouldRunBackgroundJobs } from "./config/workerRoles.js"
 
 const port = process.env.PORT || 8000
 
@@ -38,10 +39,12 @@ const startServer = async () => {
             await ensureDevSeed()
         }
 
-        // Run the background moderation worker only on one process to avoid
-        // redundant DB polling when clustered. Worker id 1 is the first forked
-        // worker; falls back to always-run in non-clustered (dev) mode.
-        if (!cluster.isWorker || cluster.worker?.id === 1) {
+        // One process only, to avoid redundant DB polling when clustered. The
+        // role is assigned by the primary (cluster.js) rather than derived from
+        // the worker id: ids are never reused, so `id === 1` stopped being true
+        // the first time that worker crashed and the jobs silently never ran
+        // again. Unclustered dev runs have no primary, so they always run them.
+        if (!cluster.isWorker || shouldRunBackgroundJobs()) {
             startMarketModerationWorker()
             startPlanExpirationCron()
         }
