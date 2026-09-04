@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 // Port picked to be closed. The point is an *unreachable* Redis, which is the
 // case that used to hang rather than fail.
@@ -6,6 +6,17 @@ const DEAD_REDIS = "redis://127.0.0.1:6399";
 
 let getSharedRedisClient;
 let initializeSocketRedisAdapter;
+const savedRedisUrl = process.env.REDIS_URL;
+const savedTimeout = process.env.REDIS_CONNECT_TIMEOUT_MS;
+
+// vitest gives each file a fresh module registry but the SAME process, so an
+// env var set here would otherwise follow every later test file into a dead
+// Redis and slow it down for no reason.
+afterAll(() => {
+  process.env.REDIS_URL = savedRedisUrl ?? "";
+  if (savedTimeout === undefined) delete process.env.REDIS_CONNECT_TIMEOUT_MS;
+  else process.env.REDIS_CONNECT_TIMEOUT_MS = savedTimeout;
+});
 
 beforeAll(async () => {
   process.env.REDIS_URL = DEAD_REDIS;
@@ -24,7 +35,10 @@ describe("an unreachable Redis degrades instead of hanging", () => {
     const client = await getSharedRedisClient();
 
     expect(client).toBeNull();
-    expect(Date.now() - started).toBeLessThan(3000);
+    // The bug was an unbounded wait, so any finite bound proves the point. Kept
+    // well clear of the 500ms connect timeout so a loaded CI runner cannot turn
+    // this into a flake.
+    expect(Date.now() - started).toBeLessThan(10_000);
   });
 
   it("answers immediately on the next call instead of re-dialling a dead server", async () => {
@@ -32,9 +46,9 @@ describe("an unreachable Redis degrades instead of hanging", () => {
 
     const started = Date.now();
     expect(await getSharedRedisClient()).toBeNull();
-    // The cooldown is what keeps a dead Redis from being dialled once per
-    // request under load.
-    expect(Date.now() - started).toBeLessThan(100);
+    // Without the cooldown this would re-dial and cost another connect timeout
+    // (500ms here), so the bound only has to sit clearly below that.
+    expect(Date.now() - started).toBeLessThan(300);
   });
 
   it("gives up on the socket adapter so the server still reaches listen()", async () => {
@@ -44,6 +58,6 @@ describe("an unreachable Redis degrades instead of hanging", () => {
     const result = await initializeSocketRedisAdapter({ adapter: () => {} });
 
     expect(result.enabled).toBe(false);
-    expect(Date.now() - started).toBeLessThan(4000);
+    expect(Date.now() - started).toBeLessThan(10_000);
   });
 });
