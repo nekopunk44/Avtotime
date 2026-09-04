@@ -141,35 +141,83 @@ CI синхронизирует только каталог `Avtotime-1/backend/
 | Файл в репозитории | Куда на сервере | Чем применяется |
 |---|---|---|
 | `Avtotime-1/docker-compose.yml` | `/root/avtotime/docker-compose.yml` | `docker compose up -d` (пересоздаст затронутые сервисы) |
-| `Avtotime-1/nginx/nginx.conf` | `/root/avtotime/nginx/nginx.conf` | `docker compose up -d --force-recreate nginx` |
+| `Avtotime-1/nginx/nginx.conf` | `/root/avtotime/nginx/nginx.conf` | `docker compose up -d --no-deps --force-recreate nginx` (без `--no-deps` пересоздаётся и база: nginx зависит от backend, а тот от mongodb/redis) |
 | `Avtotime-1/scripts/backup.sh` | `/root/avtotime/scripts/backup.sh` | вручную + строка в cron |
 | `.env.production` | `/root/avtotime/.env.production` | только вручную, в git его нет |
 
-Порядок применения новых лимитов и healthcheck'ов (делать **после** первого
-успешного бэкапа, потому что mongodb будет пересоздан):
+Файлы уже загружены на сервер под именами `*.new` и проверены там:
+`docker compose config` разбирается, а `nginx -t` проходит против **настоящих**
+сертификатов и монтирований. Осталось подменить их и применить.
+
+> **Сначала бэкап.** `docker compose up -d` пересоздаст mongodb (у него меняются
+> `command`, `mem_limit`, `healthcheck` и `logging`).
 
 ```bash
-scp Avtotime-1/docker-compose.yml root@<host>:/root/avtotime/
-scp Avtotime-1/nginx/nginx.conf   root@<host>:/root/avtotime/nginx/
-scp Avtotime-1/scripts/backup.sh  root@<host>:/root/avtotime/scripts/
-ssh root@<host> 'cd /root/avtotime && ./scripts/backup.sh && docker compose up -d && docker compose ps'
+ssh root@89.167.85.110 'set -e
+  cd /root/avtotime
+  ./scripts/backup.sh                       # см. установку ниже
+  cp docker-compose.yml docker-compose.yml.prev
+  cp nginx/nginx.conf   nginx/nginx.conf.prev
+  mv docker-compose.yml.new docker-compose.yml
+  mv nginx/nginx.conf.new   nginx/nginx.conf
+  docker compose up -d
+  docker compose ps'
 ```
+
+Проверить снаружи: `curl -sf https://avtotime.org/api/health && curl -sfo /dev/null -w '%{http_code}
+' https://avtotime.org/`
+
+Откат (одна команда, старые файлы лежат рядом):
+
+```bash
+ssh root@89.167.85.110 'cd /root/avtotime
+  mv docker-compose.yml.prev docker-compose.yml
+  mv nginx/nginx.conf.prev   nginx/nginx.conf
+  docker compose up -d --force-recreate'
+```
+
+Простой при применении — порядка минуты: mongodb поднимается заново, а backend
+ждёт его healthcheck (`start_period: 40s`).
+
+### Установка бэкапа
+
+```bash
+ssh root@89.167.85.110 'set -e
+  cd /root/avtotime
+  mv scripts/backup.sh.new scripts/backup.sh && chmod +x scripts/backup.sh
+  ./scripts/backup.sh
+  ( crontab -l 2>/dev/null; echo "20 3 * * * /root/avtotime/scripts/backup.sh >> /var/log/avtotime-backup.log 2>&1" ) | crontab -
+  crontab -l'
+```
+
+Скрипт проверен на этом сервере в урезанном окружении (`env -i PATH=/usr/bin:/bin`),
+как его запустит cron: дамп базы и архив uploads на 362 МБ снимаются за ~35 секунд.
+Отдельно проверено, что бэкап несуществующей базы **отклоняется** с кодом 1, а не
+кладёт на диск правдоподобный пустой архив.
 
 ---
 
 ## Лимиты ресурсов
 
-Сервер рассчитан на 2 ГБ RAM, лимиты проставлены в `docker-compose.yml`:
+Машина: **4 CPU, 7.7 ГБ RAM**, диск 75 ГБ (36 ГБ свободно). Суммарное потребление
+всех контейнеров в покое — около 350 МБ, так что лимиты ниже задают потолок, а не
+режут по живому:
 
 | Сервис | `mem_limit` | Дополнительно |
 |---|---|---|
-| mongodb | 700 MB | `--wiredTigerCacheSizeGB 0.4` — иначе mongod считает кэш от памяти хоста |
-| redis | 200 MB | `--maxmemory 150mb --maxmemory-policy allkeys-lru` |
-| backend | 800 MB | `NODE_OPTIONS=--max-old-space-size=350`, `CLUSTER_WORKERS=2` |
-| nginx | 128 MB | — |
+| mongodb | 2 GB | `--wiredTigerCacheSizeGB 1.0` — иначе mongod считает кэш от памяти **хоста**, а не контейнера; `stop_grace_period: 60s` на чекпоинт WiredTiger |
+| redis | 1 GB | `--maxmemory 384mb --maxmemory-policy allkeys-lru`; запас над maxmemory нужен под `fork()` при RDB/AOF |
+| backend | 3 GB | `NODE_OPTIONS=--max-old-space-size=768`; наследуется **каждым** процессом — primary, воркеры и процесс HEALTHCHECK, поэтому бюджет считается как `mem_limit / (CLUSTER_WORKERS + 2)` |
+| nginx | 256 MB | — |
 
-Логи всех контейнеров ограничены (`json-file`, 10 MB × 3 файла на сервис) —
-без этого access_log nginx забивал диск.
+`CLUSTER_WORKERS` задаётся в `.env.production` (сейчас `1`) и намеренно **не**
+переопределяется в compose: `environment` перебивает `env_file`, и значение в
+compose молча проигнорировало бы серверную настройку. При его повышении
+`--max-old-space-size` надо пересчитать.
+
+Логи всех контейнеров ограничены (`json-file`, 10 MB × 3 файла на сервис). Без
+этого лог одного mongodb вырос до **2.1 ГБ** — он пересоздастся вместе с
+контейнером, и место освободится само.
 
 Проверить фактическое потребление: `docker stats --no-stream`.
 
