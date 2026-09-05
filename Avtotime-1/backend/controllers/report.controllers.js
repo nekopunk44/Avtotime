@@ -75,6 +75,19 @@ export const createReport = async (req, res) => {
       return res.status(404).json({ message: "Объект жалобы не найден" });
     }
 
+    // Checked explicitly rather than relying only on the unique index: mongoose
+    // builds indexes in the background, so on a freshly created database there
+    // is a window in which the index is not there yet and a duplicate slips
+    // through. The index stays as the race-proof backstop below.
+    const existing = await Report.exists({
+      reporter: req.userId,
+      targetType,
+      targetId,
+    });
+    if (existing) {
+      return res.status(409).json({ message: "Вы уже отправляли жалобу на этот объект" });
+    }
+
     const report = await Report.create({
       reporter: req.userId,
       targetType,

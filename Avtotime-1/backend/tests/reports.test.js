@@ -79,6 +79,21 @@ describe("filing a report", () => {
     expect(await Report.countDocuments()).toBe(1);
   });
 
+  it("refuses the duplicate even before the unique index exists", async () => {
+    // Exactly the CI failure this replaces: mongoose builds indexes in the
+    // background, so on a freshly created database the first request can land
+    // before the index does. Dropping them here reproduces that window.
+    await Report.collection.dropIndexes().catch(() => {});
+    const target = await post(offender.id);
+    const body = { targetType: "post", targetId: String(target._id), reason: "spam" };
+
+    await file(reporter.token, body);
+    const second = await file(reporter.token, body);
+
+    expect(second.status).toBe(409);
+    expect(await Report.countDocuments()).toBe(1);
+  });
+
   it("still lets a different person report the same thing", async () => {
     const target = await post(offender.id);
     const third = await signUp({ userName: "third", email: "third@example.com" });
