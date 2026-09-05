@@ -8,7 +8,11 @@ const isAdmin = async (req, res, next) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const user = await User.findById(userId).select("userName email").lean();
+    // isAdmin has to be selected: checkIsAdminByUser treats the stored flag as
+    // authoritative, and without it here the field is dead weight — the column
+    // exists, it is indexed, and promoting a user through it did nothing.
+    // checkIsAdminByUserId already selects it, so the two paths disagreed.
+    const user = await User.findById(userId).select("userName email isAdmin").lean();
     if (!checkIsAdminByUser({ ...user, _id: userId })) {
       return res.status(403).json({ message: "Admin access required" });
     }
