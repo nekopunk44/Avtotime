@@ -101,12 +101,20 @@ updates:
     labels:
       - dependencies
       - mobile
-    # Expo pins its own SDK-compatible versions; bumping expo-* packages
-    # outside an SDK upgrade breaks the native build.
+    # Expo pins SDK-compatible versions for every package with native code —
+    # not only expo-*. The proof arrived as a red PR: lottie-react-native 7.5
+    # requires react-native >= 0.84 while SDK 55 pins 0.83.6, so `npm ci`
+    # cannot even resolve the tree. These move together, on an SDK upgrade.
+    # Pure-JS libraries (@react-navigation/*, axios, zustand, socket.io-client)
+    # stay updatable.
     ignore:
       - dependency-name: expo
       - dependency-name: expo-*
+      - dependency-name: react
       - dependency-name: react-native
+      - dependency-name: react-native-*
+      - dependency-name: lottie-react-native
+      - dependency-name: "@react-native-google-signin/*"
 
   # ── GitHub Actions used by the workflows in .github/workflows ─────────────
   - package-ecosystem: github-actions
