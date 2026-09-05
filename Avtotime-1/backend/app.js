@@ -23,6 +23,7 @@ import gamesRouter from "./routes/games.routes.js"
 import carRequestRouter from "./routes/carRequest.routes.js"
 import coloringRouter from "./routes/coloring.routes.js"
 import adminRouter from "./routes/admin.routes.js"
+import reportRouter from "./routes/report.routes.js"
 import paymentRouter from "./routes/payment.routes.js"
 import { stripeWebhook } from "./controllers/payment.controllers.js"
 import { getAllowedOrigins } from "./config/origins.js"
@@ -105,6 +106,7 @@ export function createApp() {
     app.use('/api/car-request', carRequestRouter)
     app.use('/api/coloring', coloringRouter)
     app.use('/api/admin', adminRouter)
+    app.use('/api/reports', reportRouter)
     app.use('/api/payment', paymentRouter)
 
     app.get("/api/health", (_req, res) => {

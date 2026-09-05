@@ -26,7 +26,7 @@ const notificationSchema = new mongoose.Schema(
     relatedId: mongoose.Schema.Types.ObjectId,
     relatedType: {
       type: String,
-      enum: ["post", "loop", "story", "message", "listing", "user", "review", "market_listing"],
+      enum: ["post", "loop", "story", "message", "listing", "user", "review", "market_listing", "report"],
     },
     isRead: {
       type: Boolean,
