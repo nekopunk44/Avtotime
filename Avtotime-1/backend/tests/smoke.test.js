@@ -17,7 +17,10 @@ describe("app factory", () => {
     const response = await request(createApp()).get("/api/definitely-not-a-route");
 
     expect(response.status).toBe(404);
-    expect(response.body).toEqual({ message: "Not Found" });
+    expect(response.body.message).toBe("Not Found");
+    // Every response carries the id, so a user reporting a dead link can quote
+    // something that finds the request in the logs.
+    expect(response.body.requestId).toBe(response.headers["x-request-id"]);
   });
 });
 
