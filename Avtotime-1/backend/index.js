@@ -7,22 +7,26 @@ import { startMarketModerationWorker } from "./moderation/marketModerationWorker
 import { startPlanExpirationCron } from "./services/planExpirationCron.js"
 import { ensureDevSeed } from "./services/devSeed.js"
 import { shouldRunBackgroundJobs } from "./config/workerRoles.js"
+import { initErrorReporting, reportError, flushErrors } from "./services/errorReporter.js"
 
 const port = process.env.PORT || 8000
 
 const app = createApp()
 const { server } = createSocketServer(app)
 
-// Global error handlers — prevent unhandled rejections from crashing workers silently
-process.on('unhandledRejection', (reason) => {
-    console.error('[fatal] Unhandled promise rejection:', reason)
+// Exiting on these is deliberate: a worker in an unknown state is worse than a
+// restarted one, and cluster.js re-forks it. The point of reporting first is
+// that the crash leaves a trace — the flush is what stops the most valuable
+// event of all from dying in the buffer.
+const exitAfterReporting = (kind) => async (cause) => {
+    const error = cause instanceof Error ? cause : new Error(String(cause))
+    reportError(error, { fatal: true, kind })
+    await flushErrors(2000)
     process.exit(1)
-})
+}
 
-process.on('uncaughtException', (error) => {
-    console.error('[fatal] Uncaught exception:', error)
-    process.exit(1)
-})
+process.on('unhandledRejection', exitAfterReporting('unhandledRejection'))
+process.on('uncaughtException', exitAfterReporting('uncaughtException'))
 
 const startServer = async () => {
     try {
@@ -30,6 +34,10 @@ const startServer = async () => {
             console.error('FATAL: JWT_SECRET is not set. Refusing to start.')
             process.exit(1)
         }
+
+        // Before connectDb: a failure there is exactly the kind of thing that
+        // should be reported rather than only printed.
+        await initErrorReporting()
 
         await connectDb()
         await initializeSocketInfrastructure()

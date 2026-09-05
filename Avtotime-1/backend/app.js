@@ -28,6 +28,7 @@ import { stripeWebhook } from "./controllers/payment.controllers.js"
 import { getAllowedOrigins } from "./config/origins.js"
 import { apiLimiter } from "./middlewars/rateLimiters.js"
 import { notFoundHandler, errorHandler } from "./middlewars/errorHandlers.js"
+import { requestId } from "./middlewars/requestId.js"
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,6 +76,10 @@ export function createApp() {
     app.use(makeReqQueryWritable)
     app.use(mongoSanitize())
     app.use(hpp())
+
+    // Before anything that can fail, so every log line and every error response
+    // can be tied back to one request.
+    app.use(requestId)
 
     app.use(cors({
         origin: getAllowedOrigins(),
