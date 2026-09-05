@@ -128,10 +128,11 @@ function Messages({ mode = 'page' }) {
     const normalizedQuery = useMemo(() => String(query || '').trim().toLowerCase(), [query]);
     const isUnread = (u) => Boolean(u?.unreadCount) || Boolean(u?.hasUnread) || Boolean(u?.unread);
 
+    const following = userData?.following;
     const followingOnline = useMemo(() => {
-        const following = Array.isArray(userData?.following) ? userData.following : [];
-        return following.filter((u) => onlineSet.has(u?._id));
-    }, [onlineSet, userData?.following]);
+        const list = Array.isArray(following) ? following : [];
+        return list.filter((u) => onlineSet.has(u?._id));
+    }, [onlineSet, following]);
 
     const filteredChats = useMemo(() => {
         const items = Array.isArray(prevChats) ? prevChats : [];

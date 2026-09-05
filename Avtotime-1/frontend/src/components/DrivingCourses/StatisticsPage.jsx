@@ -8,11 +8,6 @@ const StatisticsPage = () => {
   const [error, setError] = useState(null);
   const [selectedMode, setSelectedMode] = useState("all");
 
-  useEffect(() => {
-    fetchStatistics();
-    fetchResults();
-  }, []);
-
   const fetchStatistics = async () => {
     try {
       const response = await fetch(
@@ -44,6 +39,15 @@ const StatisticsPage = () => {
       console.error("Ошибка загрузки результатов:", err);
     }
   };
+
+  useEffect(() => {
+    fetchStatistics();
+    fetchResults();
+  }, []);
+
+  
+
+  
 
   if (loading) {
     return (
