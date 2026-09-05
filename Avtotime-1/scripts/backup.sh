@@ -17,6 +17,7 @@
 #   KEEP_UPLOADS   newest dirs that keep uploads.tgz  (default 2)
 #   MIN_FREE_MB    abort if less free space than this (default 2048)
 #   HEALTHCHECK_URL  dead-man's-switch ping URL       (default: disabled)
+#   RCLONE_REMOTE    offsite destination, e.g. b2:bucket (default: disabled)
 #
 set -Eeuo pipefail
 
@@ -30,6 +31,7 @@ KEEP_DAILY="${KEEP_DAILY:-7}"
 KEEP_UPLOADS="${KEEP_UPLOADS:-2}"
 MIN_FREE_MB="${MIN_FREE_MB:-2048}"
 HEALTHCHECK_URL="${HEALTHCHECK_URL:-}"
+RCLONE_REMOTE="${RCLONE_REMOTE:-}"
 
 STAMP="$(date +%Y-%m-%d_%H%M%S)"
 DEST="$BACKUP_DIR/$STAMP"
@@ -201,19 +203,6 @@ for i in "${!SNAPSHOTS[@]}"; do
   fi
 done
 
-# ── 5. Offsite copy — NOT configured on purpose ─────────────────────────────
-# A backup that only exists on the same disk as the database does not survive
-# the failure it exists for. Offsite needs the owner's credentials, so it is
-# left as a one-liner to enable once a remote is configured:
-#
-#   restic (deduplicating, recommended — uploads barely grow between runs):
-#     export RESTIC_REPOSITORY="s3:https://<endpoint>/<bucket>/avtotime"
-#     export RESTIC_PASSWORD_FILE=/root/.restic-pass
-#     restic backup "$DEST" && restic forget --keep-daily 7 --keep-weekly 4 --prune
-#
-#   rclone (plain mirror to any cloud remote):
-#     rclone sync "$BACKUP_DIR" remote:avtotime-backups --transfers 2 --checksum
-
 COMPLETE=1
 TOTAL="$(du -sh "$BACKUP_DIR" | cut -f1)"
 
@@ -224,6 +213,31 @@ if [ "$UPLOADS_OK" -ne 1 ]; then
   log "INCOMPLETE — snapshot $STAMP has the database but NOT the uploads volume"
   ping_healthcheck "/fail"
   exit 1
+fi
+
+# ── 5. Offsite copy ─────────────────────────────────────────────────────────
+# A backup sitting on the same disk as the database does not survive the failure
+# it exists for. Placed AFTER COMPLETE=1 on purpose: a failed upload still leaves
+# the local snapshot in place, because that is worth keeping either way — but it
+# must not report success, since "backed up" and "backed up only on the machine
+# that might die" are different claims.
+FAILED_STEP="offsite"
+if [ -n "$RCLONE_REMOTE" ]; then
+  if ! command -v rclone >/dev/null 2>&1; then
+    log "FAILED: RCLONE_REMOTE is set but rclone is not installed"
+    ping_healthcheck "/fail"
+    exit 1
+  fi
+  # The lock file and the running log are local bookkeeping, not backup content.
+  if rclone sync "$BACKUP_DIR" "$RCLONE_REMOTE" --transfers 2 --checksum --exclude ".backup.lock" --exclude "backup.log"; then
+    log "offsite sync ok -> $RCLONE_REMOTE"
+  else
+    log "FAILED: offsite sync to $RCLONE_REMOTE did not complete"
+    ping_healthcheck "/fail"
+    exit 1
+  fi
+else
+  log "offsite: RCLONE_REMOTE not set — snapshots exist only on this disk"
 fi
 
 log "done — snapshot $STAMP complete, $BACKUP_DIR now $TOTAL"
