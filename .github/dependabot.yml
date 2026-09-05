@@ -10,6 +10,19 @@ updates:
       time: "06:00"
       timezone: Europe/Moscow
     open-pull-requests-limit: 5
+    # Minor and patch bumps arrive as ONE pull request per app instead of one
+    # per package: twenty-four separate PRs is not review, it is noise, and
+    # noise gets ignored wholesale. Major bumps deliberately stay separate —
+    # those are the ones that actually break things and deserve their own
+    # discussion.
+    groups:
+      backend-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
     labels:
       - dependencies
       - backend
@@ -22,6 +35,19 @@ updates:
       time: "06:00"
       timezone: Europe/Moscow
     open-pull-requests-limit: 5
+    # Minor and patch bumps arrive as ONE pull request per app instead of one
+    # per package: twenty-four separate PRs is not review, it is noise, and
+    # noise gets ignored wholesale. Major bumps deliberately stay separate —
+    # those are the ones that actually break things and deserve their own
+    # discussion.
+    groups:
+      social-frontend-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
     labels:
       - dependencies
       - frontend
@@ -34,6 +60,19 @@ updates:
       time: "06:00"
       timezone: Europe/Moscow
     open-pull-requests-limit: 5
+    # Minor and patch bumps arrive as ONE pull request per app instead of one
+    # per package: twenty-four separate PRs is not review, it is noise, and
+    # noise gets ignored wholesale. Major bumps deliberately stay separate —
+    # those are the ones that actually break things and deserve their own
+    # discussion.
+    groups:
+      market-frontend-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
     labels:
       - dependencies
       - frontend
@@ -46,6 +85,19 @@ updates:
       time: "06:00"
       timezone: Europe/Moscow
     open-pull-requests-limit: 5
+    # Minor and patch bumps arrive as ONE pull request per app instead of one
+    # per package: twenty-four separate PRs is not review, it is noise, and
+    # noise gets ignored wholesale. Major bumps deliberately stay separate —
+    # those are the ones that actually break things and deserve their own
+    # discussion.
+    groups:
+      mobile-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
     labels:
       - dependencies
       - mobile
@@ -65,6 +117,19 @@ updates:
       time: "06:00"
       timezone: Europe/Moscow
     open-pull-requests-limit: 5
+    # Minor and patch bumps arrive as ONE pull request per app instead of one
+    # per package: twenty-four separate PRs is not review, it is noise, and
+    # noise gets ignored wholesale. Major bumps deliberately stay separate —
+    # those are the ones that actually break things and deserve their own
+    # discussion.
+    groups:
+      github-actions-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
     labels:
       - dependencies
       - ci
