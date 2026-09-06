@@ -115,6 +115,10 @@ updates:
       - dependency-name: react-native-*
       - dependency-name: lottie-react-native
       - dependency-name: "@react-native-google-signin/*"
+      # Expo SDK 55 pins typescript ~5.9; TS 7 fails the typecheck outright.
+      # Minors stay allowed — only the major jump is SDK business.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
   # ── GitHub Actions used by the workflows in .github/workflows ─────────────
   - package-ecosystem: github-actions
