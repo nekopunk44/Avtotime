@@ -21,6 +21,7 @@ import { useAuthStore } from '../store/authStore';
 import { User } from '../api/auth';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
+import ReportSheet from '../components/ReportSheet';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'UserProfile'>;
@@ -61,6 +62,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
   const loadProfile = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -228,6 +230,13 @@ export default function UserProfileScreen({ route, navigation }: Props) {
             <Ionicons name="chatbubble-outline" size={18} color={colors.text} />
             <Text style={styles.secondaryText}>Сообщение</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => setShowReport(true)}
+            accessibilityLabel="Пожаловаться"
+          >
+            <Ionicons name="ellipsis-horizontal" size={18} color={colors.text} />
+          </TouchableOpacity>
         </View>
       )}
 
@@ -285,6 +294,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   );
 
   return (
+    <>
     <FlatList
       style={styles.container}
       data={posts}
@@ -302,6 +312,13 @@ export default function UserProfileScreen({ route, navigation }: Props) {
         </View>
       }
     />
+    <ReportSheet
+      visible={showReport}
+      targetType="user"
+      targetId={userId}
+      onClose={() => setShowReport(false)}
+    />
+    </>
   );
 }
 
@@ -337,6 +354,7 @@ const styles = StyleSheet.create({
   followingText: { color: colors.text },
   secondaryBtn: { flex: 1, height: 44, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   secondaryText: { color: colors.text, fontSize: 14, fontWeight: '900' },
+  iconBtn: { width: 44, height: 44, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   infoCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12, gap: 8 },
   infoLine: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   infoText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },

@@ -13,6 +13,7 @@ import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, font, radius, space, shadow } from '../theme';
 import { Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
+import ReportSheet from '../components/ReportSheet';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
@@ -58,11 +59,9 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
               <Text style={styles.username}>@{item.author?.userName}</Text>
             </View>
           </PressableScale>
-          {isMine ? (
-            <PressableScale style={styles.moreBtn} onPress={onActions} hitSlop={8}>
-              <Ionicons name="ellipsis-horizontal" size={20} color={colors.textMuted} />
-            </PressableScale>
-          ) : null}
+          <PressableScale style={styles.moreBtn} onPress={onActions} hitSlop={8}>
+            <Ionicons name="ellipsis-horizontal" size={20} color={colors.textMuted} />
+          </PressableScale>
         </View>
 
         {firstMedia ? (
@@ -271,7 +270,14 @@ export default function FeedScreen({ navigation }: Props) {
     ]);
   };
 
+  const [reportPostId, setReportPostId] = useState<string | null>(null);
+
   const openPostActions = (post: Post) => {
+    if (post.author?._id !== user?._id) {
+      // Чужой пост: единственное действие в меню — пожаловаться.
+      setReportPostId(post._id);
+      return;
+    }
     Alert.alert('Публикация', post.caption || 'Действия с публикацией', [
       { text: 'Редактировать', onPress: () => navigation.navigate('EditPost', { post }) },
       { text: 'Удалить', style: 'destructive', onPress: () => removePost(post) },
@@ -356,6 +362,7 @@ export default function FeedScreen({ navigation }: Props) {
   }
 
   return (
+    <>
     <FlatList
       data={posts}
       keyExtractor={(item) => item._id}
@@ -385,6 +392,13 @@ export default function FeedScreen({ navigation }: Props) {
         loadingMore ? <ActivityIndicator style={styles.footer} color={colors.accent} /> : <View style={{ height: space.lg }} />
       }
     />
+    <ReportSheet
+      visible={reportPostId !== null}
+      targetType="post"
+      targetId={reportPostId ?? ''}
+      onClose={() => setReportPostId(null)}
+    />
+    </>
   );
 }
 
