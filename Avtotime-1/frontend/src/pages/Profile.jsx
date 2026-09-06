@@ -10,6 +10,7 @@ import { setMessages, setSelectedUser } from '../redux/messageSlice'
 import { FaInstagram, FaLink, FaMapMarkerAlt, FaTelegramPlane } from 'react-icons/fa'
 import { BsGrid3X3, BsBookmark, BsPlayBtn, BsImages } from 'react-icons/bs'
 import PostModal from '../components/social/PostModal'
+import ReportDialog from '../components/common/ReportDialog'
 
 const getPostMediaList = (post) => {
     if (Array.isArray(post?.mediaList) && post.mediaList.length) return post.mediaList
@@ -63,6 +64,7 @@ function GridThumb({ post, onClick }) {
 
 function Profile() {
     const { userName } = useParams()
+    const [showReport, setShowReport] = useState(false)
     const dispatch = useDispatch()
     const navigate = useNavigate()
     const location = useLocation()
@@ -255,7 +257,22 @@ function Profile() {
                             >
                                 Сообщение
                             </button>
+                            <button
+                                className='px-3 py-[9px] rounded-xl bg-white/[0.09] hover:bg-white/[0.14] text-white text-[13px] font-semibold transition-all border border-white/[0.08] active:scale-[0.98]'
+                                title='Пожаловаться'
+                                onClick={() => setShowReport(true)}
+                            >
+                                ⋯
+                            </button>
                         </div>
+                    )}
+
+                    {showReport && profileId && (
+                        <ReportDialog
+                            targetType='user'
+                            targetId={profileId}
+                            onClose={() => setShowReport(false)}
+                        />
                     )}
                 </div>
 

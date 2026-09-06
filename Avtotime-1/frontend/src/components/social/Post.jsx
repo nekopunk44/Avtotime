@@ -12,7 +12,8 @@ import { serverURL } from '../../config/serverUrl';
 import { setPostData } from '../../redux/postSlice';
 import { setUserData } from '../../redux/userSlice';
 import FollowButton from './FollowButton';
-import PostModal from './PostModal';
+import PostModal from './PostModal'
+import ReportDialog from '../common/ReportDialog';
 
 const getPostMediaList = (post) => {
     if (Array.isArray(post?.mediaList) && post.mediaList.length) return post.mediaList
@@ -27,6 +28,7 @@ function Post({ post }) {
     const [showModal, setShowModal] = useState(false)
     const [message, setMessage] = useState('')
     const [showMenu, setShowMenu] = useState(false)
+    const [showReport, setShowReport] = useState(false)
     const [editing, setEditing] = useState(false)
     const [editCaption, setEditCaption] = useState(post?.caption || '')
     const menuRef = useRef(null)
@@ -138,12 +140,40 @@ function Post({ post }) {
                         )}
                     </div>
                 ) : (
-                    <FollowButton
-                        tailwind='px-4 py-1.5 bg-black text-white rounded-lg text-[13px] font-medium'
-                        targetUserId={post.author?._id}
-                    />
+                    <div className='flex items-center gap-1'>
+                        <FollowButton
+                            tailwind='px-4 py-1.5 bg-black text-white rounded-lg text-[13px] font-medium'
+                            targetUserId={post.author?._id}
+                        />
+                        <div className='relative' ref={menuRef}>
+                            <button
+                                className='p-2 rounded-full hover:bg-gray-100 transition-colors'
+                                onClick={() => setShowMenu(prev => !prev)}
+                            >
+                                <HiOutlineDotsHorizontal className='w-5 h-5 text-gray-600' />
+                            </button>
+                            {showMenu && (
+                                <div className='absolute right-0 top-10 z-50 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden w-[180px]'>
+                                    <button
+                                        className='w-full px-4 py-3 text-left text-[13px] font-medium text-red-500 hover:bg-red-50 transition-colors'
+                                        onClick={() => { setShowReport(true); setShowMenu(false) }}
+                                    >
+                                        Пожаловаться
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 )}
             </div>
+
+            {showReport && (
+                <ReportDialog
+                    targetType='post'
+                    targetId={post._id}
+                    onClose={() => setShowReport(false)}
+                />
+            )}
 
             <div className='w-full bg-gray-50 overflow-hidden cursor-pointer' onClick={() => setShowModal(true)}>
                 {post.mediaType === 'image' && mediaList.length > 1 ? (
