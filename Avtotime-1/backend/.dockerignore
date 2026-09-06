@@ -53,7 +53,8 @@ scripts/inspect_users.js
 scripts/inspect_db_structure.js
 scripts/seed_dev_user.js
 scripts/kill_port.mjs
-scripts/download_nsfw_model.js
+# scripts/download_nsfw_model.js — НЕ исключать: Dockerfile запекает модель
+# этим скриптом на сборке (RUN node scripts/download_nsfw_model.js).
 scripts/upload_images_to_cloudinary.js
 scripts/import_tickets_from_docx.js
 
