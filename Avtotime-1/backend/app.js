@@ -28,6 +28,7 @@ import paymentRouter from "./routes/payment.routes.js"
 import { stripeWebhook } from "./controllers/payment.controllers.js"
 import { getAllowedOrigins } from "./config/origins.js"
 import { apiLimiter } from "./middlewars/rateLimiters.js"
+import { rejectForgedOrigin } from "./middlewars/csrfOrigin.js"
 import { notFoundHandler, errorHandler } from "./middlewars/errorHandlers.js"
 import { requestId } from "./middlewars/requestId.js"
 
@@ -87,6 +88,8 @@ export function createApp() {
         credentials: true,
     }))
     app.use("/api", apiLimiter)
+    // CSRF floor for every mutating route — see middlewars/csrfOrigin.js.
+    app.use("/api", rejectForgedOrigin)
 
     // Serve local static assets from backend/public under the API origin
     app.use("/api/public", express.static(path.join(__dirname, "public")));
