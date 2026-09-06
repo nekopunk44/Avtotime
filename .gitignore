@@ -35,3 +35,7 @@ frontend-temp/
 .mcp.json
 
 .expo/
+
+# Claude Code: локальные настройки и хелперы этой машины
+.claude/settings.local.json
+.claude/merge-pr.sh
