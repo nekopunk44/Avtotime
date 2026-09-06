@@ -3,8 +3,12 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 COPY package*.json ./
-# Skip devDeps (autocannon) and optionalDeps (TensorFlow/sharp/nsfwjs)
-RUN npm ci --omit=dev --omit=optional --legacy-peer-deps
+# devDeps (vitest, autocannon) are skipped; optionalDeps are NOT — they are the
+# local moderation stack (tfjs, nsfwjs, sharp). tfjs-node has no musl build and
+# fails here, which npm tolerates for optionals by design; the runtime then
+# falls back to pure tfjs + sharp (services/localModeration.js), which is what
+# actually runs on this image.
+RUN npm ci --omit=dev --legacy-peer-deps
 
 # ── runtime stage ──────────────────────────────────────────────────────────
 FROM node:20-alpine AS runtime
@@ -18,6 +22,11 @@ COPY --from=deps /app/node_modules ./node_modules
 
 # Copy application source
 COPY . .
+
+# Bake the NSFW model into the image: the worker must not depend on GitHub
+# being reachable at runtime, and a missing model would burn through the
+# moderation retry budget before anyone noticed.
+RUN node scripts/download_nsfw_model.js
 
 # Ensure uploads directory exists and is writable by the runtime user.
 # (A named volume mounted at /app/public inherits this ownership on first init.)
