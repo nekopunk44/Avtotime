@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken'
 import { getAuthCookieName } from '../config/authCookie.js'
 import { getPlanLimits, serializePlanLimits, getEffectivePlan } from '../config/planLimits.js'
 import { invalidateAuthSession } from '../services/authSessionCache.js'
+import { disconnectUserSockets } from '../socket.js'
 
 const generateVerifyToken = () => {
     const token = randomBytes(32).toString('hex')
@@ -315,6 +316,7 @@ export const resetPassword = async (req, res) => {
         user.tokenVersion = (user.tokenVersion || 0) + 1
         await user.save()
         await invalidateAuthSession(String(user._id)).catch(() => {})
+        disconnectUserSockets(String(user._id))
 
         return res.status(200).json({ message: 'Пароль успешно изменён' })
     } catch (error) {
@@ -382,6 +384,16 @@ export const signInWithGoogle = async (req, res) => {
         const { sub: googleId, email, name, picture } = tokenInfo
         if (!googleId || !email) {
             return res.status(400).json({ message: 'Не удалось получить данные из Google аккаунта' })
+        }
+
+        // Google выдаёт id_token и для НЕподтверждённых адресов, а ниже аккаунт
+        // ищется по email и получает привязку googleId. Без этой проверки
+        // достаточно завести Google-аккаунт с чужим email — и этот эндпоинт
+        // отдаст чужой профиль вместе с сессией. tokeninfo возвращает булево
+        // строкой, поэтому сравнение с двумя формами.
+        const emailVerified = tokenInfo.email_verified === true || tokenInfo.email_verified === 'true'
+        if (!emailVerified) {
+            return res.status(403).json({ message: 'Google не подтвердил email этого аккаунта. Войдите по паролю или подтвердите email в Google.' })
         }
 
         let user = await User.findOne({ $or: [{ googleId }, { email: email.toLowerCase() }] }).select('+tokenVersion')

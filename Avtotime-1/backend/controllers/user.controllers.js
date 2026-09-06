@@ -18,6 +18,7 @@ import MarketConsultationExpert from '../models/marketConsultationExpert.model.j
 import { getAuthCookieName } from '../config/authCookie.js'
 import genToken from '../config/token.js'
 import { invalidateAuthSession } from '../services/authSessionCache.js'
+import { disconnectUserSockets } from '../socket.js'
 import bcrypt from 'bcryptjs'
 import fs from "fs";
 import path from "path";
@@ -505,6 +506,10 @@ export const changePassword = async (req, res) => {
         user.tokenVersion = (user.tokenVersion || 0) + 1
         await user.save()
         await invalidateAuthSession(String(user._id)).catch(() => {})
+        // Old sockets keep working after the version bump unless kicked: the
+        // handshake only guards NEW connections. The client reconnects with
+        // the fresh cookie issued below.
+        disconnectUserSockets(String(user._id))
 
         const nextToken = genToken(user._id, user.tokenVersion)
         res.cookie(getAuthCookieName(), nextToken, {
@@ -532,6 +537,7 @@ export const logoutAll = async (req, res) => {
         user.tokenVersion = (user.tokenVersion || 0) + 1
         await user.save()
         await invalidateAuthSession(String(user._id)).catch(() => {})
+        disconnectUserSockets(String(user._id))
 
         // Issue a fresh token for the current session so the user stays logged in
         const newToken = genToken(user._id, user.tokenVersion)

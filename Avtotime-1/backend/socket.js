@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
 import { getAllowedOrigins } from "./config/origins.js";
 import { getAuthCookieName } from "./config/authCookie.js";
+import { checkSession } from "./services/sessionGuard.js";
 import { initializeSocketRedisAdapter } from "./config/redis.js";
 
 const parseCookies = (cookieHeader = "") => {
@@ -74,7 +75,7 @@ const emitOnlineUsers = () => {
 const STALE_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
 const registerSocketHandlers = (ioServer) => {
-  ioServer.use((socket, next) => {
+  ioServer.use(async (socket, next) => {
     try {
       const cookies = parseCookies(socket.request.headers.cookie);
       let token = cookies[getAuthCookieName()];
@@ -87,6 +88,14 @@ const registerSocketHandlers = (ioServer) => {
       if (!token) return next(new Error("unauthorized"));
 
       const payload = jwt.verify(token, process.env.JWT_SECRET);
+
+      // jwt.verify alone is not authentication here: the HTTP path also checks
+      // tokenVersion and the ban flag, and without the same check a password
+      // change or a ban closed the REST API but left the old token a perfectly
+      // working realtime channel.
+      const session = await checkSession(payload.userId, payload.tokenVersion ?? 0);
+      if (!session.ok) return next(new Error("unauthorized"));
+
       socket.data.userId = payload.userId;
       return next();
     } catch (err) {
@@ -172,6 +181,33 @@ export function getIO() {
 
 export const initializeSocketInfrastructure = async () => {
   await initializeSocketRedisAdapter(io);
+};
+
+/**
+ * Kicks every live socket a user has. Handshake-time checks only stop NEW
+ * connections; the ones opened before a ban or a password change stay up until
+ * something ends them — this is that something. With the redis adapter the
+ * disconnect propagates to sockets on other workers too.
+ */
+export const disconnectUserSockets = (userId) => {
+  try {
+    io.in(String(userId)).disconnectSockets(true);
+  } catch {
+    // noop io (tests, pre-boot) has no disconnectSockets — nothing to kick.
+  }
+};
+
+/** Closes the io server and the cleanup timer — for tests and shutdown. */
+export const stopSocketInfrastructure = () => {
+  if (staleCleanupTimer) {
+    clearInterval(staleCleanupTimer);
+    staleCleanupTimer = null;
+  }
+  try {
+    io?.close?.();
+  } catch {
+    // already closed or noop io
+  }
 };
 
 export { io, server };
