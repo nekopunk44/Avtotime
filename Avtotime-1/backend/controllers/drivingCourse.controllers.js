@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { Types } from "mongoose";
 import DrivingQuestion from "../models/drivingQuestion.model.js";
 import DrivingTestResult from "../models/drivingTestResult.model.js";
 import { findFallbackDrivingQuestions, getFallbackDrivingQuestions } from "../services/drivingQuestionFallback.js";
@@ -376,8 +377,65 @@ export const saveTestResult = async (req, res) => {
       return res.status(400).json({ message: "Требуемые поля отсутствуют" });
     }
 
-    const totalQuestions = questions.length;
-    const correctAnswers = questions.filter((q) => q.isCorrect).length;
+    if (questions.length === 0 || questions.length > 1000) {
+      return res.status(400).json({ message: "Некорректное число вопросов" });
+    }
+
+    // Экзамен — это целый билет: ровно 20 вопросов одного билета без
+    // повторов, как их и выдаёт getExamQuestions. Иначе результат можно
+    // собрать из двадцати знакомых вопросов вперемешку.
+    if (mode === "exam") {
+      const tickets = new Set(questions.map((q) => Number(q.ticketNumber)));
+      const numbers = new Set(questions.map((q) => Number(q.questionNumber)));
+      if (questions.length !== 20 || tickets.size !== 1 || numbers.size !== 20) {
+        return res.status(400).json({ message: "Экзамен принимается только целым билетом" });
+      }
+    }
+
+    // isCorrect и correctAnswer от клиента НЕ принимаются: curl с
+    // isCorrect:true давал 100% в постоянной статистике. Правильные ответы
+    // есть у сервера — по ним и считаем. Вопрос, который не удалось найти
+    // ни в БД, ни в фолбэке, засчитывается как неверный: выдуманный id не
+    // должен надувать результат.
+    const validIds = questions
+      .map((q) => q.questionId)
+      .filter((id) => typeof id === "string" && Types.ObjectId.isValid(id));
+    const dbQuestions = validIds.length
+      ? await DrivingQuestion.find({ _id: { $in: validIds } })
+          .select("ticketNumber questionNumber correctAnswerNumber")
+          .lean()
+      : [];
+
+    const byId = new Map(dbQuestions.map((q) => [String(q._id), q]));
+    const byTicket = new Map(
+      dbQuestions.map((q) => [`${q.ticketNumber}:${q.questionNumber}`, q]),
+    );
+    // Прод сегодня живёт на файловом фолбэке (в БД 0 вопросов) — его ответы
+    // такие же серверные, как и из базы.
+    for (const q of getFallbackDrivingQuestions()) {
+      const key = `${q.ticketNumber}:${q.questionNumber}`;
+      if (!byTicket.has(key)) byTicket.set(key, q);
+    }
+
+    const gradedAnswers = questions.map((q) => {
+      const known =
+        byId.get(String(q.questionId)) ||
+        byTicket.get(`${Number(q.ticketNumber)}:${Number(q.questionNumber)}`) ||
+        null;
+      const correctAnswer = known ? Number(known.correctAnswerNumber) : null;
+      const selectedAnswer = Number(q.selectedAnswer);
+      return {
+        questionId: q.questionId,
+        ticketNumber: q.ticketNumber,
+        questionNumber: q.questionNumber,
+        selectedAnswer: q.selectedAnswer,
+        correctAnswer,
+        isCorrect: known ? selectedAnswer === correctAnswer : false,
+      };
+    });
+
+    const totalQuestions = gradedAnswers.length;
+    const correctAnswers = gradedAnswers.filter((q) => q.isCorrect).length;
     const wrongAnswers = totalQuestions - correctAnswers;
     const percentage = Math.round((correctAnswers / totalQuestions) * 100);
 
@@ -399,14 +457,7 @@ export const saveTestResult = async (req, res) => {
       percentage,
       passed,
       timeSpentSeconds,
-      answers: questions.map((q) => ({
-        questionId: q.questionId,
-        ticketNumber: q.ticketNumber,
-        questionNumber: q.questionNumber,
-        selectedAnswer: q.selectedAnswer,
-        correctAnswer: q.correctAnswer,
-        isCorrect: q.isCorrect,
-      })),
+      answers: gradedAnswers,
       status: "completed",
     });
 
@@ -420,6 +471,8 @@ export const saveTestResult = async (req, res) => {
         percentage,
         passed,
         timeSpentSeconds,
+        // Клиент показывает разбор по серверной оценке, а не по своей.
+        answers: gradedAnswers,
       },
     });
   } catch (error) {

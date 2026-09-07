@@ -37,7 +37,11 @@ const drivingTestResultSchema = new mongoose.Schema(
     },
     answers: [
       {
-        questionId: mongoose.Schema.Types.ObjectId,
+        // Строка, не ObjectId: прод раздаёт вопросы из файлового фолбэка с
+        // синтетическими id вида "fallback-1-1", и каст в ObjectId ронял
+        // сохранение результата целиком. Старые записи с ObjectId читаются
+        // без миграции — mongoose приводит их к строке.
+        questionId: String,
         ticketNumber: Number,
         questionNumber: Number,
         selectedAnswer: Number,
