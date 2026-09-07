@@ -41,6 +41,20 @@ export const createPaymentIntent = async (req, res) => {
       return res.status(400).json({ message: 'Неверный тариф' });
     }
 
+    // Серверное зеркало гео-блока. Клиентская проверка обходится одним
+    // curl'ом и открывается при любой ошибке сети — юридическое ограничение
+    // не может держаться на вежливости браузера. Неопределившийся IP
+    // пропускаем: наказывать пользователя за пробел в geo-базе нельзя,
+    // а обход через VPN неустраним на любом уровне.
+    const country = geoip.lookup(req.ip || '')?.country || null;
+    if (country && CIS_COUNTRIES.has(country)) {
+      audit('payment.geo_blocked', { userId: String(req.userId), country });
+      return res.status(403).json({
+        message: 'Оплата картой недоступна в вашем регионе',
+        country,
+      });
+    }
+
     const stripe = getStripe();
     const user = await User.findById(req.userId).select('email stripeCustomerId name');
     if (!user) return res.status(404).json({ message: 'Пользователь не найден' });

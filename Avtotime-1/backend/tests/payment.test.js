@@ -5,10 +5,13 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 // authorisation rules, not about Stripe's API. `retrieve` is reassigned per test
 // to describe whatever the payment intent looks like from Stripe's side.
 const retrieve = vi.fn();
+const createIntent = vi.fn();
+const createCustomer = vi.fn();
 vi.mock("stripe", () => ({
   default: class StripeStub {
     constructor() {
-      this.paymentIntents = { retrieve };
+      this.paymentIntents = { retrieve, create: createIntent };
+      this.customers = { create: createCustomer };
     }
   },
 }));
@@ -156,6 +159,53 @@ describe("confirming a payment", () => {
 
     expect(response.status).toBe(403);
     expect(retrieve).not.toHaveBeenCalled();
+  });
+});
+
+describe("creating a payment intent", () => {
+  // Отдельный экземпляр: гео-проверка читает req.ip, а он настоящий только
+  // при включённом trust proxy — как в проде за nginx. createApp читает env
+  // при каждом вызове, поэтому второй экземпляр получает своё значение.
+  process.env.TRUST_PROXY = "1";
+  const proxiedApp = createApp();
+
+  const createFrom = (ip) =>
+    request(proxiedApp)
+      .post("/api/payment/create-intent")
+      .set("Authorization", `Bearer ${buyer.token}`)
+      .set("Origin", ORIGIN)
+      .set("X-Forwarded-For", ip)
+      .send({ plan: "pro" });
+
+  it("refuses a card payment from a CIS address on the server, not the client", async () => {
+    // 77.88.55.55 — стабильно российский адрес в базе geoip.
+    const response = await createFrom("77.88.55.55");
+
+    // Клиентскую проверку обходит один curl; юридический блок обязан жить здесь.
+    expect(response.status).toBe(403);
+    expect(createIntent).not.toHaveBeenCalled();
+  });
+
+  it("creates the intent for an address outside the block list", async () => {
+    createCustomer.mockResolvedValue({ id: "cus_test" });
+    createIntent.mockResolvedValue({ id: "pi_new", client_secret: "cs_test" });
+
+    // 88.198.0.1 — Германия (Hetzner).
+    const response = await createFrom("88.198.0.1");
+
+    expect(response.status).toBe(200);
+    expect(response.body.clientSecret).toBe("cs_test");
+    expect(await Payment.countDocuments({ stripePaymentIntentId: "pi_new" })).toBe(1);
+  });
+
+  it("does not punish an address the geo database cannot place", async () => {
+    createCustomer.mockResolvedValue({ id: "cus_test" });
+    createIntent.mockResolvedValue({ id: "pi_unknown", client_secret: "cs_u" });
+
+    // Приватный диапазон — заведомый пробел в базе.
+    const response = await createFrom("10.99.99.99");
+
+    expect(response.status).toBe(200);
   });
 });
 
