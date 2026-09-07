@@ -90,15 +90,12 @@ export const getCurrentUser = async (req, res) => {
         // token below, so it has to be requested explicitly.
         const user = await User.findById(userId)
             .select(`${OWNER_PROFILE_FIELDS} +tokenVersion`)
+            // posts и loops сознательно НЕ популятся: их не читает ни один
+            // клиент (профили грузят посты отдельным запросом), а тянулись они
+            // целиком, с авторами всех комментариев, при каждом старте
+            // приложения. saved остаётся — его показывает экран сохранённого
+            // в мобилке.
             .populate([
-                {
-                    path: 'posts',
-                    populate: [
-                        { path: 'author', select: AUTHOR_FIELDS },
-                        { path: 'comments.author', select: AUTHOR_FIELDS },
-                    ],
-                },
-                { path: 'loops', populate: { path: 'author', select: AUTHOR_FIELDS } },
                 { path: 'saved', populate: { path: 'author', select: AUTHOR_FIELDS } },
                 { path: 'story' },
             ])
