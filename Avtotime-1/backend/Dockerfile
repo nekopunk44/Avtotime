@@ -9,6 +9,13 @@ COPY package*.json ./
 # falls back to pure tfjs + sharp (services/localModeration.js), which is what
 # actually runs on this image.
 RUN npm ci --omit=dev --legacy-peer-deps
+# tfjs-node ships a glibc libtensorflow (~250 MB) that cannot load on musl —
+# on this image it only bloats the layers and costs a doomed import attempt at
+# runtime before the tfjs+sharp fallback kicks in. The moderation deps that
+# actually run here (tfjs, nsfwjs, sharp) are regular dependencies: as
+# optionals, npm silently SKIPPED nsfwjs because its engines field pins an
+# exact node version — that is how the stack went missing from production.
+RUN rm -rf node_modules/@tensorflow/tfjs-node
 
 # ── runtime stage ──────────────────────────────────────────────────────────
 FROM node:20-alpine AS runtime
