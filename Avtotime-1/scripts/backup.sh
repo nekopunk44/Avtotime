@@ -115,7 +115,19 @@ if [ -z "$MONGO_CID" ]; then
   exit 1
 fi
 
-COLLECTIONS="$("${DC[@]}" exec -T mongodb mongosh --quiet --eval "db.getSiblingDB('$MONGO_DB').getCollectionNames().length" 2>/dev/null | tail -n 1 | tr -dc '0-9')"
+# С включённым --auth exec в контейнер без креденшалов больше не работает.
+# URI с паролем живёт в .env.production; без него (auth ещё не включён)
+# остаётся старое прямое подключение.
+MONGO_URI="${MONGODB_URL:-}"
+if [ -z "$MONGO_URI" ] && [ -f "$PROJECT_DIR/.env.production" ]; then
+  MONGO_URI="$(grep -E '^MONGODB_URL=' "$PROJECT_DIR/.env.production" | tail -1 | cut -d= -f2-)"
+fi
+[ -n "$MONGO_URI" ] || MONGO_URI="mongodb://mongodb:27017/$MONGO_DB"
+
+MONGO_IMAGE="$(docker inspect -f '{{.Config.Image}}' "$MONGO_CID")"
+MONGO_NET="$(docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$MONGO_CID" | awk '{print $1}')"
+
+COLLECTIONS="$(docker run --rm --network "$MONGO_NET" "$MONGO_IMAGE" mongosh "$MONGO_URI" --quiet --eval "db.getSiblingDB('$MONGO_DB').getCollectionNames().length" 2>/dev/null | tail -n 1 | tr -dc '0-9')"
 if [ -z "$COLLECTIONS" ] || [ "$COLLECTIONS" -eq 0 ]; then
   log "FAILED: database '$MONGO_DB' reports ${COLLECTIONS:-no} collections - refusing to store an empty backup"
   ping_healthcheck "/fail"
@@ -129,9 +141,9 @@ log "database '$MONGO_DB' has $COLLECTIONS collection(s)"
 # largest RSS in that cgroup - mongod itself - and the nightly backup would
 # take production down at 03:20.
 FAILED_STEP="mongodump"
-MONGO_IMAGE="$(docker inspect -f '{{.Config.Image}}' "$MONGO_CID")"
-MONGO_NET="$(docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$MONGO_CID" | awk '{print $1}')"
-docker run --rm --network "$MONGO_NET" "$MONGO_IMAGE" mongodump --host=mongodb --db="$MONGO_DB" --archive --gzip --quiet > "$MONGO_FILE"
+# --uri вместо --host: с auth иначе никак, а без auth URI эквивалентен.
+# База берётся из пути URI (--db вместе с --uri mongodump не принимает).
+docker run --rm --network "$MONGO_NET" "$MONGO_IMAGE" mongodump --uri="$MONGO_URI" --archive --gzip --quiet > "$MONGO_FILE"
 
 if [ ! -s "$MONGO_FILE" ]; then
   log "FAILED: mongo dump is empty"

@@ -6,9 +6,14 @@ services:
     # so once mem_limit is set it must be pinned explicitly or mongod becomes
     # the first OOM-kill victim. 1 GB is far above what this dataset needs and
     # still leaves the box mostly free.
-    command: ["mongod", "--bind_ip_all", "--wiredTigerCacheSizeGB", "1.0"]
+    # --auth: до этого любой контейнер в compose-сети имел полный админский
+    # доступ к базе. --replSet rs0 (один узел, второго сервера не требует)
+    # включает oplog и транзакции — платёж и выдача тарифа наконец могут быть
+    # атомарными. Auth вместе с replSet требует keyFile даже для одного узла.
+    command: ["mongod", "--bind_ip_all", "--wiredTigerCacheSizeGB", "1.0", "--auth", "--keyFile", "/etc/mongo-keyfile", "--replSet", "rs0"]
     volumes:
       - mongo_data:/data/db
+      - ./mongo-keyfile:/etc/mongo-keyfile:ro
     expose:
       - "27017"
     mem_limit: 2g
@@ -35,6 +40,8 @@ services:
     # Everything stored here is a regenerable cache (auth sessions, market
     # lists, response cache) plus socket.io pub/sub, so LRU eviction is safer
     # than the default noeviction, which makes writes fail once the cap is hit.
+    # Пароль приходит интерполяцией из /root/avtotime/.env (файл только на
+    # сервере) — в git секрета нет.
     command:
       - redis-server
       - --save
@@ -46,6 +53,8 @@ services:
       - 384mb
       - --maxmemory-policy
       - allkeys-lru
+      - --requirepass
+      - ${REDIS_PASSWORD:?set REDIS_PASSWORD in /root/avtotime/.env}
     volumes:
       - redis_data:/data
     expose:
@@ -55,8 +64,10 @@ services:
     # over maxmemory, not a thin margin.
     mem_limit: 1g
     stop_grace_period: 30s
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in /root/avtotime/.env}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 15s
       timeout: 3s
       retries: 5
@@ -81,8 +92,8 @@ services:
       - .env.production
     environment:
       NODE_ENV: production
-      MONGODB_URL: mongodb://mongodb:27017/avtotime
-      REDIS_URL: redis://redis:6379/0
+      # MONGODB_URL и REDIS_URL переехали в .env.production: в них теперь
+      # пароли, а environment перебивал бы env_file и держал секреты в git.
       REDIS_SOCKET_ADAPTER_ENABLED: "true"
       TRUST_PROXY: "1"
       PORT: "8000"
