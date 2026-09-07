@@ -42,37 +42,39 @@ let io = createNoopIo();
 let server = null;
 let staleCleanupTimer = null;
 
-const onlineSocketsByUser = new Map(); // userId -> Set(socketId)
 let onlineUsersEmitTimer = null;
 
-const addOnlineSocket = (userId, socketId) => {
-  const set = onlineSocketsByUser.get(userId) || new Set();
-  set.add(socketId);
-  onlineSocketsByUser.set(userId, set);
-};
-
-const removeOnlineSocket = (userId, socketId) => {
-  const set = onlineSocketsByUser.get(userId);
-  if (!set) return;
-  set.delete(socketId);
-  if (set.size === 0) onlineSocketsByUser.delete(userId);
-};
-
+/**
+ * Кто онлайн — по fetchSockets() адаптера, а не по локальной карте.
+ *
+ * Карта в памяти воркера видела только СВОИ подключения: при двух воркерах
+ * каждый рассылал свою половину списка, и пользователи в интерфейсе мигали.
+ * С redis-адаптером fetchSockets() возвращает сокеты всех воркеров (data
+ * сериализуется и приезжает вместе с ними), а без Redis — локальные, то есть
+ * ровно то же, что давала карта. Заодно исчезает чистка устаревших записей:
+ * адаптер и есть источник истины о живых подключениях.
+ */
 const emitOnlineUsers = () => {
   if (onlineUsersEmitTimer) return;
 
   const debounceMs = Math.max(0, Number(process.env.ONLINE_USERS_EMIT_DEBOUNCE_MS || 250));
-  onlineUsersEmitTimer = setTimeout(() => {
+  onlineUsersEmitTimer = setTimeout(async () => {
     onlineUsersEmitTimer = null;
-    const onlineUsers = Array.from(onlineSocketsByUser.keys());
-    io.emit("getOnlineUsers", onlineUsers);
-    io.emit("onlineUsersCount", onlineUsers.length);
+    try {
+      const sockets = await io.fetchSockets();
+      const onlineUsers = [...new Set(
+        sockets.map((s) => (s.data?.userId ? String(s.data.userId) : null)).filter(Boolean),
+      )];
+      io.emit("getOnlineUsers", onlineUsers);
+      io.emit("onlineUsersCount", onlineUsers.length);
+    } catch (error) {
+      // Пропущенный такт списка онлайна не стоит падения воркера; следующее
+      // подключение или отключение поставит новый таймер.
+      console.error("[socket] online users emit failed:", error?.message || error);
+    }
   }, debounceMs);
   onlineUsersEmitTimer.unref?.();
 };
-
-// Periodically purge stale entries for connections that dropped without a clean disconnect
-const STALE_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
 const registerSocketHandlers = (ioServer) => {
   ioServer.use(async (socket, next) => {
@@ -115,11 +117,9 @@ const registerSocketHandlers = (ioServer) => {
     }
 
     socket.join(String(userId));
-    addOnlineSocket(String(userId), socket.id);
     emitOnlineUsers();
 
     socket.on("disconnect", () => {
-      removeOnlineSocket(String(userId), socket.id);
       emitOnlineUsers();
 
       if (process.env.NODE_ENV !== "production") {
@@ -128,20 +128,11 @@ const registerSocketHandlers = (ioServer) => {
     });
   });
 
+  // Редкий страховочный пересчёт: адаптер сам источник истины, но обрыв
+  // соединения без disconnect-события на другом воркере иначе оставил бы
+  // клиентам устаревший список до следующего события.
   if (staleCleanupTimer) clearInterval(staleCleanupTimer);
-  staleCleanupTimer = setInterval(() => {
-    let changed = false;
-    for (const [uid, socketIds] of onlineSocketsByUser.entries()) {
-      for (const sid of socketIds) {
-        if (!ioServer.sockets.sockets.has(sid)) {
-          socketIds.delete(sid);
-          changed = true;
-        }
-      }
-      if (socketIds.size === 0) onlineSocketsByUser.delete(uid);
-    }
-    if (changed) emitOnlineUsers();
-  }, STALE_CLEANUP_INTERVAL_MS);
+  staleCleanupTimer = setInterval(() => emitOnlineUsers(), 5 * 60 * 1000);
   staleCleanupTimer.unref();
 };
 

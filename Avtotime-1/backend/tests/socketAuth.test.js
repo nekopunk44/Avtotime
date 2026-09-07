@@ -104,3 +104,33 @@ describe("the socket handshake honours session revocation", () => {
     expect(why).toBe("io server disconnect");
   });
 });
+
+describe("список онлайна собирается из адаптера", () => {
+  it("оба подключившихся пользователя попадают в один список", async () => {
+    const a = await signUp({ userName: "online1", email: "online1@example.com" });
+    const b = await signUp({ userName: "online2", email: "online2@example.com" });
+
+    const first = await tryConnect(a.token);
+    expect(first.connected).toBe(true);
+
+    // Список приедет вторым сокетом после дебаунса; ждём кадр, в котором
+    // есть ОБА пользователя — промежуточный с одним допустим.
+    const bothSeen = new Promise((resolve) => {
+      const socketB = ioClient(baseUrl, {
+        transports: ["websocket"],
+        auth: { token: `Bearer ${b.token}` },
+        reconnection: false,
+      });
+      socketB.on("getOnlineUsers", (users) => {
+        if (users.includes(String(a.id)) && users.includes(String(b.id))) {
+          socketB.close();
+          resolve(users);
+        }
+      });
+    });
+
+    const users = await bothSeen;
+    expect(users).toEqual(expect.arrayContaining([String(a.id), String(b.id)]));
+    first.socket.close();
+  });
+});
