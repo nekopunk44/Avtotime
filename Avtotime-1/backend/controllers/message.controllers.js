@@ -88,10 +88,23 @@ export const sendMessage = async (req, res) => {
         // no per-conversation message lookup. encryptString is applied
         // explicitly (and is idempotent) so the preview is encrypted at rest
         // even if schema setters are skipped on update queries.
+        // Массива messages здесь больше нет: он рос на каждой отправке и вёл
+        // диалог к жёсткому лимиту документа Mongo в 16 МБ, после которого
+        // запись сообщений просто перестаёт работать. Сообщения адресуются
+        // парой (sender, receiver) — под неё есть составной индекс.
+        // Фильтр через $elemMatch, а не $all:[a,b]: при upsert-вставке Mongo
+        // пытается вывести поля нового документа из равенств запроса, и
+        // «participants matched twice» валил САМОЕ ПЕРВОЕ сообщение пары
+        // ошибкой 500. $elemMatch в выводе не участвует — участники берутся
+        // из $setOnInsert.
         await Conversation.findOneAndUpdate(
-            { participants: { $all: [senderId, receiverId] } },
             {
-                $push: { messages: newMessage._id },
+                $and: [
+                    { participants: { $elemMatch: { $eq: senderId } } },
+                    { participants: { $elemMatch: { $eq: receiverId } } },
+                ],
+            },
+            {
                 $set: {
                     lastMessagePreview: encryptString(
                         buildMessagePreview({ message, image: imageUrl, file: fileUrl, audioUrl })
@@ -140,18 +153,21 @@ export const getAllMessages = async (req, res) => {
         const limit = Math.min(MAX_MESSAGES_PAGE_SIZE, Math.max(1, parseInt(req.query.limit) || DEFAULT_MESSAGES_PAGE_SIZE));
         const skip = (page - 1) * limit;
 
-        const conversation = await Conversation.findOne({
-            participants: { $all: [senderId, receiverId] }
-        }).populate({
-            path: 'messages',
-            options: {
-                sort: { createdAt: -1 },
-                skip,
-                limit,
-            },
-        });
+        // Прямой запрос по паре, а не populate массива из Conversation: тот
+        // на каждой странице отправлял в $in ВЕСЬ список id диалога — запрос
+        // рос вместе с историей. Составной индекс (receiver, sender,
+        // createdAt) закрывает обе стороны пары.
+        const pageDesc = await Message.find({
+            $or: [
+                { sender: senderId, receiver: receiverId },
+                { sender: receiverId, receiver: senderId },
+            ],
+        })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
 
-        const messages = conversation ? [...conversation.messages].reverse() : [];
+        const messages = pageDesc.map((m) => m.toObject({ getters: true })).reverse();
 
         // Mark the other user's messages to us as read now that we've opened the chat
         const { modifiedCount } = await Message.updateMany(
@@ -327,7 +343,14 @@ export const deleteConversation = async (req, res) => {
             return res.status(200).json({ message: 'Переписка не найдена' });
         }
 
-        await Message.deleteMany({ _id: { $in: conversation.messages } });
+        // По паре, а не по массиву id из Conversation: массив больше не
+        // ведётся, а у старых диалогов он мог быть и неполным.
+        await Message.deleteMany({
+            $or: [
+                { sender: userId, receiver: targetId },
+                { sender: targetId, receiver: userId },
+            ],
+        });
         await conversation.deleteOne();
 
         return res.status(200).json({ message: 'Переписка удалена' });
