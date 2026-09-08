@@ -15,7 +15,7 @@ const mount = async (element: React.ReactElement) => {
 };
 
 const findTexts = (tree: renderer.ReactTestRenderer) =>
-  tree.root.findAll((n) => n.type === 'Text' && typeof n.props.children === 'string')
+  tree.root.findAll((n) => String(n.type) === 'Text' && typeof n.props.children === 'string')
     .map((n) => n.props.children as string);
 
 describe('ReportSheet', () => {
@@ -36,12 +36,12 @@ describe('ReportSheet', () => {
     );
 
     const spamChip = tree.root.findAll(
-      (n) => n.props.onPress && n.findAll((c) => c.type === 'Text' && c.props.children === 'Спам').length > 0,
+      (n) => n.props.onPress && n.findAll((c) => String(c.type) === 'Text' && c.props.children === 'Спам').length > 0,
     )[0];
     await act(async () => { spamChip.props.onPress(); });
 
     const sendBtn = tree.root.findAll(
-      (n) => n.props.onPress && n.findAll((c) => c.type === 'Text' && c.props.children === 'Отправить жалобу').length > 0,
+      (n) => n.props.onPress && n.findAll((c) => String(c.type) === 'Text' && c.props.children === 'Отправить жалобу').length > 0,
     )[0];
     await act(async () => { await sendBtn.props.onPress(); });
 
@@ -58,11 +58,11 @@ describe('ReportSheet', () => {
     );
 
     const chip = tree.root.findAll(
-      (n) => n.props.onPress && n.findAll((c) => c.type === 'Text' && c.props.children === 'Спам').length > 0,
+      (n) => n.props.onPress && n.findAll((c) => String(c.type) === 'Text' && c.props.children === 'Спам').length > 0,
     )[0];
     await act(async () => { chip.props.onPress(); });
     const sendBtn = tree.root.findAll(
-      (n) => n.props.onPress && n.findAll((c) => c.type === 'Text' && c.props.children === 'Отправить жалобу').length > 0,
+      (n) => n.props.onPress && n.findAll((c) => String(c.type) === 'Text' && c.props.children === 'Отправить жалобу').length > 0,
     )[0];
     await act(async () => { await sendBtn.props.onPress(); });
 
