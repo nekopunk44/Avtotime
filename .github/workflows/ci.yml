@@ -314,7 +314,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=yes \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
-            'cd /root/avtotime && docker compose up -d --no-deps --build backend && docker image prune -f >/dev/null && docker compose ps backend'
+            'cd /root/avtotime && docker compose up -d --no-deps --build backend && docker image prune -f >/dev/null && docker builder prune -f --keep-storage 5GB >/dev/null && docker compose ps backend'
 
       - name: Health check
         shell: bash
