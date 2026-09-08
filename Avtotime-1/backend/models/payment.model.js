@@ -14,6 +14,16 @@ const paymentSchema = new mongoose.Schema(
     },
     stripePaymentIntentId: { type: String, default: null },
     stripeCustomerId: { type: String, default: null },
+    // Покупки в сторах. provider отличает источник; storeTransactionId — ключ
+    // идемпотентности: у Google это purchaseToken (стабилен через продления),
+    // у Apple — originalTransactionId (тоже переживает продления).
+    provider: { type: String, enum: ['stripe', 'google', 'apple'], default: 'stripe' },
+    storeProductId: { type: String, default: null },
+    storeTransactionId: { type: String, default: null },
+    storeExpiresAt: { type: Date, default: null },
+    // Последний чек Apple: нужен, чтобы по уведомлению стора перепроверить
+    // подписку СВОИМ запросом к Apple, а не доверять содержимому уведомления.
+    latestReceipt: { type: String, default: null, select: false },
     periodStart: { type: Date, default: null },
     periodEnd: { type: Date, default: null },
   },
@@ -22,6 +32,7 @@ const paymentSchema = new mongoose.Schema(
 
 paymentSchema.index({ user: 1, createdAt: -1 });
 paymentSchema.index({ stripePaymentIntentId: 1 }, { sparse: true });
+paymentSchema.index({ provider: 1, storeTransactionId: 1 }, { unique: true, sparse: true });
 
 const Payment = mongoose.model('Payment', paymentSchema);
 export default Payment;
