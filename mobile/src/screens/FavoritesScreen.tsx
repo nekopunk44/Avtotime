@@ -1,7 +1,8 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   FlatList,
   Image,
   RefreshControl,
@@ -22,8 +23,8 @@ import {
 } from '../api/favorites';
 import { getMarketCategory, MarketCategoryId, MarketListing } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
-import { colors } from '../theme';
-import { Skeleton } from '../components/ui';
+import { colors, font, radius, space, shadow } from '../theme';
+import { PressableScale, Skeleton } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
@@ -37,6 +38,79 @@ const FILTERS: Array<{ label: string; type?: FavoriteListingType }> = [
   { label: 'Чистка', type: 'dry-cleaning' },
 ];
 
+// Визуальная карточка: фото ведёт, цена живёт на снимке, текст поддерживает.
+// Каскадный вход по ~40 мс на карточку — как в ленте.
+function FavoriteCard({
+  item,
+  index,
+  removing,
+  onOpen,
+  onRemove,
+}: {
+  item: FavoriteItem;
+  index: number;
+  removing: boolean;
+  onOpen: () => void;
+  onRemove: () => void;
+}) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(14)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 300, delay: Math.min(index, 8) * 40, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 0, duration: 300, delay: Math.min(index, 8) * 40, useNativeDriver: true }),
+    ]).start();
+  }, [opacity, translateY, index]);
+
+  const category = getMarketCategory(getCategoryIdFromFavoriteType(item.listingType));
+
+  return (
+    <Animated.View style={[styles.cardWrap, { opacity, transform: [{ translateY }] }]}>
+      <PressableScale style={styles.card} onPress={onOpen} scaleTo={0.97}>
+        <View style={styles.imageWrap}>
+          {item.listingImage ? (
+            <Image source={{ uri: item.listingImage }} style={styles.image} resizeMode="cover" />
+          ) : (
+            <View style={[styles.image, styles.noImage]}>
+              <Ionicons name={category.icon as never} size={30} color={colors.textFaint} />
+            </View>
+          )}
+
+          {/* Тёмная плашка снизу: цена читается на любом фото. */}
+          <View style={styles.priceScrim}>
+            <Text style={styles.price} numberOfLines={1}>
+              {item.listingPrice || 'Цена по запросу'}
+            </Text>
+          </View>
+
+          <View style={styles.categoryBadge}>
+            <Ionicons name={category.icon as never} size={11} color={colors.text} />
+            <Text style={styles.categoryBadgeText}>{category.shortLabel}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.removeBtn}
+            onPress={onRemove}
+            disabled={removing}
+            hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+          >
+            {removing ? (
+              <ActivityIndicator size="small" color={colors.text} />
+            ) : (
+              <Ionicons name="bookmark" size={16} color={colors.text} />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.title} numberOfLines={2}>
+          {item.listingTitle || 'Объявление'}
+        </Text>
+      </PressableScale>
+    </Animated.View>
+  );
+}
+
 export default function FavoritesScreen({ navigation }: Props) {
   const [filter, setFilter] = useState<FavoriteListingType | undefined>();
   const requestIdRef = React.useRef(0);
@@ -48,7 +122,7 @@ export default function FavoritesScreen({ navigation }: Props) {
   const [error, setError] = useState('');
 
   const activeCategory = useMemo(
-    () => filter ? getMarketCategory(getCategoryIdFromFavoriteType(filter)) : null,
+    () => (filter ? getMarketCategory(getCategoryIdFromFavoriteType(filter)) : null),
     [filter],
   );
 
@@ -125,42 +199,14 @@ export default function FavoritesScreen({ navigation }: Props) {
     );
   };
 
-  const renderItem = ({ item }: { item: FavoriteItem }) => {
-    const category = getMarketCategory(getCategoryIdFromFavoriteType(item.listingType));
-    const removing = removingId === item._id;
-
-    return (
-      <TouchableOpacity style={styles.card} onPress={() => openItem(item)} activeOpacity={0.9}>
-        {item.listingImage ? (
-          <Image source={{ uri: item.listingImage }} style={styles.image} />
-        ) : (
-          <View style={[styles.image, styles.noImage]}>
-            <Ionicons name={category.icon as any} size={24} color={colors.textFaint} />
-          </View>
-        )}
-        <View style={styles.body}>
-          <View style={styles.categoryRow}>
-            <Ionicons name={category.icon as any} size={14} color={colors.textMuted} />
-            <Text style={styles.categoryText}>{category.shortLabel}</Text>
-          </View>
-          <Text style={styles.title} numberOfLines={2}>{item.listingTitle || 'Объявление'}</Text>
-          <Text style={styles.price} numberOfLines={1}>{item.listingPrice || 'Цена по запросу'}</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.removeBtn}
-          onPress={() => deleteItem(item)}
-          disabled={removing}
-          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-        >
-          {removing ? (
-            <ActivityIndicator size="small" color={colors.text} />
-          ) : (
-            <Ionicons name="bookmark" size={22} color={colors.text} />
-          )}
-        </TouchableOpacity>
-      </TouchableOpacity>
-    );
-  };
+  const listHeader = items.length ? (
+    <View style={styles.countRow}>
+      <Text style={styles.countNumber}>{items.length}</Text>
+      <Text style={styles.countLabel}>
+        {activeCategory ? `в разделе «${activeCategory.shortLabel}»` : 'в избранном'}
+      </Text>
+    </View>
+  ) : null;
 
   return (
     <View style={styles.container}>
@@ -176,27 +222,39 @@ export default function FavoritesScreen({ navigation }: Props) {
       </View>
 
       {loading ? (
-        <View style={styles.skeletonList}>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <View key={i} style={styles.skeletonRow}>
-              <Skeleton style={styles.skeletonThumb} />
-              <View style={{ flex: 1, gap: 8 }}>
-                <Skeleton style={{ width: '70%', height: 13 }} />
-                <Skeleton style={{ width: '45%', height: 11 }} />
-              </View>
+        <View style={styles.skeletonGrid}>
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={styles.skeletonCard}>
+              <Skeleton style={styles.skeletonImage} />
+              <Skeleton style={{ width: '80%', height: 12, marginTop: 8 }} />
+              <Skeleton style={{ width: '50%', height: 12, marginTop: 6 }} />
             </View>
           ))}
         </View>
       ) : (
         <FlatList
           data={items}
+          key="grid"
+          numColumns={2}
           keyExtractor={(item) => item._id}
-          renderItem={renderItem}
+          columnWrapperStyle={items.length ? styles.gridRow : undefined}
+          renderItem={({ item, index }) => (
+            <FavoriteCard
+              item={item}
+              index={index}
+              removing={removingId === item._id}
+              onOpen={() => openItem(item)}
+              onRemove={() => deleteItem(item)}
+            />
+          )}
+          ListHeaderComponent={listHeader}
           contentContainerStyle={items.length ? styles.list : styles.emptyList}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="bookmark-outline" size={36} color={colors.textFaint} />
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name="bookmark-outline" size={30} color={colors.accent} />
+              </View>
               <Text style={styles.emptyTitle}>{error || 'Пока ничего не сохранено'}</Text>
               <Text style={styles.emptyText}>
                 {error
@@ -215,28 +273,112 @@ export default function FavoritesScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  header: { paddingHorizontal: 16 },
-  filters: { gap: 8, paddingTop: 12, paddingBottom: 4 },
-  filterBtn: { height: 36, borderRadius: 999, paddingHorizontal: 14, justifyContent: 'center', backgroundColor: colors.surfaceAlt },
+  header: { paddingHorizontal: space.lg },
+  filters: { gap: space.sm, paddingTop: space.md, paddingBottom: space.xs },
+  filterBtn: {
+    height: 36,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.lg - 2,
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceAlt,
+  },
   filterBtnActive: { backgroundColor: colors.accent },
-  filterText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  filterText: { color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
   filterTextActive: { color: colors.onAccent },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  skeletonList: { padding: 12, gap: 10 },
-  skeletonRow: { minHeight: 104, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderRadius: 8, padding: 10 },
-  skeletonThumb: { width: 84, height: 84, borderRadius: 8 },
-  list: { padding: 12, gap: 10 },
-  emptyList: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  card: { minHeight: 104, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface, borderRadius: 8, padding: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  image: { width: 84, height: 84, borderRadius: 8, backgroundColor: colors.surfaceAlt },
+
+  countRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: space.sm,
+    paddingHorizontal: space.xs,
+    paddingBottom: space.md,
+  },
+  countNumber: { color: colors.text, fontSize: font.display, fontWeight: '900' },
+  countLabel: { color: colors.textMuted, fontSize: font.small, fontWeight: '700' },
+
+  list: { padding: space.md, paddingTop: space.lg },
+  gridRow: { gap: space.md },
+  cardWrap: { flex: 1, maxWidth: '50%', marginBottom: space.md },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    paddingBottom: space.md,
+    ...shadow.card,
+  },
+  imageWrap: { width: '100%', aspectRatio: 0.92, backgroundColor: colors.surfaceAlt },
+  image: { width: '100%', height: '100%' },
   noImage: { alignItems: 'center', justifyContent: 'center' },
-  body: { flex: 1, alignSelf: 'stretch', justifyContent: 'center' },
-  categoryRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 5 },
-  categoryText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
-  title: { color: colors.text, fontSize: 15, fontWeight: '900', lineHeight: 20 },
-  price: { marginTop: 6, color: colors.text, fontSize: 15, fontWeight: '900' },
-  removeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  priceScrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: space.md,
+    paddingTop: space.xl,
+    paddingBottom: space.sm + 2,
+    backgroundColor: 'rgba(8,8,10,0.55)',
+  },
+  price: { color: colors.white, fontSize: font.h3, fontWeight: '900' },
+  categoryBadge: {
+    position: 'absolute',
+    top: space.sm,
+    left: space.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: space.sm,
+    height: 24,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(8,8,10,0.6)',
+  },
+  categoryBadgeText: { color: colors.text, fontSize: font.tiny, fontWeight: '800' },
+  removeBtn: {
+    position: 'absolute',
+    top: space.sm,
+    right: space.sm,
+    width: 30,
+    height: 30,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(8,8,10,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    color: colors.text,
+    fontSize: font.small,
+    fontWeight: '800',
+    lineHeight: 18,
+    paddingHorizontal: space.md,
+    paddingTop: space.sm + 2,
+  },
+
+  skeletonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space.md,
+    padding: space.md,
+    paddingTop: space.lg,
+  },
+  skeletonCard: {
+    width: '47%',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: space.sm,
+    paddingBottom: space.md,
+  },
+  skeletonImage: { width: '100%', aspectRatio: 0.95, borderRadius: radius.md },
+
+  emptyList: { flexGrow: 1, justifyContent: 'center', padding: space.xxl },
   emptyState: { alignItems: 'center' },
-  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: { marginTop: space.md, color: colors.text, fontSize: font.h3, fontWeight: '900', textAlign: 'center' },
+  emptyText: { marginTop: space.xs + 2, color: colors.textMuted, fontSize: font.small, lineHeight: 19, textAlign: 'center' },
 });
