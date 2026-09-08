@@ -120,7 +120,10 @@ fi
 # остаётся старое прямое подключение.
 MONGO_URI="${MONGODB_URL:-}"
 if [ -z "$MONGO_URI" ] && [ -f "$PROJECT_DIR/.env.production" ]; then
-  MONGO_URI="$(grep -E '^MONGODB_URL=' "$PROJECT_DIR/.env.production" | tail -1 | cut -d= -f2-)"
+  # `|| true` обязателен: grep возвращает 1, когда строки НЕТ (до включения
+  # auth её и не должно быть), а pipefail превратил бы это в смерть скрипта
+  # через ERR-ловушку.
+  MONGO_URI="$(grep -E '^MONGODB_URL=' "$PROJECT_DIR/.env.production" | tail -1 | cut -d= -f2- || true)"
 fi
 [ -n "$MONGO_URI" ] || MONGO_URI="mongodb://mongodb:27017/$MONGO_DB"
 
