@@ -16,10 +16,20 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   BillingStatus,
   getBillingStatus,
+  getStoreBillingConfig,
   PlanKey,
   setFreePlan,
+  StoreBillingConfig,
+  StorePlanResult,
   WEB_TARIFFS_URL,
 } from '../api/billing';
+import {
+  isCancelled,
+  isStoreBillingSupported,
+  purchasePlan,
+  restoreStorePurchases,
+} from '../billing/storePurchase';
+import { Platform } from 'react-native';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
 
@@ -170,6 +180,64 @@ export default function BillingScreen({ navigation }: Props) {
     load(true);
   };
 
+  const [storeConfig, setStoreConfig] = useState<StoreBillingConfig | null>(null);
+  const [buyingPlan, setBuyingPlan] = useState<PlanKey | null>(null);
+  const [restoring, setRestoring] = useState(false);
+
+  useFocusEffect(useCallback(() => {
+    getStoreBillingConfig().then(setStoreConfig).catch(() => setStoreConfig(null));
+  }, []));
+
+  // Нативная покупка возможна, когда И сборка несёт модуль стора, И сервер
+  // настроен для этой платформы. Иначе честный фолбэк на веб-чекаут.
+  const nativeBillingReady =
+    isStoreBillingSupported() &&
+    Boolean(Platform.OS === 'ios' ? storeConfig?.apple : storeConfig?.google);
+
+  const applyPlanResult = (result: StorePlanResult) => {
+    setStatus((prev) => ({
+      ...prev,
+      plan: result.plan,
+      effectivePlan: result.effectivePlan,
+      planActivatedAt: result.planActivatedAt,
+      planExpiresAt: result.planExpiresAt,
+    }));
+  };
+
+  const buyPlanNative = async (plan: PlanKey) => {
+    if (plan === 'free' || buyingPlan) return;
+    setBuyingPlan(plan);
+    try {
+      const result = await purchasePlan(plan);
+      applyPlanResult(result);
+      Alert.alert('Готово', `Тариф «${PLAN_LABEL[String(result.effectivePlan)] || result.effectivePlan}» активирован.`);
+    } catch (e: any) {
+      if (!isCancelled(e)) {
+        Alert.alert('Оплата', e?.response?.data?.message || e?.message || 'Покупка не прошла');
+      }
+    } finally {
+      setBuyingPlan(null);
+    }
+  };
+
+  const restore = async () => {
+    if (restoring) return;
+    setRestoring(true);
+    try {
+      const result = await restoreStorePurchases();
+      if (result) {
+        applyPlanResult(result);
+        Alert.alert('Готово', 'Подписка восстановлена.');
+      } else {
+        Alert.alert('Восстановление', 'Активных покупок в сторе не найдено.');
+      }
+    } catch (e: any) {
+      Alert.alert('Восстановление', e?.response?.data?.message || e?.message || 'Не удалось восстановить покупки');
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   const openWebCheckout = async () => {
     const canOpen = await Linking.canOpenURL(WEB_TARIFFS_URL);
     if (!canOpen) {
@@ -242,15 +310,15 @@ export default function BillingScreen({ navigation }: Props) {
 
         <TouchableOpacity
           style={[styles.planBtn, isCurrent ? styles.planBtnDisabled : styles.planBtnActive]}
-          onPress={isFree ? selectFreePlan : openWebCheckout}
-          disabled={isCurrent || saving}
+          onPress={isFree ? selectFreePlan : nativeBillingReady ? () => buyPlanNative(plan.key) : openWebCheckout}
+          disabled={isCurrent || saving || buyingPlan !== null}
           activeOpacity={0.9}
         >
-          {saving && isFree ? (
+          {(saving && isFree) || buyingPlan === plan.key ? (
             <ActivityIndicator color={colors.onAccent} size="small" />
           ) : (
             <Text style={[styles.planBtnText, isCurrent ? styles.planBtnTextDisabled : styles.planBtnTextActive]}>
-              {isCurrent ? 'Текущий тариф' : isFree ? 'Выбрать базовый' : 'Открыть оплату'}
+              {isCurrent ? 'Текущий тариф' : isFree ? 'Выбрать базовый' : nativeBillingReady ? 'Оформить подписку' : 'Открыть оплату'}
             </Text>
           )}
         </TouchableOpacity>
@@ -289,12 +357,21 @@ export default function BillingScreen({ navigation }: Props) {
             </View>
           </View>
 
-          <View style={styles.noticeBox}>
-            <Ionicons name="card-outline" size={22} color={colors.text} />
-            <Text style={styles.noticeText}>
-              В Expo Go платная карта открывается через web checkout. Native Stripe форму можно добавить позже для dev build.
-            </Text>
-          </View>
+          {nativeBillingReady ? (
+            <TouchableOpacity style={styles.noticeBox} onPress={restore} disabled={restoring} activeOpacity={0.8}>
+              <Ionicons name="refresh-outline" size={22} color={colors.text} />
+              <Text style={styles.noticeText}>
+                {restoring ? 'Проверяем покупки…' : 'Уже оплачивали? Восстановить покупки'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.noticeBox}>
+              <Ionicons name="card-outline" size={22} color={colors.text} />
+              <Text style={styles.noticeText}>
+                Оплата в этой сборке открывается через веб-страницу тарифов.
+              </Text>
+            </View>
+          )}
 
           <View style={styles.planList}>
             {PLANS.map(renderPlan)}

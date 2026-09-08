@@ -66,3 +66,37 @@ export async function getPaymentGeo(): Promise<{ country: string | null; isCis: 
     isCis: !!data?.isCis,
   };
 }
+
+// ── Подписки через сторы ────────────────────────────────────────────────────
+
+export interface StoreBillingConfig {
+  google: boolean;
+  apple: boolean;
+}
+
+export type StorePurchaseProof =
+  | { platform: 'google'; purchaseToken: string }
+  | { platform: 'apple'; receipt: string };
+
+export interface StorePlanResult {
+  plan: PlanKey | string;
+  effectivePlan: PlanKey | string;
+  planActivatedAt: string | null;
+  planExpiresAt: string | null;
+  planLimits: PlanLimits;
+}
+
+/** Какие платформы реально настроены на сервере — остальное экран прячет. */
+export async function getStoreBillingConfig(): Promise<StoreBillingConfig> {
+  const { data } = await client.get('/payment/store/config');
+  return { google: !!data?.google, apple: !!data?.apple };
+}
+
+/**
+ * Отдаёт токен покупки серверу; тариф выдаётся только по ответу стора на
+ * СЕРВЕРНЫЙ запрос — содержимому клиента бэкенд не верит.
+ */
+export async function verifyStorePurchase(proof: StorePurchaseProof): Promise<StorePlanResult> {
+  const { data } = await client.post('/payment/store/verify', proof);
+  return data;
+}
