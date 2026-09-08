@@ -84,19 +84,33 @@ else
   sleep 3
 fi
 
-if docker compose exec -T mongodb mongosh --quiet --eval 'db.getSiblingDB("admin").system.users.countDocuments()' 2>/dev/null | grep -q '^0$'; then
-  docker compose exec -T mongodb mongosh admin --quiet --eval "db.createUser({
-    user: 'avtotime',
-    pwd: '$MONGO_PASSWORD',
-    roles: [
-      { role: 'readWrite', db: 'avtotime' },
-      { role: 'backup', db: 'admin' },
-      { role: 'clusterMonitor', db: 'admin' }
-    ]
-  })"
-  echo "пользователь avtotime создан"
+# Проверка «есть ли пользователи» через system.users здесь не работает: под
+# включённым auth её саму не на что авторизовать, и однажды это заставило
+# скрипт молча ПРОПУСТИТЬ создание пользователя. Поэтому: сначала пробуем
+# войти готовыми креденшалами (идемпотентный повторный запуск), а создаём —
+# от __system, чей пароль по определению равен содержимому keyfile. Это
+# штатный путь: localhost exception после rs.initiate уже не действует.
+if docker compose exec -T mongodb mongosh "mongodb://avtotime:$MONGO_PASSWORD@localhost:27017/admin?authSource=admin" --quiet --eval 'db.runCommand({ ping: 1 }).ok' >/dev/null 2>&1; then
+  echo "пользователь avtotime уже существует и пароль подходит"
 else
-  echo "пользователи уже есть — createUser пропущен"
+  docker compose exec -T mongodb sh -c "
+    KEYPW=\$(tr -d '[:space:]' < /etc/mongo-keyfile)
+    mongosh --quiet -u __system -p \"\$KEYPW\" --authenticationDatabase local admin --eval '
+      try {
+        db.createUser({
+          user: \"avtotime\",
+          pwd: \"$MONGO_PASSWORD\",
+          roles: [
+            { role: \"readWrite\", db: \"avtotime\" },
+            { role: \"backup\", db: \"admin\" },
+            { role: \"clusterMonitor\", db: \"admin\" }
+          ]
+        });
+        print(\"пользователь avtotime создан\");
+      } catch (e) {
+        if (String(e).includes(\"already exists\")) print(\"пользователь уже был\");
+        else throw e;
+      }'"
 fi
 
 # ── 4. Остальной стек с новыми URL ──────────────────────────────────────────
