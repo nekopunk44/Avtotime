@@ -205,7 +205,34 @@ export const getExamQuestions = async (req, res) => {
       });
     }
 
-    // Иначе возьмём 20 случайных вопросов из всех
+    // Без явного билета экзамен — это всё равно ЦЕЛЫЙ билет, просто случайный:
+    // так сдают настоящий экзамен ПДД, и так требует серверная проверка
+    // результата (20 уникальных вопросов одного билета). Прежние «20 случайных
+    // из всех» собирали межбилетную солянку, которую сервер теперь отклоняет.
+    const byTicket = new Map();
+    for (const q of questions) {
+      const key = Number(q.ticketNumber);
+      if (!byTicket.has(key)) byTicket.set(key, []);
+      byTicket.get(key).push(q);
+    }
+    const fullTickets = [...byTicket.entries()].filter(([, list]) => list.length >= 20);
+
+    if (fullTickets.length > 0) {
+      const [, ticketQuestions] = fullTickets[Math.floor(Math.random() * fullTickets.length)];
+      const picked = [...ticketQuestions]
+        .sort((a, b) => a.questionNumber - b.questionNumber)
+        .slice(0, 20);
+      return res.status(200).json({
+        mode: "exam",
+        duration: 20,
+        totalQuestions: 20,
+        passingScore: 14,
+        questions: picked,
+      });
+    }
+
+    // Данных на целый билет нет (усечённая дев-база) — старое поведение как
+    // последний резерв.
     const randomQuestions = questions
       .sort(() => Math.random() - 0.5)
       .slice(0, 20);

@@ -127,3 +127,46 @@ describe("результат экзамена считает сервер, а н
     expect(response.status).toBe(400);
   });
 });
+
+describe("выдача экзамена", () => {
+  it("без билета сервер выдаёт случайный ЦЕЛЫЙ билет без правильных ответов", async () => {
+    const response = await request(app)
+      .get("/api/driving-courses/exam")
+      .set("Authorization", `Bearer ${user.token}`);
+
+    expect(response.status).toBe(200);
+    const qs = response.body.questions;
+    expect(qs).toHaveLength(20);
+    // Один билет, 20 уникальных номеров — ровно то, что примет saveTestResult.
+    expect(new Set(qs.map((q) => q.ticketNumber)).size).toBe(1);
+    expect(new Set(qs.map((q) => q.questionNumber)).size).toBe(20);
+    // Правильные ответы клиенту экзамена не выдаются.
+    expect(qs.every((q) => q.correctAnswerNumber === undefined)).toBe(true);
+  });
+
+  it("выданный экзамен принимается серверной проверкой end-to-end", async () => {
+    const exam = await request(app)
+      .get("/api/driving-courses/exam")
+      .set("Authorization", `Bearer ${user.token}`);
+
+    const byKey = new Map(
+      ticketAnswers().map((q) => [`${q.ticketNumber}:${q.questionNumber}`, q.correctAnswerNumber]),
+    );
+    const submission = await submit(user.token, {
+      mode: "exam",
+      ticketNumbers: [exam.body.questions[0].ticketNumber],
+      timeSpentSeconds: 30,
+      questions: exam.body.questions.map((q) => ({
+        questionId: q._id,
+        ticketNumber: q.ticketNumber,
+        questionNumber: q.questionNumber,
+        selectedAnswer: byKey.get(`${q.ticketNumber}:${q.questionNumber}`) ?? 1,
+      })),
+    });
+
+    expect(submission.status).toBe(201);
+    expect(submission.body.result.percentage).toBe(100);
+  });
+});
+
+const ticketAnswers = () => getFallbackDrivingQuestions();
