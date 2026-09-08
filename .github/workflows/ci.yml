@@ -267,6 +267,10 @@ jobs:
         working-directory: mobile
         run: npx tsc --noEmit
 
+      - name: Tests
+        working-directory: mobile
+        run: npm test -- --ci
+
   # ── deploys (main only, and only after the relevant checks pass) ──────────
   deploy-backend:
     name: Deploy backend
