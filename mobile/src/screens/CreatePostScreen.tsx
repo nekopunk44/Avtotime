@@ -45,11 +45,15 @@ export default function CreatePostScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const openedOnceRef = useRef(false);
+  const pickingRef = useRef(false);
   const pagerRef = useRef<ScrollView>(null);
 
   const { markSaved, guardSheet } = useUnsavedGuard(navigation, Boolean(caption.trim() || mediaUris.length));
 
   const pickImages = useCallback(async (initial = false) => {
+    if (pickingRef.current) return;
+    pickingRef.current = true;
+    try {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Доступ к галерее', 'Разрешите доступ к медиатеке, чтобы добавить фото.');
@@ -73,14 +77,22 @@ export default function CreatePostScreen({ navigation }: Props) {
     setMediaUris((prev) =>
       [...prev, ...result.assets.map((asset) => asset.uri)].slice(0, MEDIA_LIMIT),
     );
+    } finally {
+      pickingRef.current = false;
+    }
   }, [navigation]);
 
-  // Галерея открывается сразу — это и есть «создать пост».
+  // Галерея открывается сразу — это и есть «создать пост». Если позже удалили
+  // все кадры — открывается снова; отменили — экран закрывается. Никакого
+  // промежуточного состояния между галереей и предпросмотром не существует.
   useEffect(() => {
-    if (openedOnceRef.current) return;
-    openedOnceRef.current = true;
-    pickImages(true);
-  }, [pickImages]);
+    if (!openedOnceRef.current) {
+      openedOnceRef.current = true;
+      pickImages(true);
+      return;
+    }
+    if (mediaUris.length === 0) pickImages(true);
+  }, [pickImages, mediaUris.length]);
 
   const removeMedia = (uri: string) => {
     setMediaUris((prev) => {
@@ -129,7 +141,8 @@ export default function CreatePostScreen({ navigation }: Props) {
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const show = Keyboard.addListener(showEvent, (e) => {
       Animated.timing(captionLift, {
-        toValue: -e.endCoordinates.height + insets.bottom,
+        // space.md зазора, чтобы плашка не липла к клавиатуре.
+        toValue: -e.endCoordinates.height + insets.bottom - space.md,
         duration: Platform.OS === 'ios' ? e.duration || 220 : 160,
         useNativeDriver: true,
       }).start();
@@ -235,15 +248,9 @@ export default function CreatePostScreen({ navigation }: Props) {
               ) : null}
             </Animated.View>
           </>
-        ) : (
-          // Сюда попадают, только если удалили всё выбранное.
-          <View style={styles.emptyStage}>
-            <PressableScale style={styles.addCircle} onPress={() => pickImages()}>
-              <Ionicons name="images-outline" size={24} color={colors.text} />
-            </PressableScale>
-            <Text style={styles.addText}>Открыть галерею</Text>
-          </View>
-        )}
+        ) : // Пока системная галерея открывается, под ней просто фон — любой
+        // промежуточный экран мигал бы на входе и после выбора.
+        null}
       </View>
 
       {guardSheet}
@@ -306,5 +313,4 @@ const styles = StyleSheet.create({
   captionInput: { color: colors.white, fontSize: font.body, lineHeight: 22, maxHeight: 110 },
   charCount: { textAlign: 'right', marginTop: 2, color: 'rgba(255,255,255,0.55)', fontSize: font.tiny, fontWeight: '700' },
 
-  emptyStage: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md },
 });

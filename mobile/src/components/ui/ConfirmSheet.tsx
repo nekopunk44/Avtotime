@@ -95,13 +95,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceHi,
     marginBottom: space.lg,
   },
-  title: { color: colors.text, fontSize: font.h2, fontWeight: '900' },
+  title: { color: colors.text, fontSize: font.h2, fontWeight: '900', textAlign: 'center' },
   message: {
     color: colors.textMuted,
     fontSize: font.body,
     fontWeight: '600',
     lineHeight: 21,
     marginTop: space.xs + 2,
+    textAlign: 'center',
   },
   actions: { flexDirection: 'row', gap: space.sm, marginTop: space.xl },
   cancelBtn: {
