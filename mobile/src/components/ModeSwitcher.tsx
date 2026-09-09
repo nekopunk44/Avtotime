@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../theme';
+import { playModeTransition } from './ModeTransition';
 
 export const SEG_W = 98;
 
@@ -16,11 +17,25 @@ export default function ModeSwitcher({ current }: { current: 'social' | 'market'
   return (
     <View style={styles.switcher}>
       <View style={[styles.thumb, { transform: [{ translateX: offset }] }]} />
-      <TouchableOpacity style={styles.segment} activeOpacity={0.9} onPress={() => navigation.navigate('SocialTabs')}>
+      <TouchableOpacity
+        style={styles.segment}
+        activeOpacity={0.9}
+        onPress={() => {
+          if (current === 'social') return;
+          playModeTransition('social', () => navigation.navigate('SocialTabs'));
+        }}
+      >
         <Ionicons name="people" size={15} color={current === 'social' ? colors.onAccent : colors.textMuted} />
         <Text style={[styles.segmentText, current === 'social' && styles.segmentTextActive]}>Соцсеть</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.segment} activeOpacity={0.9} onPress={() => navigation.navigate('MarketTabs')}>
+      <TouchableOpacity
+        style={styles.segment}
+        activeOpacity={0.9}
+        onPress={() => {
+          if (current === 'market') return;
+          playModeTransition('market', () => navigation.navigate('MarketTabs'));
+        }}
+      >
         <Ionicons name="storefront" size={15} color={current === 'market' ? colors.onAccent : colors.textMuted} />
         <Text style={[styles.segmentText, current === 'market' && styles.segmentTextActive]}>Маркет</Text>
       </TouchableOpacity>

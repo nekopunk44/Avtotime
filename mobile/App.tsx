@@ -2,6 +2,7 @@ import 'react-native-gesture-handler';
 import React, { useEffect } from 'react';
 import { DarkTheme, NavigationContainer, Theme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
+import ModeTransition from './src/components/ModeTransition';
 import * as SplashScreen from 'expo-splash-screen';
 import RootNavigator from './src/navigation/RootNavigator';
 import { navigationRef } from './src/navigation/navigationRef';
@@ -34,6 +35,8 @@ export default function App() {
     <NavigationContainer ref={navigationRef} theme={navTheme} onReady={consumePendingPush}>
       <StatusBar style="light" />
       <RootNavigator />
+      {/* Кинопереход Соцсеть <-> Маркет; живёт поверх всех экранов. */}
+      <ModeTransition />
     </NavigationContainer>
   );
 }
