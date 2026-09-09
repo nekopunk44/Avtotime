@@ -183,7 +183,7 @@ export default function CreatePostScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.stage}>
+      <View style={[styles.stage, { paddingBottom: insets.bottom }]}>
         {mediaUris.length ? (
           <>
             <ScrollView
@@ -225,7 +225,7 @@ export default function CreatePostScreen({ navigation }: Props) {
             ) : null}
 
             {mediaUris.length > 1 ? (
-              <View style={styles.dots} pointerEvents="none">
+              <View style={[styles.dots, { bottom: 96 + insets.bottom }]} pointerEvents="none">
                 {Array.from({ length: pageCount }, (_, i) => (
                   <View key={i} style={[styles.dot, i === page && styles.dotActive]} />
                 ))}
@@ -233,7 +233,13 @@ export default function CreatePostScreen({ navigation }: Props) {
             ) : null}
 
             {/* Подпись поверх кадра; поднимается на высоту клавиатуры. */}
-            <Animated.View style={[styles.captionOverlay, { transform: [{ translateY: captionLift }] }]}>
+            <Animated.View
+              style={[
+                styles.captionOverlay,
+                { bottom: space.lg + insets.bottom },
+                { transform: [{ translateY: captionLift }] },
+              ]}
+            >
               <TextInput
                 style={styles.captionInput}
                 placeholder="Добавьте подпись…"
@@ -304,7 +310,7 @@ const styles = StyleSheet.create({
   dotActive: { backgroundColor: colors.white },
 
   captionOverlay: {
-    position: 'absolute', left: space.md, right: space.md, bottom: space.lg,
+    position: 'absolute', left: space.md, right: space.md,
     borderRadius: radius.lg,
     backgroundColor: 'rgba(8,8,10,0.62)',
     paddingHorizontal: space.md + 2,
