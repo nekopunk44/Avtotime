@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,36 +20,39 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createPost } from '../api/posts';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
-import { colors, font, radius, shadow, space } from '../theme';
+import { colors, font, radius, space } from '../theme';
 import { PressableScale } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'CreatePost'> };
 
 const MEDIA_LIMIT = 8;
 
+/**
+ * Пост — это фото. Экран сразу открывает галерею; видео живёт в коротких
+ * роликах, здесь его нет. Дальше — коллаж выбранного и подпись.
+ */
 export default function CreatePostScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [caption, setCaption] = useState('');
   const [mediaUris, setMediaUris] = useState<string[]>([]);
-  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [loading, setLoading] = useState(false);
+  const [captionFocused, setCaptionFocused] = useState(false);
+  const openedOnceRef = useRef(false);
 
-  const isVideo = mediaType === 'video';
   const { markSaved } = useUnsavedGuard(navigation, Boolean(caption.trim() || mediaUris.length));
 
-  const addImages = (uris: string[]) => {
-    // Switching to photos discards a previously picked video
-    setMediaType('image');
-    setMediaUris((prev) => {
-      const base = mediaType === 'video' ? [] : prev;
-      return [...base, ...uris].slice(0, MEDIA_LIMIT);
-    });
-  };
+  const collageFade = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!mediaUris.length) return;
+    collageFade.setValue(0);
+    Animated.timing(collageFade, { toValue: 1, duration: 260, useNativeDriver: true }).start();
+  }, [mediaUris.length, collageFade]);
 
-  const pickImages = async () => {
+  const pickImages = useCallback(async (initial = false) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Доступ к галерее', 'Разрешите доступ к медиатеке, чтобы добавить медиа.');
+      Alert.alert('Доступ к галерее', 'Разрешите доступ к медиатеке, чтобы добавить фото.');
+      if (initial) navigation.goBack();
       return;
     }
 
@@ -60,57 +63,31 @@ export default function CreatePostScreen({ navigation }: Props) {
       quality: 0.82,
     });
 
-    if (!result.canceled) {
-      addImages(result.assets.map((asset) => asset.uri));
-    }
-  };
-
-  const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Доступ к камере', 'Разрешите доступ к камере, чтобы сделать фото.');
+    if (result.canceled) {
+      // Экран существует ради выбора: передумал на входе — вернулись назад.
+      if (initial) navigation.goBack();
       return;
     }
 
-    const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.82 });
-    if (!result.canceled) {
-      addImages([result.assets[0].uri]);
-    }
-  };
+    setMediaUris((prev) =>
+      [...prev, ...result.assets.map((asset) => asset.uri)].slice(0, MEDIA_LIMIT),
+    );
+  }, [navigation]);
 
-  const pickVideo = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Доступ к галерее', 'Разрешите доступ к медиатеке, чтобы добавить видео.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['videos'],
-      allowsMultipleSelection: false,
-      videoMaxDuration: 120,
-      quality: 0.82,
-    });
-
-    if (!result.canceled) {
-      // A post is either photos or a single video — a video replaces any photos
-      setMediaType('video');
-      setMediaUris([result.assets[0].uri]);
-    }
-  };
+  // Галерея открывается сразу — это и есть «создать пост».
+  useEffect(() => {
+    if (openedOnceRef.current) return;
+    openedOnceRef.current = true;
+    pickImages(true);
+  }, [pickImages]);
 
   const removeMedia = (uri: string) => {
     setMediaUris((prev) => prev.filter((item) => item !== uri));
   };
 
-  // Первое фото — обложка поста в ленте; тап по миниатюре назначает её.
-  const makeCover = (uri: string) => {
-    setMediaUris((prev) => [uri, ...prev.filter((item) => item !== uri)]);
-  };
-
   const handlePost = async () => {
     if (!mediaUris.length) {
-      Alert.alert('Публикация', 'Добавьте фото или видео.');
+      Alert.alert('Публикация', 'Добавьте фото.');
       return;
     }
 
@@ -119,7 +96,7 @@ export default function CreatePostScreen({ navigation }: Props) {
       await createPost({
         caption: caption.trim(),
         mediaUris,
-        mediaType,
+        mediaType: 'image',
       });
       markSaved();
       navigation.goBack();
@@ -131,15 +108,23 @@ export default function CreatePostScreen({ navigation }: Props) {
   };
 
   const canPost = mediaUris.length > 0 && !loading;
-  const [captionFocused, setCaptionFocused] = useState(false);
 
-  // Обложка мягко проявляется при выборе и при смене.
-  const coverUri = mediaUris[0];
-  const coverFade = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    coverFade.setValue(0);
-    Animated.timing(coverFade, { toValue: 1, duration: 260, useNativeDriver: true }).start();
-  }, [coverUri, coverFade]);
+  // Коллаж: нечётное число — первый кадр во всю ширину, остальные парами.
+  const fullWidthFirst = mediaUris.length % 2 === 1;
+  const gridUris = fullWidthFirst ? mediaUris.slice(1) : mediaUris;
+
+  const renderTile = (uri: string, wide: boolean) => (
+    <View key={uri} style={[styles.tile, wide ? styles.tileWide : styles.tileHalf]}>
+      <Image source={{ uri }} style={styles.tileImage} resizeMode="cover" />
+      <TouchableOpacity
+        style={styles.tileRemove}
+        onPress={() => removeMedia(uri)}
+        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+      >
+        <Ionicons name="close" size={13} color={colors.white} />
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <KeyboardAvoidingView
@@ -147,110 +132,47 @@ export default function CreatePostScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()} disabled={loading} hitSlop={8}>
-          <Ionicons name="close" size={24} color={colors.text} />
+        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()} disabled={loading} hitSlop={10}>
+          <Ionicons name="close" size={26} color={colors.text} />
         </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Новая публикация</Text>
-        <TouchableOpacity
-          style={[styles.postBtn, !canPost && styles.postBtnDisabled]}
-          onPress={handlePost}
-          disabled={!canPost}
-          activeOpacity={0.9}
-        >
+
+        <TouchableOpacity style={styles.headerBtn} onPress={handlePost} disabled={!canPost} hitSlop={10}>
           {loading ? (
-            <ActivityIndicator color={colors.onAccent} size="small" />
+            <ActivityIndicator color={colors.text} size="small" />
           ) : (
-            <Text style={[styles.postBtnText, !canPost && styles.postBtnTextDisabled]}>Опубликовать</Text>
+            <Ionicons name="paper-plane" size={24} color={canPost ? colors.text : colors.textFaint} />
           )}
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        {!mediaUris.length ? (
-          <View style={styles.emptyWrap}>
-            <PressableScale style={styles.hero} onPress={pickImages} scaleTo={0.98}>
-              <View style={styles.heroIcon}>
-                <Ionicons name="aperture-outline" size={32} color={colors.accent} />
-              </View>
-              <Text style={styles.heroTitle}>Покажите свою машину</Text>
-              <Text style={styles.heroSub}>До {MEDIA_LIMIT} фото или одно видео до 2 минут</Text>
-
-              <View style={styles.heroCta}>
-                <Ionicons name="images-outline" size={18} color={colors.onAccent} />
-                <Text style={styles.heroCtaText}>Выбрать из галереи</Text>
-              </View>
-            </PressableScale>
-
-            <View style={styles.secondaryRow}>
-              <PressableScale style={styles.secondaryBtn} onPress={takePhoto}>
-                <Ionicons name="camera-outline" size={17} color={colors.text} />
-                <Text style={styles.secondaryText}>Снять фото</Text>
-              </PressableScale>
-              <PressableScale style={styles.secondaryBtn} onPress={pickVideo}>
-                <Ionicons name="videocam-outline" size={17} color={colors.text} />
-                <Text style={styles.secondaryText}>Видео</Text>
-              </PressableScale>
-            </View>
-          </View>
-        ) : isVideo ? (
-          <View style={styles.videoPreview}>
-            <View style={styles.videoPlayCircle}>
-              <Ionicons name="play" size={28} color={colors.onAccent} />
-            </View>
-            <Text style={styles.videoPreviewText}>Видео готово к публикации</Text>
-            <View style={styles.videoActions}>
-              <PressableScale style={styles.secondaryBtn} onPress={pickVideo}>
-                <Ionicons name="swap-horizontal-outline" size={16} color={colors.text} />
-                <Text style={styles.secondaryText}>Заменить</Text>
-              </PressableScale>
-              <PressableScale style={styles.secondaryBtn} onPress={() => removeMedia(mediaUris[0])}>
-                <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                <Text style={[styles.secondaryText, { color: colors.danger }]}>Убрать</Text>
-              </PressableScale>
-            </View>
-          </View>
-        ) : (
-          <View>
-            <Animated.View style={{ opacity: coverFade }}>
-              <View style={styles.cover}>
-                <Image source={{ uri: coverUri }} style={styles.coverImage} resizeMode="cover" />
-                <View style={styles.coverBadge}>
-                  <Ionicons name="image-outline" size={12} color={colors.text} />
-                  <Text style={styles.coverBadgeText}>{mediaUris.length}/{MEDIA_LIMIT}</Text>
-                </View>
-                <TouchableOpacity style={styles.removeBtn} onPress={() => removeMedia(coverUri)}>
-                  <Ionicons name="close" size={15} color={colors.white} />
-                </TouchableOpacity>
-              </View>
-            </Animated.View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbStrip}>
-              {mediaUris.map((uri) => (
-                <PressableScale key={uri} style={styles.thumbWrap} onPress={() => makeCover(uri)}>
-                  <Image source={{ uri }} style={[styles.thumb, uri === coverUri && styles.thumbActive]} />
-                  <TouchableOpacity
-                    style={styles.thumbRemove}
-                    onPress={() => removeMedia(uri)}
-                    hitSlop={{ top: 6, right: 6, bottom: 6, left: 6 }}
-                  >
-                    <Ionicons name="close" size={11} color={colors.white} />
-                  </TouchableOpacity>
-                </PressableScale>
-              ))}
+        {mediaUris.length ? (
+          <Animated.View style={{ opacity: collageFade }}>
+            <View style={styles.collage}>
+              {fullWidthFirst ? renderTile(mediaUris[0], true) : null}
+              {gridUris.map((uri) => renderTile(uri, false))}
               {mediaUris.length < MEDIA_LIMIT ? (
-                <PressableScale style={styles.addTile} onPress={pickImages}>
-                  <Ionicons name="add" size={22} color={colors.textMuted} />
+                <PressableScale style={[styles.tileHalf, styles.addTile]} onPress={() => pickImages()}>
+                  <Ionicons name="add" size={26} color={colors.textMuted} />
+                  <Text style={styles.addTileText}>Ещё {MEDIA_LIMIT - mediaUris.length}</Text>
                 </PressableScale>
               ) : null}
-            </ScrollView>
-            <Text style={styles.coverHint}>Первое фото — обложка. Тап по миниатюре меняет её.</Text>
-          </View>
+            </View>
+          </Animated.View>
+        ) : (
+          // Сюда попадают, только если удалили всё выбранное.
+          <PressableScale style={styles.reopen} onPress={() => pickImages()}>
+            <Ionicons name="images-outline" size={20} color={colors.text} />
+            <Text style={styles.reopenText}>Открыть галерею</Text>
+          </PressableScale>
         )}
 
         <View style={[styles.captionField, captionFocused && styles.captionFieldFocused]}>
           <TextInput
             style={styles.input}
-            placeholder="Расскажите историю этого кадра…"
+            placeholder="Добавьте подпись…"
             placeholderTextColor={colors.textFaint}
             multiline
             value={caption}
@@ -269,85 +191,58 @@ export default function CreatePostScreen({ navigation }: Props) {
   );
 }
 
+const GAP = 4;
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: space.md + 2, paddingBottom: space.md,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: space.md, paddingBottom: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border,
   },
-  headerBtn: { width: 40, height: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
-  headerTitle: { fontSize: font.h3, fontWeight: '900', color: colors.text },
-  postBtn: { height: 40, minWidth: 116, paddingHorizontal: space.lg, borderRadius: radius.pill, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  postBtnDisabled: { backgroundColor: colors.surfaceAlt },
-  postBtnText: { fontSize: font.small + 1, fontWeight: '900', color: colors.onAccent },
-  postBtnTextDisabled: { color: colors.textFaint },
+  // Иконки без подложек; заголовок центрируется симметрией одинаковых кнопок.
+  headerBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: font.h3, fontWeight: '900', color: colors.text },
 
   content: { padding: space.lg, gap: space.md, paddingBottom: 40 },
 
-  // ── Пустое состояние: один герой, одно главное действие ──
-  emptyWrap: { gap: space.md },
-  hero: {
-    minHeight: 320,
-    borderRadius: radius.xl,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space.sm,
-    paddingHorizontal: space.xl,
-    ...shadow.card,
+  collage: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: GAP,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
   },
-  heroIcon: {
-    width: 76, height: 76, borderRadius: radius.pill,
-    backgroundColor: colors.accentSoft,
+  tile: { backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
+  tileWide: { width: '100%', aspectRatio: 16 / 10 },
+  tileHalf: { width: '49.4%', aspectRatio: 1 },
+  tileImage: { width: '100%', height: '100%' },
+  tileRemove: {
+    position: 'absolute', top: 6, right: 6,
+    width: 24, height: 24, borderRadius: radius.pill,
+    backgroundColor: 'rgba(8,8,10,0.65)',
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: space.sm,
   },
-  heroTitle: { color: colors.text, fontSize: font.h2, fontWeight: '900', textAlign: 'center' },
-  heroSub: { color: colors.textMuted, fontSize: font.small, fontWeight: '600', textAlign: 'center' },
-  heroCta: {
-    marginTop: space.lg,
-    height: 52, borderRadius: radius.pill,
-    paddingHorizontal: space.xl + 4,
-    backgroundColor: colors.accent,
-    flexDirection: 'row', alignItems: 'center', gap: space.sm,
-  },
-  heroCtaText: { color: colors.onAccent, fontSize: font.body, fontWeight: '900' },
-  secondaryRow: { flexDirection: 'row', gap: space.sm, justifyContent: 'center' },
-  secondaryBtn: {
-    height: 42, borderRadius: radius.pill, paddingHorizontal: space.lg,
+  addTile: {
     backgroundColor: colors.surfaceAlt,
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+    alignItems: 'center', justifyContent: 'center', gap: 4,
   },
-  secondaryText: { color: colors.text, fontSize: font.small, fontWeight: '800' },
+  addTileText: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '800' },
 
-  // ── Выбранные фото: обложка ведёт, миниатюры под рукой ──
-  cover: { width: '100%', aspectRatio: 4 / 5, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.surfaceAlt },
-  coverImage: { width: '100%', height: '100%' },
-  coverBadge: {
-    position: 'absolute', left: space.sm + 2, top: space.sm + 2,
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    height: 24, paddingHorizontal: space.sm,
-    borderRadius: radius.pill, backgroundColor: 'rgba(8,8,10,0.6)',
+  reopen: {
+    height: 52, borderRadius: radius.lg,
+    backgroundColor: colors.surfaceAlt,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm,
   },
-  coverBadgeText: { color: colors.text, fontSize: font.tiny, fontWeight: '800' },
-  removeBtn: { position: 'absolute', top: space.sm + 2, right: space.sm + 2, width: 26, height: 26, borderRadius: radius.pill, backgroundColor: 'rgba(8,8,10,0.65)', alignItems: 'center', justifyContent: 'center' },
-  thumbStrip: { gap: space.sm, paddingTop: space.md },
-  thumbWrap: { position: 'relative' },
-  thumb: { width: 64, height: 64, borderRadius: radius.md, backgroundColor: colors.surfaceAlt },
-  thumbActive: { borderWidth: 2, borderColor: colors.accent },
-  thumbRemove: { position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: radius.pill, backgroundColor: 'rgba(8,8,10,0.85)', alignItems: 'center', justifyContent: 'center' },
-  addTile: { width: 64, height: 64, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  coverHint: { marginTop: space.sm, color: colors.textFaint, fontSize: font.tiny, fontWeight: '600' },
+  reopenText: { color: colors.text, fontSize: font.body, fontWeight: '800' },
 
-  // ── Видео ──
-  videoPreview: { minHeight: 300, borderRadius: radius.xl, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center', gap: space.md, ...shadow.card },
-  videoPlayCircle: { width: 58, height: 58, borderRadius: radius.pill, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', paddingLeft: 4 },
-  videoPreviewText: { color: colors.textMuted, fontSize: font.body, fontWeight: '900' },
-  videoActions: { flexDirection: 'row', gap: space.sm },
-
-  // ── Подпись: filled-инпут с акцентом на фокусе ──
-  captionField: { borderRadius: radius.md, backgroundColor: colors.surfaceAlt, padding: space.md + 2, borderWidth: 1, borderColor: 'transparent' },
+  captionField: {
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
+    padding: space.md + 2,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
   captionFieldFocused: { borderColor: colors.accent },
   input: { fontSize: font.body + 1, color: colors.text, lineHeight: 24, minHeight: 96 },
   charCount: { textAlign: 'right', marginTop: 6, color: colors.textFaint, fontSize: font.tiny, fontWeight: '700' },
