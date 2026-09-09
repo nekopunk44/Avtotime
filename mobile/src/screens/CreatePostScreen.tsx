@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Animated,
+  Dimensions,
   Image,
   KeyboardAvoidingView,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   ScrollView,
   StyleSheet,
@@ -26,27 +28,24 @@ import { PressableScale } from '../components/ui';
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'CreatePost'> };
 
 const MEDIA_LIMIT = 8;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 /**
- * Пост — это фото. Экран сразу открывает галерею; видео живёт в коротких
- * роликах, здесь его нет. Дальше — коллаж выбранного и подпись.
+ * Пост — это фото. Экран сразу открывает галерею; дальше кадры занимают всё
+ * свободное место, листаются свайпами, подпись живёт поверх снимка. На
+ * Android окно в режиме resize: при клавиатуре фото ужимается, а подпись
+ * остаётся видимой над клавиатурой.
  */
 export default function CreatePostScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const [caption, setCaption] = useState('');
   const [mediaUris, setMediaUris] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [captionFocused, setCaptionFocused] = useState(false);
+  const [page, setPage] = useState(0);
   const openedOnceRef = useRef(false);
+  const pagerRef = useRef<ScrollView>(null);
 
   const { markSaved } = useUnsavedGuard(navigation, Boolean(caption.trim() || mediaUris.length));
-
-  const collageFade = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (!mediaUris.length) return;
-    collageFade.setValue(0);
-    Animated.timing(collageFade, { toValue: 1, duration: 260, useNativeDriver: true }).start();
-  }, [mediaUris.length, collageFade]);
 
   const pickImages = useCallback(async (initial = false) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -82,7 +81,17 @@ export default function CreatePostScreen({ navigation }: Props) {
   }, [pickImages]);
 
   const removeMedia = (uri: string) => {
-    setMediaUris((prev) => prev.filter((item) => item !== uri));
+    setMediaUris((prev) => {
+      const next = prev.filter((item) => item !== uri);
+      const maxPage = Math.max(0, next.length - 1);
+      if (page > maxPage) {
+        setPage(maxPage);
+        requestAnimationFrame(() =>
+          pagerRef.current?.scrollTo({ x: maxPage * SCREEN_WIDTH, animated: false }),
+        );
+      }
+      return next;
+    });
   };
 
   const handlePost = async () => {
@@ -108,23 +117,15 @@ export default function CreatePostScreen({ navigation }: Props) {
   };
 
   const canPost = mediaUris.length > 0 && !loading;
+  const canAddMore = mediaUris.length > 0 && mediaUris.length < MEDIA_LIMIT;
+  // Последняя страница пейджера — компактный «добавить ещё».
+  const pageCount = mediaUris.length + (canAddMore ? 1 : 0);
+  const onAddPage = page >= mediaUris.length;
 
-  // Коллаж: нечётное число — первый кадр во всю ширину, остальные парами.
-  const fullWidthFirst = mediaUris.length % 2 === 1;
-  const gridUris = fullWidthFirst ? mediaUris.slice(1) : mediaUris;
-
-  const renderTile = (uri: string, wide: boolean) => (
-    <View key={uri} style={[styles.tile, wide ? styles.tileWide : styles.tileHalf]}>
-      <Image source={{ uri }} style={styles.tileImage} resizeMode="cover" />
-      <TouchableOpacity
-        style={styles.tileRemove}
-        onPress={() => removeMedia(uri)}
-        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-      >
-        <Ionicons name="close" size={13} color={colors.white} />
-      </TouchableOpacity>
-    </View>
-  );
+  const onPagerScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const next = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+    if (next !== page) setPage(Math.min(next, pageCount - 1));
+  };
 
   return (
     <KeyboardAvoidingView
@@ -147,51 +148,84 @@ export default function CreatePostScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <View style={styles.stage}>
         {mediaUris.length ? (
-          <Animated.View style={{ opacity: collageFade }}>
-            <View style={styles.collage}>
-              {fullWidthFirst ? renderTile(mediaUris[0], true) : null}
-              {gridUris.map((uri) => renderTile(uri, false))}
-              {mediaUris.length < MEDIA_LIMIT ? (
-                <PressableScale style={[styles.tileHalf, styles.addTile]} onPress={() => pickImages()}>
-                  <Ionicons name="add" size={26} color={colors.textMuted} />
-                  <Text style={styles.addTileText}>Ещё {MEDIA_LIMIT - mediaUris.length}</Text>
-                </PressableScale>
+          <>
+            <ScrollView
+              ref={pagerRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={onPagerScroll}
+              onScrollEndDrag={onPagerScroll}
+            >
+              {mediaUris.map((uri) => (
+                <View key={uri} style={styles.page}>
+                  <Image source={{ uri }} style={styles.photo} resizeMode="cover" />
+                </View>
+              ))}
+              {canAddMore ? (
+                <View style={[styles.page, styles.addPage]}>
+                  <PressableScale style={styles.addCircle} onPress={() => pickImages()}>
+                    <Ionicons name="add" size={26} color={colors.text} />
+                  </PressableScale>
+                  <Text style={styles.addText}>Ещё до {MEDIA_LIMIT - mediaUris.length} фото</Text>
+                </View>
+              ) : null}
+            </ScrollView>
+
+            {!onAddPage ? (
+              <>
+                <View style={styles.counter}>
+                  <Text style={styles.counterText}>{page + 1}/{mediaUris.length}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.removeBtn}
+                  onPress={() => removeMedia(mediaUris[page])}
+                  hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                >
+                  <Ionicons name="close" size={14} color={colors.white} />
+                </TouchableOpacity>
+              </>
+            ) : null}
+
+            {mediaUris.length > 1 ? (
+              <View style={styles.dots} pointerEvents="none">
+                {Array.from({ length: pageCount }, (_, i) => (
+                  <View key={i} style={[styles.dot, i === page && styles.dotActive]} />
+                ))}
+              </View>
+            ) : null}
+
+            {/* Подпись поверх кадра; в режиме resize поднимается с клавиатурой. */}
+            <View style={styles.captionOverlay}>
+              <TextInput
+                style={styles.captionInput}
+                placeholder="Добавьте подпись…"
+                placeholderTextColor="rgba(255,255,255,0.55)"
+                multiline
+                value={caption}
+                onChangeText={setCaption}
+                maxLength={500}
+              />
+              {caption.length >= 400 ? (
+                <Text style={styles.charCount}>{caption.length}/500</Text>
               ) : null}
             </View>
-          </Animated.View>
+          </>
         ) : (
           // Сюда попадают, только если удалили всё выбранное.
-          <PressableScale style={styles.reopen} onPress={() => pickImages()}>
-            <Ionicons name="images-outline" size={20} color={colors.text} />
-            <Text style={styles.reopenText}>Открыть галерею</Text>
-          </PressableScale>
+          <View style={styles.emptyStage}>
+            <PressableScale style={styles.addCircle} onPress={() => pickImages()}>
+              <Ionicons name="images-outline" size={24} color={colors.text} />
+            </PressableScale>
+            <Text style={styles.addText}>Открыть галерею</Text>
+          </View>
         )}
-
-        <View style={[styles.captionField, captionFocused && styles.captionFieldFocused]}>
-          <TextInput
-            style={styles.input}
-            placeholder="Добавьте подпись…"
-            placeholderTextColor={colors.textFaint}
-            multiline
-            value={caption}
-            onChangeText={setCaption}
-            maxLength={500}
-            textAlignVertical="top"
-            onFocus={() => setCaptionFocused(true)}
-            onBlur={() => setCaptionFocused(false)}
-          />
-          {caption.length >= 400 ? (
-            <Text style={styles.charCount}>{caption.length}/500</Text>
-          ) : null}
-        </View>
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
-
-const GAP = 4;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
@@ -204,46 +238,49 @@ const styles = StyleSheet.create({
   headerBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: font.h3, fontWeight: '900', color: colors.text },
 
-  content: { padding: space.lg, gap: space.md, paddingBottom: 40 },
+  // Кадру — всё место между шапкой и низом, без полей.
+  stage: { flex: 1, backgroundColor: colors.bg },
+  page: { width: SCREEN_WIDTH, height: '100%' },
+  photo: { width: '100%', height: '100%' },
 
-  collage: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: GAP,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
+  addPage: { alignItems: 'center', justifyContent: 'center', gap: space.md, backgroundColor: colors.surface },
+  addCircle: {
+    width: 52, height: 52, borderRadius: radius.pill,
+    backgroundColor: colors.surfaceHi,
+    alignItems: 'center', justifyContent: 'center',
   },
-  tile: { backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
-  tileWide: { width: '100%', aspectRatio: 16 / 10 },
-  tileHalf: { width: '49.4%', aspectRatio: 1 },
-  tileImage: { width: '100%', height: '100%' },
-  tileRemove: {
-    position: 'absolute', top: 6, right: 6,
-    width: 24, height: 24, borderRadius: radius.pill,
+  addText: { color: colors.textMuted, fontSize: font.small, fontWeight: '700' },
+
+  counter: {
+    position: 'absolute', top: space.md, left: space.md,
+    height: 24, paddingHorizontal: space.sm + 2,
+    borderRadius: radius.pill, backgroundColor: 'rgba(8,8,10,0.6)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  counterText: { color: colors.text, fontSize: font.tiny, fontWeight: '800' },
+  removeBtn: {
+    position: 'absolute', top: space.md, right: space.md,
+    width: 26, height: 26, borderRadius: radius.pill,
     backgroundColor: 'rgba(8,8,10,0.65)',
     alignItems: 'center', justifyContent: 'center',
   },
-  addTile: {
-    backgroundColor: colors.surfaceAlt,
-    alignItems: 'center', justifyContent: 'center', gap: 4,
-  },
-  addTileText: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '800' },
 
-  reopen: {
-    height: 52, borderRadius: radius.lg,
-    backgroundColor: colors.surfaceAlt,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm,
+  dots: {
+    position: 'absolute', left: 0, right: 0, bottom: 96,
+    flexDirection: 'row', justifyContent: 'center', gap: 5,
   },
-  reopenText: { color: colors.text, fontSize: font.body, fontWeight: '800' },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.35)' },
+  dotActive: { backgroundColor: colors.white },
 
-  captionField: {
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceAlt,
-    padding: space.md + 2,
-    borderWidth: 1,
-    borderColor: 'transparent',
+  captionOverlay: {
+    position: 'absolute', left: space.md, right: space.md, bottom: space.lg,
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(8,8,10,0.62)',
+    paddingHorizontal: space.md + 2,
+    paddingVertical: space.sm + 2,
   },
-  captionFieldFocused: { borderColor: colors.accent },
-  input: { fontSize: font.body + 1, color: colors.text, lineHeight: 24, minHeight: 96 },
-  charCount: { textAlign: 'right', marginTop: 6, color: colors.textFaint, fontSize: font.tiny, fontWeight: '700' },
+  captionInput: { color: colors.white, fontSize: font.body, lineHeight: 22, maxHeight: 110 },
+  charCount: { textAlign: 'right', marginTop: 2, color: 'rgba(255,255,255,0.55)', fontSize: font.tiny, fontWeight: '700' },
+
+  emptyStage: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md },
 });
