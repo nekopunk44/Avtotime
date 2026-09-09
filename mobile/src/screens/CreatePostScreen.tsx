@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -45,7 +47,7 @@ export default function CreatePostScreen({ navigation }: Props) {
   const openedOnceRef = useRef(false);
   const pagerRef = useRef<ScrollView>(null);
 
-  const { markSaved } = useUnsavedGuard(navigation, Boolean(caption.trim() || mediaUris.length));
+  const { markSaved, guardSheet } = useUnsavedGuard(navigation, Boolean(caption.trim() || mediaUris.length));
 
   const pickImages = useCallback(async (initial = false) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -117,6 +119,29 @@ export default function CreatePostScreen({ navigation }: Props) {
   };
 
   const canPost = mediaUris.length > 0 && !loading;
+
+  // Окно на Android с edge-to-edge не ужимается под клавиатуру, поэтому
+  // подпись поднимаем сами — по фактической высоте клавиатуры из событий.
+  // Работает при любом softInput-режиме.
+  const captionLift = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvent, (e) => {
+      Animated.timing(captionLift, {
+        toValue: -e.endCoordinates.height + insets.bottom,
+        duration: Platform.OS === 'ios' ? e.duration || 220 : 160,
+        useNativeDriver: true,
+      }).start();
+    });
+    const hide = Keyboard.addListener(hideEvent, () => {
+      Animated.timing(captionLift, { toValue: 0, duration: 160, useNativeDriver: true }).start();
+    });
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, [captionLift, insets.bottom]);
   const canAddMore = mediaUris.length > 0 && mediaUris.length < MEDIA_LIMIT;
   // Последняя страница пейджера — компактный «добавить ещё».
   const pageCount = mediaUris.length + (canAddMore ? 1 : 0);
@@ -128,10 +153,7 @@ export default function CreatePostScreen({ navigation }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={undefined}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()} disabled={loading} hitSlop={10}>
           <Ionicons name="close" size={26} color={colors.text} />
@@ -197,8 +219,8 @@ export default function CreatePostScreen({ navigation }: Props) {
               </View>
             ) : null}
 
-            {/* Подпись поверх кадра; в режиме resize поднимается с клавиатурой. */}
-            <View style={styles.captionOverlay}>
+            {/* Подпись поверх кадра; поднимается на высоту клавиатуры. */}
+            <Animated.View style={[styles.captionOverlay, { transform: [{ translateY: captionLift }] }]}>
               <TextInput
                 style={styles.captionInput}
                 placeholder="Добавьте подпись…"
@@ -211,7 +233,7 @@ export default function CreatePostScreen({ navigation }: Props) {
               {caption.length >= 400 ? (
                 <Text style={styles.charCount}>{caption.length}/500</Text>
               ) : null}
-            </View>
+            </Animated.View>
           </>
         ) : (
           // Сюда попадают, только если удалили всё выбранное.
@@ -223,6 +245,8 @@ export default function CreatePostScreen({ navigation }: Props) {
           </View>
         )}
       </View>
+
+      {guardSheet}
     </KeyboardAvoidingView>
   );
 }

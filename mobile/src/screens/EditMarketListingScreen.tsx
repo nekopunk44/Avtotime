@@ -100,7 +100,7 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
   const [form, setForm] = useState<FormState>(() => getInitialForm(listing, categoryId));
   const [images, setImages] = useState<string[]>([]);
   const initialFormRef = React.useRef(form);
-  const { markSaved } = useUnsavedGuard(navigation, images.length > 0 || JSON.stringify(form) !== JSON.stringify(initialFormRef.current));
+  const { markSaved, guardSheet } = useUnsavedGuard(navigation, images.length > 0 || JSON.stringify(form) !== JSON.stringify(initialFormRef.current));
   const [loading, setLoading] = useState(false);
 
   const isVehicle = isVehicleMode(categoryId);
@@ -336,6 +336,7 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
           )}
         </TouchableOpacity>
       </ScrollView>
+      {guardSheet}
     </KeyboardAvoidingView>
   );
 }

@@ -31,7 +31,7 @@ export default function EditPostScreen({ navigation, route }: Props) {
   const [caption, setCaption] = useState(post.caption || '');
   const [replacementUris, setReplacementUris] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const { markSaved } = useUnsavedGuard(navigation, caption !== (post.caption || '') || replacementUris.length > 0);
+  const { markSaved, guardSheet } = useUnsavedGuard(navigation, caption !== (post.caption || '') || replacementUris.length > 0);
   const existingMediaUris = useMemo(
     () => (post.mediaList?.length ? post.mediaList : post.media ? [post.media] : []),
     [post.media, post.mediaList],
@@ -172,6 +172,7 @@ export default function EditPostScreen({ navigation, route }: Props) {
           </>
         )}
       </TouchableOpacity>
+      {guardSheet}
     </ScrollView>
   );
 }

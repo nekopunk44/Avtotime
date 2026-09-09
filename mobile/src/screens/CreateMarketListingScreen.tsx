@@ -91,7 +91,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   const [mode, setMode] = useState<MarketCategoryId>('cars');
   const [form, setForm] = useState<FormState>(initialForm);
   const [images, setImages] = useState<string[]>([]);
-  const { markSaved } = useUnsavedGuard(navigation, images.length > 0 || Object.values(form).some((value) => String(value).trim() !== ''));
+  const { markSaved, guardSheet } = useUnsavedGuard(navigation, images.length > 0 || Object.values(form).some((value) => String(value).trim() !== ''));
   const [loading, setLoading] = useState(false);
 
   const activeCategory = useMemo(() => getMarketCategory(mode), [mode]);
@@ -369,6 +369,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
           )}
         </TouchableOpacity>
       </ScrollView>
+      {guardSheet}
     </KeyboardAvoidingView>
   );
 }
