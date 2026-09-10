@@ -22,7 +22,9 @@ const clamp = { extrapolate: 'clamp' as const };
 
 const BAR_HEIGHT = 58;
 const BAR_PAD = 8;
-const CIRCLE = 44;
+// Индикатор — сквиркл: скруглённый прямоугольник, шире, чем выше.
+const IND_W = 52;
+const IND_H = 40;
 
 function TabButton({
   routeName, focused, onPress, onLongPress, badge,
@@ -115,31 +117,43 @@ function TabButton({
 export default function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const [barW, setBarW] = useState(0);
-  // Один круг-индикатор на всю панель: он физически скользит к выбранной
+  // Один индикатор на всю панель: он физически скользит к выбранной
   // вкладке, а не рождается заново под каждой.
   const slideX = useRef(new Animated.Value(0)).current;
+  const stretch = useRef(new Animated.Value(1)).current;
   const placed = useRef(false);
 
   const count = state.routes.length;
   const itemW = barW > 0 && count > 0 ? (barW - BAR_PAD * 2) / count : 0;
-  const targetX = BAR_PAD + itemW * (state.index + 0.5) - CIRCLE / 2;
+  const targetX = BAR_PAD + itemW * (state.index + 0.5) - IND_W / 2;
 
   useEffect(() => {
     if (barW <= 0) return;
     if (!placed.current) {
-      // Первое размещение — без анимации, круг просто стоит на активной.
+      // Первое размещение — без анимации, индикатор просто стоит на активной.
       placed.current = true;
       slideX.setValue(targetX);
       return;
     }
-    Animated.spring(slideX, { toValue: targetX, useNativeDriver: true, speed: 14, bounciness: 9 }).start();
-  }, [targetX, barW, slideX]);
+    Animated.parallel([
+      Animated.spring(slideX, { toValue: targetX, useNativeDriver: true, speed: 14, bounciness: 9 }),
+      // Желе: в разгоне сквиркл вытягивается по ходу движения и пружинно
+      // возвращается к форме, когда доезжает.
+      Animated.sequence([
+        Animated.timing(stretch, { toValue: 1.18, duration: 120, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.spring(stretch, { toValue: 1, useNativeDriver: true, speed: 10, bounciness: 11 }),
+      ]),
+    ]).start();
+  }, [targetX, barW, slideX, stretch]);
 
   return (
     <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 8) + 6 }]}>
       <View style={styles.bar} onLayout={(e) => setBarW(e.nativeEvent.layout.width)}>
         <Animated.View
-          style={[styles.slider, { opacity: barW > 0 ? 1 : 0, transform: [{ translateX: slideX }] }]}
+          style={[
+            styles.slider,
+            { opacity: barW > 0 ? 1 : 0, transform: [{ translateX: slideX }, { scaleX: stretch }] },
+          ]}
         />
         {state.routes.map((route, index) => {
           const focused = state.index === index;
@@ -182,8 +196,8 @@ const styles = StyleSheet.create({
   item: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   iconWrap: { width: 56, height: 44, alignItems: 'center', justifyContent: 'center' },
   slider: {
-    position: 'absolute', left: 0, top: (BAR_HEIGHT - CIRCLE) / 2, width: CIRCLE, height: CIRCLE,
-    borderRadius: radius.pill, backgroundColor: colors.accent,
+    position: 'absolute', left: 0, top: (BAR_HEIGHT - IND_H) / 2, width: IND_W, height: IND_H,
+    borderRadius: 15, backgroundColor: colors.accent,
     shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4,
   },
   iconLayer: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
