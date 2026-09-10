@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Easing, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { NavigatorScreenParams, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -176,11 +176,35 @@ const makeTabOptions = (current: 'social' | 'market') => () => ({
   headerRight: () => <HeaderBell />,
 });
 
+// Переход между вкладками соцсети — направленный, с глубиной: экраны живут
+// на одной ленте (progress: -1 слева, 0 в фокусе, 1 справа), уходящий
+// сдвигается в сторону движения, слегка уменьшаясь и гаснет, входящий
+// доезжает и распрямляется навстречу. Направление даёт сама навигация.
+const socialTabTransition = {
+  transitionSpec: {
+    animation: 'timing' as const,
+    config: { duration: 260, easing: Easing.out(Easing.cubic) },
+  },
+  sceneStyleInterpolator: ({ current }: { current: { progress: any } }) => ({
+    sceneStyle: {
+      opacity: current.progress.interpolate({
+        // Гаснет рано: две сцены почти не накладываются в середине пути.
+        inputRange: [-1, -0.3, 0, 0.3, 1],
+        outputRange: [0, 0.05, 1, 0.05, 0],
+      }),
+      transform: [
+        { translateX: current.progress.interpolate({ inputRange: [-1, 0, 1], outputRange: [-36, 0, 36] }) },
+        { scale: current.progress.interpolate({ inputRange: [-1, 0, 1], outputRange: [0.97, 1, 0.97] }) },
+      ],
+    },
+  }),
+};
+
 function SocialTabs() {
   const unreadMessages = useBadgeStore((s) => s.unreadMessages);
   return (
     <SocialTab.Navigator
-      screenOptions={makeTabOptions('social')}
+      screenOptions={() => ({ ...makeTabOptions('social')(), ...socialTabTransition })}
       tabBar={(props) => <FloatingTabBar {...props} />}
     >
       <SocialTab.Screen name="Feed" component={FeedScreen} />
