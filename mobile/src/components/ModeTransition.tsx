@@ -5,17 +5,24 @@ import { colors } from '../theme';
 
 /**
  * Кинопереход между Соцсетью и Маркетом: экран затемняется, иконка текущего
- * режима ПЛАВНО РАСПАДАЕТСЯ на фрагменты, а затем фрагменты сходятся обратно —
- * уже собираясь в иконку целевого режима. Обратное направление — та же
- * механика с обратной парой иконок.
+ * режима плавно распадается на фрагменты, и НАВСТРЕЧУ им из глубины сходятся
+ * фрагменты иконки целевого режима — обе живут в кадре одновременно,
+ * растворяясь одна в другую. Момента «подмены» не существует: старые
+ * фрагменты тают в полёте, новые материализуются дальше от центра уже в
+ * движении к своим местам.
  *
  * Фрагменты — сетка GRID x GRID клип-ячеек: в каждой лежит полная иконка со
  * смещением, так что ячейка показывает только свой участок глифа. Распад
- * упорядоченный, как «разнесённая схема» в чертежах: каждый фрагмент уходит
- * строго по своей радиальной оси на расстояние, пропорциональное удалению от
- * центра, — сетка равномерно раздвигается без вращений и случайного разброса.
- * Все фрагменты ведёт одно Animated-значение. Навигация выполняется в момент
- * полного распада, под непрозрачным фоном.
+ * упорядоченный, по радиальным осям, с волной от краёв к центру; сборка —
+ * обратной волной, от центра к краям. Обе иконки ведёт ОДНО Animated-значение
+ * progress 0→1: у исходной интерполяции живут в первой половине, у целевой —
+ * во второй, с перехлёстом вокруг середины.
+ *
+ * progress разбит на две последовательные фазы (0→0.5 с ускорением, 0.5→1 с
+ * торможением): у нативно-ведомой анимации JS-слушатели значения не
+ * вызываются, а навигацию нужно выполнить строго под непрозрачным фоном — в
+ * колбэке между фазами. Пара in/out-изингов смыкается в один плавный свод:
+ * скорость на стыке максимальна с обеих сторон, рывка нет.
  */
 
 type ModeIcon = keyof typeof Ionicons.glyphMap;
@@ -52,31 +59,48 @@ export const playModeTransition = (
 const ICON_SIZE = 104;
 const GRID = 4;
 const PIECE = ICON_SIZE / GRID;
-// Насколько раздвигается сетка при полном распаде: смещение фрагмента =
-// его отступ от центра, умноженный на этот коэффициент.
-const SPREAD = 1.9;
+// Насколько раздвигается сетка исходной иконки при полном распаде.
+const SPREAD_OUT = 1.9;
+// Фрагменты целевой стартуют чуть дальше — сходятся из более широкого круга.
+const SPREAD_IN = 2.3;
+// Волновые запаздывания: распад начинают внешние фрагменты, сборку
+// завершают тоже внешние — иконка «закрывается» от центра к краям.
+const OUT_LAG = 0.1;
+const IN_LAG = 0.12;
 
 interface Piece {
   row: number;
   col: number;
-  dx: number;
-  dy: number;
+  dxOut: number;
+  dyOut: number;
+  dxIn: number;
+  dyIn: number;
+  /** 0..1 — удаление фрагмента от центра иконки. */
+  rNorm: number;
 }
+
+const R_MAX = Math.hypot((GRID / 2 - 0.5) * PIECE, (GRID / 2 - 0.5) * PIECE);
 
 const PIECES: Piece[] = Array.from({ length: GRID * GRID }, (_, index) => {
   const row = Math.floor(index / GRID);
   const col = index % GRID;
   const cx = (col + 0.5 - GRID / 2) * PIECE;
   const cy = (row + 0.5 - GRID / 2) * PIECE;
-  return { row, col, dx: cx * SPREAD, dy: cy * SPREAD };
+  return {
+    row,
+    col,
+    dxOut: cx * SPREAD_OUT,
+    dyOut: cy * SPREAD_OUT,
+    dxIn: cx * SPREAD_IN,
+    dyIn: cy * SPREAD_IN,
+    rNorm: Math.hypot(cx, cy) / R_MAX,
+  };
 });
 
 export default function ModeTransition() {
   const [request, setRequest] = useState<TransitionRequest | null>(null);
   const overlay = useRef(new Animated.Value(0)).current;
-  // 0 — иконка собрана; 1 — сетка полностью раздвинута (фрагменты прозрачны).
-  const scatter = useRef(new Animated.Value(0)).current;
-  const [showTarget, setShowTarget] = useState(false);
+  const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     requestListener = setRequest;
@@ -88,31 +112,27 @@ export default function ModeTransition() {
   useEffect(() => {
     if (!request) return;
     running = true;
-    setShowTarget(false);
     overlay.setValue(0);
-    scatter.setValue(0);
+    progress.setValue(0);
 
-    // Две фазы с колбэком между ними: у нативно-ведомой анимации JS-слушатели
-    // значения не вызываются, момент полного распада ловится только так.
     Animated.sequence([
       Animated.timing(overlay, { toValue: 1, duration: 240, useNativeDriver: true }),
-      Animated.delay(90),
-      Animated.timing(scatter, {
-        toValue: 1,
-        duration: 620,
-        easing: Easing.inOut(Easing.cubic),
+      Animated.delay(80),
+      Animated.timing(progress, {
+        toValue: 0.5,
+        duration: 540,
+        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
     ]).start(() => {
-      // Фрагментов не видно, фон непрозрачен: подменяем иконку и экраны.
-      setShowTarget(true);
+      // Середина морфа, фон непрозрачен: переключаем экраны под оверлеем.
       request.onSwitch();
 
       Animated.sequence([
-        Animated.timing(scatter, {
-          toValue: 0,
-          duration: 680,
-          easing: Easing.inOut(Easing.cubic),
+        Animated.timing(progress, {
+          toValue: 1,
+          duration: 580,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
         Animated.delay(180),
@@ -122,14 +142,13 @@ export default function ModeTransition() {
         setRequest(null);
       });
     });
-  }, [request, overlay, scatter]);
+  }, [request, overlay, progress]);
 
   if (!request) return null;
 
-  const icon = showTarget ? request.toIcon : request.fromIcon;
-
   return (
     <Animated.View style={[styles.overlay, { opacity: overlay }]} pointerEvents="auto">
+      {/* Исходная иконка: расходится и тает в первой половине progress. */}
       <View style={styles.iconBox} pointerEvents="none">
         {PIECES.map((piece, index) => (
           <Animated.View
@@ -139,21 +158,73 @@ export default function ModeTransition() {
               {
                 left: piece.col * PIECE,
                 top: piece.row * PIECE,
-                opacity: scatter.interpolate({
-                  // Фрагменты видны большую часть пути и мягко гаснут к концу.
-                  inputRange: [0, 0.6, 1],
-                  outputRange: [1, 0.9, 0],
+                opacity: progress.interpolate({
+                  inputRange: [0.34, 0.56],
+                  outputRange: [1, 0],
+                  extrapolate: 'clamp',
                 }),
                 transform: [
-                  { translateX: scatter.interpolate({ inputRange: [0, 1], outputRange: [0, piece.dx] }) },
-                  { translateY: scatter.interpolate({ inputRange: [0, 1], outputRange: [0, piece.dy] }) },
+                  {
+                    translateX: progress.interpolate({
+                      inputRange: [OUT_LAG * (1 - piece.rNorm), 0.56],
+                      outputRange: [0, piece.dxOut],
+                      extrapolate: 'clamp',
+                    }),
+                  },
+                  {
+                    translateY: progress.interpolate({
+                      inputRange: [OUT_LAG * (1 - piece.rNorm), 0.56],
+                      outputRange: [0, piece.dyOut],
+                      extrapolate: 'clamp',
+                    }),
+                  },
                 ],
               },
             ]}
           >
-            {/* Полная иконка со смещением: ячейка показывает свой фрагмент. */}
             <View style={{ marginLeft: -piece.col * PIECE, marginTop: -piece.row * PIECE }}>
-              <Ionicons name={icon} size={ICON_SIZE} color={colors.accent} />
+              <Ionicons name={request.fromIcon} size={ICON_SIZE} color={colors.accent} />
+            </View>
+          </Animated.View>
+        ))}
+      </View>
+
+      {/* Целевая иконка: проявляется навстречу и собирается во второй половине. */}
+      <View style={[styles.iconBox, styles.iconBoxOverlap]} pointerEvents="none">
+        {PIECES.map((piece, index) => (
+          <Animated.View
+            key={index}
+            style={[
+              styles.piece,
+              {
+                left: piece.col * PIECE,
+                top: piece.row * PIECE,
+                opacity: progress.interpolate({
+                  inputRange: [0.44, 0.62],
+                  outputRange: [0, 1],
+                  extrapolate: 'clamp',
+                }),
+                transform: [
+                  {
+                    translateX: progress.interpolate({
+                      inputRange: [0.44, 1 - IN_LAG * (1 - piece.rNorm)],
+                      outputRange: [piece.dxIn, 0],
+                      extrapolate: 'clamp',
+                    }),
+                  },
+                  {
+                    translateY: progress.interpolate({
+                      inputRange: [0.44, 1 - IN_LAG * (1 - piece.rNorm)],
+                      outputRange: [piece.dyIn, 0],
+                      extrapolate: 'clamp',
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <View style={{ marginLeft: -piece.col * PIECE, marginTop: -piece.row * PIECE }}>
+              <Ionicons name={request.toIcon} size={ICON_SIZE} color={colors.accent} />
             </View>
           </Animated.View>
         ))}
@@ -174,6 +245,10 @@ const styles = StyleSheet.create({
   iconBox: {
     width: ICON_SIZE,
     height: ICON_SIZE,
+  },
+  // Оба слоя занимают одно и то же место в центре оверлея.
+  iconBoxOverlap: {
+    position: 'absolute',
   },
   piece: {
     position: 'absolute',
