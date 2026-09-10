@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -19,6 +19,10 @@ const ICONS: Record<string, { on: keyof typeof Ionicons.glyphMap; off: keyof typ
 };
 
 const clamp = { extrapolate: 'clamp' as const };
+
+const BAR_HEIGHT = 58;
+const BAR_PAD = 8;
+const CIRCLE = 44;
 
 function TabButton({
   routeName, focused, onPress, onLongPress, badge,
@@ -41,8 +45,8 @@ function TabButton({
     wasFocused.current = focused;
 
     if (focused) {
-      // Поп: круг разгоняется с перелётом за единицу, кнопка подпрыгивает
-      // и пружинно оседает на место.
+      // Поп: заполненная иконка влетает с перелётом, кнопка подпрыгивает и
+      // пружинно оседает — как раз к моменту, когда подъезжает круг.
       Animated.spring(focusA, { toValue: 1, useNativeDriver: true, speed: 16, bounciness: 14 }).start();
       hop.setValue(0);
       Animated.sequence([
@@ -81,16 +85,6 @@ function TabButton({
       >
         <Animated.View
           style={[
-            styles.circle,
-            {
-              opacity: focusA.interpolate({ inputRange: [0, 1], outputRange: [0, 1], ...clamp }),
-              // Спринг перелетает за 1 — круг в момент попа чуть крупнее себя.
-              transform: [{ scale: focusA.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }],
-            },
-          ]}
-        />
-        <Animated.View
-          style={[
             styles.iconLayer,
             { opacity: focusA.interpolate({ inputRange: [0, 1], outputRange: [1, 0], ...clamp }) },
           ]}
@@ -120,9 +114,33 @@ function TabButton({
 
 export default function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const [barW, setBarW] = useState(0);
+  // Один круг-индикатор на всю панель: он физически скользит к выбранной
+  // вкладке, а не рождается заново под каждой.
+  const slideX = useRef(new Animated.Value(0)).current;
+  const placed = useRef(false);
+
+  const count = state.routes.length;
+  const itemW = barW > 0 && count > 0 ? (barW - BAR_PAD * 2) / count : 0;
+  const targetX = BAR_PAD + itemW * (state.index + 0.5) - CIRCLE / 2;
+
+  useEffect(() => {
+    if (barW <= 0) return;
+    if (!placed.current) {
+      // Первое размещение — без анимации, круг просто стоит на активной.
+      placed.current = true;
+      slideX.setValue(targetX);
+      return;
+    }
+    Animated.spring(slideX, { toValue: targetX, useNativeDriver: true, speed: 14, bounciness: 9 }).start();
+  }, [targetX, barW, slideX]);
+
   return (
     <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 8) + 6 }]}>
-      <View style={styles.bar}>
+      <View style={styles.bar} onLayout={(e) => setBarW(e.nativeEvent.layout.width)}>
+        <Animated.View
+          style={[styles.slider, { opacity: barW > 0 ? 1 : 0, transform: [{ translateX: slideX }] }]}
+        />
         {state.routes.map((route, index) => {
           const focused = state.index === index;
           const { options } = descriptors[route.key];
@@ -157,14 +175,15 @@ const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'stretch', paddingHorizontal: 14 },
   bar: {
     flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', backgroundColor: colors.surface,
-    borderRadius: radius.pill, paddingHorizontal: 8, height: 58,
+    borderRadius: radius.pill, paddingHorizontal: BAR_PAD, height: BAR_HEIGHT,
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
     ...shadow.float,
   },
   item: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   iconWrap: { width: 56, height: 44, alignItems: 'center', justifyContent: 'center' },
-  circle: {
-    position: 'absolute', width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.accent,
+  slider: {
+    position: 'absolute', left: 0, top: (BAR_HEIGHT - CIRCLE) / 2, width: CIRCLE, height: CIRCLE,
+    borderRadius: radius.pill, backgroundColor: colors.accent,
     shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4,
   },
   iconLayer: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
