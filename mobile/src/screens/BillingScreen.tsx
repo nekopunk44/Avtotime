@@ -25,7 +25,7 @@ import {
 } from '../api/billing';
 import {
   isCancelled,
-  isStoreBillingSupported,
+  isStoreUnavailable,
   purchasePlan,
   restoreStorePurchases,
 } from '../billing/storePurchase';
@@ -188,15 +188,17 @@ export default function BillingScreen({ navigation }: Props) {
   const [storeConfig, setStoreConfig] = useState<StoreBillingConfig | null>(null);
   const [buyingPlan, setBuyingPlan] = useState<PlanKey | null>(null);
   const [restoring, setRestoring] = useState(false);
+  // Сборка без нативного модуля стора выясняется только при попытке покупки:
+  // трогать модуль на рендере нельзя — он бросает, если его нет в сборке.
+  const [storeMissing, setStoreMissing] = useState(false);
 
   useFocusEffect(useCallback(() => {
     getStoreBillingConfig().then(setStoreConfig).catch(() => setStoreConfig(null));
   }, []));
 
-  // Нативная покупка возможна, когда И сборка несёт модуль стора, И сервер
-  // настроен для этой платформы. Иначе честный фолбэк на веб-чекаут.
   const nativeBillingReady =
-    isStoreBillingSupported() &&
+    !storeMissing &&
+    (Platform.OS === 'ios' || Platform.OS === 'android') &&
     Boolean(Platform.OS === 'ios' ? storeConfig?.apple : storeConfig?.google);
 
   const applyPlanResult = (result: StorePlanResult) => {
@@ -217,7 +219,15 @@ export default function BillingScreen({ navigation }: Props) {
       applyPlanResult(result);
       Alert.alert('Готово', `Тариф «${PLAN_LABEL[String(result.effectivePlan)] || result.effectivePlan}» активирован.`);
     } catch (e: any) {
-      if (!isCancelled(e)) {
+      if (isStoreUnavailable(e)) {
+        // Не техническое сообщение в лицо: молча переключаемся на веб-оплату.
+        setStoreMissing(true);
+        Alert.alert(
+          'Оплата',
+          'В этой сборке приложения покупка через стор недоступна. Откроем страницу оплаты.',
+          [{ text: 'Отмена', style: 'cancel' }, { text: 'Открыть', onPress: openWebCheckout }],
+        );
+      } else if (!isCancelled(e)) {
         Alert.alert('Оплата', e?.response?.data?.message || e?.message || 'Покупка не прошла');
       }
     } finally {
@@ -237,7 +247,12 @@ export default function BillingScreen({ navigation }: Props) {
         Alert.alert('Восстановление', 'Активных покупок в сторе не найдено.');
       }
     } catch (e: any) {
-      Alert.alert('Восстановление', e?.response?.data?.message || e?.message || 'Не удалось восстановить покупки');
+      if (isStoreUnavailable(e)) {
+        setStoreMissing(true);
+        Alert.alert('Восстановление', 'В этой сборке приложения покупки стора недоступны.');
+      } else {
+        Alert.alert('Восстановление', e?.response?.data?.message || e?.message || 'Не удалось восстановить покупки');
+      }
     } finally {
       setRestoring(false);
     }

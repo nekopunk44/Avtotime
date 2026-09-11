@@ -4,10 +4,11 @@ import { PlanKey, StorePlanResult, StorePurchaseProof, verifyStorePurchase } fro
 /**
  * Нативные подписки через Google Play / App Store (react-native-iap v16).
  *
- * Библиотека — нативный модуль: в сборках, сделанных ДО её добавления, её
- * просто нет, и статический импорт уронил бы приложение на старте (ровно так
- * однажды падал react-native-svg). Поэтому загрузка ленивая; старые сборки
- * получают isStoreBillingSupported() === false и остаются на веб-чекауте.
+ * Библиотека — нативный модуль (v16 ещё и требует nitro-modules): в сборках,
+ * сделанных без них, её нет, и обращение бросает «NitroModules could not be
+ * found». Поэтому модуль не загружается ни при импорте, ни при рендере — ТОЛЬКО
+ * в момент покупки или восстановления. Если загрузить не удалось, вызывающий
+ * получает StoreUnavailableError и уводит пользователя на веб-оплату.
  */
 
 // Зеркало PRODUCT_TO_PLAN на бэкенде: эти же строки заводятся в консолях сторов.
@@ -20,19 +21,41 @@ type Iap = typeof import('react-native-iap');
 
 let iapModule: Iap | null | undefined;
 
+/** Сборка не несёт нативную часть стора — не ошибка пользователя, а сигнал уйти на веб-оплату. */
+export class StoreUnavailableError extends Error {
+  constructor() {
+    super('store-unavailable');
+    this.name = 'StoreUnavailableError';
+  }
+}
+
 const loadIap = (): Iap | null => {
   if (iapModule !== undefined) return iapModule;
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
+    iapModule = null;
+    return null;
+  }
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    iapModule = require('react-native-iap') as Iap;
+    const mod = require('react-native-iap') as Iap;
+    // Бросить может не сам require, а первое обращение к нативной части —
+    // поэтому трогаем поверхность модуля здесь, внутри try.
+    iapModule = typeof mod?.initConnection === 'function' ? mod : null;
   } catch {
     iapModule = null;
   }
   return iapModule;
 };
 
-export const isStoreBillingSupported = () =>
-  (Platform.OS === 'android' || Platform.OS === 'ios') && loadIap() !== null;
+/**
+ * Ошибка отсутствующего нативного модуля: наш собственный сигнал либо жалоба
+ * самой библиотеки на ненайденный TurboModule/NitroModules.
+ */
+export const isStoreUnavailable = (error: unknown): boolean => {
+  if (error instanceof StoreUnavailableError) return true;
+  const message = String((error as Error)?.message || '');
+  return /NitroModules|could not be found|TurboModule|Native.?Module/i.test(message);
+};
 
 /**
  * Что понесём серверу. Android: purchaseToken. iOS: НЕ purchaseToken — в v16
@@ -61,7 +84,7 @@ const buildProof = async (
  */
 export const purchasePlan = async (plan: Exclude<PlanKey, 'free'>): Promise<StorePlanResult> => {
   const iap = loadIap();
-  if (!iap) throw new Error('Эта сборка приложения не поддерживает оплату через стор');
+  if (!iap) throw new StoreUnavailableError();
 
   const sku = PLAN_TO_PRODUCT[plan];
   await iap.initConnection();
@@ -140,7 +163,7 @@ export const purchasePlan = async (plan: Exclude<PlanKey, 'free'>): Promise<Stor
  */
 export const restoreStorePurchases = async (): Promise<StorePlanResult | null> => {
   const iap = loadIap();
-  if (!iap) throw new Error('Эта сборка приложения не поддерживает оплату через стор');
+  if (!iap) throw new StoreUnavailableError();
 
   await iap.initConnection();
   try {

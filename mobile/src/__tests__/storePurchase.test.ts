@@ -41,7 +41,7 @@ jest.mock('../api/billing', () => ({
 }));
 
 import { Platform } from 'react-native';
-import { purchasePlan, restoreStorePurchases, isCancelled, isStoreBillingSupported } from '../billing/storePurchase';
+import { purchasePlan, restoreStorePurchases, isCancelled, isStoreUnavailable } from '../billing/storePurchase';
 
 // jest-expo по умолчанию эмулирует iOS; андроидный путь (первый к выкладке)
 // проверяем явно, iOS-ветка получает собственный тест ниже.
@@ -133,9 +133,14 @@ describe('восстановление покупок', () => {
   });
 });
 
-describe('поддержка сторовой оплаты', () => {
-  it('в тестовой среде модуль-подмена делает её доступной', () => {
-    expect(isStoreBillingSupported()).toBe(true);
+describe('сборка без нативного модуля стора', () => {
+  it('жалобу на ненайденный NitroModules опознаёт как недоступность стора', () => {
+    // Ровно тот текст, которым v16 встречает сборку без nitro-modules.
+    const error = new Error('Failed to get NitroModules: The native "NitroModules" Turbo/Native-Module could not be found.');
+
+    expect(isStoreUnavailable(error)).toBe(true);
+    // Обычная ошибка покупки не должна уводить пользователя на веб-оплату.
+    expect(isStoreUnavailable(new Error('Покупка не прошла'))).toBe(false);
   });
 });
 
