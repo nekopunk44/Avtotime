@@ -12,12 +12,11 @@ import { getStories, getStoryByUserName, Story, uploadStory } from '../api/stori
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, font, radius, space, shadow } from '../theme';
-import { Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
+import { Avatar, Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
 import ReportSheet from '../components/ReportSheet';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
-const fallbackAvatar = require('../../assets/icon.png');
 
 interface PostCardProps {
   item: Post;
@@ -42,7 +41,6 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
     ]).start();
   }, [opacity, translateY]);
 
-  const avatar = item.author?.profileImage ? { uri: item.author.profileImage } : fallbackAvatar;
   const firstMedia = item.mediaList?.[0] || item.media;
   const mediaCount = item.mediaList?.length ?? (item.media ? 1 : 0);
   const isVideo = item.mediaType === 'video';
@@ -53,7 +51,12 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
       <Card style={styles.card}>
         <View style={styles.cardHeader}>
           <PressableScale style={styles.authorTap} onPress={onProfile}>
-            <Image source={avatar} style={styles.avatar} />
+            <Avatar
+              uri={item.author?.profileImage}
+              userName={item.author?.userName}
+              name={item.author?.name}
+              size={42}
+            />
             <View>
               <Text style={styles.name}>{item.author?.name}</Text>
               <Text style={styles.username}>@{item.author?.userName}</Text>
@@ -338,9 +341,11 @@ export default function FeedScreen({ navigation }: Props) {
             >
               <View style={[styles.storyRing, viewed && styles.storyRingViewed]}>
                 <View style={styles.storyInner}>
-                  <Image
-                    source={item.author?.profileImage ? { uri: item.author.profileImage } : fallbackAvatar}
-                    style={styles.storyImage}
+                  <Avatar
+                    uri={item.author?.profileImage}
+                    userName={item.author?.userName}
+                    name={item.author?.name}
+                    size={54}
                   />
                 </View>
               </View>

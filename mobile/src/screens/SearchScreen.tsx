@@ -20,10 +20,10 @@ import { getFeed, Post, searchPosts, toggleLike } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
+import { Avatar } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
-const fallbackAvatar = require('../../assets/icon.png');
 
 const formatCount = (value: number) => {
   if (value > 999) return `${(value / 1000).toFixed(1)}k`;
@@ -199,7 +199,7 @@ export default function SearchScreen({ navigation }: Props) {
         onPress={() => navigation.navigate('UserProfile', { userId: item._id })}
         activeOpacity={0.86}
       >
-        <Image source={item.profileImage ? { uri: item.profileImage } : fallbackAvatar} style={styles.avatar} />
+        <Avatar uri={item.profileImage} userName={item.userName} name={item.name} size={52} />
         <View style={styles.userInfo}>
           <Text style={styles.name} numberOfLines={1}>{item.name || 'Пользователь'}</Text>
           <Text style={styles.username} numberOfLines={1}>@{item.userName || 'avtotime'}</Text>
@@ -227,7 +227,6 @@ export default function SearchScreen({ navigation }: Props) {
   const renderPost = ({ item }: { item: Post }) => {
     const liked = user ? item.likes?.includes(user._id) : false;
     const image = item.mediaList?.[0] || item.media;
-    const avatar = item.author?.profileImage ? { uri: item.author.profileImage } : fallbackAvatar;
 
     return (
       <View style={styles.postCard}>
@@ -236,7 +235,12 @@ export default function SearchScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('UserProfile', { userId: item.author._id })}
           activeOpacity={0.86}
         >
-          <Image source={avatar} style={styles.postAvatar} />
+          <Avatar
+            uri={item.author?.profileImage}
+            userName={item.author?.userName}
+            name={item.author?.name}
+            size={40}
+          />
           <View style={styles.postAuthorText}>
             <Text style={styles.name} numberOfLines={1}>{item.author?.name || 'Пользователь'}</Text>
             <Text style={styles.username} numberOfLines={1}>@{item.author?.userName || 'avtotime'}</Text>

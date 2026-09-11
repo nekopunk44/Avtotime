@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, Image,
+  View, Text, TextInput, TouchableOpacity,
   StyleSheet, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -10,10 +10,10 @@ import { updateProfile } from '../api/users';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
+import { Avatar } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'EditProfile'> };
 
-const fallbackAvatar = require('../../assets/icon.png');
 
 export default function EditProfileScreen({ navigation }: Props) {
   const user = useAuthStore((s) => s.user);
@@ -30,11 +30,7 @@ export default function EditProfileScreen({ navigation }: Props) {
 
   if (!user) return null;
 
-  const avatar = imageUri
-    ? { uri: imageUri }
-    : user.profileImage
-      ? { uri: user.profileImage }
-      : fallbackAvatar;
+  const avatarUri = imageUri || user.profileImage;
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -97,7 +93,7 @@ export default function EditProfileScreen({ navigation }: Props) {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <TouchableOpacity style={styles.avatarWrap} onPress={pickImage} activeOpacity={0.85}>
-          <Image source={avatar} style={styles.avatar} />
+          <Avatar uri={avatarUri} userName={user.userName} name={user.name} size={104} />
           <View style={styles.avatarBadge}>
             <Ionicons name="camera" size={16} color={colors.onAccent} />
           </View>

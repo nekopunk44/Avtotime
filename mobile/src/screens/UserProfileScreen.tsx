@@ -22,6 +22,7 @@ import { User } from '../api/auth';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
 import ReportSheet from '../components/ReportSheet';
+import { Avatar } from '../components/ui';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'UserProfile'>;
@@ -144,12 +145,11 @@ export default function UserProfileScreen({ route, navigation }: Props) {
   }
 
   const isMe = me?._id === userId;
-  const avatar = user.profileImage ? { uri: user.profileImage } : require('../../assets/icon.png');
 
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.profileTop}>
-        <Image source={avatar} style={styles.avatar} />
+        <Avatar uri={user.profileImage} userName={user.userName} name={user.name} size={74} />
         <View style={styles.profileInfo}>
           <Text style={styles.name}>{user.name || 'Пользователь'}</Text>
           <Text style={styles.username}>@{user.userName || 'avtotime'}</Text>

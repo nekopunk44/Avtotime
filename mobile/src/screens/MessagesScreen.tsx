@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,11 +8,10 @@ import { useSocketEvent } from '../hooks/useSocket';
 import { useBadgeStore } from '../store/badgeStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, font, radius, shadow, space } from '../theme';
-import { Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
+import { Avatar, Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
-const fallbackAvatar = require('../../assets/icon.png');
 
 const formatDate = (value?: string) => {
   if (!value) return '';
@@ -124,7 +123,7 @@ export default function MessagesScreen({ navigation }: Props) {
         style={[styles.cellWrap, deleting && { opacity: 0.5 }]}
       >
         <Card style={styles.card}>
-          <Image source={item.profileImage ? { uri: item.profileImage } : fallbackAvatar} style={styles.avatar} />
+          <Avatar uri={item.profileImage} userName={item.userName} name={item.name} size={56} />
           <View style={styles.info}>
             <View style={styles.topLine}>
               <Text style={styles.name} numberOfLines={1}>{item.name || 'Пользователь'}</Text>

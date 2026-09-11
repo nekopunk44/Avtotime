@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, Image, FlatList, TextInput, TouchableOpacity,
+  View, Text, FlatList, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import { addComment, deletePost, getPostById, isPostSaved, Post, PostComment, to
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import PostMediaCarousel from '../components/PostMediaCarousel';
+import { Avatar } from '../components/ui';
 import { colors } from '../theme';
 
 type Props = {
@@ -18,7 +19,6 @@ type Props = {
   route: RouteProp<AppStackParamList, 'PostComments'>;
 };
 
-const fallbackAvatar = require('../../assets/icon.png');
 
 function getCommentAuthor(comment: PostComment) {
   return typeof comment.author === 'string'
@@ -108,7 +108,6 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
 
   const renderHeader = () => {
     if (!post) return null;
-    const avatar = post.author?.profileImage ? { uri: post.author.profileImage } : fallbackAvatar;
     const liked = user ? post.likes?.includes(user._id) : false;
     const saved = isPostSaved(user, post._id);
     const isMine = post.author?._id === user?._id;
@@ -117,7 +116,12 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
     return (
       <View style={styles.postHeader}>
         <View style={styles.authorRow}>
-          <Image source={avatar} style={styles.avatar} />
+          <Avatar
+            uri={post.author?.profileImage}
+            userName={post.author?.userName}
+            name={post.author?.name}
+            size={40}
+          />
           <View style={styles.authorText}>
             <Text style={styles.name}>{post.author?.name}</Text>
             <Text style={styles.username}>@{post.author?.userName}</Text>
@@ -154,11 +158,10 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
 
   const renderComment = ({ item }: { item: PostComment }) => {
     const author = getCommentAuthor(item);
-    const avatar = author.profileImage ? { uri: author.profileImage } : fallbackAvatar;
 
     return (
       <View style={styles.commentRow}>
-        <Image source={avatar} style={styles.commentAvatar} />
+        <Avatar uri={author.profileImage} userName={author.userName} name={author.name} size={34} />
         <View style={styles.commentBubble}>
           <Text style={styles.commentName}>{author.userName ? `@${author.userName}` : author.name}</Text>
           <Text style={styles.commentText}>{item.message}</Text>

@@ -16,6 +16,7 @@ import { Story, viewStory } from '../api/stories';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
+import { Avatar } from '../components/ui';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'StoryViewer'>;
@@ -96,9 +97,11 @@ export default function StoryViewerScreen({ navigation, route }: Props) {
         <TouchableOpacity style={styles.closeBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={28} color={colors.white} />
         </TouchableOpacity>
-        <Image
-          source={story.author?.profileImage ? { uri: story.author.profileImage } : require('../../assets/icon.png')}
-          style={styles.avatar}
+        <Avatar
+          uri={story.author?.profileImage}
+          userName={story.author?.userName}
+          name={story.author?.name}
+          size={40}
         />
         <View style={styles.authorTextWrap}>
           <Text style={styles.authorName} numberOfLines={1}>{story.author?.name || story.author?.userName}</Text>
@@ -150,10 +153,7 @@ export default function StoryViewerScreen({ navigation, route }: Props) {
               keyExtractor={(item) => item._id}
               renderItem={({ item }) => (
                 <View style={styles.viewerRow}>
-                  <Image
-                    source={item.profileImage ? { uri: item.profileImage } : require('../../assets/icon.png')}
-                    style={styles.viewerAvatar}
-                  />
+                  <Avatar uri={item.profileImage} userName={item.userName} name={item.name} size={42} />
                   <View>
                     <Text style={styles.viewerName}>{item.name || item.userName}</Text>
                     <Text style={styles.viewerUserName}>@{item.userName}</Text>

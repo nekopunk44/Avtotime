@@ -17,7 +17,7 @@ import { getPostThumb, getSavedPosts, Post, toggleLike, toggleSavePost } from '.
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
-import { Skeleton } from '../components/ui';
+import { Avatar, Skeleton } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'SavedPosts'> };
 
@@ -100,9 +100,11 @@ export default function SavedPostsScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('UserProfile', { userId: item.author._id })}
           activeOpacity={0.85}
         >
-          <Image
-            source={item.author?.profileImage ? { uri: item.author.profileImage } : require('../../assets/icon.png')}
-            style={styles.avatar}
+          <Avatar
+            uri={item.author?.profileImage}
+            userName={item.author?.userName}
+            name={item.author?.name}
+            size={40}
           />
           <View style={styles.authorText}>
             <Text style={styles.name}>{item.author?.name || 'Пользователь'}</Text>
