@@ -265,7 +265,6 @@ export default function MarketScreen({ navigation }: Props) {
       visible={filtersOpen}
       categoryId={categoryId}
       value={filters}
-      resultCount={listings.length}
       onApply={(next) => { setFilters(next); setFiltersOpen(false); }}
       onClose={() => setFiltersOpen(false)}
     />

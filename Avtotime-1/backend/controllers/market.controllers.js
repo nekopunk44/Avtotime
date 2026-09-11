@@ -180,7 +180,8 @@ const buildCarFilterClauses = (q, baseFilter) => {
   const bodies = parseMultiParam(q.bodyType);
   if (bodies.length) clauses.push({ bodyType: { $in: bodies.map((b) => new RegExp(`^${escapeRe(b)}$`, "i")) } });
 
-  if (q.driveType) clauses.push({ driveType: new RegExp(`^${escapeRe(q.driveType)}$`, "i") });
+  const drives = parseMultiParam(q.driveType);
+  if (drives.length) clauses.push({ driveType: { $in: drives.map((d) => new RegExp(`^${escapeRe(d)}$`, "i")) } });
   if (q.seats) clauses.push({ seats: new RegExp(escapeRe(q.seats), "i") });
   if (q.region) clauses.push({ $or: [{ region: new RegExp(escapeRe(q.region), "i") }, { location: new RegExp(escapeRe(q.region), "i") }] });
   if (q.registrationPlace) clauses.push({ registrationPlace: new RegExp(escapeRe(q.registrationPlace), "i") });

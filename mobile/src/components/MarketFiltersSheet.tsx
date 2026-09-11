@@ -64,48 +64,25 @@ const FIELDS: Record<MarketCategoryId, FieldKey[]> = {
   'dry-cleaning': ['price', 'region'],
 };
 
-// У каждой опции своя иконка: набор одинаковых серых пилюль читается сплошной
-// стеной текста, а по значку выбор находится глазами мгновенно.
-type Option = { value: string; icon: keyof typeof Ionicons.glyphMap };
+const FUEL = ['Бензин', 'Дизель', 'Газ', 'Гибрид', 'Электро'];
+const GEARBOX = ['Механика', 'Автомат', 'Робот', 'Вариатор'];
+const BODY = ['Седан', 'Хэтчбек', 'Универсал', 'Кроссовер', 'Внедорожник', 'Купе', 'Минивэн', 'Пикап', 'Кабриолет'];
+const DRIVE = ['Передний', 'Задний', 'Полный'];
 
-const FUEL: Option[] = [
-  { value: 'Бензин', icon: 'flame-outline' },
-  { value: 'Дизель', icon: 'water-outline' },
-  { value: 'Газ', icon: 'cloud-outline' },
-  { value: 'Гибрид', icon: 'git-merge-outline' },
-  { value: 'Электро', icon: 'flash-outline' },
-];
+// Значения хранятся строкой через запятую — ровно так их принимает бэкенд
+// ($in по списку), поэтому наружу уходит то же, что и раньше.
+const listOf = (value: string) => (value ? value.split(',').filter(Boolean) : []);
+const toggleValue = (current: string, option: string) => {
+  const list = listOf(current);
+  const next = list.includes(option) ? list.filter((item) => item !== option) : [...list, option];
+  return next.join(',');
+};
 
-const GEARBOX: Option[] = [
-  { value: 'Механика', icon: 'git-commit-outline' },
-  { value: 'Автомат', icon: 'sync-outline' },
-  { value: 'Робот', icon: 'hardware-chip-outline' },
-  { value: 'Вариатор', icon: 'infinite-outline' },
-];
-
-const BODY: Option[] = [
-  { value: 'Седан', icon: 'car-outline' },
-  { value: 'Хэтчбек', icon: 'car-sport-outline' },
-  { value: 'Универсал', icon: 'bus-outline' },
-  { value: 'Кроссовер', icon: 'car-sport-outline' },
-  { value: 'Внедорожник', icon: 'trail-sign-outline' },
-  { value: 'Купе', icon: 'speedometer-outline' },
-  { value: 'Минивэн', icon: 'bus-outline' },
-  { value: 'Пикап', icon: 'cube-outline' },
-  { value: 'Кабриолет', icon: 'sunny-outline' },
-];
-
-const DRIVE: Option[] = [
-  { value: 'Передний', icon: 'arrow-up-outline' },
-  { value: 'Задний', icon: 'arrow-down-outline' },
-  { value: 'Полный', icon: 'swap-vertical-outline' },
-];
-
-const SORTS: Array<{ value: MarketSort; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
-  { value: 'newest', label: 'Новые', icon: 'time-outline' },
-  { value: 'price_asc', label: 'Дешевле', icon: 'arrow-down-outline' },
-  { value: 'price_desc', label: 'Дороже', icon: 'arrow-up-outline' },
-  { value: 'oldest', label: 'Старые', icon: 'calendar-outline' },
+const SORTS: Array<{ value: MarketSort; label: string }> = [
+  { value: 'newest', label: 'Новые' },
+  { value: 'price_asc', label: 'Дешевле' },
+  { value: 'price_desc', label: 'Дороже' },
+  { value: 'oldest', label: 'Старые' },
 ];
 
 const digits = (value: string) => value.replace(/[^0-9]/g, '').slice(0, 9);
@@ -114,8 +91,6 @@ interface Props {
   visible: boolean;
   categoryId: MarketCategoryId;
   value: MarketFilters;
-  /** Сколько объявлений сейчас в выдаче — на кнопке «Показать». */
-  resultCount: number;
   onApply: (filters: MarketFilters) => void;
   onClose: () => void;
 }
@@ -128,7 +103,7 @@ interface Props {
  * или тап по подложке должны быть отменой без последствий.
  */
 export default function MarketFiltersSheet({
-  visible, categoryId, value, resultCount, onApply, onClose,
+  visible, categoryId, value, onApply, onClose,
 }: Props) {
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<MarketFilters>(value);
@@ -238,16 +213,20 @@ export default function MarketFiltersSheet({
   );
 
   /**
-   * Опции лежат сеткой с переносом, а не в горизонтальной ленте: в ленте
-   * половина вариантов уезжала за край экрана и о них было не догадаться.
+   * Значения — список с отметками в две колонки: видно все варианты сразу
+   * (в горизонтальной ленте половина уезжала за край) и видно, что выбрать
+   * можно несколько.
    */
-  const renderOptions = (label: string, key: keyof MarketFilters, options: Option[]) => {
-    const chosen = draft[key] as string;
+  const renderOptions = (label: string, key: keyof MarketFilters, options: string[]) => {
+    const chosen = listOf(draft[key] as string);
     return (
       <View key={label} style={styles.field}>
         <View style={styles.labelRow}>
-          <Text style={styles.label}>{label}</Text>
-          {chosen ? (
+          <Text style={styles.label}>
+            {label}
+            {chosen.length ? <Text style={styles.labelCount}>{`  ${chosen.length}`}</Text> : null}
+          </Text>
+          {chosen.length ? (
             <Pressable onPress={() => set(key, '')} hitSlop={8}>
               <Text style={styles.labelClear}>Сбросить</Text>
             </Pressable>
@@ -255,22 +234,23 @@ export default function MarketFiltersSheet({
         </View>
         <View style={styles.optionGrid}>
           {options.map((option) => {
-            const active = chosen === option.value;
+            const active = chosen.includes(option);
             return (
               <PressableScale
-                key={option.value}
-                scaleTo={0.94}
+                key={option}
+                scaleTo={0.96}
                 style={[styles.option, active && styles.optionActive]}
-                onPress={() => set(key, active ? '' : option.value)}
+                onPress={() => set(key, toggleValue(draft[key] as string, option))}
               >
-                <View style={[styles.optionIcon, active && styles.optionIconActive]}>
-                  <Ionicons
-                    name={option.icon}
-                    size={15}
-                    color={active ? colors.onAccent : colors.textMuted}
-                  />
+                <Text
+                  style={[styles.optionText, active && styles.optionTextActive]}
+                  numberOfLines={1}
+                >
+                  {option}
+                </Text>
+                <View style={[styles.check, active && styles.checkActive]}>
+                  {active ? <Ionicons name="checkmark" size={13} color={colors.onAccent} /> : null}
                 </View>
-                <Text style={[styles.optionText, active && styles.optionTextActive]}>{option.value}</Text>
               </PressableScale>
             );
           })}
@@ -338,24 +318,25 @@ export default function MarketFiltersSheet({
             >
               {fields.map(renderField)}
 
+              {/* Сортировка — выбор ровно один, поэтому сегменты, а не отметки. */}
               <View style={styles.field}>
                 <Text style={styles.label}>Сортировка</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+                <View style={styles.segment}>
                   {SORTS.map((sort) => {
                     const active = draft.sortBy === sort.value;
                     return (
-                      <PressableScale
+                      <Pressable
                         key={sort.value}
-                        scaleTo={0.95}
-                        style={[styles.chip, active && styles.chipActive]}
+                        style={[styles.segmentItem, active && styles.segmentItemActive]}
                         onPress={() => setDraft((prev) => ({ ...prev, sortBy: sort.value }))}
                       >
-                        <Ionicons name={sort.icon} size={14} color={active ? colors.onAccent : colors.textMuted} />
-                        <Text style={[styles.chipText, active && styles.chipTextActive]}>{sort.label}</Text>
-                      </PressableScale>
+                        <Text style={[styles.segmentText, active && styles.segmentTextActive]} numberOfLines={1}>
+                          {sort.label}
+                        </Text>
+                      </Pressable>
                     );
                   })}
-                </ScrollView>
+                </View>
               </View>
             </ScrollView>
 
@@ -369,7 +350,7 @@ export default function MarketFiltersSheet({
               </PressableScale>
               <PressableScale style={styles.applyBtn} onPress={() => onApply(draft)}>
                 <Text style={styles.applyText}>
-                  {activeCount ? `Показать · ${activeCount}` : `Показать (${resultCount})`}
+                  {activeCount ? `Показать · ${activeCount}` : 'Показать'}
                 </Text>
               </PressableScale>
             </View>
@@ -409,22 +390,26 @@ const styles = StyleSheet.create({
     marginLeft: 2, textTransform: 'uppercase', letterSpacing: 0.4,
   },
   labelClear: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '900' },
+  labelCount: { color: colors.accent },
 
   optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   option: {
-    flexDirection: 'row', alignItems: 'center', gap: 7,
-    height: 42, borderRadius: radius.md, paddingLeft: 7, paddingRight: space.md,
+    // Две колонки: половина ширины минус половина зазора между ними.
+    width: '48.5%',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm,
+    height: 46, borderRadius: radius.md, paddingHorizontal: space.md,
     backgroundColor: colors.surfaceAlt,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+    borderWidth: 1, borderColor: 'transparent',
   },
-  optionActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  optionIcon: {
-    width: 28, height: 28, borderRadius: radius.sm,
-    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
+  optionActive: { borderColor: colors.accent, backgroundColor: colors.surfaceHi },
+  optionText: { flex: 1, color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
+  optionTextActive: { color: colors.text, fontWeight: '900' },
+  check: {
+    width: 20, height: 20, borderRadius: 6,
+    borderWidth: 1.5, borderColor: colors.surfaceHi,
+    alignItems: 'center', justifyContent: 'center',
   },
-  optionIconActive: { backgroundColor: 'rgba(11,11,14,0.12)' },
-  optionText: { color: colors.text, fontSize: font.small, fontWeight: '800' },
-  optionTextActive: { color: colors.onAccent, fontWeight: '900' },
+  checkActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   input: {
     height: 46, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
@@ -436,15 +421,17 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
     paddingHorizontal: space.md, color: colors.text, fontSize: font.body,
   },
-  chipRow: { gap: space.sm, paddingVertical: 1 },
-  chip: {
-    height: 38, borderRadius: radius.pill, paddingHorizontal: space.md,
-    backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
-    flexDirection: 'row', alignItems: 'center', gap: 5,
+  segment: {
+    flexDirection: 'row', backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md, padding: 4, gap: 4,
   },
-  chipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  chipText: { color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
-  chipTextActive: { color: colors.onAccent },
+  segmentItem: {
+    flex: 1, height: 38, borderRadius: radius.sm,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
+  },
+  segmentItemActive: { backgroundColor: colors.accent },
+  segmentText: { color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
+  segmentTextActive: { color: colors.onAccent, fontWeight: '900' },
 
   actions: { flexDirection: 'row', gap: space.sm, marginTop: space.md },
   resetBtn: {
