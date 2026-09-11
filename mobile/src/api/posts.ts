@@ -83,6 +83,12 @@ export async function getUserPosts(userId: string, page = 1, limit = 60): Promis
   };
 }
 
+/** Посты, которым пользователь поставил лайк. */
+export async function getLikedPosts(page = 1, limit = 60): Promise<Post[]> {
+  const { data } = await client.get('/post/liked', { params: { page, limit } });
+  return Array.isArray(data) ? data : data.posts ?? [];
+}
+
 export async function getPostById(postId: string): Promise<Post> {
   const { data } = await client.get(`/post/get/${postId}`);
   return data;

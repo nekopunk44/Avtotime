@@ -154,7 +154,12 @@ export default function BillingScreen({ navigation }: Props) {
     try {
       setStatus(await getBillingStatus());
     } catch (e: any) {
-      setError(e.response?.data?.message || 'Не удалось загрузить тарифы');
+      // Код ответа в тексте: «просто ошибка» невозможно диагностировать.
+      const status = e?.response?.status;
+      setError(
+        e?.response?.data?.message
+          || (status ? `Не удалось загрузить тарифы (ответ ${status})` : 'Не удалось загрузить тарифы'),
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);

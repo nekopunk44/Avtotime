@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { getMe } from '../api/auth';
-import { getPostThumb, getSavedPosts, getUserPosts, Post } from '../api/posts';
+import { getLikedPosts, getPostThumb, getSavedPosts, getUserPosts, Post } from '../api/posts';
 import { getReviews, getUserRatingStats, ReviewItem, ReviewStats } from '../api/reviews';
 import { getListingImage, getListingPrice, getListingTitle, loadMyMarketListings, MyMarketListing } from '../api/market';
 import { useAuthStore } from '../store/authStore';
@@ -56,7 +56,7 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-type ProfileTab = 'posts' | 'saved' | 'listings' | 'reviews';
+type ProfileTab = 'posts' | 'liked' | 'saved' | 'listings' | 'reviews';
 
 interface TabDef {
   key: ProfileTab;
@@ -70,6 +70,7 @@ interface TabDef {
 // вкладки, статистика и кнопка «+» у режимов свои.
 const SOCIAL_TABS: TabDef[] = [
   { key: 'posts', title: 'Мои публикации', on: 'grid', off: 'grid-outline' },
+  { key: 'liked', title: 'Понравившиеся', on: 'heart', off: 'heart-outline' },
   { key: 'saved', title: 'Сохранённые', on: 'bookmark', off: 'bookmark-outline' },
 ];
 
@@ -110,17 +111,22 @@ function TabIcon({ tab, active }: { tab: TabDef; active: boolean }) {
   );
 }
 
-/** Переключатель разделов: индикатор физически едет к выбранной иконке. */
+/**
+ * Переключатель разделов: индикатор физически едет к выбранной иконке.
+ * Позиция и признак «уже размещён» живут в экране, а не здесь: смена
+ * numColumns пересоздаёт список вместе с шапкой, и собственное состояние
+ * переключателя обнулилось бы — индикатор прыгал бы вместо скольжения.
+ */
 function TabSwitcher({
-  tabs, value, onChange,
+  tabs, value, onChange, slide, placed,
 }: {
   tabs: TabDef[];
   value: ProfileTab;
   onChange: (key: ProfileTab) => void;
+  slide: Animated.Value;
+  placed: React.MutableRefObject<boolean>;
 }) {
   const [width, setWidth] = useState(0);
-  const slide = useRef(new Animated.Value(0)).current;
-  const placed = useRef(false);
 
   const index = Math.max(0, tabs.findIndex((t) => t.key === value));
   const seg = width > 0 ? (width - 8) / tabs.length : 0;
@@ -134,7 +140,7 @@ function TabSwitcher({
       return;
     }
     Animated.spring(slide, { toValue: targetX, useNativeDriver: true, speed: 15, bounciness: 8 }).start();
-  }, [targetX, width, slide]);
+  }, [targetX, width, slide, placed]);
 
   return (
     <View style={styles.tabs} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
@@ -195,11 +201,17 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
 
   const [tab, setTab] = useState<ProfileTab>(isMarket ? 'listings' : 'posts');
   const [saved, setSaved] = useState<Post[]>([]);
+  const [liked, setLiked] = useState<Post[]>([]);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
+  const [likedLoading, setLikedLoading] = useState(false);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const savedLoaded = useRef(false);
+  const likedLoaded = useRef(false);
   const reviewsLoaded = useRef(false);
+  // Живут в экране, чтобы пережить пересоздание списка при смене раздела.
+  const tabSlide = useRef(new Animated.Value(0)).current;
+  const tabPlaced = useRef(false);
 
   const selectTab = useCallback((next: ProfileTab) => {
     setTab(next);
@@ -207,6 +219,11 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
       savedLoaded.current = true;
       setSavedLoading(true);
       getSavedPosts().then(setSaved).catch(() => {}).finally(() => setSavedLoading(false));
+    }
+    if (next === 'liked' && !likedLoaded.current) {
+      likedLoaded.current = true;
+      setLikedLoading(true);
+      getLikedPosts().then(setLiked).catch(() => {}).finally(() => setLikedLoading(false));
     }
     if (next === 'reviews' && !reviewsLoaded.current && user?._id) {
       reviewsLoaded.current = true;
@@ -263,6 +280,9 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
     if (tab === 'saved') {
       getSavedPosts().then(setSaved).catch(() => {});
     }
+    if (tab === 'liked') {
+      getLikedPosts().then(setLiked).catch(() => {});
+    }
     if (tab === 'reviews' && user?._id) {
       getReviews({ targetUserId: user._id }).then((r) => setReviews(r.reviews)).catch(() => {});
     }
@@ -274,17 +294,20 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
   const activePlan = user.effectivePlan || user.plan || 'free';
   const tabs = isMarket ? MARKET_TABS : SOCIAL_TABS;
   const activeTab = tabs.find((t) => t.key === tab) || tabs[0];
-  const tabLoading = tab === 'saved' ? savedLoading : tab === 'reviews' ? reviewsLoading : loading;
+  const tabLoading =
+    tab === 'saved' ? savedLoading : tab === 'liked' ? likedLoading : tab === 'reviews' ? reviewsLoading : loading;
   // Пока раздел грузится, счётчик молчит — ноль читался бы как «пусто».
   const sectionCount = tabLoading
     ? null
     : tab === 'posts'
       ? postsTotal
-      : tab === 'saved'
-        ? saved.length
-        : tab === 'listings'
-          ? listings.length
-          : ratingStats.totalReviews;
+      : tab === 'liked'
+        ? liked.length
+        : tab === 'saved'
+          ? saved.length
+          : tab === 'listings'
+            ? listings.length
+            : ratingStats.totalReviews;
 
   const openFollowList = (mode: 'followers' | 'following') => {
     navigation.navigate('FollowList', {
@@ -409,7 +432,7 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
       ) : null}
 
       <View style={styles.tabsRow}>
-        <TabSwitcher tabs={tabs} value={tab} onChange={selectTab} />
+        <TabSwitcher tabs={tabs} value={tab} onChange={selectTab} slide={tabSlide} placed={tabPlaced} />
         <PressableScale
           style={styles.addBtn}
           onPress={() => navigation.navigate(isMarket ? 'CreateMarketListing' : 'CreatePost')}
@@ -494,14 +517,21 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
   );
 
   const isGrid = tab !== 'reviews';
-  const data: any[] = tab === 'posts' ? posts : tab === 'saved' ? saved : tab === 'listings' ? listings : reviews;
+  const data: any[] =
+    tab === 'posts' ? posts
+      : tab === 'liked' ? liked
+        : tab === 'saved' ? saved
+          : tab === 'listings' ? listings
+            : reviews;
   const empty = tab === 'posts'
     ? { icon: 'images-outline' as const, title: 'Публикаций пока нет', subtitle: 'Нажмите + вверху, чтобы создать первую публикацию.' }
-    : tab === 'saved'
-      ? { icon: 'bookmark-outline' as const, title: 'Нет сохранённых постов', subtitle: 'Сохраняйте понравившиеся посты, чтобы вернуться к ним позже.' }
-      : tab === 'listings'
-        ? { icon: 'pricetags-outline' as const, title: 'Объявлений пока нет', subtitle: 'Нажмите + вверху, чтобы разместить первое объявление.' }
-        : { icon: 'star-outline' as const, title: 'Отзывов пока нет', subtitle: 'Отзывы по вашим объявлениям появятся здесь.' };
+    : tab === 'liked'
+      ? { icon: 'heart-outline' as const, title: 'Пока ничего не понравилось', subtitle: 'Посты, которым вы поставите лайк, соберутся здесь.' }
+      : tab === 'saved'
+        ? { icon: 'bookmark-outline' as const, title: 'Нет сохранённых постов', subtitle: 'Сохраняйте понравившиеся посты, чтобы вернуться к ним позже.' }
+        : tab === 'listings'
+          ? { icon: 'pricetags-outline' as const, title: 'Объявлений пока нет', subtitle: 'Нажмите + вверху, чтобы разместить первое объявление.' }
+          : { icon: 'star-outline' as const, title: 'Отзывов пока нет', subtitle: 'Отзывы по вашим объявлениям появятся здесь.' };
 
   return (
     <FlatList
@@ -511,7 +541,10 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
       keyExtractor={(item: any) => item.key || item._id}
       renderItem={(isGrid ? (tab === 'listings' ? renderListing : renderPost) : renderReview) as any}
       numColumns={isGrid ? 3 : 1}
-      ListHeaderComponent={renderHeader}
+      // Именно элемент, а не функция: функция каждый рендер — новый ТИП
+      // компонента, шапка размонтировалась бы, и индикатор вкладок вместо
+      // скольжения возникал бы на новом месте заново.
+      ListHeaderComponent={renderHeader()}
       contentContainerStyle={data.length ? styles.list : styles.emptyList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       ListEmptyComponent={
