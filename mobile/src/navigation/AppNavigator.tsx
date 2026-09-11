@@ -176,6 +176,11 @@ const makeTabOptions = (current: 'social' | 'market') => () => ({
   headerRight: () => <HeaderBell />,
 });
 
+// Один экран личности — два разных профиля: в соцсети про контент и людей,
+// в маркете про объявления и рейтинг продавца.
+const SocialProfileScreen = (props: any) => <ProfileScreen {...props} mode="social" />;
+const MarketProfileScreen = (props: any) => <ProfileScreen {...props} mode="market" />;
+
 // Переход между вкладками соцсети — направленный, с глубиной: экраны живут
 // на одной ленте (progress: -1 слева, 0 в фокусе, 1 справа), уходящий
 // сдвигается в сторону движения, слегка уменьшаясь и гаснет, входящий
@@ -219,7 +224,7 @@ function SocialTabs() {
         component={MessagesScreen}
         options={{ tabBarBadge: unreadMessages || undefined }}
       />
-      <SocialTab.Screen name="Profile" component={ProfileScreen} />
+      <SocialTab.Screen name="Profile" component={SocialProfileScreen} />
     </SocialTab.Navigator>
   );
 }
@@ -234,7 +239,7 @@ function MarketTabs() {
       <MarketTab.Screen name="Favorites" component={FavoritesScreen} />
       <MarketTab.Screen name="MyListings" component={MyListingsScreen} />
       <MarketTab.Screen name="Driving" component={DrivingCoursesScreen} />
-      <MarketTab.Screen name="Profile" component={ProfileScreen} />
+      <MarketTab.Screen name="Profile" component={MarketProfileScreen} />
     </MarketTab.Navigator>
   );
 }

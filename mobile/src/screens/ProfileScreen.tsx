@@ -16,12 +16,17 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getMe } from '../api/auth';
 import { getPostThumb, getSavedPosts, getUserPosts, Post } from '../api/posts';
 import { getReviews, getUserRatingStats, ReviewItem, ReviewStats } from '../api/reviews';
+import { getListingImage, getListingPrice, getListingTitle, loadMyMarketListings, MyMarketListing } from '../api/market';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, font, radius, shadow, space } from '../theme';
 import { EmptyState, PressableScale, Skeleton } from '../components/ui';
 
-type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
+type Props = {
+  navigation: NativeStackNavigationProp<AppStackParamList>;
+  /** Профиль в соцсети и в маркете — разные экраны одной личности. */
+  mode?: 'social' | 'market';
+};
 
 const planLabel = (plan?: string) => {
   if (plan === 'business') return 'Business';
@@ -50,23 +55,31 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-type ProfileTab = 'posts' | 'saved' | 'reviews';
+type ProfileTab = 'posts' | 'saved' | 'listings' | 'reviews';
 
-const TABS: { key: ProfileTab; label: string }[] = [
+// В соцсети профиль — про контент и людей, в маркете — про торговлю:
+// вкладки, статистика и кнопка «+» у режимов свои.
+const SOCIAL_TABS: { key: ProfileTab; label: string }[] = [
   { key: 'posts', label: 'Публикации' },
   { key: 'saved', label: 'Сохранённые' },
+];
+
+const MARKET_TABS: { key: ProfileTab; label: string }[] = [
+  { key: 'listings', label: 'Объявления' },
   { key: 'reviews', label: 'Отзывы' },
 ];
 
-export default function ProfileScreen({ navigation }: Props) {
+export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
+  const isMarket = mode === 'market';
   const { user, setUser } = useAuthStore();
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsTotal, setPostsTotal] = useState(0);
+  const [listings, setListings] = useState<MyMarketListing[]>([]);
   const [ratingStats, setRatingStats] = useState<ReviewStats>(emptyRatingStats);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [tab, setTab] = useState<ProfileTab>('posts');
+  const [tab, setTab] = useState<ProfileTab>(isMarket ? 'listings' : 'posts');
   const [saved, setSaved] = useState<Post[]>([]);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
@@ -96,15 +109,24 @@ export default function ProfileScreen({ navigation }: Props) {
 
     if (!silent) setLoading(true);
     try {
-      const [freshUser, postsPage, nextRatingStats] = await Promise.all([
-        getMe().catch(() => user),
-        getUserPosts(user._id),
-        getUserRatingStats(user._id).catch(() => emptyRatingStats),
-      ]);
-      setUser(freshUser);
-      setPosts(postsPage.posts);
-      setPostsTotal(postsPage.total);
-      setRatingStats(nextRatingStats);
+      if (isMarket) {
+        const [freshUser, myListings, nextRatingStats] = await Promise.all([
+          getMe().catch(() => user),
+          loadMyMarketListings().catch(() => [] as MyMarketListing[]),
+          getUserRatingStats(user._id).catch(() => emptyRatingStats),
+        ]);
+        setUser(freshUser);
+        setListings(myListings);
+        setRatingStats(nextRatingStats);
+      } else {
+        const [freshUser, postsPage] = await Promise.all([
+          getMe().catch(() => user),
+          getUserPosts(user._id),
+        ]);
+        setUser(freshUser);
+        setPosts(postsPage.posts);
+        setPostsTotal(postsPage.total);
+      }
     } catch (e: any) {
       if (!silent) Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить профиль');
     } finally {
@@ -113,7 +135,7 @@ export default function ProfileScreen({ navigation }: Props) {
     }
     // Depend on the stable id, not the whole user object: load() calls
     // setUser, and depending on `user` would recreate load → refocus → loop.
-  }, [setUser, user?._id]);
+  }, [setUser, user?._id, isMarket]);
 
   // Refresh silently on focus — the header renders instantly from the stored
   // user, so there's no full-screen spinner blocking the screen.
@@ -180,41 +202,62 @@ export default function ProfileScreen({ navigation }: Props) {
         </PressableScale>
       ) : null}
 
-      <View style={styles.stats}>
-        <View style={styles.stat}>
-          <Text style={styles.statNum}>{postsTotal}</Text>
-          <Text style={styles.statLabel}>Публикации</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <PressableScale style={styles.stat} onPress={() => openFollowList('followers')}>
-          <Text style={styles.statNum}>{user.followers?.length ?? 0}</Text>
-          <Text style={styles.statLabel}>Подписчики</Text>
-        </PressableScale>
-        <View style={styles.statDivider} />
-        <PressableScale style={styles.stat} onPress={() => openFollowList('following')}>
-          <Text style={styles.statNum}>{user.following?.length ?? 0}</Text>
-          <Text style={styles.statLabel}>Подписки</Text>
-        </PressableScale>
-      </View>
-
-      <PressableScale style={styles.ratingCard} onPress={() => navigation.navigate('MyReviews')}>
-        <View style={styles.ratingIcon}>
-          <Ionicons name="star" size={20} color={colors.star} />
-        </View>
-        <View style={styles.ratingBody}>
-          <Text style={styles.ratingTitle}>Рейтинг продавца</Text>
-          <View style={styles.ratingRow}>
-            <Text style={styles.ratingValue}>{Number(ratingStats.avgRating || 0).toFixed(1)}</Text>
-            <Stars value={Math.round(Number(ratingStats.avgRating || 0))} />
-            <Text style={styles.ratingCount}>{ratingStats.totalReviews} отзывов</Text>
+      {isMarket ? (
+        <View style={styles.stats}>
+          <View style={styles.stat}>
+            <Text style={styles.statNum}>{listings.length}</Text>
+            <Text style={styles.statLabel}>Объявления</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <PressableScale style={styles.stat} onPress={() => navigation.navigate('MyReviews')}>
+            <Text style={styles.statNum}>{ratingStats.totalReviews}</Text>
+            <Text style={styles.statLabel}>Отзывы</Text>
+          </PressableScale>
+          <View style={styles.statDivider} />
+          <View style={styles.stat}>
+            <Text style={styles.statNum}>{Number(ratingStats.avgRating || 0).toFixed(1)}</Text>
+            <Text style={styles.statLabel}>Рейтинг</Text>
           </View>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
-      </PressableScale>
+      ) : (
+        <View style={styles.stats}>
+          <View style={styles.stat}>
+            <Text style={styles.statNum}>{postsTotal}</Text>
+            <Text style={styles.statLabel}>Публикации</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <PressableScale style={styles.stat} onPress={() => openFollowList('followers')}>
+            <Text style={styles.statNum}>{user.followers?.length ?? 0}</Text>
+            <Text style={styles.statLabel}>Подписчики</Text>
+          </PressableScale>
+          <View style={styles.statDivider} />
+          <PressableScale style={styles.stat} onPress={() => openFollowList('following')}>
+            <Text style={styles.statNum}>{user.following?.length ?? 0}</Text>
+            <Text style={styles.statLabel}>Подписки</Text>
+          </PressableScale>
+        </View>
+      )}
+
+      {isMarket ? (
+        <PressableScale style={styles.ratingCard} onPress={() => navigation.navigate('MyReviews')}>
+          <View style={styles.ratingIcon}>
+            <Ionicons name="star" size={20} color={colors.star} />
+          </View>
+          <View style={styles.ratingBody}>
+            <Text style={styles.ratingTitle}>Рейтинг продавца</Text>
+            <View style={styles.ratingRow}>
+              <Text style={styles.ratingValue}>{Number(ratingStats.avgRating || 0).toFixed(1)}</Text>
+              <Stars value={Math.round(Number(ratingStats.avgRating || 0))} />
+              <Text style={styles.ratingCount}>{ratingStats.totalReviews} отзывов</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+        </PressableScale>
+      ) : null}
 
       <View style={styles.tabsRow}>
         <View style={styles.tabs}>
-          {TABS.map((t) => (
+          {(isMarket ? MARKET_TABS : SOCIAL_TABS).map((t) => (
             <PressableScale
               key={t.key}
               scaleTo={0.97}
@@ -225,7 +268,10 @@ export default function ProfileScreen({ navigation }: Props) {
             </PressableScale>
           ))}
         </View>
-        <PressableScale style={styles.addBtn} onPress={() => navigation.navigate('CreatePost')}>
+        <PressableScale
+          style={styles.addBtn}
+          onPress={() => navigation.navigate(isMarket ? 'CreateMarketListing' : 'CreatePost')}
+        >
           <Ionicons name="add" size={24} color={colors.onAccent} />
         </PressableScale>
       </View>
@@ -276,22 +322,46 @@ export default function ProfileScreen({ navigation }: Props) {
     </PressableScale>
   );
 
+  const renderListing = ({ item }: { item: MyMarketListing }) => (
+    <PressableScale
+      style={styles.gridItem}
+      scaleTo={0.95}
+      onPress={() => navigation.navigate('MarketListingDetails', { listing: item.listing, categoryId: item.categoryId })}
+    >
+      {getListingImage(item.listing) ? (
+        <View>
+          <Image source={{ uri: getListingImage(item.listing) }} style={styles.gridImage} />
+          <View style={styles.gridPrice}>
+            <Text style={styles.gridPriceText} numberOfLines={1}>{getListingPrice(item.listing, item.categoryId)}</Text>
+          </View>
+        </View>
+      ) : (
+        <View style={[styles.gridImage, styles.gridNoImage]}>
+          <Ionicons name="pricetag-outline" size={20} color={colors.textFaint} />
+          <Text style={styles.textPost} numberOfLines={3}>{getListingTitle(item.listing)}</Text>
+        </View>
+      )}
+    </PressableScale>
+  );
+
   const isGrid = tab !== 'reviews';
-  const data: any[] = tab === 'posts' ? posts : tab === 'saved' ? saved : reviews;
-  const tabLoading = tab === 'posts' ? loading : tab === 'saved' ? savedLoading : reviewsLoading;
+  const data: any[] = tab === 'posts' ? posts : tab === 'saved' ? saved : tab === 'listings' ? listings : reviews;
+  const tabLoading = tab === 'saved' ? savedLoading : tab === 'reviews' ? reviewsLoading : loading;
   const empty = tab === 'posts'
     ? { icon: 'images-outline' as const, title: 'Публикаций пока нет', subtitle: 'Нажмите + вверху, чтобы создать первую публикацию.' }
     : tab === 'saved'
       ? { icon: 'bookmark-outline' as const, title: 'Нет сохранённых постов', subtitle: 'Сохраняйте понравившиеся посты, чтобы вернуться к ним позже.' }
-      : { icon: 'star-outline' as const, title: 'Отзывов пока нет', subtitle: 'Отзывы по вашим объявлениям появятся здесь.' };
+      : tab === 'listings'
+        ? { icon: 'pricetags-outline' as const, title: 'Объявлений пока нет', subtitle: 'Нажмите + вверху, чтобы разместить первое объявление.' }
+        : { icon: 'star-outline' as const, title: 'Отзывов пока нет', subtitle: 'Отзывы по вашим объявлениям появятся здесь.' };
 
   return (
     <FlatList
       key={isGrid ? 'grid' : 'list'}
       style={styles.container}
       data={data}
-      keyExtractor={(item: any) => item._id}
-      renderItem={(isGrid ? renderPost : renderReview) as any}
+      keyExtractor={(item: any) => item.key || item._id}
+      renderItem={(isGrid ? (tab === 'listings' ? renderListing : renderPost) : renderReview) as any}
       numColumns={isGrid ? 3 : 1}
       ListHeaderComponent={renderHeader}
       contentContainerStyle={data.length ? styles.list : styles.emptyList}
@@ -383,5 +453,7 @@ const styles = StyleSheet.create({
   gridImage: { width: '100%', height: '100%', borderRadius: radius.sm, backgroundColor: colors.surfaceAlt },
   gridNoImage: { alignItems: 'center', justifyContent: 'center', padding: 7, backgroundColor: colors.surface },
   gridVideoBadge: { position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
+  gridPrice: { position: 'absolute', left: 6, bottom: 6, maxWidth: '85%', borderRadius: radius.pill, backgroundColor: 'rgba(8,8,10,0.72)', paddingHorizontal: 8, paddingVertical: 3 },
+  gridPriceText: { color: colors.white, fontSize: 10, fontWeight: '900' },
   textPost: { marginTop: 5, color: colors.textMuted, fontSize: 10, textAlign: 'center', lineHeight: 14 },
 });
