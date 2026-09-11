@@ -99,21 +99,36 @@ export default function MarketFiltersSheet({
 }: Props) {
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<MarketFilters>(value);
-  const slide = useRef(new Animated.Value(1)).current;
+  // Модалка держится смонтированной до конца анимации ухода — иначе шторка
+  // исчезала бы мгновенно, а не уезжала вниз.
+  const [mounted, setMounted] = useState(visible);
+  const [sheetHeight, setSheetHeight] = useState(520);
+  const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (!visible) return;
-    setDraft(value);
-    slide.setValue(1);
-    Animated.timing(slide, {
+    if (visible) {
+      setDraft(value);
+      setMounted(true);
+      anim.setValue(0);
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 320,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
+    Animated.timing(anim, {
       toValue: 0,
-      duration: 260,
-      easing: Easing.out(Easing.cubic),
+      duration: 240,
+      easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
-    }).start();
+    }).start(({ finished }) => {
+      if (finished) setMounted(false);
+    });
     // value намеренно не в зависимостях: черновик берётся один раз, на открытии.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, slide]);
+  }, [visible, anim]);
 
   const set = (key: keyof MarketFilters, next: string) =>
     setDraft((prev) => ({ ...prev, [key]: next }));
@@ -198,8 +213,10 @@ export default function MarketFiltersSheet({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <View style={styles.backdrop}>
+    // animationType="none": появление рисуем сами — подложка проявляется,
+    // шторка выезжает снизу на собственную измеренную высоту.
+    <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
+      <Animated.View style={[styles.backdrop, { opacity: anim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -207,11 +224,19 @@ export default function MarketFiltersSheet({
           pointerEvents="box-none"
         >
           <Animated.View
+            onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
             style={[
               styles.sheet,
               {
                 paddingBottom: insets.bottom + space.md,
-                transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [0, 600] }) }],
+                transform: [
+                  {
+                    translateY: anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [sheetHeight, 0],
+                    }),
+                  },
+                ],
               },
             ]}
           >
@@ -269,7 +294,7 @@ export default function MarketFiltersSheet({
             </View>
           </Animated.View>
         </KeyboardAvoidingView>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }
