@@ -4,6 +4,7 @@ import {
   Easing,
   KeyboardAvoidingView,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -63,10 +64,42 @@ const FIELDS: Record<MarketCategoryId, FieldKey[]> = {
   'dry-cleaning': ['price', 'region'],
 };
 
-const FUEL = ['Бензин', 'Дизель', 'Газ', 'Гибрид', 'Электро'];
-const GEARBOX = ['Механика', 'Автомат', 'Робот', 'Вариатор'];
-const BODY = ['Седан', 'Хэтчбек', 'Универсал', 'Кроссовер', 'Внедорожник', 'Купе', 'Минивэн', 'Пикап', 'Кабриолет'];
-const DRIVE = ['Передний', 'Задний', 'Полный'];
+// У каждой опции своя иконка: набор одинаковых серых пилюль читается сплошной
+// стеной текста, а по значку выбор находится глазами мгновенно.
+type Option = { value: string; icon: keyof typeof Ionicons.glyphMap };
+
+const FUEL: Option[] = [
+  { value: 'Бензин', icon: 'flame-outline' },
+  { value: 'Дизель', icon: 'water-outline' },
+  { value: 'Газ', icon: 'cloud-outline' },
+  { value: 'Гибрид', icon: 'git-merge-outline' },
+  { value: 'Электро', icon: 'flash-outline' },
+];
+
+const GEARBOX: Option[] = [
+  { value: 'Механика', icon: 'git-commit-outline' },
+  { value: 'Автомат', icon: 'sync-outline' },
+  { value: 'Робот', icon: 'hardware-chip-outline' },
+  { value: 'Вариатор', icon: 'infinite-outline' },
+];
+
+const BODY: Option[] = [
+  { value: 'Седан', icon: 'car-outline' },
+  { value: 'Хэтчбек', icon: 'car-sport-outline' },
+  { value: 'Универсал', icon: 'bus-outline' },
+  { value: 'Кроссовер', icon: 'car-sport-outline' },
+  { value: 'Внедорожник', icon: 'trail-sign-outline' },
+  { value: 'Купе', icon: 'speedometer-outline' },
+  { value: 'Минивэн', icon: 'bus-outline' },
+  { value: 'Пикап', icon: 'cube-outline' },
+  { value: 'Кабриолет', icon: 'sunny-outline' },
+];
+
+const DRIVE: Option[] = [
+  { value: 'Передний', icon: 'arrow-up-outline' },
+  { value: 'Задний', icon: 'arrow-down-outline' },
+  { value: 'Полный', icon: 'swap-vertical-outline' },
+];
 
 const SORTS: Array<{ value: MarketSort; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
   { value: 'newest', label: 'Новые', icon: 'time-outline' },
@@ -104,31 +137,61 @@ export default function MarketFiltersSheet({
   const [mounted, setMounted] = useState(visible);
   const [sheetHeight, setSheetHeight] = useState(520);
   const anim = useRef(new Animated.Value(0)).current;
+  // Смещение пальцем. Драйвер у обоих значений один (JS): нативная и
+  // не-нативная анимации на одном transform несовместимы.
+  const drag = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
       setDraft(value);
       setMounted(true);
       anim.setValue(0);
+      drag.setValue(0);
       Animated.timing(anim, {
         toValue: 1,
         duration: 320,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
       return;
     }
-    Animated.timing(anim, {
-      toValue: 0,
-      duration: 240,
-      easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
+    // Уезжает и то, что натянуто пальцем: сумма смещений идёт вниз без рывка.
+    Animated.parallel([
+      Animated.timing(anim, { toValue: 0, duration: 240, easing: Easing.in(Easing.cubic), useNativeDriver: false }),
+      Animated.timing(drag, { toValue: 0, duration: 240, easing: Easing.in(Easing.cubic), useNativeDriver: false }),
+    ]).start(({ finished }) => {
       if (finished) setMounted(false);
     });
     // value намеренно не в зависимостях: черновик берётся один раз, на открытии.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, anim]);
+  }, [visible, anim, drag]);
+
+  // Закрытие живёт в ref: PanResponder создаётся один раз и иначе держал бы
+  // самый первый onClose.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  const pan = useRef(
+    PanResponder.create({
+      // Перехватываем только явное движение вниз — горизонтальные и мелкие
+      // касания остаются кнопкам и полям.
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) drag.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        // Либо утянули достаточно далеко, либо бросили резким движением вниз.
+        if (g.dy > 90 || g.vy > 0.9) {
+          closeRef.current();
+          return;
+        }
+        Animated.spring(drag, { toValue: 0, useNativeDriver: false, bounciness: 6, speed: 14 }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(drag, { toValue: 0, useNativeDriver: false, bounciness: 6, speed: 14 }).start();
+      },
+    }),
+  ).current;
 
   const set = (key: keyof MarketFilters, next: string) =>
     setDraft((prev) => ({ ...prev, [key]: next }));
@@ -174,26 +237,47 @@ export default function MarketFiltersSheet({
     </View>
   );
 
-  const renderChips = (label: string, key: keyof MarketFilters, options: string[]) => (
-    <View key={label} style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {options.map((option) => {
-          const active = draft[key] === option;
-          return (
-            <PressableScale
-              key={option}
-              scaleTo={0.95}
-              style={[styles.chip, active && styles.chipActive]}
-              onPress={() => set(key, active ? '' : option)}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{option}</Text>
-            </PressableScale>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
+  /**
+   * Опции лежат сеткой с переносом, а не в горизонтальной ленте: в ленте
+   * половина вариантов уезжала за край экрана и о них было не догадаться.
+   */
+  const renderOptions = (label: string, key: keyof MarketFilters, options: Option[]) => {
+    const chosen = draft[key] as string;
+    return (
+      <View key={label} style={styles.field}>
+        <View style={styles.labelRow}>
+          <Text style={styles.label}>{label}</Text>
+          {chosen ? (
+            <Pressable onPress={() => set(key, '')} hitSlop={8}>
+              <Text style={styles.labelClear}>Сбросить</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        <View style={styles.optionGrid}>
+          {options.map((option) => {
+            const active = chosen === option.value;
+            return (
+              <PressableScale
+                key={option.value}
+                scaleTo={0.94}
+                style={[styles.option, active && styles.optionActive]}
+                onPress={() => set(key, active ? '' : option.value)}
+              >
+                <View style={[styles.optionIcon, active && styles.optionIconActive]}>
+                  <Ionicons
+                    name={option.icon}
+                    size={15}
+                    color={active ? colors.onAccent : colors.textMuted}
+                  />
+                </View>
+                <Text style={[styles.optionText, active && styles.optionTextActive]}>{option.value}</Text>
+              </PressableScale>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
 
   const renderField = (key: FieldKey) => {
     switch (key) {
@@ -204,10 +288,10 @@ export default function MarketFiltersSheet({
       case 'price': return renderRange('Цена, €', 'priceMin', 'priceMax');
       case 'year': return renderRange('Год', 'yearFrom', 'yearTo');
       case 'mileage': return renderRange('Пробег, км', 'mileageMin', 'mileageMax');
-      case 'fuel': return renderChips('Топливо', 'fuel', FUEL);
-      case 'gearbox': return renderChips('Коробка', 'gearbox', GEARBOX);
-      case 'bodyType': return renderChips('Кузов', 'bodyType', BODY);
-      case 'driveType': return renderChips('Привод', 'driveType', DRIVE);
+      case 'fuel': return renderOptions('Топливо', 'fuel', FUEL);
+      case 'gearbox': return renderOptions('Коробка', 'gearbox', GEARBOX);
+      case 'bodyType': return renderOptions('Кузов', 'bodyType', BODY);
+      case 'driveType': return renderOptions('Привод', 'driveType', DRIVE);
       default: return null;
     }
   };
@@ -231,22 +315,19 @@ export default function MarketFiltersSheet({
                 paddingBottom: insets.bottom + space.md,
                 transform: [
                   {
-                    translateY: anim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [sheetHeight, 0],
-                    }),
+                    translateY: Animated.add(
+                      anim.interpolate({ inputRange: [0, 1], outputRange: [sheetHeight, 0] }),
+                      drag,
+                    ),
                   },
                 ],
               },
             ]}
           >
-            <View style={styles.grabber} />
-
-            <View style={styles.headerRow}>
+            {/* Шапка — ручка шторки: тянется вниз и закрывает панель. */}
+            <View {...pan.panHandlers} style={styles.handleZone}>
+              <View style={styles.grabber} />
               <Text style={styles.title}>Фильтры</Text>
-              <PressableScale style={styles.closeBtn} onPress={onClose}>
-                <Ionicons name="close" size={20} color={colors.text} />
-              </PressableScale>
             </View>
 
             <ScrollView
@@ -311,24 +392,39 @@ const styles = StyleSheet.create({
     maxHeight: '86%',
     ...shadow.card,
   },
+  // Зона перетаскивания шире самой полоски: попасть пальцем в 4 пикселя нельзя.
+  handleZone: { paddingTop: space.xs, paddingBottom: space.sm, alignItems: 'center' },
   grabber: {
-    alignSelf: 'center', width: 40, height: 4, borderRadius: radius.pill,
+    width: 44, height: 5, borderRadius: radius.pill,
     backgroundColor: colors.surfaceHi, marginBottom: space.md,
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { color: colors.text, fontSize: font.h2, fontWeight: '900' },
-  closeBtn: {
-    width: 36, height: 36, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt,
-    alignItems: 'center', justifyContent: 'center',
-  },
+  title: { color: colors.text, fontSize: font.h2, fontWeight: '900', textAlign: 'center' },
 
   body: { marginTop: space.md },
   bodyContent: { gap: space.lg, paddingBottom: space.md },
   field: { gap: space.sm },
+  labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   label: {
     color: colors.textMuted, fontSize: font.tiny, fontWeight: '900',
     marginLeft: 2, textTransform: 'uppercase', letterSpacing: 0.4,
   },
+  labelClear: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '900' },
+
+  optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  option: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    height: 42, borderRadius: radius.md, paddingLeft: 7, paddingRight: space.md,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+  },
+  optionActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  optionIcon: {
+    width: 28, height: 28, borderRadius: radius.sm,
+    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
+  },
+  optionIconActive: { backgroundColor: 'rgba(11,11,14,0.12)' },
+  optionText: { color: colors.text, fontSize: font.small, fontWeight: '800' },
+  optionTextActive: { color: colors.onAccent, fontWeight: '900' },
   input: {
     height: 46, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
