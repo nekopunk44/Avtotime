@@ -1,13 +1,14 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
   FlatList,
   Image,
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +21,7 @@ import { getListingImage, getListingPrice, getListingTitle, loadMyMarketListings
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, font, radius, shadow, space } from '../theme';
-import { EmptyState, PressableScale, Skeleton } from '../components/ui';
+import { Avatar, EmptyState, PressableScale, Skeleton } from '../components/ui';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList>;
@@ -57,17 +58,130 @@ function Stars({ value }: { value: number }) {
 
 type ProfileTab = 'posts' | 'saved' | 'listings' | 'reviews';
 
+interface TabDef {
+  key: ProfileTab;
+  /** Заголовок раздела: иконки в переключателе сами по себе немы. */
+  title: string;
+  on: keyof typeof Ionicons.glyphMap;
+  off: keyof typeof Ionicons.glyphMap;
+}
+
 // В соцсети профиль — про контент и людей, в маркете — про торговлю:
 // вкладки, статистика и кнопка «+» у режимов свои.
-const SOCIAL_TABS: { key: ProfileTab; label: string }[] = [
-  { key: 'posts', label: 'Публикации' },
-  { key: 'saved', label: 'Сохранённые' },
+const SOCIAL_TABS: TabDef[] = [
+  { key: 'posts', title: 'Мои публикации', on: 'grid', off: 'grid-outline' },
+  { key: 'saved', title: 'Сохранённые', on: 'bookmark', off: 'bookmark-outline' },
 ];
 
-const MARKET_TABS: { key: ProfileTab; label: string }[] = [
-  { key: 'listings', label: 'Объявления' },
-  { key: 'reviews', label: 'Отзывы' },
+const MARKET_TABS: TabDef[] = [
+  { key: 'listings', title: 'Мои объявления', on: 'pricetags', off: 'pricetags-outline' },
+  { key: 'reviews', title: 'Отзывы обо мне', on: 'star', off: 'star-outline' },
 ];
+
+/** Иконка вкладки: две копии крест-накрест — цвет нативным драйвером не анимируется. */
+function TabIcon({ tab, active }: { tab: TabDef; active: boolean }) {
+  const a = useRef(new Animated.Value(active ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.timing(a, {
+      toValue: active ? 1 : 0,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [active, a]);
+
+  return (
+    <View style={styles.tabIconBox}>
+      <Animated.View style={{ opacity: a.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
+        <Ionicons name={tab.off} size={20} color={colors.textMuted} />
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.tabIconTop,
+          {
+            opacity: a,
+            transform: [{ scale: a.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
+          },
+        ]}
+      >
+        <Ionicons name={tab.on} size={20} color={colors.onAccent} />
+      </Animated.View>
+    </View>
+  );
+}
+
+/** Переключатель разделов: индикатор физически едет к выбранной иконке. */
+function TabSwitcher({
+  tabs, value, onChange,
+}: {
+  tabs: TabDef[];
+  value: ProfileTab;
+  onChange: (key: ProfileTab) => void;
+}) {
+  const [width, setWidth] = useState(0);
+  const slide = useRef(new Animated.Value(0)).current;
+  const placed = useRef(false);
+
+  const index = Math.max(0, tabs.findIndex((t) => t.key === value));
+  const seg = width > 0 ? (width - 8) / tabs.length : 0;
+  const targetX = 4 + seg * index;
+
+  useEffect(() => {
+    if (width <= 0) return;
+    if (!placed.current) {
+      placed.current = true;
+      slide.setValue(targetX);
+      return;
+    }
+    Animated.spring(slide, { toValue: targetX, useNativeDriver: true, speed: 15, bounciness: 8 }).start();
+  }, [targetX, width, slide]);
+
+  return (
+    <View style={styles.tabs} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      {seg > 0 ? (
+        <Animated.View style={[styles.tabIndicator, { width: seg, transform: [{ translateX: slide }] }]} />
+      ) : null}
+      {tabs.map((t) => (
+        <PressableScale
+          key={t.key}
+          scaleTo={0.94}
+          style={styles.tabBtn}
+          onPress={() => onChange(t.key)}
+        >
+          <TabIcon tab={t} active={t.key === value} />
+        </PressableScale>
+      ))}
+    </View>
+  );
+}
+
+/** Мягкая смена содержимого раздела вместо мгновенной подмены. */
+function TabFade({ trigger, children }: { trigger: string; children: React.ReactNode }) {
+  const a = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    a.setValue(0);
+    Animated.timing(a, {
+      toValue: 1,
+      duration: 280,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [trigger, a]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: a,
+        transform: [
+          { translateY: a.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) },
+          { scale: a.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) },
+        ],
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
+}
 
 export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
   const isMarket = mode === 'market';
@@ -157,8 +271,20 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
 
   if (!user) return null;
 
-  const avatar = user.profileImage ? { uri: user.profileImage } : require('../../assets/icon.png');
   const activePlan = user.effectivePlan || user.plan || 'free';
+  const tabs = isMarket ? MARKET_TABS : SOCIAL_TABS;
+  const activeTab = tabs.find((t) => t.key === tab) || tabs[0];
+  const tabLoading = tab === 'saved' ? savedLoading : tab === 'reviews' ? reviewsLoading : loading;
+  // Пока раздел грузится, счётчик молчит — ноль читался бы как «пусто».
+  const sectionCount = tabLoading
+    ? null
+    : tab === 'posts'
+      ? postsTotal
+      : tab === 'saved'
+        ? saved.length
+        : tab === 'listings'
+          ? listings.length
+          : ratingStats.totalReviews;
 
   const openFollowList = (mode: 'followers' | 'following') => {
     navigation.navigate('FollowList', {
@@ -170,22 +296,49 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.hero}>
-        <PressableScale style={styles.heroSettings} onPress={() => navigation.navigate('Settings')}>
-          <Ionicons name="settings-outline" size={20} color="#fff" />
-        </PressableScale>
-        <View style={styles.heroRow}>
-          <Image source={avatar} style={styles.avatar} />
-          <View style={styles.heroInfo}>
-            <Text style={styles.name} numberOfLines={1}>{user.name || 'Пользователь'}</Text>
-            <Text style={styles.username} numberOfLines={1}>@{user.userName || 'avtotime'}</Text>
-            <View style={styles.badgeRow}>
-              <Text style={styles.planBadge}>{planLabel(activePlan)}</Text>
-              {user.location ? <Text style={styles.locationBadge} numberOfLines={1}>{user.location}</Text> : null}
+      {isMarket ? (
+        // Витрина продавца: карточка с тарифом — уровень относится к торговле.
+        <View style={styles.hero}>
+          <PressableScale style={styles.heroSettings} onPress={() => navigation.navigate('Settings')}>
+            <Ionicons name="settings-outline" size={20} color="#fff" />
+          </PressableScale>
+          <View style={styles.heroRow}>
+            <Avatar
+              uri={user.profileImage}
+              userName={user.userName}
+              name={user.name}
+              size={76}
+              style={styles.avatarRing}
+            />
+            <View style={styles.heroInfo}>
+              <Text style={styles.name} numberOfLines={1}>{user.name || 'Пользователь'}</Text>
+              <Text style={styles.username} numberOfLines={1}>@{user.userName || 'avtotime'}</Text>
+              <View style={styles.badgeRow}>
+                <Text style={styles.planBadge}>{planLabel(activePlan)}</Text>
+                {user.location ? <Text style={styles.locationBadge} numberOfLines={1}>{user.location}</Text> : null}
+              </View>
             </View>
           </View>
         </View>
-      </View>
+      ) : (
+        // Соцсеть: личность на самом фоне, без карточки и без тарифа.
+        <View style={styles.heroPlain}>
+          <Avatar uri={user.profileImage} userName={user.userName} name={user.name} size={72} />
+          <View style={styles.heroInfo}>
+            <Text style={styles.namePlain} numberOfLines={1}>{user.name || 'Пользователь'}</Text>
+            <Text style={styles.usernamePlain} numberOfLines={1}>@{user.userName || 'avtotime'}</Text>
+            {user.location ? (
+              <View style={styles.locationRow}>
+                <Ionicons name="location-outline" size={13} color={colors.textFaint} />
+                <Text style={styles.locationText} numberOfLines={1}>{user.location}</Text>
+              </View>
+            ) : null}
+          </View>
+          <PressableScale style={styles.settingsPlain} onPress={() => navigation.navigate('Settings')}>
+            <Ionicons name="settings-outline" size={20} color={colors.text} />
+          </PressableScale>
+        </View>
+      )}
 
       {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
 
@@ -256,18 +409,7 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
       ) : null}
 
       <View style={styles.tabsRow}>
-        <View style={styles.tabs}>
-          {(isMarket ? MARKET_TABS : SOCIAL_TABS).map((t) => (
-            <PressableScale
-              key={t.key}
-              scaleTo={0.97}
-              style={[styles.tabBtn, tab === t.key && styles.tabBtnActive]}
-              onPress={() => selectTab(t.key)}
-            >
-              <Text style={[styles.tabText, tab === t.key && styles.tabTextActive]} numberOfLines={1}>{t.label}</Text>
-            </PressableScale>
-          ))}
-        </View>
+        <TabSwitcher tabs={tabs} value={tab} onChange={selectTab} />
         <PressableScale
           style={styles.addBtn}
           onPress={() => navigation.navigate(isMarket ? 'CreateMarketListing' : 'CreatePost')}
@@ -275,6 +417,13 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
           <Ionicons name="add" size={24} color={colors.onAccent} />
         </PressableScale>
       </View>
+
+      <TabFade trigger={`title-${tab}`}>
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>{activeTab.title}</Text>
+          {sectionCount !== null ? <Text style={styles.sectionCount}>{sectionCount}</Text> : null}
+        </View>
+      </TabFade>
     </View>
   );
 
@@ -346,7 +495,6 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
 
   const isGrid = tab !== 'reviews';
   const data: any[] = tab === 'posts' ? posts : tab === 'saved' ? saved : tab === 'listings' ? listings : reviews;
-  const tabLoading = tab === 'saved' ? savedLoading : tab === 'reviews' ? reviewsLoading : loading;
   const empty = tab === 'posts'
     ? { icon: 'images-outline' as const, title: 'Публикаций пока нет', subtitle: 'Нажмите + вверху, чтобы создать первую публикацию.' }
     : tab === 'saved'
@@ -367,23 +515,27 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
       contentContainerStyle={data.length ? styles.list : styles.emptyList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       ListEmptyComponent={
-        tabLoading ? (
-          isGrid ? (
-            <View style={styles.skeletonGrid}>
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <View key={i} style={styles.gridItem}>
-                  <Skeleton style={styles.gridImage} />
-                </View>
-              ))}
-            </View>
+        // trigger включает состояние загрузки: подсказка проявляется и когда
+        // меняется вкладка, и когда скелетоны сменяются пустотой.
+        <TabFade trigger={`${tab}-${tabLoading}`}>
+          {tabLoading ? (
+            isGrid ? (
+              <View style={styles.skeletonGrid}>
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <View key={i} style={styles.gridItem}>
+                    <Skeleton style={styles.gridImage} />
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.tabLoading}>
+                <ActivityIndicator color={colors.accent} />
+              </View>
+            )
           ) : (
-            <View style={styles.tabLoading}>
-              <ActivityIndicator color={colors.accent} />
-            </View>
-          )
-        ) : (
-          <EmptyState icon={empty.icon} title={empty.title} subtitle={empty.subtitle} />
-        )
+            <EmptyState icon={empty.icon} title={empty.title} subtitle={empty.subtitle} />
+          )}
+        </TabFade>
       }
     />
   );
@@ -401,9 +553,16 @@ const styles = StyleSheet.create({
   heroSettings: { position: 'absolute', top: space.md, right: space.md, width: 40, height: 40, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
   heroInfo: { flex: 1, paddingRight: 36 },
-  avatar: { width: 76, height: 76, borderRadius: 38, backgroundColor: colors.surfaceAlt, borderWidth: 3, borderColor: 'rgba(255,255,255,0.9)' },
+  avatarRing: { borderWidth: 3, borderColor: 'rgba(255,255,255,0.9)' },
   name: { color: colors.white, fontSize: font.h2, fontWeight: '900' },
   username: { marginTop: 2, color: 'rgba(255,255,255,0.65)', fontSize: font.small, fontWeight: '800' },
+
+  heroPlain: { flexDirection: 'row', alignItems: 'center', gap: space.lg, paddingHorizontal: space.xs, paddingTop: space.xs },
+  namePlain: { color: colors.text, fontSize: font.h1, fontWeight: '900' },
+  usernamePlain: { marginTop: 2, color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 5 },
+  locationText: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
+  settingsPlain: { width: 40, height: 40, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: space.sm, justifyContent: 'flex-start' },
   planBadge: { overflow: 'hidden', borderRadius: radius.pill, backgroundColor: colors.accent, color: colors.onAccent, paddingHorizontal: 11, paddingVertical: 5, fontSize: font.tiny, fontWeight: '900' },
   locationBadge: { overflow: 'hidden', borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.14)', color: colors.white, paddingHorizontal: 11, paddingVertical: 5, fontSize: font.tiny, fontWeight: '900' },
@@ -432,11 +591,15 @@ const styles = StyleSheet.create({
 
   tabsRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.xs },
   tabs: { flex: 1, flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: radius.pill, padding: 4 },
-  tabBtn: { flex: 1, height: 36, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  tabBtnActive: { backgroundColor: colors.accent },
-  tabText: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '900' },
-  tabTextActive: { color: colors.onAccent },
+  tabIndicator: { position: 'absolute', left: 0, top: 4, bottom: 4, borderRadius: radius.pill, backgroundColor: colors.accent },
+  tabBtn: { flex: 1, height: 36, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  tabIconBox: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
+  tabIconTop: { position: 'absolute' },
   addBtn: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', ...shadow.card },
+
+  sectionRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.sm, paddingHorizontal: space.xs },
+  sectionTitle: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
+  sectionCount: { color: colors.textFaint, fontSize: font.small, fontWeight: '900' },
   tabLoading: { paddingVertical: space.xxl, alignItems: 'center' },
 
   reviewCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.sm, ...shadow.card },

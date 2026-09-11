@@ -6,3 +6,4 @@ export { default as Skeleton } from './Skeleton';
 export { default as EmptyState } from './EmptyState';
 export { default as SectionHeader } from './SectionHeader';
 export { default as ConfirmSheet } from './ConfirmSheet';
+export { default as Avatar } from './Avatar';
