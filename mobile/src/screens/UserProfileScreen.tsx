@@ -301,7 +301,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
       keyExtractor={(item) => item._id}
       renderItem={renderPost}
       numColumns={3}
-      ListHeaderComponent={renderHeader}
+      ListHeaderComponent={renderHeader()}
       contentContainerStyle={posts.length ? styles.list : styles.emptyList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       ListEmptyComponent={

@@ -184,7 +184,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
         data={post?.comments ?? []}
         keyExtractor={(item) => item._id}
         renderItem={renderComment}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={renderHeader()}
         ListEmptyComponent={<Text style={styles.empty}>Пока нет комментариев</Text>}
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"

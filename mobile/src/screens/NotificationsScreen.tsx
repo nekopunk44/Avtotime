@@ -427,7 +427,7 @@ export default function NotificationsScreen({ navigation }: Props) {
       data={filtered}
       keyExtractor={(item) => item._id}
       renderItem={renderItem}
-      ListHeaderComponent={renderHeader}
+      ListHeaderComponent={renderHeader()}
       contentContainerStyle={filtered.length ? styles.list : styles.emptyList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       ListEmptyComponent={

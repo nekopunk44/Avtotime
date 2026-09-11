@@ -331,7 +331,7 @@ export default function MarketSearchScreen({ navigation }: Props) {
       data={results}
       keyExtractor={(item, index) => `${item.listingType || 'market'}-${item._id || item.id || index}`}
       renderItem={renderResult}
-      ListHeaderComponent={renderHeader}
+      ListHeaderComponent={renderHeader()}
       contentContainerStyle={results.length ? styles.list : styles.emptyList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       keyboardShouldPersistTaps="handled"

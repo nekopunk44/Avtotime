@@ -395,7 +395,7 @@ export default function MyListingsScreen({ navigation }: Props) {
         data={filtered}
         keyExtractor={(item) => item.key}
         renderItem={renderItem}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={renderHeader()}
         contentContainerStyle={filtered.length ? styles.list : styles.emptyList}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
         ListEmptyComponent={

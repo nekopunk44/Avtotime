@@ -381,7 +381,7 @@ export default function FeedScreen({ navigation }: Props) {
           tintColor={colors.accent}
         />
       }
-      ListHeaderComponent={renderStories}
+      ListHeaderComponent={renderStories()}
       ListEmptyComponent={
         <EmptyState
           icon="newspaper-outline"

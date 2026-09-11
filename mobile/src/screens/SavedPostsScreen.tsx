@@ -173,7 +173,7 @@ export default function SavedPostsScreen({ navigation }: Props) {
       data={posts}
       keyExtractor={(item) => item._id}
       renderItem={renderPost}
-      ListHeaderComponent={renderHeader}
+      ListHeaderComponent={renderHeader()}
       contentContainerStyle={posts.length ? styles.list : styles.emptyList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       ListEmptyComponent={
