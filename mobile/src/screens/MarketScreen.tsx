@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import {
+  filterMarketListings,
   getListingImage,
   getListingPrice,
   getListingTitle,
@@ -24,16 +25,24 @@ import {
   MarketCategory,
   MarketCategoryId,
   MarketListing,
+  searchMarketListings,
 } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, font, radius, shadow, space } from '../theme';
 import { Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
+import MarketFiltersSheet, {
+  countActiveFilters,
+  emptyMarketFilters,
+  MarketFilters,
+} from '../components/MarketFiltersSheet';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
 export default function MarketScreen({ navigation }: Props) {
   const [categoryId, setCategoryId] = useState<MarketCategoryId>('cars');
   const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState<MarketFilters>(emptyMarketFilters);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [listings, setListings] = useState<MarketListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -74,17 +83,27 @@ export default function MarketScreen({ navigation }: Props) {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  const activeFilterCount = countActiveFilters(filters);
+  const filtered = activeFilterCount > 0;
+
   const loadListings = useCallback(async (silent = false) => {
     const requestId = ++requestIdRef.current;
     hasLoadedRef.current = true;
     if (!silent) setLoading(true);
     setError('');
     try {
-      const data = await loadMarketListings(categoryId, { q: query, page: 1, limit: PAGE_SIZE });
+      // С фильтрами выдачу собирает поисковая ручка — она возвращает всё
+      // подходящее разом, поэтому постраничная догрузка отключается.
+      const filtersActive = countActiveFilters(filters) > 0;
+      const data = filtersActive
+        ? await (query.trim() ? searchMarketListings : filterMarketListings)({
+          ...filters, q: query, type: categoryId,
+        })
+        : await loadMarketListings(categoryId, { q: query, page: 1, limit: PAGE_SIZE });
       if (requestId !== requestIdRef.current) return;
       setListings(data);
       setPage(1);
-      setHasMore(data.length === PAGE_SIZE);
+      setHasMore(!filtersActive && data.length === PAGE_SIZE);
     } catch (e: any) {
       if (requestId !== requestIdRef.current) return;
       setError(e.response?.data?.message || 'Не удалось загрузить объявления');
@@ -94,7 +113,7 @@ export default function MarketScreen({ navigation }: Props) {
         setRefreshing(false);
       }
     }
-  }, [categoryId, query]);
+  }, [categoryId, query, filters]);
 
   const loadMore = useCallback(async () => {
     if (loading || loadingMore || refreshing || !hasMore) return;
@@ -194,8 +213,13 @@ export default function MarketScreen({ navigation }: Props) {
           autoCapitalize="none"
           returnKeyType="search"
         />
-        <TouchableOpacity onPress={() => navigation.navigate('MarketSearch')} hitSlop={8}>
-          <Ionicons name="options-outline" size={18} color={colors.text} />
+        <TouchableOpacity onPress={() => setFiltersOpen(true)} hitSlop={8}>
+          <Ionicons name="options-outline" size={18} color={filtered ? colors.accent : colors.text} />
+          {filtered ? (
+            <View style={styles.filterDot}>
+              <Text style={styles.filterDotText}>{activeFilterCount}</Text>
+            </View>
+          ) : null}
         </TouchableOpacity>
       </View>
 
@@ -236,6 +260,17 @@ export default function MarketScreen({ navigation }: Props) {
     </View>
   );
 
+  const filtersSheet = (
+    <MarketFiltersSheet
+      visible={filtersOpen}
+      categoryId={categoryId}
+      value={filters}
+      resultCount={listings.length}
+      onApply={(next) => { setFilters(next); setFiltersOpen(false); }}
+      onClose={() => setFiltersOpen(false)}
+    />
+  );
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -247,34 +282,46 @@ export default function MarketScreen({ navigation }: Props) {
             </View>
           ))}
         </View>
+        {filtersSheet}
       </View>
     );
   }
 
   return (
-    <FlatList
-      style={styles.container}
-      data={listings}
-      numColumns={2}
-      keyExtractor={(item, index) => `${categoryId}-${item._id || item.id || index}`}
-      renderItem={renderListing}
-      ListHeaderComponent={Header}
-      columnWrapperStyle={styles.grid}
-      contentContainerStyle={listings.length ? styles.listContent : styles.emptyContent}
-      onEndReached={loadMore}
-      onEndReachedThreshold={0.6}
-      ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerSpinner} color={colors.text} /> : null}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
-      ListEmptyComponent={
-        <EmptyState
-          icon={error ? 'alert-circle-outline' : (activeCategory.icon as any)}
-          title={error || 'Объявлений пока нет'}
-          subtitle={error ? 'Потяните вниз, чтобы повторить.' : 'Здесь появятся предложения этого раздела.'}
-          actionLabel={error ? undefined : 'Разместить объявление'}
-          onAction={error ? undefined : () => navigation.navigate('CreateMarketListing')}
-        />
-      }
-    />
+    <View style={styles.container}>
+      <FlatList
+        style={styles.container}
+        data={listings}
+        numColumns={2}
+        keyExtractor={(item, index) => `${categoryId}-${item._id || item.id || index}`}
+        renderItem={renderListing}
+        ListHeaderComponent={Header}
+        columnWrapperStyle={styles.grid}
+        contentContainerStyle={listings.length ? styles.listContent : styles.emptyContent}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.6}
+        ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerSpinner} color={colors.text} /> : null}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
+        ListEmptyComponent={
+          <EmptyState
+            icon={error ? 'alert-circle-outline' : (activeCategory.icon as any)}
+            title={error || (filtered ? 'Ничего не найдено' : 'Объявлений пока нет')}
+            subtitle={
+              error ? 'Потяните вниз, чтобы повторить.'
+                : filtered ? 'Смягчите фильтры или сбросьте их.'
+                  : 'Здесь появятся предложения этого раздела.'
+            }
+            actionLabel={error ? undefined : filtered ? 'Сбросить фильтры' : 'Разместить объявление'}
+            onAction={
+              error ? undefined
+                : filtered ? () => setFilters(emptyMarketFilters)
+                  : () => navigation.navigate('CreateMarketListing')
+            }
+          />
+        }
+      />
+      {filtersSheet}
+    </View>
   );
 }
 
@@ -293,6 +340,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, ...shadow.card,
   },
   searchInput: { flex: 1, color: colors.text, fontSize: font.body },
+  filterDot: {
+    position: 'absolute', top: -6, right: -8, minWidth: 16, height: 16, borderRadius: 8,
+    paddingHorizontal: 4, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
+  },
+  filterDotText: { color: colors.onAccent, fontSize: 10, fontWeight: '900' },
 
   catScroll: { marginTop: space.md, marginBottom: 2 },
   segment: { flexDirection: 'row', alignItems: 'center', height: 44, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt },

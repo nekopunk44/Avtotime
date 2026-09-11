@@ -21,7 +21,6 @@ import EditPostScreen from '../screens/EditPostScreen';
 import PostCommentsScreen from '../screens/PostCommentsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import MarketScreen from '../screens/MarketScreen';
-import MarketSearchScreen from '../screens/MarketSearchScreen';
 import MarketListingDetailsScreen from '../screens/MarketListingDetailsScreen';
 import CreateMarketListingScreen from '../screens/CreateMarketListingScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
@@ -79,7 +78,6 @@ export type AppStackParamList = {
   EditPost: { post: Post };
   PostComments: { postId: string };
   EditProfile: undefined;
-  MarketSearch: undefined;
   MarketListingDetails: { listing: MarketListing; categoryId: MarketCategoryId };
   CreateMarketListing: undefined;
   Compare: undefined;
@@ -267,7 +265,6 @@ export default function AppNavigator() {
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: '' }} />
       <Stack.Screen name="PostComments" component={PostCommentsScreen} options={{ title: 'Комментарии' }} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Редактировать профиль' }} />
-      <Stack.Screen name="MarketSearch" component={MarketSearchScreen} options={{ title: 'Фильтры' }} />
       <Stack.Screen name="MarketListingDetails" component={MarketListingDetailsScreen} options={{ title: 'Объявление' }} />
       <Stack.Screen name="CreateMarketListing" component={CreateMarketListingScreen} options={{ title: 'Новое объявление' }} />
       <Stack.Screen name="Compare" component={CompareScreen} options={{ title: 'Сравнение' }} />
