@@ -112,6 +112,37 @@ export const gettAllPost = async(req, res) => {
     }
 }
 
+// Посты, которым текущий пользователь поставил лайк. Отметка живёт в самом
+// посте (likes), поэтому спрашиваем посты, а не пользователя.
+export const getLikedPosts = async(req, res) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page) || 1)
+        const limit = Math.min(90, Math.max(1, parseInt(req.query.limit) || 30))
+        const skip = (page - 1) * limit
+        const filter = { likes: req.userId }
+
+        const [posts, total] = await Promise.all([
+            Post.find(filter)
+                .populate('author', 'name userName profileImage')
+                .populate('comments.author', 'name userName profileImage')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Post.countDocuments(filter),
+        ])
+
+        return res.status(200).json({
+            posts: posts.map(trimPostCommentsForFeed),
+            total,
+            page,
+            limit,
+        })
+    } catch (error) {
+        return res.status(500).json({ message: `Ошибка получения понравившихся постов ${error}` })
+    }
+}
+
 export const getPostsByUser = async(req, res) => {
     try {
         const { userId } = req.params

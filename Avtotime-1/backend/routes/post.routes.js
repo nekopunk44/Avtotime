@@ -2,12 +2,13 @@ import express from 'express'
 import isAuth from '../middlewars/isAuth.js'
 import isEmailVerified from '../middlewars/isEmailVerified.js'
 import { upload } from '../middlewars/multer.js'
-import { gettAllPost, getPostById, getPostsByUser, like, uploadPost, saved, comment, searchPosts, deletePost, editPost } from '../controllers/post.controllers.js'
+import { gettAllPost, getPostById, getPostsByUser, getLikedPosts, like, uploadPost, saved, comment, searchPosts, deletePost, editPost } from '../controllers/post.controllers.js'
 
 const postRouter = express.Router()
 
 postRouter.post('/upload', isAuth, isEmailVerified, upload.array('media', 8), uploadPost)
 postRouter.get('/getAll', isAuth, gettAllPost)
+postRouter.get('/liked', isAuth, getLikedPosts)
 postRouter.get('/user/:userId', isAuth, getPostsByUser)
 postRouter.get('/get/:postId', isAuth, getPostById)
 postRouter.get('/search', isAuth, searchPosts)

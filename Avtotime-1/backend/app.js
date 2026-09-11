@@ -91,6 +91,18 @@ export function createApp() {
     // CSRF floor for every mutating route — see middlewars/csrfOrigin.js.
     app.use("/api", rejectForgedOrigin)
 
+    // API-ответы не кэшируются. Express по умолчанию вешает ETag, и клиент с
+    // HTTP-кэшем (okhttp в мобильном приложении) присылает If-None-Match и
+    // получает 304 с ПУСТЫМ телом — для axios это ошибка, экран остаётся без
+    // данных. Персональные ответы (тариф, профиль, лента) кэшировать нечего:
+    // приложение перечитывает их при каждом открытии экрана.
+    app.set('etag', false)
+    app.use('/api', (req, res, next) => {
+        // Статика под /api/public — единственное, что кэшировать полезно.
+        if (!req.path.startsWith('/public')) res.set('Cache-Control', 'no-store')
+        next()
+    })
+
     // Serve local static assets from backend/public under the API origin
     app.use("/api/public", express.static(path.join(__dirname, "public")));
 
