@@ -18,6 +18,7 @@ import { getMe } from '../api/auth';
 import { getLikedPosts, getPostThumb, getSavedPosts, getUserPosts, Post } from '../api/posts';
 import { getReviews, getUserRatingStats, ReviewItem, ReviewStats } from '../api/reviews';
 import { getListingImage, getListingPrice, getListingTitle, loadMyMarketListings, MyMarketListing } from '../api/market';
+import { DrivingTestResult, getDrivingResults } from '../api/driving';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, font, radius, shadow, space } from '../theme';
@@ -56,7 +57,7 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-type ProfileTab = 'posts' | 'liked' | 'saved' | 'listings' | 'reviews';
+type ProfileTab = 'posts' | 'liked' | 'saved' | 'listings' | 'reviews' | 'driving';
 
 interface TabDef {
   key: ProfileTab;
@@ -77,7 +78,29 @@ const SOCIAL_TABS: TabDef[] = [
 const MARKET_TABS: TabDef[] = [
   { key: 'listings', title: 'Мои объявления', on: 'pricetags', off: 'pricetags-outline' },
   { key: 'reviews', title: 'Отзывы обо мне', on: 'star', off: 'star-outline' },
+  { key: 'driving', title: 'Автокурсы', on: 'school', off: 'school-outline' },
 ];
+
+const DRIVING_MODE_LABEL: Record<string, string> = {
+  exam: 'Экзамен',
+  practice: 'Практика',
+  marathon: 'Марафон',
+};
+
+const formatWhen = (value?: string) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' })
+    + ', ' + date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+};
+
+const formatTickets = (numbers?: number[]) => {
+  const list = (numbers || []).filter((n) => Number.isFinite(n));
+  if (!list.length) return 'Случайные вопросы';
+  if (list.length === 1) return `Билет ${list[0]}`;
+  return `Билеты ${list.slice(0, 3).join(', ')}${list.length > 3 ? ` и ещё ${list.length - 3}` : ''}`;
+};
 
 /** Иконка вкладки: две копии крест-накрест — цвет нативным драйвером не анимируется. */
 function TabIcon({ tab, active }: { tab: TabDef; active: boolean }) {
@@ -203,12 +226,15 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
   const [saved, setSaved] = useState<Post[]>([]);
   const [liked, setLiked] = useState<Post[]>([]);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [driving, setDriving] = useState<DrivingTestResult[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
   const [likedLoading, setLikedLoading] = useState(false);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [drivingLoading, setDrivingLoading] = useState(false);
   const savedLoaded = useRef(false);
   const likedLoaded = useRef(false);
   const reviewsLoaded = useRef(false);
+  const drivingLoaded = useRef(false);
   // Живут в экране, чтобы пережить пересоздание списка при смене раздела.
   const tabSlide = useRef(new Animated.Value(0)).current;
   const tabPlaced = useRef(false);
@@ -229,6 +255,11 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
       reviewsLoaded.current = true;
       setReviewsLoading(true);
       getReviews({ targetUserId: user._id }).then((r) => setReviews(r.reviews)).catch(() => {}).finally(() => setReviewsLoading(false));
+    }
+    if (next === 'driving' && !drivingLoaded.current) {
+      drivingLoaded.current = true;
+      setDrivingLoading(true);
+      getDrivingResults({ limit: 30 }).then(setDriving).catch(() => {}).finally(() => setDrivingLoading(false));
     }
   }, [user?._id]);
 
@@ -286,6 +317,9 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
     if (tab === 'reviews' && user?._id) {
       getReviews({ targetUserId: user._id }).then((r) => setReviews(r.reviews)).catch(() => {});
     }
+    if (tab === 'driving') {
+      getDrivingResults({ limit: 30 }).then(setDriving).catch(() => {});
+    }
     load(true);
   };
 
@@ -295,7 +329,11 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
   const tabs = isMarket ? MARKET_TABS : SOCIAL_TABS;
   const activeTab = tabs.find((t) => t.key === tab) || tabs[0];
   const tabLoading =
-    tab === 'saved' ? savedLoading : tab === 'liked' ? likedLoading : tab === 'reviews' ? reviewsLoading : loading;
+    tab === 'saved' ? savedLoading
+      : tab === 'liked' ? likedLoading
+        : tab === 'reviews' ? reviewsLoading
+          : tab === 'driving' ? drivingLoading
+            : loading;
   // Пока раздел грузится, счётчик молчит — ноль читался бы как «пусто».
   const sectionCount = tabLoading
     ? null
@@ -305,7 +343,9 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
         ? liked.length
         : tab === 'saved'
           ? saved.length
-          : tab === 'listings'
+          : tab === 'driving'
+            ? driving.length
+            : tab === 'listings'
             ? listings.length
             : ratingStats.totalReviews;
 
@@ -479,13 +519,49 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
     </PressableScale>
   );
 
-  const isGrid = tab !== 'reviews';
+  /**
+   * Строка истории автокурсов. Тап повторяет тот же билет, а для прогонов без
+   * единственного билета (марафон, случайные вопросы) открывает разбор.
+   */
+  const renderDrivingResult = ({ item }: { item: DrivingTestResult }) => {
+    const ticket = item.ticketNumbers?.length === 1 ? item.ticketNumbers[0] : undefined;
+    const percentage = Math.round(Number(item.percentage || 0));
+    return (
+      <PressableScale
+        style={styles.drivingCard}
+        scaleTo={0.98}
+        onPress={() => (ticket
+          ? navigation.navigate('DrivingQuiz', { mode: item.mode, ticketNumber: ticket })
+          : navigation.navigate('DrivingResults', { mode: item.mode }))}
+      >
+        <View style={[styles.drivingScore, item.passed ? styles.drivingScorePassed : styles.drivingScoreFailed]}>
+          <Text style={[styles.drivingScoreText, item.passed && styles.drivingScoreTextPassed]}>{percentage}%</Text>
+        </View>
+        <View style={styles.drivingBody}>
+          <Text style={styles.drivingTitle} numberOfLines={1}>{formatTickets(item.ticketNumbers)}</Text>
+          <Text style={styles.drivingMeta} numberOfLines={1}>
+            {DRIVING_MODE_LABEL[item.mode] || item.mode}
+            {' · '}{item.correctAnswers}/{item.totalQuestions}
+            {formatWhen(item.createdAt) ? ` · ${formatWhen(item.createdAt)}` : ''}
+          </Text>
+        </View>
+        <Ionicons
+          name={item.passed ? 'checkmark-circle' : 'close-circle'}
+          size={20}
+          color={item.passed ? colors.success : colors.danger}
+        />
+      </PressableScale>
+    );
+  };
+
+  const isGrid = tab !== 'reviews' && tab !== 'driving';
   const data: any[] =
     tab === 'posts' ? posts
       : tab === 'liked' ? liked
         : tab === 'saved' ? saved
           : tab === 'listings' ? listings
-            : reviews;
+            : tab === 'driving' ? driving
+              : reviews;
   const empty = tab === 'posts'
     ? { icon: 'images-outline' as const, title: 'Публикаций пока нет', subtitle: 'Нажмите + вверху, чтобы создать первую публикацию.' }
     : tab === 'liked'
@@ -494,7 +570,9 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
         ? { icon: 'bookmark-outline' as const, title: 'Нет сохранённых постов', subtitle: 'Сохраняйте понравившиеся посты, чтобы вернуться к ним позже.' }
         : tab === 'listings'
           ? { icon: 'pricetags-outline' as const, title: 'Объявлений пока нет', subtitle: 'Нажмите + вверху, чтобы разместить первое объявление.' }
-          : { icon: 'star-outline' as const, title: 'Отзывов пока нет', subtitle: 'Отзывы по вашим объявлениям появятся здесь.' };
+          : tab === 'driving'
+            ? { icon: 'school-outline' as const, title: 'Билеты ещё не решались', subtitle: 'Пройдите билет в разделе «Автокурсы» — история попыток появится здесь.' }
+            : { icon: 'star-outline' as const, title: 'Отзывов пока нет', subtitle: 'Отзывы по вашим объявлениям появятся здесь.' };
 
   return (
     <FlatList
@@ -502,7 +580,9 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
       style={styles.container}
       data={data}
       keyExtractor={(item: any) => item.key || item._id}
-      renderItem={(isGrid ? (tab === 'listings' ? renderListing : renderPost) : renderReview) as any}
+      renderItem={(isGrid
+        ? (tab === 'listings' ? renderListing : renderPost)
+        : tab === 'driving' ? renderDrivingResult : renderReview) as any}
       numColumns={isGrid ? 3 : 1}
       // Именно элемент, а не функция: функция каждый рендер — новый ТИП
       // компонента, шапка размонтировалась бы, и индикатор вкладок вместо
@@ -583,6 +663,20 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
   sectionCount: { color: colors.textFaint, fontSize: font.small, fontWeight: '900' },
   tabLoading: { paddingVertical: space.xxl, alignItems: 'center' },
+
+  drivingCard: {
+    flexDirection: 'row', alignItems: 'center', gap: space.md,
+    backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md,
+    marginBottom: space.sm, ...shadow.card,
+  },
+  drivingScore: { width: 52, height: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  drivingScorePassed: { backgroundColor: 'rgba(61,214,140,0.16)' },
+  drivingScoreFailed: { backgroundColor: colors.surfaceAlt },
+  drivingScoreText: { color: colors.textMuted, fontSize: font.small, fontWeight: '900' },
+  drivingScoreTextPassed: { color: colors.success },
+  drivingBody: { flex: 1 },
+  drivingTitle: { color: colors.text, fontSize: font.body, fontWeight: '900' },
+  drivingMeta: { marginTop: 4, color: colors.textMuted, fontSize: font.tiny, fontWeight: '700' },
 
   reviewCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.sm, ...shadow.card },
   reviewTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },

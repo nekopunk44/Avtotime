@@ -271,6 +271,19 @@ export async function getViewerGeo(): Promise<ViewerGeo> {
   };
 }
 
+/**
+ * Расстояния до перечисленных мест, км. Ключи ответа — названия в нижнем
+ * регистре; место, которого геокодер не знает, приходит как null.
+ */
+export async function getPlaceDistances(
+  lat: number,
+  lng: number,
+  places: string[],
+): Promise<Record<string, number | null>> {
+  const { data } = await client.post('/market/distances', { lat, lng, places });
+  return data?.distances && typeof data.distances === 'object' ? data.distances : {};
+}
+
 export async function loadMyMarketListings(): Promise<MyMarketListing[]> {
   const results = await Promise.allSettled(
     MARKET_CATEGORIES.map(async (category) => ({

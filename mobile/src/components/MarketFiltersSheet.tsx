@@ -43,9 +43,14 @@ export interface MarketFilters {
   bodyType: string;
   driveType: string;
   sortBy: MarketSort;
-  /** Город пользователя: не сужает выдачу, а поднимает ближние объявления вверх. */
+  /**
+   * Город, подставленный кнопкой геолокации, и его координаты. Пока они есть,
+   * город не сужает выдачу, а задаёт порядок: ближние объявления идут первыми.
+   * Ручная правка поля отменяет это — набранный город снова просто фильтр.
+   */
   nearCity: string;
-  nearRegion: string;
+  nearLat: number | null;
+  nearLng: number | null;
 }
 
 export const emptyMarketFilters: MarketFilters = {
@@ -53,14 +58,17 @@ export const emptyMarketFilters: MarketFilters = {
   priceMin: '', priceMax: '', yearFrom: '', yearTo: '', mileageMin: '', mileageMax: '',
   fuel: '', gearbox: '', bodyType: '', driveType: '',
   sortBy: 'newest',
-  nearCity: '', nearRegion: '',
+  nearCity: '', nearLat: null, nearLng: null,
 };
+
+const NOT_A_CONDITION = new Set(['nearCity', 'nearLat', 'nearLng']);
 
 /** Сколько условий реально сужают выдачу — число рисуется точкой на кнопке. */
 export const countActiveFilters = (filters: MarketFilters) =>
   Object.entries(filters).filter(([key, value]) => {
     if (key === 'sortBy') return value !== 'newest';
-    if (key === 'nearRegion') return false; // спутник nearCity, отдельным условием не считается
+    // Спутники поля «город», отдельными условиями не считаются.
+    if (NOT_A_CONDITION.has(key)) return false;
     return Boolean(value);
   }).length;
 
@@ -203,7 +211,15 @@ export default function MarketFiltersSheet({
         Alert.alert('Город', 'Не удалось определить город по вашему подключению.');
         return;
       }
-      setDraft((prev) => ({ ...prev, nearCity: geo.city, nearRegion: geo.region }));
+      // Город пишется прямо в поле; координаты рядом — по ним считается,
+      // что ближе, а что дальше.
+      setDraft((prev) => ({
+        ...prev,
+        region: geo.city,
+        nearCity: geo.city,
+        nearLat: geo.lat,
+        nearLng: geo.lng,
+      }));
     } catch {
       Alert.alert('Город', 'Не удалось определить город. Проверьте соединение.');
     } finally {
@@ -338,38 +354,39 @@ export default function MarketFiltersSheet({
     );
   };
 
-  /** Город: ручной ввод и кнопка «я здесь» с сортировкой по близости. */
+  /** Город: ручной ввод и кнопка определения прямо внутри поля. */
   const renderCity = () => (
     <View key="city" style={styles.field}>
       <Text style={styles.label}>Регион / город</Text>
-      <View style={styles.inputRow}>
+      <View style={[styles.input, styles.inputWithAction]}>
         <TextInput
-          style={styles.inputFlex}
+          style={styles.inputInner}
           placeholder="Город"
           placeholderTextColor={colors.textFaint}
           value={draft.region}
-          onChangeText={(v) => set('region', v)}
+          onChangeText={(v) => {
+            // Правка руками отменяет режим близости: набранный город снова
+            // обычный фильтр, а не точка отсчёта.
+            setDraft((prev) => ({
+              ...prev,
+              region: v,
+              ...(v === prev.nearCity ? {} : { nearCity: '', nearLat: null, nearLng: null }),
+            }));
+          }}
           autoCapitalize="words"
         />
-        <PressableScale style={styles.locateBtn} scaleTo={0.92} onPress={detectCity}>
+        <Pressable onPress={detectCity} hitSlop={8} style={styles.inputAction}>
           {locating ? (
             <ActivityIndicator size="small" color={colors.text} />
           ) : (
-            <Ionicons name="locate-outline" size={18} color={colors.text} />
+            <Ionicons
+              name="locate"
+              size={18}
+              color={draft.nearCity ? colors.accent : colors.textMuted}
+            />
           )}
-        </PressableScale>
+        </Pressable>
       </View>
-      {draft.nearCity ? (
-        <View style={styles.nearPill}>
-          <Ionicons name="navigate" size={13} color={colors.accent} />
-          <Text style={styles.nearText} numberOfLines={1}>
-            {draft.nearCity} · сначала ближайшие
-          </Text>
-          <Pressable onPress={() => setDraft((prev) => ({ ...prev, nearCity: '', nearRegion: '' }))} hitSlop={8}>
-            <Ionicons name="close" size={14} color={colors.textMuted} />
-          </Pressable>
-        </View>
-      ) : null}
     </View>
   );
 
@@ -576,23 +593,10 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
     paddingHorizontal: space.md, color: colors.text, fontSize: font.body,
   },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  inputFlex: {
-    flex: 1, height: 46, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
-    paddingHorizontal: space.md, color: colors.text, fontSize: font.body,
-  },
-  locateBtn: {
-    width: 46, height: 46, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  nearPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    alignSelf: 'flex-start', paddingHorizontal: space.md, height: 34,
-    borderRadius: radius.pill, backgroundColor: colors.accentSoft,
-  },
-  nearText: { color: colors.text, fontSize: font.tiny, fontWeight: '800' },
+  // Кнопка живёт внутри поля: рамка одна на ввод и действие.
+  inputWithAction: { flexDirection: 'row', alignItems: 'center', paddingRight: 6 },
+  inputInner: { flex: 1, height: '100%', color: colors.text, fontSize: font.body, padding: 0 },
+  inputAction: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
 
   suggestBox: {
     borderRadius: radius.md, backgroundColor: colors.surfaceAlt,

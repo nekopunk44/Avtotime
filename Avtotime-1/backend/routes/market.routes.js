@@ -49,6 +49,7 @@ import {
   deleteKidsActivity,
   getDistinctBrands,
   getDistinctModels,
+  getPlaceDistances,
   getViewerGeo,
   getCompareState,
   getDrivingCourseModes,
@@ -91,6 +92,9 @@ marketRouter.delete("/parts/:id", isAuth, validateObjectId("id"), deletePartList
 marketRouter.get("/brands", isAuth, getDistinctBrands);
 marketRouter.get("/models", isAuth, getDistinctModels);
 marketRouter.get("/geo", isAuth, getViewerGeo);
+// POST ради списка мест в теле: их бывает несколько десятков, в строке запроса
+// они упёрлись бы в её длину.
+marketRouter.post("/distances", isAuth, getPlaceDistances);
 
 marketRouter.get("/car-services", isAuth, getCarServiceListings);
 marketRouter.post("/car-services", isAuth, isEmailVerified, upload.single("image"), checkPlanLimits("car-services"), createCarServiceListing);

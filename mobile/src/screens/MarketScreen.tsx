@@ -18,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   filterMarketListings,
   getListingImage,
+  getPlaceDistances,
   getListingPrice,
   getListingTitle,
   loadMarketListings,
@@ -95,12 +96,13 @@ export default function MarketScreen({ navigation }: Props) {
       // С фильтрами выдачу собирает поисковая ручка — она возвращает всё
       // подходящее разом, поэтому постраничная догрузка отключается.
       const filtersActive = countActiveFilters(filters) > 0;
-      // nearCity/nearRegion — не условие выборки, а порядок показа: серверу
-      // они не нужны.
-      const { nearCity, nearRegion, ...serverFilters } = filters;
+      // near* — не условие выборки, а порядок показа. И пока он включён, город
+      // не сужает выдачу: иначе соседние города не попали бы в неё вовсе.
+      const { nearCity, nearLat, nearLng, ...serverFilters } = filters;
+      const near = nearLat !== null && nearLng !== null;
       const data = filtersActive
         ? await (query.trim() ? searchMarketListings : filterMarketListings)({
-          ...serverFilters, q: query, type: categoryId,
+          ...serverFilters, ...(near ? { region: '' } : {}), q: query, type: categoryId,
         })
         : await loadMarketListings(categoryId, { q: query, page: 1, limit: PAGE_SIZE });
       if (requestId !== requestIdRef.current) return;
@@ -161,30 +163,55 @@ export default function MarketScreen({ navigation }: Props) {
     loadListings(true);
   };
 
+  const placeOf = (item: MarketListing) => String(item.location || item.region || '').trim();
+
+  // Расстояния до городов из выдачи: считает сервер (у него справочник
+  // координат), клиент только раскладывает по ним объявления.
+  const [distances, setDistances] = useState<Record<string, number | null>>({});
+  const nearActive = filters.nearLat !== null && filters.nearLng !== null;
+
+  useEffect(() => {
+    if (!nearActive) {
+      setDistances({});
+      return;
+    }
+    const places = Array.from(new Set(listings.map(placeOf).filter(Boolean))).slice(0, 60);
+    if (!places.length) return;
+    let alive = true;
+    getPlaceDistances(filters.nearLat as number, filters.nearLng as number, places)
+      .then((next) => { if (alive) setDistances((prev) => ({ ...prev, ...next })); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [listings, nearActive, filters.nearLat, filters.nearLng]);
+
+  const distanceOf = useCallback(
+    (item: MarketListing) => {
+      const place = placeOf(item).toLowerCase();
+      const km = place ? distances[place] : null;
+      return typeof km === 'number' ? km : null;
+    },
+    [distances],
+  );
+
   /**
-   * Порядок по близости к городу пользователя. Объявления хранят только
-   * название места, поэтому расстояние считается ступенями: свой город →
-   * свой регион → всё остальное → место не указано. Внутри ступени порядок
-   * сервера сохраняется (сортировка в JS стабильна).
+   * Порядок по расстоянию от пользователя. Место, которого геокодер ещё не
+   * знает, уходит в конец, а не притворяется нулём.
    */
   const ordered = useMemo(() => {
-    const city = filters.nearCity.trim().toLowerCase();
-    if (!city) return listings;
-    const region = filters.nearRegion.trim().toLowerCase();
-
-    const rank = (item: MarketListing) => {
-      const place = String(item.location || item.region || '').toLowerCase();
-      if (!place) return 3;
-      if (place.includes(city) || city.includes(place)) return 0;
-      if (region && place.includes(region)) return 1;
-      return 2;
-    };
-
-    return [...listings].sort((a, b) => rank(a) - rank(b));
-  }, [listings, filters.nearCity, filters.nearRegion]);
+    if (!nearActive) return listings;
+    return [...listings].sort((a, b) => {
+      const da = distanceOf(a);
+      const db = distanceOf(b);
+      if (da === null && db === null) return 0;
+      if (da === null) return 1;
+      if (db === null) return -1;
+      return da - db;
+    });
+  }, [listings, nearActive, distanceOf]);
 
   const renderListing = ({ item }: { item: MarketListing }) => {
     const image = getListingImage(item);
+    const km = distanceOf(item);
     return (
       <PressableScale
         style={styles.cell}
@@ -207,6 +234,9 @@ export default function MarketScreen({ navigation }: Props) {
               <Ionicons name="location-outline" size={12} color={colors.textFaint} />
               <Text style={styles.metaText} numberOfLines={1}>{item.location || item.region || 'Не указано'}</Text>
             </View>
+            {km !== null ? (
+              <Text style={styles.distanceText}>{km === 0 ? 'Рядом с вами' : `${km} км от вас`}</Text>
+            ) : null}
           </View>
         </Card>
       </PressableScale>
@@ -390,6 +420,7 @@ const styles = StyleSheet.create({
   cardTitle: { marginTop: 4, color: colors.textMuted, fontSize: font.small, fontWeight: '600', lineHeight: 18, minHeight: 36 },
   metaRow: { marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 3 },
   metaText: { flex: 1, color: colors.textFaint, fontSize: font.tiny, fontWeight: '600' },
+  distanceText: { marginTop: 3, color: colors.accent, fontSize: font.tiny, fontWeight: '900' },
 
   skeletonCard: { width: '100%', height: 240, borderRadius: radius.lg },
 });

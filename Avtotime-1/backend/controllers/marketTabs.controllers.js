@@ -21,6 +21,7 @@ import {
 } from "../services/responseCache.js";
 import { enqueueMarketModerationById } from "../moderation/marketModerationWorker.js";
 import { buildPublicFileUrl } from "../config/publicFiles.js";
+import { distanceKm, normalizePlace, resolvePlaces } from "../services/geocode.js";
 
 const buildId = () => Date.now() + Math.floor(Math.random() * 1000);
 
@@ -55,6 +56,36 @@ export const getViewerGeo = (req, res) => {
     lat: Array.isArray(geo?.ll) ? geo.ll[0] : null,
     lng: Array.isArray(geo?.ll) ? geo.ll[1] : null,
   });
+};
+
+/**
+ * Расстояния от точки до перечисленных мест, км. Приложение шлёт сюда города
+ * из выдачи и раскладывает объявления по близости; всё, что геокодер не знает,
+ * возвращается как null и уходит в конец списка.
+ */
+export const getPlaceDistances = async (req, res) => {
+  try {
+    const lat = Number(req.body?.lat);
+    const lng = Number(req.body?.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return res.status(400).json({ message: "Нужны координаты точки отсчёта" });
+    }
+
+    const places = Array.isArray(req.body?.places) ? req.body.places.slice(0, 60) : [];
+    const resolved = await resolvePlaces(places);
+
+    const distances = {};
+    places.forEach((place) => {
+      const key = normalizePlace(place);
+      if (!key || key in distances) return;
+      const point = resolved.get(key);
+      distances[key] = point ? Math.round(distanceKm({ lat, lng }, point)) : null;
+    });
+
+    return res.status(200).json({ distances });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
 };
 
 export const getDistinctBrands = async (req, res) => {
