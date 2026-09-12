@@ -487,10 +487,24 @@ export default function MarketFiltersSheet({
               },
             ]}
           >
-            {/* Шапка — ручка шторки: тянется вниз и закрывает панель. */}
+            {/* Шапка — ручка шторки: тянется вниз и закрывает панель.
+                Очистка вынесена сюда и позиционируется поверх, чтобы
+                заголовок остался ровно по центру. */}
             <View {...pan.panHandlers} style={styles.handleZone}>
               <View style={styles.grabber} />
               <Text style={styles.title}>Фильтры</Text>
+              <Pressable
+                style={styles.clearBtn}
+                hitSlop={10}
+                disabled={!activeCount}
+                onPress={() => setDraft({ ...emptyMarketFilters })}
+              >
+                <Ionicons
+                  name="trash-outline"
+                  size={19}
+                  color={activeCount ? colors.text : colors.textFaint}
+                />
+              </Pressable>
             </View>
 
             <ScrollView
@@ -559,13 +573,6 @@ export default function MarketFiltersSheet({
             </ScrollView>
 
             <View style={styles.actions}>
-              <PressableScale
-                style={styles.resetBtn}
-                onPress={() => setDraft({ ...emptyMarketFilters })}
-              >
-                <Ionicons name="refresh-outline" size={17} color={colors.text} />
-                <Text style={styles.resetText}>Сбросить</Text>
-              </PressableScale>
               <PressableScale style={styles.applyBtn} onPress={() => onApply(draft)}>
                 <Text style={styles.applyText}>
                   {activeCount ? `Показать · ${activeCount}` : 'Показать'}
@@ -598,6 +605,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceHi, marginBottom: space.md,
   },
   title: { color: colors.text, fontSize: font.h2, fontWeight: '900', textAlign: 'center' },
+  clearBtn: {
+    position: 'absolute', right: 0, top: space.md,
+    width: 36, height: 36, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt,
+    alignItems: 'center', justifyContent: 'center',
+  },
 
   body: { marginTop: space.md },
   bodyContent: { gap: space.lg, paddingBottom: space.md },
@@ -671,15 +683,11 @@ const styles = StyleSheet.create({
   segmentText: { color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
   segmentTextActive: { color: colors.onAccent, fontWeight: '900' },
 
-  actions: { flexDirection: 'row', gap: space.sm, marginTop: space.md },
-  resetBtn: {
-    height: 52, borderRadius: radius.lg, paddingHorizontal: space.lg, backgroundColor: colors.surfaceAlt,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-  },
-  resetText: { color: colors.text, fontSize: font.body, fontWeight: '900' },
+  actions: { marginTop: space.md, alignItems: 'center' },
   applyBtn: {
-    flex: 1, height: 52, borderRadius: radius.lg, backgroundColor: colors.accent,
-    alignItems: 'center', justifyContent: 'center',
+    // Уже полной ширины: кнопка подтверждения, а не полоса во всю панель.
+    width: '64%', minWidth: 200, height: 52, borderRadius: radius.pill,
+    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
   },
   applyText: { color: colors.onAccent, fontSize: font.body, fontWeight: '900' },
 });
