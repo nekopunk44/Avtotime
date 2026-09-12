@@ -204,6 +204,25 @@ export default function MarketFiltersSheet({
     return matched.slice(0, 8);
   };
 
+  // ── Сортировка: заливка едет к выбранному варианту ───────────────────────
+  const [sortWidth, setSortWidth] = useState(0);
+  const sortSlide = useRef(new Animated.Value(0)).current;
+  const sortPlaced = useRef(false);
+  const sortSeg = sortWidth > 0 ? (sortWidth - 8) / SORTS.length : 0;
+  const sortIndex = Math.max(0, SORTS.findIndex((s) => s.value === draft.sortBy));
+  const sortTargetX = 4 + sortSeg * sortIndex;
+
+  useEffect(() => {
+    if (sortSeg <= 0) return;
+    if (!sortPlaced.current) {
+      // Первая раскладка — без анимации: шторка открывается уже с выбранным.
+      sortPlaced.current = true;
+      sortSlide.setValue(sortTargetX);
+      return;
+    }
+    Animated.spring(sortSlide, { toValue: sortTargetX, useNativeDriver: true, speed: 16, bounciness: 7 }).start();
+  }, [sortTargetX, sortSeg, sortSlide]);
+
   // ── Геолокация ───────────────────────────────────────────────────────────
   const [locating, setLocating] = useState(false);
 
@@ -557,13 +576,21 @@ export default function MarketFiltersSheet({
               {/* Сортировка — выбор ровно один, поэтому сегменты, а не отметки. */}
               <View style={styles.field}>
                 <Text style={styles.label}>Сортировка</Text>
-                <View style={styles.segment}>
+                <View
+                  style={styles.segment}
+                  onLayout={(e) => setSortWidth(e.nativeEvent.layout.width)}
+                >
+                  {sortSeg > 0 ? (
+                    <Animated.View
+                      style={[styles.segmentThumb, { width: sortSeg, transform: [{ translateX: sortSlide }] }]}
+                    />
+                  ) : null}
                   {SORTS.map((sort) => {
                     const active = draft.sortBy === sort.value;
                     return (
                       <Pressable
                         key={sort.value}
-                        style={[styles.segmentItem, active && styles.segmentItemActive]}
+                        style={styles.segmentItem}
                         onPress={() => setDraft((prev) => ({ ...prev, sortBy: sort.value }))}
                       >
                         <Text style={[styles.segmentText, active && styles.segmentTextActive]} numberOfLines={1}>
@@ -578,9 +605,7 @@ export default function MarketFiltersSheet({
 
             <View style={styles.actions}>
               <PressableScale style={styles.applyBtn} onPress={() => onApply(draft)}>
-                <Text style={styles.applyText}>
-                  {activeCount ? `Показать · ${activeCount}` : 'Показать'}
-                </Text>
+                <Text style={styles.applyText}>Показать</Text>
               </PressableScale>
             </View>
           </Animated.View>
@@ -679,18 +704,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row', backgroundColor: colors.surfaceAlt,
     borderRadius: radius.md, padding: 4, gap: 4,
   },
+  segmentThumb: {
+    position: 'absolute', left: 0, top: 4, bottom: 4,
+    borderRadius: radius.sm, backgroundColor: colors.accent,
+  },
   segmentItem: {
     flex: 1, height: 38, borderRadius: radius.sm,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
   },
-  segmentItemActive: { backgroundColor: colors.accent },
   segmentText: { color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
   segmentTextActive: { color: colors.onAccent, fontWeight: '900' },
 
-  actions: { marginTop: space.md, alignItems: 'center' },
+  actions: { marginTop: space.md },
   applyBtn: {
-    // Уже полной ширины: кнопка подтверждения, а не полоса во всю панель.
-    width: '64%', minWidth: 200, height: 52, borderRadius: radius.pill,
+    alignSelf: 'stretch', height: 46, borderRadius: radius.pill,
     backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
   },
   applyText: { color: colors.onAccent, fontSize: font.body, fontWeight: '900' },
