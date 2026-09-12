@@ -319,49 +319,29 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      {isMarket ? (
-        // Витрина продавца: карточка с тарифом — уровень относится к торговле.
-        <View style={styles.hero}>
-          <PressableScale style={styles.heroSettings} onPress={() => navigation.navigate('Settings')}>
-            <Ionicons name="settings-outline" size={20} color="#fff" />
-          </PressableScale>
-          <View style={styles.heroRow}>
-            <Avatar
-              uri={user.profileImage}
-              userName={user.userName}
-              name={user.name}
-              size={76}
-              style={styles.avatarRing}
-            />
-            <View style={styles.heroInfo}>
-              <Text style={styles.name} numberOfLines={1}>{user.name || 'Пользователь'}</Text>
-              <Text style={styles.username} numberOfLines={1}>@{user.userName || 'avtotime'}</Text>
-              <View style={styles.badgeRow}>
-                <Text style={styles.planBadge}>{planLabel(activePlan)}</Text>
-                {user.location ? <Text style={styles.locationBadge} numberOfLines={1}>{user.location}</Text> : null}
-              </View>
+      {/* Личность лежит на самом фоне в обоих режимах; тариф — только в
+          маркете, к соцсети уровень продавца отношения не имеет. */}
+      <View style={styles.heroPlain}>
+        <Avatar uri={user.profileImage} userName={user.userName} name={user.name} size={72} />
+        <View style={styles.heroInfo}>
+          <Text style={styles.namePlain} numberOfLines={1}>{user.name || 'Пользователь'}</Text>
+          <Text style={styles.usernamePlain} numberOfLines={1}>@{user.userName || 'avtotime'}</Text>
+          {isMarket ? (
+            <View style={styles.badgeRow}>
+              <Text style={styles.planBadge}>{planLabel(activePlan)}</Text>
+              {user.location ? <Text style={styles.locationChip} numberOfLines={1}>{user.location}</Text> : null}
             </View>
-          </View>
+          ) : user.location ? (
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={13} color={colors.textFaint} />
+              <Text style={styles.locationText} numberOfLines={1}>{user.location}</Text>
+            </View>
+          ) : null}
         </View>
-      ) : (
-        // Соцсеть: личность на самом фоне, без карточки и без тарифа.
-        <View style={styles.heroPlain}>
-          <Avatar uri={user.profileImage} userName={user.userName} name={user.name} size={72} />
-          <View style={styles.heroInfo}>
-            <Text style={styles.namePlain} numberOfLines={1}>{user.name || 'Пользователь'}</Text>
-            <Text style={styles.usernamePlain} numberOfLines={1}>@{user.userName || 'avtotime'}</Text>
-            {user.location ? (
-              <View style={styles.locationRow}>
-                <Ionicons name="location-outline" size={13} color={colors.textFaint} />
-                <Text style={styles.locationText} numberOfLines={1}>{user.location}</Text>
-              </View>
-            ) : null}
-          </View>
-          <PressableScale style={styles.settingsPlain} onPress={() => navigation.navigate('Settings')}>
-            <Ionicons name="settings-outline" size={20} color={colors.text} />
-          </PressableScale>
-        </View>
-      )}
+        <PressableScale style={styles.settingsPlain} onPress={() => navigation.navigate('Settings')}>
+          <Ionicons name="settings-outline" size={20} color={colors.text} />
+        </PressableScale>
+      </View>
 
       {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
 
@@ -413,23 +393,6 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
           </PressableScale>
         </View>
       )}
-
-      {isMarket ? (
-        <PressableScale style={styles.ratingCard} onPress={() => navigation.navigate('MyReviews')}>
-          <View style={styles.ratingIcon}>
-            <Ionicons name="star" size={20} color={colors.star} />
-          </View>
-          <View style={styles.ratingBody}>
-            <Text style={styles.ratingTitle}>Рейтинг продавца</Text>
-            <View style={styles.ratingRow}>
-              <Text style={styles.ratingValue}>{Number(ratingStats.avgRating || 0).toFixed(1)}</Text>
-              <Stars value={Math.round(Number(ratingStats.avgRating || 0))} />
-              <Text style={styles.ratingCount}>{ratingStats.totalReviews} отзывов</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
-        </PressableScale>
-      ) : null}
 
       <View style={styles.tabsRow}>
         <TabSwitcher tabs={tabs} value={tab} onChange={selectTab} slide={tabSlide} placed={tabPlaced} />
@@ -582,23 +545,16 @@ const styles = StyleSheet.create({
   skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   header: { gap: space.md, marginBottom: space.md },
 
-  hero: { backgroundColor: colors.ink, borderRadius: radius.xl, padding: space.lg, ...shadow.card },
-  heroSettings: { position: 'absolute', top: space.md, right: space.md, width: 40, height: 40, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
-  heroRow: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
-  heroInfo: { flex: 1, paddingRight: 36 },
-  avatarRing: { borderWidth: 3, borderColor: 'rgba(255,255,255,0.9)' },
-  name: { color: colors.white, fontSize: font.h2, fontWeight: '900' },
-  username: { marginTop: 2, color: 'rgba(255,255,255,0.65)', fontSize: font.small, fontWeight: '800' },
-
+  heroInfo: { flex: 1 },
   heroPlain: { flexDirection: 'row', alignItems: 'center', gap: space.lg, paddingHorizontal: space.xs, paddingTop: space.xs },
   namePlain: { color: colors.text, fontSize: font.h1, fontWeight: '900' },
   usernamePlain: { marginTop: 2, color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 5 },
   locationText: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
   settingsPlain: { width: 40, height: 40, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: space.sm, justifyContent: 'flex-start' },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 7, justifyContent: 'flex-start' },
   planBadge: { overflow: 'hidden', borderRadius: radius.pill, backgroundColor: colors.accent, color: colors.onAccent, paddingHorizontal: 11, paddingVertical: 5, fontSize: font.tiny, fontWeight: '900' },
-  locationBadge: { overflow: 'hidden', borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.14)', color: colors.white, paddingHorizontal: 11, paddingVertical: 5, fontSize: font.tiny, fontWeight: '900' },
+  locationChip: { overflow: 'hidden', borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, color: colors.textMuted, paddingHorizontal: 11, paddingVertical: 5, fontSize: font.tiny, fontWeight: '900' },
 
   bio: { color: colors.text, fontSize: font.body, lineHeight: 21, backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.lg, ...shadow.card },
   verifyCard: { borderRadius: radius.lg, backgroundColor: 'rgba(246,178,61,0.14)', padding: space.md, flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -613,13 +569,6 @@ const styles = StyleSheet.create({
   statNum: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
   statLabel: { marginTop: 3, color: colors.textMuted, fontSize: font.tiny, fontWeight: '800', letterSpacing: 0.2 },
 
-  ratingCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md, ...shadow.card },
-  ratingIcon: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: 'rgba(245,197,24,0.15)', alignItems: 'center', justifyContent: 'center' },
-  ratingBody: { flex: 1 },
-  ratingTitle: { color: colors.text, fontSize: font.small, fontWeight: '900' },
-  ratingRow: { marginTop: 5, flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap' },
-  ratingValue: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
-  ratingCount: { color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
   stars: { flexDirection: 'row', alignItems: 'center', gap: 2 },
 
   tabsRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.xs },
