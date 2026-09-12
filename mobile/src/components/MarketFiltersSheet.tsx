@@ -492,19 +492,23 @@ export default function MarketFiltersSheet({
                 заголовок остался ровно по центру. */}
             <View {...pan.panHandlers} style={styles.handleZone}>
               <View style={styles.grabber} />
-              <Text style={styles.title}>Фильтры</Text>
-              <Pressable
-                style={styles.clearBtn}
-                hitSlop={10}
-                disabled={!activeCount}
-                onPress={() => setDraft({ ...emptyMarketFilters })}
-              >
-                <Ionicons
-                  name="trash-outline"
-                  size={19}
-                  color={activeCount ? colors.text : colors.textFaint}
-                />
-              </Pressable>
+              {/* Кнопка растянута по высоте строки заголовка — так иконка
+                  стоит на одном уровне с ним при любом кегле шрифта. */}
+              <View style={styles.titleRow}>
+                <Text style={styles.title}>Фильтры</Text>
+                <Pressable
+                  style={styles.clearBtn}
+                  hitSlop={12}
+                  disabled={!activeCount}
+                  onPress={() => setDraft({ ...emptyMarketFilters })}
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color={activeCount ? colors.text : colors.textFaint}
+                  />
+                </Pressable>
+              </View>
             </View>
 
             <ScrollView
@@ -604,11 +608,11 @@ const styles = StyleSheet.create({
     width: 44, height: 5, borderRadius: radius.pill,
     backgroundColor: colors.surfaceHi, marginBottom: space.md,
   },
+  titleRow: { alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
   title: { color: colors.text, fontSize: font.h2, fontWeight: '900', textAlign: 'center' },
   clearBtn: {
-    position: 'absolute', right: 0, top: space.md,
-    width: 36, height: 36, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt,
-    alignItems: 'center', justifyContent: 'center',
+    position: 'absolute', right: 0, top: 0, bottom: 0,
+    width: 32, alignItems: 'flex-end', justifyContent: 'center',
   },
 
   body: { marginTop: space.md },
