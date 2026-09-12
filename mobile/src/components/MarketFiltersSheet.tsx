@@ -21,6 +21,7 @@ import {
   getDistinctBrands,
   getDistinctModels,
   getViewerGeo,
+  MARKET_CATEGORIES,
   MarketCategoryId,
   MarketSort,
 } from '../api/market';
@@ -28,6 +29,8 @@ import { colors, font, radius, shadow, space } from '../theme';
 import { PressableScale } from './ui';
 
 export interface MarketFilters {
+  /** Раздел маркета. Пусто — показываем всё, что есть. */
+  type: MarketCategoryId | '';
   brand: string;
   model: string;
   partGroup: string;
@@ -54,6 +57,7 @@ export interface MarketFilters {
 }
 
 export const emptyMarketFilters: MarketFilters = {
+  type: '',
   brand: '', model: '', partGroup: '', region: '',
   priceMin: '', priceMax: '', yearFrom: '', yearTo: '', mileageMin: '', mileageMax: '',
   fuel: '', gearbox: '', bodyType: '', driveType: '',
@@ -77,8 +81,10 @@ export const hasActiveFilters = (filters: MarketFilters) => countActiveFilters(f
 type FieldKey = 'brand' | 'model' | 'partGroup' | 'year' | 'price' | 'mileage' | 'fuel' | 'gearbox' | 'bodyType' | 'driveType' | 'region';
 
 // Набор полей повторяет условия фильтра на бэкенде: показывать поле, которого
-// сервер не учитывает для этой категории, — обманывать пользователя.
-const FIELDS: Record<MarketCategoryId, FieldKey[]> = {
+// сервер не учитывает для этой категории, — обманывать пользователя. Пустой
+// ключ — «все разделы»: общими остаются только цена и место.
+const FIELDS: Record<MarketCategoryId | '', FieldKey[]> = {
+  '': ['price', 'region'],
   cars: ['brand', 'model', 'year', 'price', 'mileage', 'fuel', 'gearbox', 'bodyType', 'driveType', 'region'],
   parts: ['brand', 'model', 'partGroup', 'year', 'price', 'region'],
   'car-services': ['price', 'region'],
@@ -112,7 +118,6 @@ const digits = (value: string) => value.replace(/[^0-9]/g, '').slice(0, 9);
 
 interface Props {
   visible: boolean;
-  categoryId: MarketCategoryId;
   value: MarketFilters;
   onApply: (filters: MarketFilters) => void;
   onClose: () => void;
@@ -126,7 +131,7 @@ interface Props {
  * или тап по подложке должны быть отменой без последствий.
  */
 export default function MarketFiltersSheet({
-  visible, categoryId, value, onApply, onClose,
+  visible, value, onApply, onClose,
 }: Props) {
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<MarketFilters>(value);
@@ -174,18 +179,18 @@ export default function MarketFiltersSheet({
   useEffect(() => {
     if (!visible) return;
     let alive = true;
-    getDistinctBrands(categoryId).then((list) => { if (alive) setBrands(list); }).catch(() => {});
+    getDistinctBrands(draft.type || 'all').then((list) => { if (alive) setBrands(list); }).catch(() => {});
     return () => { alive = false; };
-  }, [visible, categoryId]);
+  }, [visible, draft.type]);
 
   // Модели зависят от марки: пока она не выбрана, показываем весь список.
   useEffect(() => {
     if (!visible) return;
     let alive = true;
     const brand = draft.brand.trim();
-    getDistinctModels(brand, categoryId).then((list) => { if (alive) setModels(list); }).catch(() => {});
+    getDistinctModels(brand, draft.type || 'all').then((list) => { if (alive) setModels(list); }).catch(() => {});
     return () => { alive = false; };
-  }, [visible, categoryId, draft.brand]);
+  }, [visible, draft.type, draft.brand]);
 
   const suggestionsFor = (field: 'brand' | 'model') => {
     if (focusedField !== field) return [];
@@ -257,7 +262,7 @@ export default function MarketFiltersSheet({
   const set = (key: keyof MarketFilters, next: string) =>
     setDraft((prev) => ({ ...prev, [key]: next }));
 
-  const fields = FIELDS[categoryId] || FIELDS.cars;
+  const fields = FIELDS[draft.type] || FIELDS[''];
   const activeCount = countActiveFilters(draft);
 
   const renderRange = (label: string, minKey: keyof MarketFilters, maxKey: keyof MarketFilters) => (
@@ -494,6 +499,41 @@ export default function MarketFiltersSheet({
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
+              {/* Раздел — выбор один, поэтому кружок, а не отметка. Пустой
+                  выбор означает «всё сразу» и стоит первым. */}
+              <View style={styles.field}>
+                <Text style={styles.label}>Раздел</Text>
+                <View style={styles.optionGrid}>
+                  {[{ id: '' as const, shortLabel: 'Все разделы' }, ...MARKET_CATEGORIES].map((item) => {
+                    const active = draft.type === item.id;
+                    return (
+                      <PressableScale
+                        key={item.id || 'all'}
+                        scaleTo={0.96}
+                        style={[styles.option, active && styles.optionActive]}
+                        onPress={() => setDraft((prev) => (
+                          // Смена раздела уносит поля, которых в нём нет:
+                          // «Кузов: седан» в запчастях — мусор, а не фильтр.
+                          prev.type === item.id
+                            ? prev
+                            : { ...emptyMarketFilters, type: item.id, region: prev.region, sortBy: prev.sortBy }
+                        ))}
+                      >
+                        <Text
+                          style={[styles.optionText, active && styles.optionTextActive]}
+                          numberOfLines={1}
+                        >
+                          {item.shortLabel}
+                        </Text>
+                        <View style={[styles.radio, active && styles.radioActive]}>
+                          {active ? <View style={styles.radioDot} /> : null}
+                        </View>
+                      </PressableScale>
+                    );
+                  })}
+                </View>
+              </View>
+
               {fields.map(renderField)}
 
               {/* Сортировка — выбор ровно один, поэтому сегменты, а не отметки. */}
@@ -588,6 +628,13 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   checkActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  radio: {
+    width: 20, height: 20, borderRadius: 10,
+    borderWidth: 1.5, borderColor: colors.surfaceHi,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  radioActive: { borderColor: colors.accent },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
   input: {
     height: 46, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,

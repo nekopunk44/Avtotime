@@ -1,11 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Animated,
   FlatList,
   Image,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -21,9 +19,10 @@ import {
   getPlaceDistances,
   getListingPrice,
   getListingTitle,
+  getMarketCategory,
+  getMarketCategoryFromListingType,
   loadMarketListings,
   MARKET_CATEGORIES,
-  MarketCategory,
   MarketCategoryId,
   MarketListing,
   searchMarketListings,
@@ -40,7 +39,6 @@ import MarketFiltersSheet, {
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
 export default function MarketScreen({ navigation }: Props) {
-  const [categoryId, setCategoryId] = useState<MarketCategoryId>('cars');
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<MarketFilters>(emptyMarketFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -48,31 +46,11 @@ export default function MarketScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [segLayouts, setSegLayouts] = useState<Array<{ x: number; width: number }>>([]);
-  const thumbX = useRef(new Animated.Value(0)).current;
-  const thumbW = useRef(new Animated.Value(0)).current;
-  const thumbInited = useRef(false);
-  const catScrollRef = useRef<ScrollView>(null);
-  const activeIndex = Math.max(0, MARKET_CATEGORIES.findIndex((item) => item.id === categoryId));
 
-  useEffect(() => {
-    const layout = segLayouts[activeIndex];
-    if (!layout) return;
-    if (!thumbInited.current) {
-      thumbInited.current = true;
-      thumbX.setValue(layout.x);
-      thumbW.setValue(layout.width);
-      return;
-    }
-    Animated.parallel([
-      Animated.spring(thumbX, { toValue: layout.x, useNativeDriver: false, friction: 10, tension: 90 }),
-      Animated.spring(thumbW, { toValue: layout.width, useNativeDriver: false, friction: 10, tension: 90 }),
-    ]).start();
-    catScrollRef.current?.scrollTo({ x: Math.max(0, layout.x - 16), animated: true });
-  }, [activeIndex, segLayouts, thumbX, thumbW]);
-
+  // Раздел живёт в фильтрах: без выбора экран показывает весь маркет.
+  const categoryId = filters.type;
   const activeCategory = useMemo(
-    () => MARKET_CATEGORIES.find((item) => item.id === categoryId) ?? MARKET_CATEGORIES[0],
+    () => (categoryId ? MARKET_CATEGORIES.find((item) => item.id === categoryId) : undefined),
     [categoryId],
   );
 
@@ -93,22 +71,26 @@ export default function MarketScreen({ navigation }: Props) {
     if (!silent) setLoading(true);
     setError('');
     try {
-      // С фильтрами выдачу собирает поисковая ручка — она возвращает всё
-      // подходящее разом, поэтому постраничная догрузка отключается.
-      const filtersActive = countActiveFilters(filters) > 0;
       // near* — не условие выборки, а порядок показа. И пока он включён, город
       // не сужает выдачу: иначе соседние города не попали бы в неё вовсе.
-      const { nearCity, nearLat, nearLng, ...serverFilters } = filters;
+      const { nearCity, nearLat, nearLng, type, ...serverFilters } = filters;
       const near = nearLat !== null && nearLng !== null;
-      const data = filtersActive
-        ? await (query.trim() ? searchMarketListings : filterMarketListings)({
-          ...serverFilters, ...(near ? { region: '' } : {}), q: query, type: categoryId,
-        })
-        : await loadMarketListings(categoryId, { q: query, page: 1, limit: PAGE_SIZE });
+      // Кроме раздела: он один умеет постраничную выдачу через свою ручку.
+      const narrowed = countActiveFilters({ ...filters, type: '' }) > 0;
+      const paged = Boolean(type) && !narrowed;
+
+      const data = paged
+        ? await loadMarketListings(type as MarketCategoryId, { q: query, page: 1, limit: PAGE_SIZE })
+        : await (query.trim() ? searchMarketListings : filterMarketListings)({
+          ...serverFilters,
+          ...(near ? { region: '' } : {}),
+          q: query,
+          ...(type ? { type } : {}),
+        });
       if (requestId !== requestIdRef.current) return;
       setListings(data);
       setPage(1);
-      setHasMore(!filtersActive && data.length === PAGE_SIZE);
+      setHasMore(paged && data.length === PAGE_SIZE);
     } catch (e: any) {
       if (requestId !== requestIdRef.current) return;
       setError(e.response?.data?.message || 'Не удалось загрузить объявления');
@@ -121,7 +103,7 @@ export default function MarketScreen({ navigation }: Props) {
   }, [categoryId, query, filters]);
 
   const loadMore = useCallback(async () => {
-    if (loading || loadingMore || refreshing || !hasMore) return;
+    if (loading || loadingMore || refreshing || !hasMore || !categoryId) return;
     const requestId = requestIdRef.current;
     setLoadingMore(true);
     try {
@@ -212,23 +194,29 @@ export default function MarketScreen({ navigation }: Props) {
   const renderListing = ({ item }: { item: MarketListing }) => {
     const image = getListingImage(item);
     const km = distanceOf(item);
+    // В общей выдаче раздел у каждого объявления свой — берём его из самого
+    // объявления, а не из состояния экрана.
+    const itemCategoryId = item.listingType
+      ? getMarketCategoryFromListingType(item.listingType)
+      : (categoryId || 'cars');
+    const itemCategory = getMarketCategory(itemCategoryId);
     return (
       <PressableScale
         style={styles.cell}
         scaleTo={0.98}
-        onPress={() => navigation.navigate('MarketListingDetails', { listing: item, categoryId })}
+        onPress={() => navigation.navigate('MarketListingDetails', { listing: item, categoryId: itemCategoryId })}
       >
         <Card style={styles.card}>
           {image ? (
             <Image source={{ uri: image }} style={styles.cardImage} />
           ) : (
             <View style={[styles.cardImage, styles.noImage]}>
-              <Ionicons name={activeCategory.icon as any} size={28} color={colors.textFaint} />
+              <Ionicons name={itemCategory.icon as any} size={28} color={colors.textFaint} />
             </View>
           )}
           {item.sellerBadge ? <Text style={styles.badge}>{item.sellerBadge}</Text> : null}
           <View style={styles.cardBody}>
-            <Text style={styles.price}>{getListingPrice(item, categoryId)}</Text>
+            <Text style={styles.price}>{getListingPrice(item, itemCategoryId)}</Text>
             <Text style={styles.cardTitle} numberOfLines={2}>{getListingTitle(item)}</Text>
             <View style={styles.metaRow}>
               <Ionicons name="location-outline" size={12} color={colors.textFaint} />
@@ -261,7 +249,7 @@ export default function MarketScreen({ navigation }: Props) {
         <Ionicons name="search-outline" size={18} color={colors.textMuted} />
         <TextInput
           style={styles.searchInput}
-          placeholder={`Поиск: ${activeCategory.label.toLowerCase()}`}
+          placeholder={activeCategory ? `Поиск: ${activeCategory.label.toLowerCase()}` : 'Поиск по маркету'}
           placeholderTextColor={colors.textFaint}
           value={query}
           onChangeText={setQuery}
@@ -278,47 +266,25 @@ export default function MarketScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        ref={catScrollRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.catScroll}
-        contentContainerStyle={styles.segment}
-      >
-        {segLayouts.length === MARKET_CATEGORIES.length ? (
-          <Animated.View style={[styles.segThumb, { left: thumbX, width: thumbW }]} />
+      {/* Что именно сейчас показано — одной строкой, раз чипов разделов
+          больше нет. */}
+      <View style={styles.scopeRow}>
+        <Text style={styles.scopeText}>
+          {activeCategory ? activeCategory.label : 'Все разделы'}
+        </Text>
+        {filtered ? (
+          <PressableScale style={styles.scopeReset} onPress={() => setFilters(emptyMarketFilters)}>
+            <Ionicons name="close" size={13} color={colors.textMuted} />
+            <Text style={styles.scopeResetText}>Сбросить</Text>
+          </PressableScale>
         ) : null}
-        {MARKET_CATEGORIES.map((item, index) => {
-          const active = item.id === categoryId;
-          return (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.segChip}
-              onPress={() => setCategoryId(item.id)}
-              onLayout={(e) => {
-                const { x, width } = e.nativeEvent.layout;
-                setSegLayouts((prev) => {
-                  if (prev[index] && prev[index].x === x && prev[index].width === width) return prev;
-                  const next = [...prev];
-                  next[index] = { x, width };
-                  return next;
-                });
-              }}
-              activeOpacity={0.85}
-            >
-              <Ionicons name={item.icon as any} size={16} color={active ? colors.onAccent : colors.text} />
-              <Text style={[styles.segText, active && styles.segTextActive]}>{item.shortLabel}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      </View>
     </View>
   );
 
   const filtersSheet = (
     <MarketFiltersSheet
       visible={filtersOpen}
-      categoryId={categoryId}
       value={filters}
       onApply={(next) => { setFilters(next); setFiltersOpen(false); }}
       onClose={() => setFiltersOpen(false)}
@@ -347,7 +313,7 @@ export default function MarketScreen({ navigation }: Props) {
         style={styles.container}
         data={ordered}
         numColumns={2}
-        keyExtractor={(item, index) => `${categoryId}-${item._id || item.id || index}`}
+        keyExtractor={(item, index) => `${item.listingType || categoryId || 'all'}-${item._id || item.id || index}`}
         renderItem={renderListing}
         ListHeaderComponent={Header}
         columnWrapperStyle={styles.grid}
@@ -358,12 +324,12 @@ export default function MarketScreen({ navigation }: Props) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
         ListEmptyComponent={
           <EmptyState
-            icon={error ? 'alert-circle-outline' : (activeCategory.icon as any)}
+            icon={error ? 'alert-circle-outline' : ((activeCategory?.icon || 'storefront-outline') as any)}
             title={error || (filtered ? 'Ничего не найдено' : 'Объявлений пока нет')}
             subtitle={
               error ? 'Потяните вниз, чтобы повторить.'
                 : filtered ? 'Смягчите фильтры или сбросьте их.'
-                  : 'Здесь появятся предложения этого раздела.'
+                  : 'Здесь появятся предложения маркета.'
             }
             actionLabel={error ? undefined : filtered ? 'Сбросить фильтры' : 'Разместить объявление'}
             onAction={
@@ -400,12 +366,13 @@ const styles = StyleSheet.create({
   },
   filterDotText: { color: colors.onAccent, fontSize: 10, fontWeight: '900' },
 
-  catScroll: { marginTop: space.md, marginBottom: 2 },
-  segment: { flexDirection: 'row', alignItems: 'center', height: 44, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt },
-  segThumb: { position: 'absolute', top: 4, height: 36, borderRadius: radius.pill, backgroundColor: colors.accent },
-  segChip: { height: 44, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  segText: { fontSize: font.small, fontWeight: '800', color: colors.text },
-  segTextActive: { color: colors.onAccent },
+  scopeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.md, marginBottom: 2 },
+  scopeText: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
+  scopeReset: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, height: 30, paddingHorizontal: space.md,
+    borderRadius: radius.pill, backgroundColor: colors.surfaceAlt,
+  },
+  scopeResetText: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '900' },
 
   grid: { paddingHorizontal: space.md - 3, justifyContent: 'space-between' },
   listContent: { paddingBottom: space.lg },
