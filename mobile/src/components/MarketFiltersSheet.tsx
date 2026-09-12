@@ -192,16 +192,35 @@ export default function MarketFiltersSheet({
     return () => { alive = false; };
   }, [visible, draft.type, draft.brand]);
 
+  /**
+   * Подсказки и причина их отсутствия. Молчащий список неотличим от сломанного:
+   * пустой маркет и «ничего не нашлось» должны выглядеть по-разному.
+   */
   const suggestionsFor = (field: 'brand' | 'model') => {
-    if (focusedField !== field) return [];
+    if (focusedField !== field) return { items: [] as string[], note: '' };
     const source = field === 'brand' ? brands : models;
     const typed = (draft[field] as string).trim().toLowerCase();
-    const matched = typed
-      ? source.filter((item) => item.toLowerCase().includes(typed))
-      : source;
+
+    if (!source.length) {
+      return {
+        items: [],
+        note: field === 'brand'
+          ? 'В маркете пока нет объявлений — подсказывать нечего'
+          : draft.brand.trim()
+            ? `Для «${draft.brand.trim()}» моделей пока нет`
+            : 'Моделей пока нет',
+      };
+    }
+
+    const matched = typed ? source.filter((item) => item.toLowerCase().includes(typed)) : source;
     // Точное совпадение — уже введённое значение, подсказывать его нечего.
-    if (matched.length === 1 && matched[0].toLowerCase() === typed) return [];
-    return matched.slice(0, 8);
+    if (matched.length === 1 && matched[0].toLowerCase() === typed) {
+      return { items: [], note: '' };
+    }
+    return {
+      items: matched.slice(0, 8),
+      note: matched.length ? '' : 'Совпадений нет',
+    };
   };
 
   // ── Сортировка: заливка едет к выбранному варианту ───────────────────────
@@ -328,7 +347,7 @@ export default function MarketFiltersSheet({
     key: 'brand' | 'model',
     placeholder: string,
   ) => {
-    const suggestions = suggestionsFor(key);
+    const { items: suggestions, note } = suggestionsFor(key);
     const typed = draft[key];
     return (
       <View key={label} style={styles.field}>
@@ -355,6 +374,11 @@ export default function MarketFiltersSheet({
           autoCapitalize="words"
           autoCorrect={false}
         />
+        {note ? (
+          <View style={styles.suggestBox}>
+            <Text style={styles.suggestNote}>{note}</Text>
+          </View>
+        ) : null}
         {suggestions.length ? (
           <View style={styles.suggestBox}>
             {suggestions.map((item, index) => (
@@ -693,6 +717,10 @@ const styles = StyleSheet.create({
   suggestItem: { paddingHorizontal: space.md, paddingVertical: 11 },
   suggestItemDivided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   suggestText: { color: colors.text, fontSize: font.small, fontWeight: '700' },
+  suggestNote: {
+    paddingHorizontal: space.md, paddingVertical: 11,
+    color: colors.textFaint, fontSize: font.tiny, fontWeight: '700',
+  },
 
   rangeRow: { flexDirection: 'row', gap: space.sm },
   rangeInput: {
