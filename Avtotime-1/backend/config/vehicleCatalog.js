@@ -187,6 +187,19 @@ export const BIKE_MODELS = {
   Bianchi: ['Oltre', 'Infinito', 'Другая модель'],
   'Другая марка': ['Другая модель'],
 };
+/**
+ * Полный справочник по видам транспорта — как есть, вместе со служебными
+ * «Другая марка»/«Другая модель»: формам создания объявления они нужны, это
+ * законный выбор пользователя, а не мусор.
+ */
+export const vehicleCatalog = () => ({
+  cars: { brands: ALL_BRANDS, models: BRANDS_AND_MODELS },
+  trucks: { brands: TRUCK_BRANDS, models: TRUCK_MODELS },
+  moto: { brands: MOTO_BRANDS, models: MOTO_MODELS },
+  buses: { brands: BUS_BRANDS, models: BUS_MODELS },
+  bikes: { brands: BIKE_BRANDS, models: BIKE_MODELS },
+});
+
 const OTHER = new Set(["Другая марка", "Другая модель"]);
 export const isRealName = (value) => Boolean(value) && !OTHER.has(String(value).trim());
 

@@ -81,6 +81,18 @@ describe("справочник марок и моделей", () => {
     expect(response.body).toContain("BMW");
   });
 
+  it("отдаёт справочник целиком и без авторизации — им живут формы на сайте", async () => {
+    const response = await request(app).get("/api/market/catalog");
+
+    expect(response.status).toBe(200);
+    expect(response.body.cars.brands).toContain("BMW");
+    expect(response.body.cars.models.BMW).toContain("X5");
+    expect(response.body.trucks.brands).toContain("Scania");
+    expect(response.body.bikes.models.Trek).toContain("Marlin");
+    // Формам создания «Другая марка» нужна как законный выбор.
+    expect(response.body.cars.brands).toContain("Другая марка");
+  });
+
   it("одна марка собирает модели из разных видов транспорта", () => {
     // Mercedes-Benz есть и среди легковых, и среди грузовых, и среди автобусов.
     const models = catalogModels("Mercedes-Benz");

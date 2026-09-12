@@ -50,6 +50,7 @@ import {
   getDistinctBrands,
   getDistinctModels,
   getPlaceDistances,
+  getVehicleCatalog,
   getViewerGeo,
   getCompareState,
   getDrivingCourseModes,
@@ -89,6 +90,7 @@ marketRouter.post("/parts", isAuth, isEmailVerified, upload.array("images", 10),
 marketRouter.patch("/parts/:id", isAuth, validateObjectId("id"), upload.array("images", 10), updatePartListing);
 marketRouter.delete("/parts/:id", isAuth, validateObjectId("id"), deletePartListing);
 
+marketRouter.get("/catalog", getVehicleCatalog);
 marketRouter.get("/brands", isAuth, getDistinctBrands);
 marketRouter.get("/models", isAuth, getDistinctModels);
 marketRouter.get("/geo", isAuth, getViewerGeo);

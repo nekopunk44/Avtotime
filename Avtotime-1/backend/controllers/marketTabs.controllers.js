@@ -22,7 +22,7 @@ import {
 import { enqueueMarketModerationById } from "../moderation/marketModerationWorker.js";
 import { buildPublicFileUrl } from "../config/publicFiles.js";
 import { distanceKm, normalizePlace, resolvePlaces } from "../services/geocode.js";
-import { catalogBrands, catalogModels, isRealName } from "../config/vehicleCatalog.js";
+import { catalogBrands, catalogModels, isRealName, vehicleCatalog } from "../config/vehicleCatalog.js";
 
 const buildId = () => Date.now() + Math.floor(Math.random() * 1000);
 
@@ -88,6 +88,13 @@ export const getPlaceDistances = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
+/**
+ * Справочник целиком, по видам транспорта: им живут формы создания объявления
+ * и меню марок на сайте. Без авторизации — это открытые данные, а каталог
+ * нужен и гостю, который просто листает маркет.
+ */
+export const getVehicleCatalog = (req, res) => res.status(200).json(vehicleCatalog());
 
 export const getDistinctBrands = async (req, res) => {
   try {

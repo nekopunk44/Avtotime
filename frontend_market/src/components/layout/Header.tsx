@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search, ChevronRight, ChevronLeft, Menu, X, ChevronDown, Gamepad2, Palette, Puzzle, Sparkles, Tv, Bell, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LoginModal } from '../auth/LoginModal';
-import { ALL_BRANDS, BRANDS_AND_MODELS } from '../../constants/mockData';
+import { useVehicleCatalog } from '../../constants/vehicleCatalog';
 import { PARTS_CATEGORIES } from '../../constants/partsCategories';
 import type { AppNotification } from '../../types';
 
@@ -112,6 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
   onResendVerification,
   onOpenKidsTab,
 }) => {
+  const catalog = useVehicleCatalog();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAutoDropdownOpen, setIsAutoDropdownOpen] = useState(false);
   const [isPartsMenuOpen, setIsPartsMenuOpen] = useState(false);
@@ -234,8 +235,8 @@ export const Header: React.FC<HeaderProps> = ({
     setIsNotificationsOpen(false);
   };
 
-  const partsBrandColumns = splitIntoColumns(ALL_BRANDS, 7);
-  const selectedPartsModels = selectedPartsBrand ? BRANDS_AND_MODELS[selectedPartsBrand] ?? [] : [];
+  const partsBrandColumns = splitIntoColumns(catalog.cars.brands, 7);
+  const selectedPartsModels = selectedPartsBrand ? catalog.cars.models[selectedPartsBrand] ?? [] : [];
   const partsModelColumns = splitIntoColumns(selectedPartsModels, 6);
   const emailVerifPending = userData?.isEmailVerified === false ? 1 : 0;
   const unreadCount = (typeof unreadNotificationsCount === 'number' ? unreadNotificationsCount : notifications.length) + emailVerifPending;

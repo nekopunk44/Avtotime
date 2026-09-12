@@ -20,18 +20,7 @@ import {
   VEHICLE_LISTING_SCHEMAS,
   normalizeVehicleType,
 } from '../constants/vehicleListingSchema';
-import {
-  ALL_BRANDS,
-  BIKE_BRANDS,
-  BIKE_MODELS,
-  BRANDS_AND_MODELS,
-  BUS_BRANDS,
-  BUS_MODELS,
-  MOTO_BRANDS,
-  MOTO_MODELS,
-  TRUCK_BRANDS,
-  TRUCK_MODELS,
-} from '../constants/mockData';
+import { useVehicleCatalog } from '../constants/vehicleCatalog';
 
 const FUELS = ['Бензин', 'Дизель', 'Гибрид', 'Электро', 'Пропан', 'Метан'];
 const BODIES = [
@@ -115,6 +104,7 @@ export const AddListingPage = ({
   effectivePlan,
   onUpgradeClick,
 }: AddListingPageProps) => {
+  const catalog = useVehicleCatalog();
   const maxPhotos = planLimits?.maxPhotos ?? 10;
   const maxDescriptionLen = planLimits?.maxDescriptionLen ?? null;
   const normalizedVehicleType = normalizeVehicleType(vehicleType);
@@ -305,22 +295,25 @@ export const AddListingPage = ({
   const getBrandsAndModels = () => {
     switch (normalizedVehicleType) {
       case 'Грузовые автомобили':
-        return { brands: TRUCK_BRANDS, models: TRUCK_MODELS };
+        return { brands: catalog.trucks.brands, models: catalog.trucks.models };
       case 'Мото':
-        return { brands: MOTO_BRANDS, models: MOTO_MODELS };
+        return { brands: catalog.moto.brands, models: catalog.moto.models };
       case 'Микроавтобусы':
-        return { brands: BUS_BRANDS, models: BUS_MODELS };
+        return { brands: catalog.buses.brands, models: catalog.buses.models };
       case 'Велосипеды':
-        return { brands: BIKE_BRANDS, models: BIKE_MODELS };
+        return { brands: catalog.bikes.brands, models: catalog.bikes.models };
       default:
-        return { brands: ALL_BRANDS, models: BRANDS_AND_MODELS };
+        return { brands: catalog.cars.brands, models: catalog.cars.models };
     }
   };
 
   useEffect(() => {
     const { brands: nextBrands } = getBrandsAndModels();
     setBrands(Array.isArray(nextBrands) ? nextBrands : []);
-  }, [normalizedVehicleType]);
+    // catalog — потому что справочник приходит с сервера уже после первого
+    // рендера: без него селект остался бы на встроенном списке.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalizedVehicleType, catalog]);
 
   useEffect(() => {
     if (!schema.showBrandModel || !formData.brand) {
@@ -331,7 +324,8 @@ export const AddListingPage = ({
     const { models: nextModelsMap } = getBrandsAndModels();
     const list = (nextModelsMap as Record<string, string[]>)[formData.brand] || [];
     setModels(list);
-  }, [normalizedVehicleType, schema.showBrandModel, formData.brand]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalizedVehicleType, schema.showBrandModel, formData.brand, catalog]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white pb-20">

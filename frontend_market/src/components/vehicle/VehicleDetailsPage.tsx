@@ -3,7 +3,8 @@ import { Search, MapPin, Map, ChevronRight, ChevronLeft, ChevronDown, ChevronUp,
 import { FilterSection } from './FilterSection';
 import { CarCard } from '../shared/CarCard';
 import { LocationPickerMapModal } from '../shared/LocationPickerMapModal';
-import { ALL_BRANDS, BRANDS_AND_MODELS, TRUCK_BRANDS, TRUCK_MODELS, MOTO_BRANDS, MOTO_MODELS, BUS_BRANDS, BUS_MODELS, BIKE_BRANDS, BIKE_MODELS, SORT_OPTIONS, getModels } from '../../constants/mockData';
+import { SORT_OPTIONS, getModels } from '../../constants/mockData';
+import { useVehicleCatalog } from '../../constants/vehicleCatalog';
 import { PARTS_CATEGORIES, makePartsCategoryKey } from '../../constants/partsCategories';
 import { Car } from '../../types';
 import { CarFilters, PartFilters } from '../../utils/marketAPI';
@@ -44,6 +45,7 @@ export const VehicleDetailsPage: React.FC<VehicleDetailsPageProps> = ({
   onLoadFilteredCars,
   onLoadFilteredParts,
 }) => {
+  const catalog = useVehicleCatalog();
   const isPartsCatalog = vehicleType === 'Автозапчасти';
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
@@ -52,7 +54,7 @@ export const VehicleDetailsPage: React.FC<VehicleDetailsPageProps> = ({
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [selectedSort, setSelectedSort] = useState('Новые');
   const [searchQuery, setSearchQuery] = useState('');
-  const [dynamicModelsByBrand, setDynamicModelsByBrand] = useState<Record<string, string[]>>(BRANDS_AND_MODELS);
+  const [dynamicModelsByBrand, setDynamicModelsByBrand] = useState<Record<string, string[]>>(catalog.cars.models);
   const [modelsLoading, setModelsLoading] = useState<Record<string, boolean>>({});
   const [modelsLoaded, setModelsLoaded] = useState<Record<string, boolean>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -123,11 +125,24 @@ export const VehicleDetailsPage: React.FC<VehicleDetailsPageProps> = ({
 
   useEffect(() => {
     // Reset to static fallbacks on category change; API data will be reloaded lazily.
-    setDynamicModelsByBrand(BRANDS_AND_MODELS);
+    setDynamicModelsByBrand(catalog.cars.models);
     setModelsLoaded({});
     setModelsLoading({});
     setServerResults(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicleType]);
+
+  // Справочник приходит с сервера уже после первого рендера — доливаем его
+  // объединением, чтобы не потерять модели, догруженные под конкретную марку.
+  useEffect(() => {
+    setDynamicModelsByBrand((prev) => {
+      const next = { ...prev };
+      Object.entries(catalog.cars.models).forEach(([brand, models]) => {
+        next[brand] = Array.from(new Set([...(next[brand] || []), ...models]));
+      });
+      return next;
+    });
+  }, [catalog]);
 
   useEffect(() => {
     if (!initialSearch) return;
@@ -255,15 +270,15 @@ export const VehicleDetailsPage: React.FC<VehicleDetailsPageProps> = ({
   const getBrandsAndModels = () => {
     switch (vehicleType) {
       case 'Грузовые автомобили':
-        return { brands: TRUCK_BRANDS, models: TRUCK_MODELS };
+        return { brands: catalog.trucks.brands, models: catalog.trucks.models };
       case 'Мото':
-        return { brands: MOTO_BRANDS, models: MOTO_MODELS };
+        return { brands: catalog.moto.brands, models: catalog.moto.models };
       case 'Микроавтобусы':
-        return { brands: BUS_BRANDS, models: BUS_MODELS };
+        return { brands: catalog.buses.brands, models: catalog.buses.models };
       case 'Велосипеды':
-        return { brands: BIKE_BRANDS, models: BIKE_MODELS };
+        return { brands: catalog.bikes.brands, models: catalog.bikes.models };
       default:
-        return { brands: ALL_BRANDS, models: dynamicModelsByBrand };
+        return { brands: catalog.cars.brands, models: dynamicModelsByBrand };
     }
   };
 
@@ -365,10 +380,10 @@ export const VehicleDetailsPage: React.FC<VehicleDetailsPageProps> = ({
     const normalizedSearch = searchQuery.trim();
 
     const allowedBrandsForVehicleType = (() => {
-      if (vehicleType === 'Грузовые автомобили') return TRUCK_BRANDS;
-      if (vehicleType === 'Мото') return MOTO_BRANDS;
-      if (vehicleType === 'Микроавтобусы') return BUS_BRANDS;
-      if (vehicleType === 'Велосипеды') return BIKE_BRANDS;
+      if (vehicleType === 'Грузовые автомобили') return catalog.trucks.brands;
+      if (vehicleType === 'Мото') return catalog.moto.brands;
+      if (vehicleType === 'Микроавтобусы') return catalog.buses.brands;
+      if (vehicleType === 'Велосипеды') return catalog.bikes.brands;
       return null;
     })();
 
@@ -527,7 +542,7 @@ export const VehicleDetailsPage: React.FC<VehicleDetailsPageProps> = ({
   };
 
   const ensureModelsLoaded = async (brand: string) => {
-    // Only for default catalog types where we use ALL_BRANDS.
+    // Only for default catalog types where we use the car catalog brands.
     if (vehicleType === 'Грузовые автомобили' || vehicleType === 'Мото' || vehicleType === 'Микроавтобусы' || vehicleType === 'Велосипеды') {
       return;
     }
