@@ -205,7 +205,7 @@ export default function MarketFiltersSheet({
       return {
         items: [],
         note: field === 'brand'
-          ? 'В маркете пока нет объявлений — подсказывать нечего'
+          ? 'Подсказки недоступны'
           : draft.brand.trim()
             ? `Для «${draft.brand.trim()}» моделей пока нет`
             : 'Моделей пока нет',

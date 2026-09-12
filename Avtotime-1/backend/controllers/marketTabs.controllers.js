@@ -22,6 +22,7 @@ import {
 import { enqueueMarketModerationById } from "../moderation/marketModerationWorker.js";
 import { buildPublicFileUrl } from "../config/publicFiles.js";
 import { distanceKm, normalizePlace, resolvePlaces } from "../services/geocode.js";
+import { catalogBrands, catalogModels, isRealName } from "../config/vehicleCatalog.js";
 
 const buildId = () => Date.now() + Math.floor(Math.random() * 1000);
 
@@ -102,10 +103,14 @@ export const getDistinctBrands = async (req, res) => {
       type && type !== "parts" ? Promise.resolve([]) : MarketPartListing.distinct("brand"),
     ]);
 
-    const normalized = Array.from(new Set([...(carBrands || []), ...(partBrands || [])]))
+    // Справочник + то, что реально встречается в объявлениях: подсказка должна
+    // работать и в пустом маркете, но не терять марку, которую вписали руками.
+    const normalized = Array.from(
+      new Set([...catalogBrands(), ...(carBrands || []), ...(partBrands || [])]),
+    )
       .map((brand) => (typeof brand === "string" ? brand.trim() : ""))
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b));
+      .filter(isRealName)
+      .sort((a, b) => a.localeCompare(b, "ru"));
 
     await setCachedResponse("market-meta", cacheKey, normalized);
     return res.status(200).json(normalized);
@@ -131,10 +136,14 @@ export const getDistinctModels = async (req, res) => {
       type && type !== "parts" ? Promise.resolve([]) : MarketPartListing.distinct("model", filter),
     ]);
 
-    const normalized = Array.from(new Set([...(carModels || []), ...(partModels || [])]))
+    // Без марки отдаём все модели справочника: пользователь может искать по
+    // одному названию модели, не выбирая марку.
+    const normalized = Array.from(
+      new Set([...catalogModels(brand), ...(carModels || []), ...(partModels || [])]),
+    )
       .map((model) => (typeof model === "string" ? model.trim() : ""))
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b));
+      .filter(isRealName)
+      .sort((a, b) => a.localeCompare(b, "ru"));
 
     const payload = { models: normalized };
     await setCachedResponse("market-meta", cacheKey, payload);
