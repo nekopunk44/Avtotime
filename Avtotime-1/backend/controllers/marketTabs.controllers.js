@@ -1,3 +1,4 @@
+import geoip from "geoip-lite";
 import User from "../models/user.model.js";
 import MarketDryCleaningListing from "../models/marketDryCleaningListing.model.js";
 import MarketCarListing from "../models/marketCarListing.model.js";
@@ -37,6 +38,23 @@ const parseListQueryOptions = (req, { mine }) => {
   const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, maxLimit) : defaultLimit;
   const skip = (page - 1) * limit;
   return { page, limit, skip };
+};
+
+/**
+ * Где находится смотрящий — по IP. Точность городская, но объявления и сами
+ * хранят только название города, так что большего от неё и не нужно.
+ * Пустой ответ — нормальный исход (серый IP, отсутствие города в базе):
+ * приложение просто не предложит сортировку по близости.
+ */
+export const getViewerGeo = (req, res) => {
+  const geo = geoip.lookup(req.ip || "");
+  return res.status(200).json({
+    city: geo?.city || "",
+    region: geo?.region || "",
+    country: geo?.country || null,
+    lat: Array.isArray(geo?.ll) ? geo.ll[0] : null,
+    lng: Array.isArray(geo?.ll) ? geo.ll[1] : null,
+  });
 };
 
 export const getDistinctBrands = async (req, res) => {

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Animated,
   Easing,
   KeyboardAvoidingView,
@@ -15,7 +17,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MarketCategoryId, MarketSort } from '../api/market';
+import {
+  getDistinctBrands,
+  getDistinctModels,
+  getViewerGeo,
+  MarketCategoryId,
+  MarketSort,
+} from '../api/market';
 import { colors, font, radius, shadow, space } from '../theme';
 import { PressableScale } from './ui';
 
@@ -35,6 +43,9 @@ export interface MarketFilters {
   bodyType: string;
   driveType: string;
   sortBy: MarketSort;
+  /** Город пользователя: не сужает выдачу, а поднимает ближние объявления вверх. */
+  nearCity: string;
+  nearRegion: string;
 }
 
 export const emptyMarketFilters: MarketFilters = {
@@ -42,12 +53,16 @@ export const emptyMarketFilters: MarketFilters = {
   priceMin: '', priceMax: '', yearFrom: '', yearTo: '', mileageMin: '', mileageMax: '',
   fuel: '', gearbox: '', bodyType: '', driveType: '',
   sortBy: 'newest',
+  nearCity: '', nearRegion: '',
 };
 
 /** Сколько условий реально сужают выдачу — число рисуется точкой на кнопке. */
 export const countActiveFilters = (filters: MarketFilters) =>
-  Object.entries(filters).filter(([key, value]) =>
-    key === 'sortBy' ? value !== 'newest' : Boolean(value)).length;
+  Object.entries(filters).filter(([key, value]) => {
+    if (key === 'sortBy') return value !== 'newest';
+    if (key === 'nearRegion') return false; // спутник nearCity, отдельным условием не считается
+    return Boolean(value);
+  }).length;
 
 export const hasActiveFilters = (filters: MarketFilters) => countActiveFilters(filters) > 0;
 
@@ -141,6 +156,61 @@ export default function MarketFiltersSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, anim, drag]);
 
+  // ── Подсказки марок и моделей ────────────────────────────────────────────
+  // Списки приходят с сервера один раз, совпадения ищутся на месте: подсказка
+  // должна успевать за буквой, а не за сетью.
+  const [brands, setBrands] = useState<string[]>([]);
+  const [models, setModels] = useState<string[]>([]);
+  const [focusedField, setFocusedField] = useState<'brand' | 'model' | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    let alive = true;
+    getDistinctBrands(categoryId).then((list) => { if (alive) setBrands(list); }).catch(() => {});
+    return () => { alive = false; };
+  }, [visible, categoryId]);
+
+  // Модели зависят от марки: пока она не выбрана, показываем весь список.
+  useEffect(() => {
+    if (!visible) return;
+    let alive = true;
+    const brand = draft.brand.trim();
+    getDistinctModels(brand, categoryId).then((list) => { if (alive) setModels(list); }).catch(() => {});
+    return () => { alive = false; };
+  }, [visible, categoryId, draft.brand]);
+
+  const suggestionsFor = (field: 'brand' | 'model') => {
+    if (focusedField !== field) return [];
+    const source = field === 'brand' ? brands : models;
+    const typed = (draft[field] as string).trim().toLowerCase();
+    const matched = typed
+      ? source.filter((item) => item.toLowerCase().includes(typed))
+      : source;
+    // Точное совпадение — уже введённое значение, подсказывать его нечего.
+    if (matched.length === 1 && matched[0].toLowerCase() === typed) return [];
+    return matched.slice(0, 8);
+  };
+
+  // ── Геолокация ───────────────────────────────────────────────────────────
+  const [locating, setLocating] = useState(false);
+
+  const detectCity = async () => {
+    if (locating) return;
+    setLocating(true);
+    try {
+      const geo = await getViewerGeo();
+      if (!geo.city) {
+        Alert.alert('Город', 'Не удалось определить город по вашему подключению.');
+        return;
+      }
+      setDraft((prev) => ({ ...prev, nearCity: geo.city, nearRegion: geo.region }));
+    } catch {
+      Alert.alert('Город', 'Не удалось определить город. Проверьте соединение.');
+    } finally {
+      setLocating(false);
+    }
+  };
+
   // Закрытие живёт в ref: PanResponder создаётся один раз и иначе держал бы
   // самый первый onClose.
   const closeRef = useRef(onClose);
@@ -212,6 +282,97 @@ export default function MarketFiltersSheet({
     </View>
   );
 
+  /** Поле с живыми подсказками из того, что реально есть в объявлениях. */
+  const renderSuggest = (
+    label: string,
+    key: 'brand' | 'model',
+    placeholder: string,
+  ) => {
+    const suggestions = suggestionsFor(key);
+    const typed = draft[key];
+    return (
+      <View key={label} style={styles.field}>
+        <View style={styles.labelRow}>
+          <Text style={styles.label}>{label}</Text>
+          {typed ? (
+            <Pressable onPress={() => set(key, '')} hitSlop={8}>
+              <Text style={styles.labelClear}>Сбросить</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        <TextInput
+          style={styles.input}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textFaint}
+          value={typed}
+          onChangeText={(v) => {
+            set(key, v);
+            // Смена марки обнуляет модель: пары «BMW + Octavia» не бывает.
+            if (key === 'brand') set('model', '');
+          }}
+          onFocus={() => setFocusedField(key)}
+          onBlur={() => setFocusedField((prev) => (prev === key ? null : prev))}
+          autoCapitalize="words"
+          autoCorrect={false}
+        />
+        {suggestions.length ? (
+          <View style={styles.suggestBox}>
+            {suggestions.map((item, index) => (
+              <Pressable
+                key={item}
+                style={[styles.suggestItem, index > 0 && styles.suggestItemDivided]}
+                // onPressIn: обычный onPress не успевает — blur снимает список
+                // раньше, чем касание доходит до обработчика.
+                onPressIn={() => {
+                  set(key, item);
+                  if (key === 'brand') set('model', '');
+                  setFocusedField(null);
+                }}
+              >
+                <Text style={styles.suggestText}>{item}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+      </View>
+    );
+  };
+
+  /** Город: ручной ввод и кнопка «я здесь» с сортировкой по близости. */
+  const renderCity = () => (
+    <View key="city" style={styles.field}>
+      <Text style={styles.label}>Регион / город</Text>
+      <View style={styles.inputRow}>
+        <TextInput
+          style={styles.inputFlex}
+          placeholder="Город"
+          placeholderTextColor={colors.textFaint}
+          value={draft.region}
+          onChangeText={(v) => set('region', v)}
+          autoCapitalize="words"
+        />
+        <PressableScale style={styles.locateBtn} scaleTo={0.92} onPress={detectCity}>
+          {locating ? (
+            <ActivityIndicator size="small" color={colors.text} />
+          ) : (
+            <Ionicons name="locate-outline" size={18} color={colors.text} />
+          )}
+        </PressableScale>
+      </View>
+      {draft.nearCity ? (
+        <View style={styles.nearPill}>
+          <Ionicons name="navigate" size={13} color={colors.accent} />
+          <Text style={styles.nearText} numberOfLines={1}>
+            {draft.nearCity} · сначала ближайшие
+          </Text>
+          <Pressable onPress={() => setDraft((prev) => ({ ...prev, nearCity: '', nearRegion: '' }))} hitSlop={8}>
+            <Ionicons name="close" size={14} color={colors.textMuted} />
+          </Pressable>
+        </View>
+      ) : null}
+    </View>
+  );
+
   /**
    * Значения — список с отметками в две колонки: видно все варианты сразу
    * (в горизонтальной ленте половина уезжала за край) и видно, что выбрать
@@ -261,10 +422,10 @@ export default function MarketFiltersSheet({
 
   const renderField = (key: FieldKey) => {
     switch (key) {
-      case 'brand': return renderText('Марка', 'brand', 'Напр. BMW');
-      case 'model': return renderText('Модель', 'model', 'Напр. X5');
+      case 'brand': return renderSuggest('Марка', 'brand', 'Напр. BMW');
+      case 'model': return renderSuggest('Модель', 'model', 'Напр. X5');
       case 'partGroup': return renderText('Группа запчастей', 'partGroup', 'Напр. Тормоза');
-      case 'region': return renderText('Регион / город', 'region', 'Город');
+      case 'region': return renderCity();
       case 'price': return renderRange('Цена, €', 'priceMin', 'priceMax');
       case 'year': return renderRange('Год', 'yearFrom', 'yearTo');
       case 'mileage': return renderRange('Пробег, км', 'mileageMin', 'mileageMax');
@@ -415,6 +576,32 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
     paddingHorizontal: space.md, color: colors.text, fontSize: font.body,
   },
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  inputFlex: {
+    flex: 1, height: 46, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+    paddingHorizontal: space.md, color: colors.text, fontSize: font.body,
+  },
+  locateBtn: {
+    width: 46, height: 46, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  nearPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    alignSelf: 'flex-start', paddingHorizontal: space.md, height: 34,
+    borderRadius: radius.pill, backgroundColor: colors.accentSoft,
+  },
+  nearText: { color: colors.text, fontSize: font.tiny, fontWeight: '800' },
+
+  suggestBox: {
+    borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden',
+  },
+  suggestItem: { paddingHorizontal: space.md, paddingVertical: 11 },
+  suggestItemDivided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  suggestText: { color: colors.text, fontSize: font.small, fontWeight: '700' },
+
   rangeRow: { flexDirection: 'row', gap: space.sm },
   rangeInput: {
     flex: 1, height: 46, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,

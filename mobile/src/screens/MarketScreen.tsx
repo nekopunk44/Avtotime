@@ -95,9 +95,12 @@ export default function MarketScreen({ navigation }: Props) {
       // С фильтрами выдачу собирает поисковая ручка — она возвращает всё
       // подходящее разом, поэтому постраничная догрузка отключается.
       const filtersActive = countActiveFilters(filters) > 0;
+      // nearCity/nearRegion — не условие выборки, а порядок показа: серверу
+      // они не нужны.
+      const { nearCity, nearRegion, ...serverFilters } = filters;
       const data = filtersActive
         ? await (query.trim() ? searchMarketListings : filterMarketListings)({
-          ...filters, q: query, type: categoryId,
+          ...serverFilters, q: query, type: categoryId,
         })
         : await loadMarketListings(categoryId, { q: query, page: 1, limit: PAGE_SIZE });
       if (requestId !== requestIdRef.current) return;
@@ -157,6 +160,28 @@ export default function MarketScreen({ navigation }: Props) {
     setRefreshing(true);
     loadListings(true);
   };
+
+  /**
+   * Порядок по близости к городу пользователя. Объявления хранят только
+   * название места, поэтому расстояние считается ступенями: свой город →
+   * свой регион → всё остальное → место не указано. Внутри ступени порядок
+   * сервера сохраняется (сортировка в JS стабильна).
+   */
+  const ordered = useMemo(() => {
+    const city = filters.nearCity.trim().toLowerCase();
+    if (!city) return listings;
+    const region = filters.nearRegion.trim().toLowerCase();
+
+    const rank = (item: MarketListing) => {
+      const place = String(item.location || item.region || '').toLowerCase();
+      if (!place) return 3;
+      if (place.includes(city) || city.includes(place)) return 0;
+      if (region && place.includes(region)) return 1;
+      return 2;
+    };
+
+    return [...listings].sort((a, b) => rank(a) - rank(b));
+  }, [listings, filters.nearCity, filters.nearRegion]);
 
   const renderListing = ({ item }: { item: MarketListing }) => {
     const image = getListingImage(item);
@@ -290,13 +315,13 @@ export default function MarketScreen({ navigation }: Props) {
     <View style={styles.container}>
       <FlatList
         style={styles.container}
-        data={listings}
+        data={ordered}
         numColumns={2}
         keyExtractor={(item, index) => `${categoryId}-${item._id || item.id || index}`}
         renderItem={renderListing}
         ListHeaderComponent={Header}
         columnWrapperStyle={styles.grid}
-        contentContainerStyle={listings.length ? styles.listContent : styles.emptyContent}
+        contentContainerStyle={ordered.length ? styles.listContent : styles.emptyContent}
         onEndReached={loadMore}
         onEndReachedThreshold={0.6}
         ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footerSpinner} color={colors.text} /> : null}

@@ -67,6 +67,23 @@ describe("фильтр принимает несколько значений в
     expect(titles(response.body)).toEqual(["rear"]);
   });
 
+  it("город смотрящего отдаётся отдельной ручкой и требует авторизации", async () => {
+    const anonymous = await request(app).get("/api/market/geo");
+    expect(anonymous.status).toBe(401);
+
+    const response = await request(app)
+      .get("/api/market/geo")
+      .set("Authorization", `Bearer ${seller.token}`);
+
+    expect(response.status).toBe(200);
+    // Локальный IP города не даёт — важно, что форма ответа постоянна и
+    // приложению не приходится гадать, что пришло.
+    expect(response.body).toHaveProperty("city");
+    expect(response.body).toHaveProperty("region");
+    expect(response.body).toHaveProperty("lat");
+    expect(response.body).toHaveProperty("lng");
+  });
+
   it("несколько видов топлива объединяются, а не пересекаются", async () => {
     await car(seller.id, { title: "petrol", fuel: "Бензин" });
     await car(seller.id, { title: "diesel", fuel: "Дизель" });

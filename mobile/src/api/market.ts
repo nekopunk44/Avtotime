@@ -251,6 +251,26 @@ export async function getDistinctModels(
   return Array.isArray(data) ? data : data.models ?? [];
 }
 
+export interface ViewerGeo {
+  city: string;
+  region: string;
+  country: string | null;
+  lat: number | null;
+  lng: number | null;
+}
+
+/** Где находится пользователь — по IP, с городской точностью. */
+export async function getViewerGeo(): Promise<ViewerGeo> {
+  const { data } = await client.get('/market/geo');
+  return {
+    city: data?.city || '',
+    region: data?.region || '',
+    country: data?.country || null,
+    lat: typeof data?.lat === 'number' ? data.lat : null,
+    lng: typeof data?.lng === 'number' ? data.lng : null,
+  };
+}
+
 export async function loadMyMarketListings(): Promise<MyMarketListing[]> {
   const results = await Promise.allSettled(
     MARKET_CATEGORIES.map(async (category) => ({
