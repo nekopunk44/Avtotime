@@ -172,6 +172,13 @@ export default function CompareScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
     >
+      {/* Экран стал вкладкой: в шапке теперь переключатель режимов, поэтому
+          название раздела живёт в самом содержимом. */}
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>Сравнение</Text>
+        {items.length ? <Text style={styles.titleCount}>{items.length}/2</Text> : null}
+      </View>
+
       {error ? (
         <View style={styles.emptyWrap}>
           <Ionicons name="alert-circle-outline" size={40} color={colors.danger} />
@@ -246,6 +253,9 @@ export default function CompareScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { flexGrow: 1, padding: 16, paddingBottom: 28 },
+  titleRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 12 },
+  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
+  titleCount: { color: colors.textFaint, fontSize: 15, fontWeight: '900' },
   skeletonCard: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden', paddingBottom: 14 },
   skeletonImage: { width: '100%', height: 112, borderRadius: 0 },
   skeletonLine: { marginTop: 10, marginHorizontal: 10, height: 14, width: '80%' },

@@ -80,7 +80,9 @@ export type AppStackParamList = {
   EditProfile: undefined;
   MarketListingDetails: { listing: MarketListing; categoryId: MarketCategoryId };
   CreateMarketListing: undefined;
-  Compare: undefined;
+  // Сравнение переехало на вкладку маркета; в стеке остаётся избранное,
+  // которое эту вкладку освободило.
+  Favorites: undefined;
   MarketAnalytics: undefined;
   MarketServices: undefined;
   CarRequest: undefined;
@@ -126,7 +128,7 @@ export type SocialTabParamList = {
 
 export type MarketTabParamList = {
   Market: undefined;
-  Favorites: undefined;
+  Compare: undefined;
   MyListings: undefined;
   Driving: undefined;
   Profile: undefined;
@@ -234,7 +236,7 @@ function MarketTabs() {
       tabBar={(props) => <FloatingTabBar {...props} />}
     >
       <MarketTab.Screen name="Market" component={MarketScreen} />
-      <MarketTab.Screen name="Favorites" component={FavoritesScreen} />
+      <MarketTab.Screen name="Compare" component={CompareScreen} />
       <MarketTab.Screen name="MyListings" component={MyListingsScreen} />
       <MarketTab.Screen name="Driving" component={DrivingCoursesScreen} />
       <MarketTab.Screen name="Profile" component={MarketProfileScreen} />
@@ -267,7 +269,7 @@ export default function AppNavigator() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Редактировать профиль' }} />
       <Stack.Screen name="MarketListingDetails" component={MarketListingDetailsScreen} options={{ title: 'Объявление' }} />
       <Stack.Screen name="CreateMarketListing" component={CreateMarketListingScreen} options={{ title: 'Новое объявление' }} />
-      <Stack.Screen name="Compare" component={CompareScreen} options={{ title: 'Сравнение' }} />
+      <Stack.Screen name="Favorites" component={FavoritesScreen} options={{ title: 'Избранное' }} />
       <Stack.Screen name="MarketAnalytics" component={MarketAnalyticsScreen} options={{ title: 'Аналитика' }} />
       <Stack.Screen name="MarketServices" component={MarketServicesScreen} options={{ title: 'Сервисы' }} />
       <Stack.Screen name="CarRequest" component={CarRequestScreen} options={{ title: 'Подбор авто' }} />

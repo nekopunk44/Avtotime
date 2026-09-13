@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AppStackParamList } from '../navigation/AppNavigator';
+import { AppStackParamList, MarketTabParamList } from '../navigation/AppNavigator';
 import { colors, font, radius, shadow, space } from '../theme';
 import { PressableScale } from '../components/ui';
 
@@ -13,11 +13,13 @@ type Service = {
   label: string;
   desc: string;
   screen: keyof AppStackParamList;
+  /** Раздел живёт вкладкой маркета, а не отдельным экраном стека. */
+  tab?: keyof MarketTabParamList;
 };
 
 const SERVICES: Service[] = [
   { icon: 'car-sport-outline', label: 'Подбор авто', desc: 'Заявка на подбор под ваши критерии', screen: 'CarRequest' },
-  { icon: 'git-compare-outline', label: 'Сравнение', desc: 'Сравнить объявления по характеристикам', screen: 'Compare' },
+  { icon: 'git-compare-outline', label: 'Сравнение', desc: 'Сравнить объявления по характеристикам', screen: 'MarketTabs', tab: 'Compare' },
   { icon: 'bar-chart-outline', label: 'Аналитика', desc: 'Просмотры и контакты по объявлениям', screen: 'MarketAnalytics' },
   { icon: 'heart-outline', label: 'Запросы помощи', desc: 'Помощь на дороге и вашим заявкам', screen: 'HelpRequests' },
   { icon: 'school-outline', label: 'Автокурсы', desc: 'Тесты ПДД и подготовка к экзамену', screen: 'DrivingQuiz' },
@@ -32,7 +34,7 @@ export default function MarketServicesScreen({ navigation }: Props) {
       <Text style={styles.lead}>Инструменты и разделы маркета Avtotime в одном месте.</Text>
       <View style={styles.grid}>
         {SERVICES.map((s) => (
-          <PressableScale key={s.label} style={styles.card} onPress={() => navigation.navigate(s.screen as any)}>
+          <PressableScale key={s.label} style={styles.card} onPress={() => navigation.navigate(s.screen as any, s.tab ? { screen: s.tab } : undefined)}>
             <View style={styles.iconTile}>
               <Ionicons name={s.icon} size={22} color={colors.text} />
             </View>

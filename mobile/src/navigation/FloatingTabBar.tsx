@@ -11,6 +11,7 @@ const ICONS: Record<string, { on: keyof typeof Ionicons.glyphMap; off: keyof typ
   Search:    { on: 'search',         off: 'search-outline' },
   Loops:     { on: 'play-circle',    off: 'play-circle-outline' },
   Market:    { on: 'car-sport',      off: 'car-sport-outline' },
+  Compare:   { on: 'git-compare',    off: 'git-compare-outline' },
   Favorites: { on: 'heart',          off: 'heart-outline' },
   MyListings:{ on: 'pricetags',      off: 'pricetags-outline' },
   Driving:   { on: 'school',         off: 'school-outline' },
