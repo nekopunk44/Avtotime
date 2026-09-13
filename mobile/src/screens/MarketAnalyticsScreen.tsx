@@ -20,6 +20,7 @@ import {
 } from '../api/marketAnalytics';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
+import { ConfirmSheet } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'MarketAnalytics'> };
 
@@ -156,32 +157,17 @@ export default function MarketAnalyticsScreen({ navigation }: Props) {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
-    >
-      {error ? (
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
+      >
+      {error && errorCode !== 'ANALYTICS_DISABLED' ? (
         <View style={styles.accessCard}>
-          <Ionicons name={errorCode === 'ANALYTICS_DISABLED' ? 'sparkles-outline' : 'alert-circle-outline'} size={34} color={colors.danger} />
+          <Ionicons name="alert-circle-outline" size={34} color={colors.danger} />
           <Text style={styles.accessTitle}>{error}</Text>
-          {errorCode === 'ANALYTICS_DISABLED' ? (
-            <>
-              <Text style={styles.accessText}>
-                Подробная статистика доступна на тарифах Pro Seller и Business.
-              </Text>
-              <TouchableOpacity
-                style={styles.tariffsBtn}
-                onPress={() => navigation.navigate('Billing')}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="card-outline" size={18} color={colors.onAccent} />
-                <Text style={styles.tariffsBtnText}>Открыть тарифы</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <Text style={styles.accessText}>Потяните экран вниз, чтобы попробовать снова.</Text>
-          )}
+          <Text style={styles.accessText}>Потяните экран вниз, чтобы попробовать снова.</Text>
         </View>
       ) : data ? (
         <>
@@ -235,7 +221,23 @@ export default function MarketAnalyticsScreen({ navigation }: Props) {
           </View>
         </>
       ) : null}
-    </ScrollView>
+      </ScrollView>
+
+      {/* Отказ по тарифу — не экран-заглушка, а шторка поверх: закрыл и
+          вернулся туда, откуда пришёл. */}
+      <ConfirmSheet
+        visible={errorCode === 'ANALYTICS_DISABLED'}
+        title="Аналитика в тарифах Pro и Business"
+        message="На текущем тарифе подробная статистика по объявлениям недоступна."
+        cancelLabel="Позже"
+        confirmLabel="Открыть тарифы"
+        onCancel={() => navigation.goBack()}
+        onConfirm={() => {
+          navigation.goBack();
+          navigation.navigate('Billing');
+        }}
+      />
+    </View>
   );
 }
 
@@ -248,8 +250,6 @@ const styles = StyleSheet.create({
   accessCard: { marginTop: 18, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 18, alignItems: 'center' },
   accessTitle: { marginTop: 12, color: colors.text, fontSize: 17, fontWeight: '900', textAlign: 'center' },
   accessText: { marginTop: 8, color: colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  tariffsBtn: { marginTop: 14, height: 42, borderRadius: 8, paddingHorizontal: 16, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  tariffsBtnText: { color: colors.onAccent, fontSize: 14, fontWeight: '900' },
   planCard: { marginTop: 8, borderRadius: 8, backgroundColor: colors.surfaceHi, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   planLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   planValue: { marginTop: 4, color: colors.text, fontSize: 22, fontWeight: '900' },

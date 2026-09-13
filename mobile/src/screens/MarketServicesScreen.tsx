@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { useAuthStore } from '../store/authStore';
 import { colors, font, radius, shadow, space } from '../theme';
-import { PressableScale } from '../components/ui';
+import { ConfirmSheet, PressableScale } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'MarketServices'> };
 
@@ -36,8 +37,22 @@ const SERVICES: Service[] = [
   { icon: 'game-controller-outline', label: 'Детям и игры', desc: 'Раскраски и мини-игры про машины', screen: 'KidsGames' },
 ];
 
+// Аналитику открывают платные тарифы. Право проверяет сервер, но знать об
+// этом заранее полезно: незачем открывать экран, который сразу откажет.
+const PAID_PLANS = new Set(['pro', 'business']);
+
 export default function MarketServicesScreen({ navigation }: Props) {
-  const open = (screen: keyof AppStackParamList) => navigation.navigate(screen as never);
+  const user = useAuthStore((state) => state.user);
+  const plan = String(user?.effectivePlan || user?.plan || 'free');
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  const open = (screen: keyof AppStackParamList) => {
+    if (screen === 'MarketAnalytics' && !PAID_PLANS.has(plan)) {
+      setUpgradeOpen(true);
+      return;
+    }
+    navigation.navigate(screen as never);
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -76,6 +91,19 @@ export default function MarketServicesScreen({ navigation }: Props) {
           </PressableScale>
         ))}
       </View>
+
+      <ConfirmSheet
+        visible={upgradeOpen}
+        title="Аналитика в тарифах Pro и Business"
+        message="На текущем тарифе подробная статистика по объявлениям недоступна."
+        cancelLabel="Позже"
+        confirmLabel="Открыть тарифы"
+        onCancel={() => setUpgradeOpen(false)}
+        onConfirm={() => {
+          setUpgradeOpen(false);
+          navigation.navigate('Billing');
+        }}
+      />
     </ScrollView>
   );
 }
