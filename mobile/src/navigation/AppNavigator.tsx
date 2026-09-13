@@ -23,7 +23,6 @@ import EditProfileScreen from '../screens/EditProfileScreen';
 import MarketScreen from '../screens/MarketScreen';
 import MarketListingDetailsScreen from '../screens/MarketListingDetailsScreen';
 import CreateMarketListingScreen from '../screens/CreateMarketListingScreen';
-import FavoritesScreen from '../screens/FavoritesScreen';
 import CompareScreen from '../screens/CompareScreen';
 import MarketAnalyticsScreen from '../screens/MarketAnalyticsScreen';
 import MarketServicesScreen from '../screens/MarketServicesScreen';
@@ -80,9 +79,6 @@ export type AppStackParamList = {
   EditProfile: undefined;
   MarketListingDetails: { listing: MarketListing; categoryId: MarketCategoryId };
   CreateMarketListing: undefined;
-  // Сравнение переехало на вкладку маркета; в стеке остаётся избранное,
-  // которое эту вкладку освободило.
-  Favorites: undefined;
   MarketAnalytics: undefined;
   MarketServices: undefined;
   CarRequest: undefined;
@@ -269,7 +265,6 @@ export default function AppNavigator() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Редактировать профиль' }} />
       <Stack.Screen name="MarketListingDetails" component={MarketListingDetailsScreen} options={{ title: 'Объявление' }} />
       <Stack.Screen name="CreateMarketListing" component={CreateMarketListingScreen} options={{ title: 'Новое объявление' }} />
-      <Stack.Screen name="Favorites" component={FavoritesScreen} options={{ title: 'Избранное' }} />
       <Stack.Screen name="MarketAnalytics" component={MarketAnalyticsScreen} options={{ title: 'Аналитика' }} />
       <Stack.Screen name="MarketServices" component={MarketServicesScreen} options={{ title: 'Сервисы' }} />
       <Stack.Screen name="CarRequest" component={CarRequestScreen} options={{ title: 'Подбор авто' }} />

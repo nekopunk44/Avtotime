@@ -236,10 +236,6 @@ export default function MarketScreen({ navigation }: Props) {
       <View style={styles.titleRow}>
         <Text style={styles.title}>Маркет</Text>
         <View style={styles.headerActions}>
-          {/* Избранное освободило вкладку под сравнение и живёт теперь здесь. */}
-          <PressableScale style={styles.iconBtn} onPress={() => navigation.navigate('Favorites')}>
-            <Ionicons name="heart-outline" size={21} color={colors.text} />
-          </PressableScale>
           <PressableScale style={styles.iconBtn} onPress={() => navigation.navigate('MarketServices')}>
             <Ionicons name="apps-outline" size={21} color={colors.text} />
           </PressableScale>

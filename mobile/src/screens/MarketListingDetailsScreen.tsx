@@ -24,13 +24,6 @@ import {
   recordMarketView,
 } from '../api/market';
 import {
-  addFavorite,
-  checkFavorite,
-  getFavoriteListingType,
-  getListingObjectId,
-  removeFavorite,
-} from '../api/favorites';
-import {
   canCompareListing,
   CompareItem,
   getCompareItems,
@@ -55,13 +48,9 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
   const [listing, setListing] = useState(initialListing);
   const [imageIndex, setImageIndex] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [compareItems, setCompareItems] = useState<CompareItem[]>([]);
   const [compareLoading, setCompareLoading] = useState(false);
   const category = getMarketCategory(categoryId);
-  const listingObjectId = getListingObjectId(listing);
-  const favoriteType = getFavoriteListingType(categoryId);
   const compareType = getCompareType(categoryId);
   const reviewCount = Number(listing.reviews ?? listing.reviewsCount ?? 0);
   const reviewRating = Number(listing.rating || listing.serviceQuality || 0);
@@ -76,7 +65,7 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
   }, [category.label, navigation]);
 
   useEffect(() => {
-    // Screens like search/favorites pass trimmed listing objects; silently
+    // Screens like search pass trimmed listing objects; silently
     // refetch the full document and merge it in. Keep the passed data meanwhile.
     const id = initialListing._id || initialListing.id;
     if (id == null || id === '') return;
@@ -96,21 +85,6 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
   useEffect(() => {
     if (listing.id) recordMarketView(categoryId, listing.id);
   }, [categoryId, listing.id]);
-
-  useEffect(() => {
-    if (!listingObjectId) return;
-
-    let mounted = true;
-    checkFavorite(listingObjectId, favoriteType)
-      .then((value) => {
-        if (mounted) setIsFavorite(value);
-      })
-      .catch(() => {});
-
-    return () => {
-      mounted = false;
-    };
-  }, [favoriteType, listingObjectId]);
 
   useEffect(() => {
     let mounted = true;
@@ -180,28 +154,6 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
   const previousImage = () => {
     if (!images.length) return;
     setImageIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
-
-  const toggleSaved = async () => {
-    if (!listingObjectId) {
-      Alert.alert('Избранное', 'У этого объявления нет идентификатора для сохранения.');
-      return;
-    }
-
-    setFavoriteLoading(true);
-    try {
-      if (isFavorite) {
-        await removeFavorite(listingObjectId, favoriteType);
-        setIsFavorite(false);
-      } else {
-        await addFavorite(listing, categoryId);
-        setIsFavorite(true);
-      }
-    } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось обновить избранное');
-    } finally {
-      setFavoriteLoading(false);
-    }
   };
 
   const toggleCompare = async () => {
@@ -282,18 +234,6 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
                 <ActivityIndicator size="small" color={isCompared ? colors.onAccent : colors.text} />
               ) : (
                 <Ionicons name="git-compare-outline" size={20} color={isCompared ? colors.onAccent : colors.text} />
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.saveBtn, isFavorite && styles.saveBtnActive]}
-              onPress={toggleSaved}
-              disabled={favoriteLoading}
-              activeOpacity={0.85}
-            >
-              {favoriteLoading ? (
-                <ActivityIndicator size="small" color={isFavorite ? colors.onAccent : colors.text} />
-              ) : (
-                <Ionicons name={isFavorite ? 'bookmark' : 'bookmark-outline'} size={20} color={isFavorite ? colors.onAccent : colors.text} />
               )}
             </TouchableOpacity>
           </View>
