@@ -78,8 +78,6 @@ export default function CarRequestScreen() {
 
   const canSend = !missing.length && !yearError && !emailError && !sending;
 
-  const summary = [marca.trim(), model.trim(), year.trim(), region.trim()].filter(Boolean).join(' · ');
-
   const detectRegion = async () => {
     if (locating) return;
     setLocating(true);
@@ -199,13 +197,6 @@ export default function CarRequestScreen() {
           </View>
         </View>
 
-        {summary ? (
-          <View style={styles.summaryBox}>
-            <Ionicons name="search-outline" size={17} color={colors.textMuted} />
-            <Text style={styles.summaryText} numberOfLines={2}>{summary}</Text>
-          </View>
-        ) : null}
-
         <PressableScale
           style={[styles.submitBtn, !canSend && styles.submitBtnDisabled]}
           onPress={submit}
@@ -251,12 +242,6 @@ const styles = StyleSheet.create({
   inputAction: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
   inputError: { borderColor: colors.danger, backgroundColor: 'rgba(255,90,95,0.12)' },
   errorHint: { color: colors.danger, fontSize: font.tiny, fontWeight: '800', marginLeft: 2 },
-
-  summaryBox: {
-    marginTop: space.md, flexDirection: 'row', alignItems: 'center', gap: space.sm,
-    borderRadius: radius.lg, backgroundColor: colors.surfaceAlt, paddingHorizontal: space.md, paddingVertical: space.md,
-  },
-  summaryText: { flex: 1, color: colors.text, fontSize: font.small, fontWeight: '800' },
 
   submitBtn: {
     marginTop: space.md, height: 52, borderRadius: radius.pill, backgroundColor: colors.accent,
