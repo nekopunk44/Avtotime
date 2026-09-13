@@ -182,14 +182,21 @@ export default function MarketFiltersSheet({
     return () => { alive = false; };
   }, [visible, draft.type]);
 
-  // Модели зависят от марки: пока она не выбрана, показываем весь список.
+  // Модели зависят от марки: без марки показываем весь список, а пока
+  // набранное не совпало с маркой из справочника — ничего, чтобы не выдавать
+  // чужие модели за подходящие.
+  const knownBrand = brands.find((item) => item.toLowerCase() === draft.brand.trim().toLowerCase()) || '';
+
   useEffect(() => {
     if (!visible) return;
+    if (draft.brand.trim() && !knownBrand) {
+      setModels([]);
+      return;
+    }
     let alive = true;
-    const brand = draft.brand.trim();
-    getDistinctModels(brand, draft.type || 'all').then((list) => { if (alive) setModels(list); }).catch(() => {});
+    getDistinctModels(knownBrand, draft.type || 'all').then((list) => { if (alive) setModels(list); }).catch(() => {});
     return () => { alive = false; };
-  }, [visible, draft.type, draft.brand]);
+  }, [visible, draft.type, draft.brand, knownBrand]);
 
   // ── Сортировка: заливка едет к выбранному варианту ───────────────────────
   const [sortWidth, setSortWidth] = useState(0);
@@ -324,9 +331,11 @@ export default function MarketFiltersSheet({
       placeholder={placeholder}
       emptyNote={key === 'brand'
         ? 'Подсказки недоступны'
-        : draft.brand.trim()
-          ? `Для «${draft.brand.trim()}» моделей пока нет`
-          : 'Моделей пока нет'}
+        : draft.brand.trim() && !knownBrand
+          ? 'Выберите марку из списка'
+          : draft.brand.trim()
+            ? `Для «${draft.brand.trim()}» моделей пока нет`
+            : 'Моделей пока нет'}
     />
   );
 
@@ -485,7 +494,7 @@ export default function MarketFiltersSheet({
             <ScrollView
               style={styles.body}
               contentContainerStyle={styles.bodyContent}
-              keyboardShouldPersistTaps="handled"
+              keyboardShouldPersistTaps="always"
               showsVerticalScrollIndicator={false}
             >
               {/* Раздел — выбор один, поэтому кружок, а не отметка. Пустой

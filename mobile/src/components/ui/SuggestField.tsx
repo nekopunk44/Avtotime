@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, font, radius, space } from '../../theme';
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
   placeholder?: string;
   /** Что сказать, когда подсказывать нечего: пустой список ≠ поломка. */
   emptyNote?: string;
+  /** Сколько вариантов держать в списке; лишние доступны прокруткой. */
   maxSuggestions?: number;
   autoCapitalize?: 'none' | 'words';
   onPick?: (value: string) => void;
@@ -23,9 +24,16 @@ interface Props {
  */
 export default function SuggestField({
   label, value, onChangeText, options, placeholder, emptyNote,
-  maxSuggestions = 8, autoCapitalize = 'words', onPick,
+  maxSuggestions = 40, autoCapitalize = 'words', onPick,
 }: Props) {
   const [focused, setFocused] = useState(false);
+  // Список закрывается с задержкой: уход фокуса случается раньше, чем
+  // касание доходит до варианта, и без паузы выбор терялся бы.
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (blurTimer.current) clearTimeout(blurTimer.current);
+  }, []);
 
   const typed = value.trim().toLowerCase();
   const matched = typed ? options.filter((item) => item.toLowerCase().includes(typed)) : options;
@@ -37,6 +45,7 @@ export default function SuggestField({
     : '';
 
   const pick = (item: string) => {
+    if (blurTimer.current) clearTimeout(blurTimer.current);
     onChangeText(item);
     onPick?.(item);
     setFocused(false);
@@ -59,8 +68,13 @@ export default function SuggestField({
         placeholderTextColor={colors.textFaint}
         value={value}
         onChangeText={onChangeText}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onFocus={() => {
+          if (blurTimer.current) clearTimeout(blurTimer.current);
+          setFocused(true);
+        }}
+        onBlur={() => {
+          blurTimer.current = setTimeout(() => setFocused(false), 180);
+        }}
         autoCapitalize={autoCapitalize}
         autoCorrect={false}
       />
@@ -72,19 +86,25 @@ export default function SuggestField({
       ) : null}
 
       {suggestions.length ? (
-        <View style={styles.box}>
+        // Своя прокрутка с ограниченной высотой: длинный список не должен
+        // растягивать форму, а вложенный скролл — работать на Android.
+        <ScrollView
+          style={styles.box}
+          contentContainerStyle={styles.boxContent}
+          keyboardShouldPersistTaps="always"
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+        >
           {suggestions.map((item, index) => (
             <Pressable
               key={item}
               style={[styles.item, index > 0 && styles.itemDivided]}
-              // onPressIn: обычное нажатие не успевает — потеря фокуса
-              // убирает список раньше, чем касание доходит до обработчика.
-              onPressIn={() => pick(item)}
+              onPress={() => pick(item)}
             >
               <Text style={styles.itemText}>{item}</Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
       ) : null}
     </View>
   );
@@ -104,9 +124,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md, color: colors.text, fontSize: font.body,
   },
   box: {
-    borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden',
+    maxHeight: 240, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
   },
+  boxContent: { paddingVertical: 0 },
   item: { paddingHorizontal: space.md, paddingVertical: 11 },
   itemDivided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   itemText: { color: colors.text, fontSize: font.small, fontWeight: '700' },

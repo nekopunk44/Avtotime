@@ -48,11 +48,23 @@ export default function CarRequestScreen() {
     return () => { alive = false; };
   }, []);
 
+  // Модели спрашиваются под конкретную марку. Пока набранное не совпало с
+  // маркой из справочника, список пуст: показывать модели «BM» нечестно, а
+  // отдавать вперемешку все — бесполезно.
+  const knownBrand = useMemo(
+    () => brands.find((item) => item.toLowerCase() === marca.trim().toLowerCase()) || '',
+    [brands, marca],
+  );
+
   useEffect(() => {
+    if (marca.trim() && !knownBrand) {
+      setModels([]);
+      return;
+    }
     let alive = true;
-    getDistinctModels(marca.trim(), 'cars').then((list) => { if (alive) setModels(list); }).catch(() => {});
+    getDistinctModels(knownBrand, 'cars').then((list) => { if (alive) setModels(list); }).catch(() => {});
     return () => { alive = false; };
-  }, [marca]);
+  }, [knownBrand, marca]);
 
   const yearError = useMemo(() => {
     if (!year.trim()) return '';
@@ -122,7 +134,7 @@ export default function CarRequestScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={headerHeight}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
         {sentMessage ? (
           <View style={styles.successBox}>
             <Ionicons name="checkmark-circle" size={22} color={colors.success} />
@@ -147,7 +159,11 @@ export default function CarRequestScreen() {
             onChangeText={setModel}
             options={models}
             placeholder="Например: X5"
-            emptyNote={marca.trim() ? `Для «${marca.trim()}» моделей пока нет` : 'Моделей пока нет'}
+            emptyNote={marca.trim() && !knownBrand
+              ? 'Выберите марку из списка'
+              : marca.trim()
+                ? `Для «${marca.trim()}» моделей пока нет`
+                : 'Моделей пока нет'}
           />
 
           <View style={styles.field}>
