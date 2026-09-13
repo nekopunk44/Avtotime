@@ -54,21 +54,25 @@ export default function MarketServicesScreen({ navigation }: Props) {
 
       <Text style={styles.sectionTitle}>Ещё в маркете</Text>
 
-      <View style={styles.grid}>
+      {/* Строками во всю ширину, а не плитками: описания перестают ломаться
+          посреди фразы, а разделы читаются одним взглядом сверху вниз — той
+          же анатомией, что и карточка подбора. */}
+      <View style={styles.list}>
         {SERVICES.map((service) => (
           <PressableScale
             key={service.label}
-            style={styles.card}
-            scaleTo={0.97}
+            style={styles.row}
+            scaleTo={0.98}
             onPress={() => open(service.screen)}
           >
             <View style={styles.iconTile}>
               <Ionicons name={service.icon} size={20} color={colors.text} />
             </View>
-            {/* Заголовок в одну строку: иначе описания в соседних плитках
-                разъезжаются по высоте и ряд выглядит рваным. */}
-            <Text style={styles.label} numberOfLines={1}>{service.label}</Text>
-            <Text style={styles.desc} numberOfLines={2}>{service.desc}</Text>
+            <View style={styles.rowBody}>
+              <Text style={styles.label}>{service.label}</Text>
+              <Text style={styles.desc} numberOfLines={2}>{service.desc}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
           </PressableScale>
         ))}
       </View>
@@ -99,16 +103,18 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', letterSpacing: 0.4,
   },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  card: {
-    // Ровно половина за вычетом половины зазора — ряды сходятся по краям.
-    width: '48.5%', height: 138, borderRadius: radius.lg, backgroundColor: colors.surface,
-    padding: space.md, ...shadow.card,
+  list: { gap: space.sm },
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: space.md,
+    borderRadius: radius.lg, backgroundColor: colors.surface,
+    paddingVertical: space.md, paddingHorizontal: space.md,
+    ...shadow.card,
   },
+  rowBody: { flex: 1 },
   iconTile: {
-    width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
-    alignItems: 'center', justifyContent: 'center', marginBottom: space.md,
+    width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    alignItems: 'center', justifyContent: 'center',
   },
   label: { color: colors.text, fontSize: font.body, fontWeight: '900' },
-  desc: { marginTop: 5, color: colors.textMuted, fontSize: font.tiny, fontWeight: '600', lineHeight: 16 },
+  desc: { marginTop: 3, color: colors.textMuted, fontSize: font.small, fontWeight: '600', lineHeight: 18 },
 });
