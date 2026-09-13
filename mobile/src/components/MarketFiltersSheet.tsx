@@ -26,7 +26,7 @@ import {
   MarketSort,
 } from '../api/market';
 import { colors, font, radius, shadow, space } from '../theme';
-import { PressableScale } from './ui';
+import { PressableScale, SuggestField } from './ui';
 
 export interface MarketFilters {
   /** Раздел маркета. Пусто — показываем всё, что есть. */
@@ -174,7 +174,6 @@ export default function MarketFiltersSheet({
   // должна успевать за буквой, а не за сетью.
   const [brands, setBrands] = useState<string[]>([]);
   const [models, setModels] = useState<string[]>([]);
-  const [focusedField, setFocusedField] = useState<'brand' | 'model' | null>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -191,37 +190,6 @@ export default function MarketFiltersSheet({
     getDistinctModels(brand, draft.type || 'all').then((list) => { if (alive) setModels(list); }).catch(() => {});
     return () => { alive = false; };
   }, [visible, draft.type, draft.brand]);
-
-  /**
-   * Подсказки и причина их отсутствия. Молчащий список неотличим от сломанного:
-   * пустой маркет и «ничего не нашлось» должны выглядеть по-разному.
-   */
-  const suggestionsFor = (field: 'brand' | 'model') => {
-    if (focusedField !== field) return { items: [] as string[], note: '' };
-    const source = field === 'brand' ? brands : models;
-    const typed = (draft[field] as string).trim().toLowerCase();
-
-    if (!source.length) {
-      return {
-        items: [],
-        note: field === 'brand'
-          ? 'Подсказки недоступны'
-          : draft.brand.trim()
-            ? `Для «${draft.brand.trim()}» моделей пока нет`
-            : 'Моделей пока нет',
-      };
-    }
-
-    const matched = typed ? source.filter((item) => item.toLowerCase().includes(typed)) : source;
-    // Точное совпадение — уже введённое значение, подсказывать его нечего.
-    if (matched.length === 1 && matched[0].toLowerCase() === typed) {
-      return { items: [], note: '' };
-    }
-    return {
-      items: matched.slice(0, 8),
-      note: matched.length ? '' : 'Совпадений нет',
-    };
-  };
 
   // ── Сортировка: заливка едет к выбранному варианту ───────────────────────
   const [sortWidth, setSortWidth] = useState(0);
@@ -341,66 +309,26 @@ export default function MarketFiltersSheet({
     </View>
   );
 
-  /** Поле с живыми подсказками из того, что реально есть в объявлениях. */
-  const renderSuggest = (
-    label: string,
-    key: 'brand' | 'model',
-    placeholder: string,
-  ) => {
-    const { items: suggestions, note } = suggestionsFor(key);
-    const typed = draft[key];
-    return (
-      <View key={label} style={styles.field}>
-        <View style={styles.labelRow}>
-          <Text style={styles.label}>{label}</Text>
-          {typed ? (
-            <Pressable onPress={() => set(key, '')} hitSlop={8}>
-              <Text style={styles.labelClear}>Сбросить</Text>
-            </Pressable>
-          ) : null}
-        </View>
-        <TextInput
-          style={styles.input}
-          placeholder={placeholder}
-          placeholderTextColor={colors.textFaint}
-          value={typed}
-          onChangeText={(v) => {
-            set(key, v);
-            // Смена марки обнуляет модель: пары «BMW + Octavia» не бывает.
-            if (key === 'brand') set('model', '');
-          }}
-          onFocus={() => setFocusedField(key)}
-          onBlur={() => setFocusedField((prev) => (prev === key ? null : prev))}
-          autoCapitalize="words"
-          autoCorrect={false}
-        />
-        {note ? (
-          <View style={styles.suggestBox}>
-            <Text style={styles.suggestNote}>{note}</Text>
-          </View>
-        ) : null}
-        {suggestions.length ? (
-          <View style={styles.suggestBox}>
-            {suggestions.map((item, index) => (
-              <Pressable
-                key={item}
-                style={[styles.suggestItem, index > 0 && styles.suggestItemDivided]}
-                // onPressIn: обычный onPress не успевает — blur снимает список
-                // раньше, чем касание доходит до обработчика.
-                onPressIn={() => {
-                  set(key, item);
-                  if (key === 'brand') set('model', '');
-                  setFocusedField(null);
-                }}
-              >
-                <Text style={styles.suggestText}>{item}</Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-      </View>
-    );
-  };
+  /** Поле с подсказками; логика общая с заявкой на подбор авто. */
+  const renderSuggest = (label: string, key: 'brand' | 'model', placeholder: string) => (
+    <SuggestField
+      key={label}
+      label={label}
+      value={draft[key]}
+      onChangeText={(v) => {
+        set(key, v);
+        // Смена марки обнуляет модель: пары «BMW + Octavia» не бывает.
+        if (key === 'brand') set('model', '');
+      }}
+      options={key === 'brand' ? brands : models}
+      placeholder={placeholder}
+      emptyNote={key === 'brand'
+        ? 'Подсказки недоступны'
+        : draft.brand.trim()
+          ? `Для «${draft.brand.trim()}» моделей пока нет`
+          : 'Моделей пока нет'}
+    />
+  );
 
   /** Город: ручной ввод и кнопка определения прямо внутри поля. */
   const renderCity = () => (
@@ -709,18 +637,6 @@ const styles = StyleSheet.create({
   inputWithAction: { flexDirection: 'row', alignItems: 'center', paddingRight: 6 },
   inputInner: { flex: 1, height: '100%', color: colors.text, fontSize: font.body, padding: 0 },
   inputAction: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
-
-  suggestBox: {
-    borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden',
-  },
-  suggestItem: { paddingHorizontal: space.md, paddingVertical: 11 },
-  suggestItemDivided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-  suggestText: { color: colors.text, fontSize: font.small, fontWeight: '700' },
-  suggestNote: {
-    paddingHorizontal: space.md, paddingVertical: 11,
-    color: colors.textFaint, fontSize: font.tiny, fontWeight: '700',
-  },
 
   rangeRow: { flexDirection: 'row', gap: space.sm },
   rangeInput: {

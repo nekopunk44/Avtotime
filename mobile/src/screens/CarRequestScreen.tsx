@@ -1,26 +1,25 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { sendCarRequest } from '../api/carRequests';
+import { getDistinctBrands, getDistinctModels, getViewerGeo } from '../api/market';
 import { useAuthStore } from '../store/authStore';
-import { colors } from '../theme';
-
-const REGION_PRESETS = ['Кишинев', 'Бельцы', 'Кагул', 'Орхей', 'Комрат', 'Любой регион'];
+import { colors, font, radius, shadow, space } from '../theme';
+import { PressableScale, SuggestField } from '../components/ui';
 
 const currentYear = new Date().getFullYear();
-
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 export default function CarRequestScreen() {
@@ -35,7 +34,25 @@ export default function CarRequestScreen() {
   const [region, setRegion] = useState(initialRegion);
   const [email, setEmail] = useState(initialEmail);
   const [sending, setSending] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [sentMessage, setSentMessage] = useState('');
+
+  // Марки и модели — из того же справочника, что и фильтры маркета: печатать
+  // их вслепую больше не нужно.
+  const [brands, setBrands] = useState<string[]>([]);
+  const [models, setModels] = useState<string[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    getDistinctBrands('cars').then((list) => { if (alive) setBrands(list); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    getDistinctModels(marca.trim(), 'cars').then((list) => { if (alive) setModels(list); }).catch(() => {});
+    return () => { alive = false; };
+  }, [marca]);
 
   const yearError = useMemo(() => {
     if (!year.trim()) return '';
@@ -46,42 +63,54 @@ export default function CarRequestScreen() {
     return '';
   }, [year]);
 
-  const resetVehicleFields = () => {
-    setMarca('');
-    setModel('');
-    setYear('');
+  const emailError = email.trim() && !isValidEmail(email) ? 'Проверьте адрес почты' : '';
+
+  // Чего не хватает — видно до нажатия, а не после отказа.
+  const missing = useMemo(() => {
+    const gaps: string[] = [];
+    if (!marca.trim()) gaps.push('марку');
+    if (!model.trim()) gaps.push('модель');
+    if (!year.trim()) gaps.push('год');
+    if (!region.trim()) gaps.push('регион');
+    if (!email.trim()) gaps.push('email');
+    return gaps;
+  }, [marca, model, year, region, email]);
+
+  const canSend = !missing.length && !yearError && !emailError && !sending;
+
+  const summary = [marca.trim(), model.trim(), year.trim(), region.trim()].filter(Boolean).join(' · ');
+
+  const detectRegion = async () => {
+    if (locating) return;
+    setLocating(true);
+    try {
+      const geo = await getViewerGeo();
+      if (geo.city) setRegion(geo.city);
+      else Alert.alert('Регион', 'Не удалось определить город по вашему подключению.');
+    } catch {
+      Alert.alert('Регион', 'Не удалось определить город. Проверьте соединение.');
+    } finally {
+      setLocating(false);
+    }
   };
 
   const submit = async () => {
-    const next = {
-      marca: marca.trim(),
-      model: model.trim(),
-      year: year.trim(),
-      region: region.trim(),
-      email: email.trim(),
-    };
-
-    if (!next.marca || !next.model || !next.year || !next.region || !next.email) {
-      Alert.alert('Заявка на авто', 'Заполните марку, модель, год, регион и email.');
-      return;
-    }
-
-    if (yearError) {
-      Alert.alert('Заявка на авто', yearError);
-      return;
-    }
-
-    if (!isValidEmail(next.email)) {
-      Alert.alert('Заявка на авто', 'Введите корректный email.');
-      return;
-    }
+    if (!canSend) return;
 
     setSending(true);
     setSentMessage('');
     try {
-      const response = await sendCarRequest(next);
+      const response = await sendCarRequest({
+        marca: marca.trim(),
+        model: model.trim(),
+        year: year.trim(),
+        region: region.trim(),
+        email: email.trim(),
+      });
       setSentMessage(response.message || 'Заявка отправлена. Проверьте вашу почту.');
-      resetVehicleFields();
+      setMarca('');
+      setModel('');
+      setYear('');
     } catch (e: any) {
       Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось отправить заявку. Попробуйте позже.');
     } finally {
@@ -98,105 +127,96 @@ export default function CarRequestScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {sentMessage ? (
           <View style={styles.successBox}>
-            <Ionicons name="checkmark-circle-outline" size={24} color={colors.success} />
+            <Ionicons name="checkmark-circle" size={22} color={colors.success} />
             <Text style={styles.successText}>{sentMessage}</Text>
           </View>
         ) : null}
 
-        <View style={styles.formCard}>
-          <Text style={styles.sectionTitle}>Автомобиль</Text>
-
-          <Text style={styles.inputLabel}>Марка</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Например: BMW"
-            placeholderTextColor={colors.textFaint}
+        <View style={styles.card}>
+          <SuggestField
+            label="Марка"
             value={marca}
             onChangeText={setMarca}
-            autoCapitalize="words"
+            onPick={() => setModel('')}
+            options={brands}
+            placeholder="Например: BMW"
+            emptyNote="Подсказки недоступны"
           />
 
-          <Text style={styles.inputLabel}>Модель</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Например: X5"
-            placeholderTextColor={colors.textFaint}
+          <SuggestField
+            label="Модель"
             value={model}
             onChangeText={setModel}
-            autoCapitalize="words"
+            options={models}
+            placeholder="Например: X5"
+            emptyNote={marca.trim() ? `Для «${marca.trim()}» моделей пока нет` : 'Моделей пока нет'}
           />
 
-          <Text style={styles.inputLabel}>Год</Text>
-          <TextInput
-            style={[styles.input, yearError ? styles.inputError : null]}
-            placeholder={`${currentYear}`}
-            placeholderTextColor={colors.textFaint}
-            value={year}
-            onChangeText={(value) => setYear(value.replace(/[^0-9]/g, '').slice(0, 4))}
-            keyboardType="number-pad"
-            maxLength={4}
-          />
-          {yearError ? <Text style={styles.errorHint}>{yearError}</Text> : null}
+          <View style={styles.field}>
+            <Text style={styles.label}>Год</Text>
+            <TextInput
+              style={[styles.input, yearError ? styles.inputError : null]}
+              placeholder={`${currentYear}`}
+              placeholderTextColor={colors.textFaint}
+              value={year}
+              onChangeText={(value) => setYear(value.replace(/[^0-9]/g, '').slice(0, 4))}
+              keyboardType="number-pad"
+              maxLength={4}
+            />
+            {yearError ? <Text style={styles.errorHint}>{yearError}</Text> : null}
+          </View>
 
-          <Text style={styles.inputLabel}>Регион</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Город или регион поиска"
-            placeholderTextColor={colors.textFaint}
-            value={region}
-            onChangeText={setRegion}
-          />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.regionChips}>
-            {REGION_PRESETS.map((item) => {
-              const active = region === item;
-              return (
-                <TouchableOpacity
-                  key={item}
-                  style={[styles.regionChip, active && styles.regionChipActive]}
-                  onPress={() => setRegion(item)}
-                  activeOpacity={0.86}
-                >
-                  <Text style={[styles.regionChipText, active && styles.regionChipTextActive]}>{item}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+          <View style={styles.field}>
+            <Text style={styles.label}>Регион</Text>
+            <View style={[styles.input, styles.inputWithAction]}>
+              <TextInput
+                style={styles.inputInner}
+                placeholder="Город или регион поиска"
+                placeholderTextColor={colors.textFaint}
+                value={region}
+                onChangeText={setRegion}
+              />
+              <Pressable onPress={detectRegion} hitSlop={10} style={styles.inputAction}>
+                {locating
+                  ? <ActivityIndicator size="small" color={colors.text} />
+                  : <Ionicons name="locate" size={18} color={colors.textMuted} />}
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Email для ответа</Text>
+            <TextInput
+              style={[styles.input, emailError ? styles.inputError : null]}
+              placeholder="name@example.com"
+              placeholderTextColor={colors.textFaint}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            {emailError ? <Text style={styles.errorHint}>{emailError}</Text> : null}
+          </View>
         </View>
 
-        <View style={styles.formCard}>
-          <Text style={styles.sectionTitle}>Контакт</Text>
-          <Text style={styles.inputLabel}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="name@example.com"
-            placeholderTextColor={colors.textFaint}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
+        {summary ? (
+          <View style={styles.summaryBox}>
+            <Ionicons name="search-outline" size={17} color={colors.textMuted} />
+            <Text style={styles.summaryText} numberOfLines={2}>{summary}</Text>
+          </View>
+        ) : null}
 
-          <TouchableOpacity
-            style={[styles.submitBtn, sending && styles.submitBtnDisabled]}
-            onPress={submit}
-            disabled={sending}
-            activeOpacity={0.9}
-          >
-            {sending ? (
-              <ActivityIndicator color={colors.onAccent} />
-            ) : (
-              <>
-                <Ionicons name="send-outline" size={19} color={colors.onAccent} />
-                <Text style={styles.submitText}>Отправить заявку</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.infoBox}>
-          <Ionicons name="mail-outline" size={20} color={colors.textMuted} />
-          <Text style={styles.infoText}>Мы передадим заявку администратору и пришлём подтверждение на указанный email.</Text>
-        </View>
+        <PressableScale
+          style={[styles.submitBtn, !canSend && styles.submitBtnDisabled]}
+          onPress={submit}
+          scaleTo={0.98}
+        >
+          {sending ? (
+            <ActivityIndicator color={colors.onAccent} />
+          ) : (
+            <Text style={styles.submitText}>Отправить заявку</Text>
+          )}
+        </PressableScale>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -204,23 +224,44 @@ export default function CarRequestScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 16, paddingBottom: 30 },
-  successBox: { marginBottom: 12, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(61,214,140,0.3)', backgroundColor: 'rgba(61,214,140,0.14)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  successText: { flex: 1, color: colors.success, fontSize: 13, lineHeight: 19, fontWeight: '800' },
-  formCard: { backgroundColor: colors.surface, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14, marginBottom: 12 },
-  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '900', marginBottom: 12 },
-  inputLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '800', marginBottom: 7 },
-  input: { minHeight: 48, borderRadius: 10, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 15, marginBottom: 13 },
-  inputError: { borderWidth: 1, borderColor: colors.danger, backgroundColor: 'rgba(255,90,95,0.12)' },
-  errorHint: { color: colors.danger, fontSize: 12, fontWeight: '800', marginTop: -7, marginBottom: 12 },
-  regionChips: { gap: 8, paddingBottom: 2 },
-  regionChip: { height: 36, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.bg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, justifyContent: 'center' },
-  regionChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  regionChipText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  regionChipTextActive: { color: colors.onAccent },
-  submitBtn: { marginTop: 2, height: 50, borderRadius: 12, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  submitBtnDisabled: { opacity: 0.65 },
-  submitText: { color: colors.onAccent, fontSize: 16, fontWeight: '900' },
-  infoBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  infoText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  content: { padding: space.md, paddingBottom: space.xxxl },
+
+  successBox: {
+    marginBottom: space.md, borderRadius: radius.lg, backgroundColor: 'rgba(61,214,140,0.14)',
+    padding: space.md, flexDirection: 'row', alignItems: 'center', gap: space.sm,
+  },
+  successText: { flex: 1, color: colors.success, fontSize: font.small, lineHeight: 19, fontWeight: '800' },
+
+  card: {
+    backgroundColor: colors.surface, borderRadius: radius.xl, padding: space.lg,
+    gap: space.lg, ...shadow.card,
+  },
+  field: { gap: space.sm },
+  label: {
+    color: colors.textMuted, fontSize: font.tiny, fontWeight: '900',
+    marginLeft: 2, textTransform: 'uppercase', letterSpacing: 0.4,
+  },
+  input: {
+    height: 48, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+    paddingHorizontal: space.md, color: colors.text, fontSize: font.body,
+  },
+  inputWithAction: { flexDirection: 'row', alignItems: 'center', paddingRight: 6 },
+  inputInner: { flex: 1, height: '100%', color: colors.text, fontSize: font.body, padding: 0 },
+  inputAction: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  inputError: { borderColor: colors.danger, backgroundColor: 'rgba(255,90,95,0.12)' },
+  errorHint: { color: colors.danger, fontSize: font.tiny, fontWeight: '800', marginLeft: 2 },
+
+  summaryBox: {
+    marginTop: space.md, flexDirection: 'row', alignItems: 'center', gap: space.sm,
+    borderRadius: radius.lg, backgroundColor: colors.surfaceAlt, paddingHorizontal: space.md, paddingVertical: space.md,
+  },
+  summaryText: { flex: 1, color: colors.text, fontSize: font.small, fontWeight: '800' },
+
+  submitBtn: {
+    marginTop: space.md, height: 52, borderRadius: radius.pill, backgroundColor: colors.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  submitBtnDisabled: { opacity: 0.45 },
+  submitText: { color: colors.onAccent, fontSize: font.body, fontWeight: '900' },
 });
