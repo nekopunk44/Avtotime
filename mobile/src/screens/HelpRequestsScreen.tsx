@@ -1,20 +1,24 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
   FlatList,
   KeyboardAvoidingView,
   Linking,
   Modal,
+  PanResponder,
   Platform,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -27,7 +31,8 @@ import {
   updateHelpRequest,
 } from '../api/helpRequests';
 import { AppStackParamList } from '../navigation/AppNavigator';
-import { colors } from '../theme';
+import { colors, font, radius, shadow, space } from '../theme';
+import { ConfirmSheet, EmptyState, PressableScale, Skeleton } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'HelpRequests'> };
 
@@ -38,6 +43,11 @@ type DraftState = {
 };
 
 const emptyDraft: DraftState = { location: '', description: '', status: 'active' };
+
+const SCOPES: Array<{ key: 'all' | 'mine'; label: string }> = [
+  { key: 'all', label: 'Все' },
+  { key: 'mine', label: 'Мои' },
+];
 
 const formatDate = (value?: string) => {
   if (!value) return '';
@@ -59,7 +69,8 @@ const getMapUrl = (request: HelpRequest) => {
   return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : '';
 };
 
-export default function HelpRequestsScreen({ navigation }: Props) {
+export default function HelpRequestsScreen(_props: Props) {
+  const insets = useSafeAreaInsets();
   const [scope, setScope] = useState<'all' | 'mine'>('all');
   const [requests, setRequests] = useState<HelpRequest[]>([]);
   const [myRequests, setMyRequests] = useState<HelpRequest[]>([]);
@@ -70,11 +81,16 @@ export default function HelpRequestsScreen({ navigation }: Props) {
   const [editing, setEditing] = useState<HelpRequest | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pendingRemoval, setPendingRemoval] = useState<HelpRequest | null>(null);
 
   const activeList = scope === 'mine' ? myRequests : requests;
   const activeRequests = useMemo(() => activeList.filter((item) => item.status === 'active'), [activeList]);
   const resolvedRequests = useMemo(() => activeList.filter((item) => item.status === 'resolved'), [activeList]);
-  const displayList = scope === 'mine' ? activeList : [...activeRequests, ...resolvedRequests];
+  // Активные впереди: помощь нужна сейчас, решённые — история.
+  const displayList = useMemo(
+    () => [...activeRequests, ...resolvedRequests],
+    [activeRequests, resolvedRequests],
+  );
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -103,6 +119,75 @@ export default function HelpRequestsScreen({ navigation }: Props) {
     load(true);
   };
 
+  // ── Переключатель охвата: заливка едет к выбранному ──────────────────────
+  const [scopeWidth, setScopeWidth] = useState(0);
+  const scopeSlide = useRef(new Animated.Value(0)).current;
+  const scopePlaced = useRef(false);
+  const scopeSeg = scopeWidth > 0 ? (scopeWidth - 8) / SCOPES.length : 0;
+  const scopeIndex = Math.max(0, SCOPES.findIndex((item) => item.key === scope));
+
+  useEffect(() => {
+    if (scopeSeg <= 0) return;
+    const target = 4 + scopeSeg * scopeIndex;
+    if (!scopePlaced.current) {
+      scopePlaced.current = true;
+      scopeSlide.setValue(target);
+      return;
+    }
+    Animated.spring(scopeSlide, { toValue: target, useNativeDriver: true, speed: 16, bounciness: 7 }).start();
+  }, [scopeIndex, scopeSeg, scopeSlide]);
+
+  // ── Шторка создания: выезжает снизу и идёт за пальцем ────────────────────
+  const [sheetMounted, setSheetMounted] = useState(false);
+  const [sheetHeight, setSheetHeight] = useState(420);
+  const sheetAnim = useRef(new Animated.Value(0)).current;
+  const sheetDrag = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (modalOpen) {
+      setSheetMounted(true);
+      sheetAnim.setValue(0);
+      sheetDrag.setValue(0);
+      Animated.timing(sheetAnim, {
+        toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: false,
+      }).start();
+      return;
+    }
+    Animated.parallel([
+      Animated.timing(sheetAnim, { toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: false }),
+      Animated.timing(sheetDrag, { toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: false }),
+    ]).start(({ finished }) => {
+      if (finished) setSheetMounted(false);
+    });
+  }, [modalOpen, sheetAnim, sheetDrag]);
+
+  const closeModal = useCallback(() => {
+    if (saving) return;
+    setModalOpen(false);
+    setEditing(null);
+    setDraft(emptyDraft);
+  }, [saving]);
+
+  const closeRef = useRef(closeModal);
+  closeRef.current = closeModal;
+
+  const pan = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+      onPanResponderMove: (_, g) => { if (g.dy > 0) sheetDrag.setValue(g.dy); },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > 90 || g.vy > 0.9) {
+          closeRef.current();
+          return;
+        }
+        Animated.spring(sheetDrag, { toValue: 0, useNativeDriver: false, bounciness: 6, speed: 14 }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(sheetDrag, { toValue: 0, useNativeDriver: false, bounciness: 6, speed: 14 }).start();
+      },
+    }),
+  ).current;
+
   const openCreate = () => {
     setEditing(null);
     setDraft(emptyDraft);
@@ -119,20 +204,12 @@ export default function HelpRequestsScreen({ navigation }: Props) {
     setModalOpen(true);
   };
 
-  const closeModal = () => {
-    if (saving) return;
-    setModalOpen(false);
-    setEditing(null);
-    setDraft(emptyDraft);
-  };
+  const canSave = Boolean(draft.location.trim() && draft.description.trim()) && !saving;
 
   const saveRequest = async () => {
+    if (!canSave) return;
     const location = draft.location.trim();
     const description = draft.description.trim();
-    if (!location || !description) {
-      Alert.alert('Запрос помощи', 'Заполните место и описание проблемы.');
-      return;
-    }
 
     setSaving(true);
     try {
@@ -145,14 +222,12 @@ export default function HelpRequestsScreen({ navigation }: Props) {
           coordinates: editing.coordinates || null,
         });
       } else {
-        await createHelpRequest({
-          location,
-          description,
-          coordinates: null,
-        });
+        await createHelpRequest({ location, description, coordinates: null });
         setScope('mine');
       }
-      closeModal();
+      setModalOpen(false);
+      setEditing(null);
+      setDraft(emptyDraft);
       await load(true);
     } catch (e: any) {
       Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось сохранить запрос');
@@ -161,25 +236,18 @@ export default function HelpRequestsScreen({ navigation }: Props) {
     }
   };
 
-  const removeRequest = async (request: HelpRequest) => {
-    const id = getHelpRequestKey(request);
+  const removeRequest = async () => {
+    const request = pendingRemoval;
+    setPendingRemoval(null);
+    const id = request ? getHelpRequestKey(request) : '';
     if (!id) return;
 
-    Alert.alert('Удалить запрос?', 'Запрос исчезнет из вашего списка.', [
-      { text: 'Отмена', style: 'cancel' },
-      {
-        text: 'Удалить',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteHelpRequest(id);
-            await load(true);
-          } catch (e: any) {
-            Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось удалить запрос');
-          }
-        },
-      },
-    ]);
+    try {
+      await deleteHelpRequest(id);
+      await load(true);
+    } catch (e: any) {
+      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось удалить запрос');
+    }
   };
 
   const openRoute = async (request: HelpRequest) => {
@@ -203,42 +271,43 @@ export default function HelpRequestsScreen({ navigation }: Props) {
 
     return (
       <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={[styles.iconCircle, active ? styles.iconCircleActive : styles.iconCircleResolved]}>
-            <Ionicons name={active ? 'warning-outline' : 'checkmark-circle-outline'} size={22} color={active ? colors.danger : colors.success} />
+        {/* Полоса слева отвечает за статус: цветную метку видно раньше текста. */}
+        <View style={[styles.stripe, active ? styles.stripeActive : styles.stripeResolved]} />
+
+        <View style={styles.cardBody}>
+          <View style={styles.cardHeader}>
+            <Text style={[styles.status, active ? styles.statusActive : styles.statusResolved]}>
+              {active ? 'Нужна помощь' : 'Решён'}
+            </Text>
+            <Text style={styles.time}>{getRequestTime(item)}</Text>
           </View>
-          <View style={styles.cardTitleBlock}>
-            <Text style={styles.cardUser} numberOfLines={1}>{item.user || (isMine ? 'Вы' : 'Пользователь')}</Text>
-            <Text style={styles.cardTime}>{getRequestTime(item)}</Text>
+
+          <Text style={styles.description}>{item.description}</Text>
+
+          <View style={styles.metaRow}>
+            <Ionicons name="location-outline" size={15} color={colors.textMuted} />
+            <Text style={styles.metaText} numberOfLines={1}>{item.location}</Text>
+            <Text style={styles.metaDot}>·</Text>
+            <Text style={styles.metaText} numberOfLines={1}>{item.user || (isMine ? 'Вы' : 'Пользователь')}</Text>
           </View>
-          <Text style={[styles.statusPill, active ? styles.statusActive : styles.statusResolved]}>
-            {active ? 'Активен' : 'Решен'}
-          </Text>
-        </View>
 
-        <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={17} color={colors.textMuted} />
-          <Text style={styles.locationText}>{item.location}</Text>
-        </View>
+          <View style={styles.actionRow}>
+            <PressableScale style={styles.routeBtn} scaleTo={0.97} onPress={() => openRoute(item)}>
+              <Ionicons name="navigate" size={16} color={colors.onAccent} />
+              <Text style={styles.routeText}>Маршрут</Text>
+            </PressableScale>
 
-        <Text style={styles.description}>{item.description}</Text>
-
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.routeBtn} onPress={() => openRoute(item)}>
-            <Ionicons name="navigate-outline" size={17} color={colors.onAccent} />
-            <Text style={styles.routeText}>Маршрут</Text>
-          </TouchableOpacity>
-
-          {scope === 'mine' || isMine ? (
-            <>
-              <TouchableOpacity style={styles.secondaryBtn} onPress={() => openEdit(item)}>
-                <Ionicons name="create-outline" size={18} color={colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.secondaryBtn} onPress={() => removeRequest(item)}>
-                <Ionicons name="trash-outline" size={18} color={colors.danger} />
-              </TouchableOpacity>
-            </>
-          ) : null}
+            {isMine ? (
+              <>
+                <PressableScale style={styles.iconBtn} scaleTo={0.94} onPress={() => openEdit(item)}>
+                  <Ionicons name="create-outline" size={18} color={colors.text} />
+                </PressableScale>
+                <PressableScale style={styles.iconBtn} scaleTo={0.94} onPress={() => setPendingRemoval(item)}>
+                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                </PressableScale>
+              </>
+            ) : null}
+          </View>
         </View>
       </View>
     );
@@ -247,39 +316,30 @@ export default function HelpRequestsScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.top}>
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{activeRequests.length}</Text>
-            <Text style={styles.statLabel}>Активные</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{resolvedRequests.length}</Text>
-            <Text style={styles.statLabel}>Решенные</Text>
-          </View>
-          <TouchableOpacity style={styles.addBtn} onPress={openCreate}>
-            <Ionicons name="add" size={24} color={colors.onAccent} />
-          </TouchableOpacity>
+        <View style={styles.scopeRow} onLayout={(e) => setScopeWidth(e.nativeEvent.layout.width)}>
+          {scopeSeg > 0 ? (
+            <Animated.View
+              style={[styles.scopeThumb, { width: scopeSeg, transform: [{ translateX: scopeSlide }] }]}
+            />
+          ) : null}
+          {SCOPES.map((item) => (
+            <Pressable key={item.key} style={styles.scopeBtn} onPress={() => setScope(item.key)}>
+              <Text style={[styles.scopeText, scope === item.key && styles.scopeTextActive]}>{item.label}</Text>
+            </Pressable>
+          ))}
         </View>
 
-        <View style={styles.scopeRow}>
-          <TouchableOpacity
-            style={[styles.scopeBtn, scope === 'all' && styles.scopeBtnActive]}
-            onPress={() => setScope('all')}
-          >
-            <Text style={[styles.scopeText, scope === 'all' && styles.scopeTextActive]}>Все</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.scopeBtn, scope === 'mine' && styles.scopeBtnActive]}
-            onPress={() => setScope('mine')}
-          >
-            <Text style={[styles.scopeText, scope === 'mine' && styles.scopeTextActive]}>Мои</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Счётчики строкой, а не плитками: два нуля не стоят четверти экрана. */}
+        <Text style={styles.counters}>
+          <Text style={styles.counterActive}>{activeRequests.length} активных</Text>
+          {'  ·  '}
+          {resolvedRequests.length} решённых
+        </Text>
       </View>
 
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.text} />
+        <View style={styles.list}>
+          {[0, 1, 2].map((i) => <Skeleton key={i} style={styles.skeletonCard} />)}
         </View>
       ) : (
         <FlatList
@@ -289,132 +349,228 @@ export default function HelpRequestsScreen({ navigation }: Props) {
           contentContainerStyle={displayList.length ? styles.list : styles.emptyList}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
           ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Ionicons name={error ? 'alert-circle-outline' : 'heart-outline'} size={38} color={colors.textFaint} />
-              <Text style={styles.emptyTitle}>{error || 'Запросов пока нет'}</Text>
-              <Text style={styles.emptyText}>
-                {error ? 'Потяните экран вниз, чтобы повторить загрузку.' : 'Создайте запрос, если нужна помощь на дороге.'}
-              </Text>
-            </View>
+            <EmptyState
+              icon={error ? 'alert-circle-outline' : 'hand-left-outline'}
+              title={error || (scope === 'mine' ? 'Вы ещё не просили помощи' : 'Запросов пока нет')}
+              subtitle={
+                error
+                  ? 'Потяните экран вниз, чтобы повторить загрузку.'
+                  : 'Опишите, что случилось на дороге, — запрос увидят другие водители.'
+              }
+              actionLabel={error ? undefined : 'Создать запрос'}
+              onAction={error ? undefined : openCreate}
+            />
           }
         />
       )}
 
-      <Modal visible={modalOpen} transparent animationType="slide" onRequestClose={closeModal}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalRoot}
-        >
-          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeModal} />
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>{editing ? 'Редактировать запрос' : 'Нужна помощь'}</Text>
+      {/* Кнопка создания плавает над списком: она нужна с любого места. */}
+      <PressableScale
+        style={[styles.fab, { bottom: insets.bottom + space.xl }]}
+        scaleTo={0.94}
+        onPress={openCreate}
+      >
+        <Ionicons name="add" size={26} color={colors.onAccent} />
+      </PressableScale>
 
-            <Text style={styles.inputLabel}>Местоположение</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Например: Кишинев, Ботаника"
-              placeholderTextColor={colors.textFaint}
-              value={draft.location}
-              onChangeText={(location) => setDraft((prev) => ({ ...prev, location }))}
-            />
-
-            <Text style={styles.inputLabel}>Что случилось</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Опишите проблему и какая помощь нужна"
-              placeholderTextColor={colors.textFaint}
-              value={draft.description}
-              onChangeText={(description) => setDraft((prev) => ({ ...prev, description }))}
-              multiline
-              textAlignVertical="top"
-            />
-
-            {editing ? (
-              <View style={styles.statusSwitch}>
-                <TouchableOpacity
-                  style={[styles.statusSwitchBtn, draft.status === 'active' && styles.statusSwitchActive]}
-                  onPress={() => setDraft((prev) => ({ ...prev, status: 'active' }))}
-                >
-                  <Text style={[styles.statusSwitchText, draft.status === 'active' && styles.statusSwitchTextActive]}>Активен</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.statusSwitchBtn, draft.status === 'resolved' && styles.statusSwitchActive]}
-                  onPress={() => setDraft((prev) => ({ ...prev, status: 'resolved' }))}
-                >
-                  <Text style={[styles.statusSwitchText, draft.status === 'resolved' && styles.statusSwitchTextActive]}>Решен</Text>
-                </TouchableOpacity>
+      <Modal visible={sheetMounted} transparent animationType="none" onRequestClose={closeModal} statusBarTranslucent>
+        <Animated.View style={[styles.backdrop, { opacity: sheetAnim }]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeModal} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.sheetWrap}
+            pointerEvents="box-none"
+          >
+            <Animated.View
+              onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
+              style={[
+                styles.sheet,
+                {
+                  paddingBottom: insets.bottom + space.lg,
+                  transform: [{
+                    translateY: Animated.add(
+                      sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [sheetHeight, 0] }),
+                      sheetDrag,
+                    ),
+                  }],
+                },
+              ]}
+            >
+              <View {...pan.panHandlers} style={styles.handleZone}>
+                <View style={styles.grabber} />
+                <Text style={styles.sheetTitle}>{editing ? 'Изменить запрос' : 'Нужна помощь'}</Text>
               </View>
-            ) : null}
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={closeModal} disabled={saving}>
-                <Text style={styles.cancelText}>Отмена</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={saveRequest} disabled={saving}>
-                {saving ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.saveText}>{editing ? 'Сохранить' : 'Создать'}</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
+              <View style={styles.field}>
+                <Text style={styles.label}>Где вы</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Например: Кишинев, Ботаника"
+                  placeholderTextColor={colors.textFaint}
+                  value={draft.location}
+                  onChangeText={(location) => setDraft((prev) => ({ ...prev, location }))}
+                />
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Что случилось</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Опишите проблему и какая помощь нужна"
+                  placeholderTextColor={colors.textFaint}
+                  value={draft.description}
+                  onChangeText={(description) => setDraft((prev) => ({ ...prev, description }))}
+                  multiline
+                  textAlignVertical="top"
+                />
+              </View>
+
+              {editing ? (
+                <View style={styles.field}>
+                  <Text style={styles.label}>Статус</Text>
+                  <View style={styles.statusSwitch}>
+                    {(['active', 'resolved'] as HelpRequestStatus[]).map((value) => {
+                      const on = draft.status === value;
+                      return (
+                        <Pressable
+                          key={value}
+                          style={[styles.statusBtn, on && styles.statusBtnActive]}
+                          onPress={() => setDraft((prev) => ({ ...prev, status: value }))}
+                        >
+                          <Text style={[styles.statusBtnText, on && styles.statusBtnTextActive]}>
+                            {value === 'active' ? 'Нужна помощь' : 'Решён'}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
+
+              <PressableScale
+                style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
+                scaleTo={0.98}
+                onPress={saveRequest}
+              >
+                {saving
+                  ? <ActivityIndicator color={colors.onAccent} />
+                  : <Text style={styles.saveText}>{editing ? 'Сохранить' : 'Опубликовать запрос'}</Text>}
+              </PressableScale>
+            </Animated.View>
+          </KeyboardAvoidingView>
+        </Animated.View>
       </Modal>
+
+      <ConfirmSheet
+        visible={pendingRemoval !== null}
+        title="Удалить запрос?"
+        message="Он исчезнет из списка, и помощь по нему больше не предложат."
+        cancelLabel="Оставить"
+        confirmLabel="Удалить"
+        destructive
+        onCancel={() => setPendingRemoval(null)}
+        onConfirm={removeRequest}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  addBtn: { width: 48, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  statsRow: { flexDirection: 'row', gap: 10 },
-  statItem: { flex: 1, borderRadius: 12, backgroundColor: colors.surfaceAlt, padding: 12 },
-  statValue: { color: colors.text, fontSize: 22, fontWeight: '900' },
-  statLabel: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
-  scopeRow: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3, marginTop: 12 },
-  scopeBtn: { flex: 1, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  scopeBtnActive: { backgroundColor: colors.accent },
-  scopeText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
-  scopeTextActive: { color: colors.onAccent },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list: { padding: 12, gap: 10 },
-  emptyList: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  emptyState: { alignItems: 'center' },
-  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  card: { backgroundColor: colors.surface, borderRadius: 14, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  iconCircle: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  iconCircleActive: { backgroundColor: 'rgba(255,90,95,0.12)' },
-  iconCircleResolved: { backgroundColor: 'rgba(61,214,140,0.14)' },
-  cardTitleBlock: { flex: 1 },
-  cardUser: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  cardTime: { marginTop: 2, color: colors.textFaint, fontSize: 12, fontWeight: '700' },
-  statusPill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  statusActive: { color: colors.danger, backgroundColor: 'rgba(255,90,95,0.12)' },
+
+  top: { paddingHorizontal: space.md, paddingTop: space.md, gap: space.sm },
+  scopeRow: {
+    flexDirection: 'row', backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.pill, padding: 4,
+  },
+  scopeThumb: {
+    position: 'absolute', left: 0, top: 4, bottom: 4,
+    borderRadius: radius.pill, backgroundColor: colors.accent,
+  },
+  scopeBtn: { flex: 1, height: 38, alignItems: 'center', justifyContent: 'center' },
+  scopeText: { color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
+  scopeTextActive: { color: colors.onAccent, fontWeight: '900' },
+  counters: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '800', marginLeft: 2 },
+  counterActive: { color: colors.text },
+
+  list: { padding: space.md, gap: space.sm },
+  emptyList: { flexGrow: 1, justifyContent: 'center', padding: space.lg },
+  skeletonCard: { height: 150, borderRadius: radius.lg },
+
+  card: {
+    flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.lg,
+    overflow: 'hidden', ...shadow.card,
+  },
+  stripe: { width: 4 },
+  stripeActive: { backgroundColor: colors.danger },
+  stripeResolved: { backgroundColor: colors.success },
+  cardBody: { flex: 1, padding: space.md },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  status: {
+    overflow: 'hidden', borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4,
+    fontSize: font.tiny, fontWeight: '900',
+  },
+  statusActive: { color: colors.danger, backgroundColor: 'rgba(255,90,95,0.14)' },
   statusResolved: { color: colors.success, backgroundColor: 'rgba(61,214,140,0.14)' },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 14 },
-  locationText: { flex: 1, color: colors.textMuted, fontSize: 14, fontWeight: '700' },
-  description: { marginTop: 10, color: colors.text, fontSize: 15, lineHeight: 21, fontWeight: '600' },
-  actionRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
-  routeBtn: { flex: 1, height: 42, borderRadius: 12, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  routeText: { color: colors.onAccent, fontSize: 14, fontWeight: '900' },
-  secondaryBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  modalRoot: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
-  sheet: { backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
-  sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: colors.surfaceHi, marginBottom: 12 },
-  sheetTitle: { color: colors.text, fontSize: 20, fontWeight: '900', marginBottom: 14 },
-  inputLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '800', marginBottom: 7 },
-  input: { minHeight: 46, borderRadius: 12, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 15, marginBottom: 13 },
-  textArea: { minHeight: 112, paddingTop: 12, lineHeight: 21 },
-  statusSwitch: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3, marginBottom: 14 },
-  statusSwitchBtn: { flex: 1, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  statusSwitchActive: { backgroundColor: colors.accent },
-  statusSwitchText: { color: colors.textMuted, fontSize: 13, fontWeight: '900' },
-  statusSwitchTextActive: { color: colors.onAccent },
-  modalActions: { flexDirection: 'row', gap: 10 },
-  cancelBtn: { flex: 1, height: 46, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  saveBtn: { flex: 1, height: 46, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  saveText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
+  time: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '700' },
+
+  description: { marginTop: space.md, color: colors.text, fontSize: font.body, lineHeight: 21, fontWeight: '600' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: space.sm },
+  metaText: { flexShrink: 1, color: colors.textMuted, fontSize: font.small, fontWeight: '700' },
+  metaDot: { color: colors.textFaint, fontSize: font.small, fontWeight: '900' },
+
+  actionRow: { flexDirection: 'row', gap: space.sm, marginTop: space.md },
+  routeBtn: {
+    flex: 1, height: 42, borderRadius: radius.pill, backgroundColor: colors.accent,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+  },
+  routeText: { color: colors.onAccent, fontSize: font.small, fontWeight: '900' },
+  iconBtn: {
+    width: 42, height: 42, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  fab: {
+    position: 'absolute', right: space.lg, width: 58, height: 58, borderRadius: radius.pill,
+    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', ...shadow.float,
+  },
+
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
+  sheetWrap: { flex: 1, justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
+    paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.lg,
+  },
+  handleZone: { paddingTop: space.xs, paddingBottom: space.xs, alignItems: 'center' },
+  grabber: {
+    width: 44, height: 5, borderRadius: radius.pill,
+    backgroundColor: colors.surfaceHi, marginBottom: space.md,
+  },
+  sheetTitle: { color: colors.text, fontSize: font.h2, fontWeight: '900', textAlign: 'center' },
+
+  field: { gap: space.sm },
+  label: {
+    color: colors.textMuted, fontSize: font.tiny, fontWeight: '900',
+    marginLeft: 2, textTransform: 'uppercase', letterSpacing: 0.4,
+  },
+  input: {
+    minHeight: 48, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+    paddingHorizontal: space.md, color: colors.text, fontSize: font.body,
+  },
+  textArea: { minHeight: 110, paddingTop: space.md, lineHeight: 21 },
+
+  statusSwitch: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: radius.md, padding: 4, gap: 4 },
+  statusBtn: { flex: 1, height: 38, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  statusBtnActive: { backgroundColor: colors.accent },
+  statusBtnText: { color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
+  statusBtnTextActive: { color: colors.onAccent, fontWeight: '900' },
+
+  saveBtn: {
+    height: 52, borderRadius: radius.pill, backgroundColor: colors.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  saveBtnDisabled: { opacity: 0.45 },
+  saveText: { color: colors.onAccent, fontSize: font.body, fontWeight: '900' },
 });
