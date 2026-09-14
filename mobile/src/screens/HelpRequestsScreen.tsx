@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Dimensions,
   Easing,
   FlatList,
   KeyboardAvoidingView,
@@ -43,6 +44,9 @@ type DraftState = {
 };
 
 const emptyDraft: DraftState = { location: '', description: '', status: 'active' };
+
+// Ход выезда больше любой панели: старт всегда за краем экрана.
+const SHEET_TRAVEL = Dimensions.get('window').height;
 
 const SCOPES: Array<{ key: 'all' | 'mine'; label: string }> = [
   { key: 'all', label: 'Все' },
@@ -123,12 +127,12 @@ export default function HelpRequestsScreen(_props: Props) {
   const [scopeWidth, setScopeWidth] = useState(0);
   const scopeSlide = useRef(new Animated.Value(0)).current;
   const scopePlaced = useRef(false);
-  const scopeSeg = scopeWidth > 0 ? (scopeWidth - 8) / SCOPES.length : 0;
+  const scopeSeg = scopeWidth > 0 ? (scopeWidth - 6) / SCOPES.length : 0;
   const scopeIndex = Math.max(0, SCOPES.findIndex((item) => item.key === scope));
 
   useEffect(() => {
     if (scopeSeg <= 0) return;
-    const target = 4 + scopeSeg * scopeIndex;
+    const target = 3 + scopeSeg * scopeIndex;
     if (!scopePlaced.current) {
       scopePlaced.current = true;
       scopeSlide.setValue(target);
@@ -139,7 +143,6 @@ export default function HelpRequestsScreen(_props: Props) {
 
   // ── Шторка создания: выезжает снизу и идёт за пальцем ────────────────────
   const [sheetMounted, setSheetMounted] = useState(false);
-  const [sheetHeight, setSheetHeight] = useState(420);
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const sheetDrag = useRef(new Animated.Value(0)).current;
 
@@ -334,12 +337,11 @@ export default function HelpRequestsScreen(_props: Props) {
           ))}
         </View>
 
-        {/* Счётчики строкой, а не плитками: два нуля не стоят четверти экрана. */}
-        <Text style={styles.counters}>
+        {/* Счётчики построчно справа: короткие числа, а не плитки во всю ширину. */}
+        <View style={styles.counters}>
           <Text style={styles.counterActive}>{activeRequests.length} активных</Text>
-          {'  ·  '}
-          {resolvedRequests.length} решённых
-        </Text>
+          <Text style={styles.counterResolved}>{resolvedRequests.length} решённых</Text>
+        </View>
       </View>
 
       {loading ? (
@@ -385,14 +387,13 @@ export default function HelpRequestsScreen(_props: Props) {
             pointerEvents="box-none"
           >
             <Animated.View
-              onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
               style={[
                 styles.sheet,
                 {
                   paddingBottom: insets.bottom + space.lg,
                   transform: [{
                     translateY: Animated.add(
-                      sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [sheetHeight, 0] }),
+                      sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [SHEET_TRAVEL, 0] }),
                       sheetDrag,
                     ),
                   }],
@@ -481,22 +482,29 @@ export default function HelpRequestsScreen(_props: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
 
-  top: { paddingHorizontal: space.md, paddingTop: space.md, gap: space.sm },
+  // Строка прижата к содержимому: переключатель слева, счётчики сразу за ним,
+  // а не по разным краям с пустотой посередине.
+  top: {
+    flexDirection: 'row', alignItems: 'center', gap: space.md,
+    paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: space.xs,
+  },
   scopeRow: {
-    flexDirection: 'row', backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.pill, padding: 4,
+    // Ширина по содержимому: две короткие подписи не должны занимать всю строку.
+    width: 150, flexDirection: 'row', backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.pill, padding: 3,
   },
   scopeThumb: {
-    position: 'absolute', left: 0, top: 4, bottom: 4,
+    position: 'absolute', left: 0, top: 3, bottom: 3,
     borderRadius: radius.pill, backgroundColor: colors.accent,
   },
-  scopeBtn: { flex: 1, height: 38, alignItems: 'center', justifyContent: 'center' },
-  scopeText: { color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
+  scopeBtn: { flex: 1, height: 30, alignItems: 'center', justifyContent: 'center' },
+  scopeText: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '800' },
   scopeTextActive: { color: colors.onAccent, fontWeight: '900' },
-  counters: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '800', marginLeft: 2 },
-  counterActive: { color: colors.text },
+  counters: { flex: 1, alignItems: 'flex-start' },
+  counterActive: { color: colors.text, fontSize: font.tiny, fontWeight: '900' },
+  counterResolved: { marginTop: 2, color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
 
-  list: { padding: space.md, gap: space.sm },
+  list: { paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: space.xxxl, gap: space.sm },
   emptyList: { flexGrow: 1, justifyContent: 'center', padding: space.lg },
   skeletonCard: { height: 150, borderRadius: radius.lg },
 

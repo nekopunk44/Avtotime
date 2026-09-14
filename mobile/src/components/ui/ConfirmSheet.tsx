@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Modal, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, Easing, Modal, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, font, radius, shadow, space } from '../../theme';
 import PressableScale from './PressableScale';
+
+// Ход выезда: заведомо больше любой панели, чтобы старт всегда был за краем
+// экрана, а не с середины — иначе вместо движения получается скачок.
+const SHEET_TRAVEL = Dimensions.get('window').height;
 
 interface ConfirmSheetProps {
   visible: boolean;
@@ -36,7 +40,6 @@ export default function ConfirmSheet({
   // Модалка живёт до конца анимации ухода — иначе шторка исчезала бы
   // мгновенно вместо того, чтобы уехать вниз.
   const [mounted, setMounted] = useState(visible);
-  const [sheetHeight, setSheetHeight] = useState(280);
   const anim = useRef(new Animated.Value(0)).current;
   // Смещение пальцем. Драйвер общий (JS): нативная и не-нативная анимации на
   // одном transform несовместимы.
@@ -96,14 +99,13 @@ export default function ConfirmSheet({
       <Animated.View style={[styles.backdrop, { opacity: anim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
         <Animated.View
-          onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
           style={[
             styles.sheet,
             {
               transform: [
                 {
                   translateY: Animated.add(
-                    anim.interpolate({ inputRange: [0, 1], outputRange: [sheetHeight, 0] }),
+                    anim.interpolate({ inputRange: [0, 1], outputRange: [SHEET_TRAVEL, 0] }),
                     drag,
                   ),
                 },

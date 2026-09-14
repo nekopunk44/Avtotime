@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Dimensions,
   Easing,
   KeyboardAvoidingView,
   Modal,
@@ -116,6 +117,9 @@ const SORTS: Array<{ value: MarketSort; label: string }> = [
 
 const digits = (value: string) => value.replace(/[^0-9]/g, '').slice(0, 9);
 
+// Ход выезда больше любой панели: старт всегда за краем экрана.
+const SHEET_TRAVEL = Dimensions.get('window').height;
+
 interface Props {
   visible: boolean;
   value: MarketFilters;
@@ -138,7 +142,6 @@ export default function MarketFiltersSheet({
   // Модалка держится смонтированной до конца анимации ухода — иначе шторка
   // исчезала бы мгновенно, а не уезжала вниз.
   const [mounted, setMounted] = useState(visible);
-  const [sheetHeight, setSheetHeight] = useState(520);
   const anim = useRef(new Animated.Value(0)).current;
   // Смещение пальцем. Драйвер у обоих значений один (JS): нативная и
   // не-нативная анимации на одном transform несовместимы.
@@ -454,7 +457,6 @@ export default function MarketFiltersSheet({
           pointerEvents="box-none"
         >
           <Animated.View
-            onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
             style={[
               styles.sheet,
               {
@@ -462,7 +464,7 @@ export default function MarketFiltersSheet({
                 transform: [
                   {
                     translateY: Animated.add(
-                      anim.interpolate({ inputRange: [0, 1], outputRange: [sheetHeight, 0] }),
+                      anim.interpolate({ inputRange: [0, 1], outputRange: [SHEET_TRAVEL, 0] }),
                       drag,
                     ),
                   },
