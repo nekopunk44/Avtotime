@@ -252,9 +252,12 @@ export default function MarketFiltersSheet({
 
   const pan = useRef(
     PanResponder.create({
-      // Перехватываем только явное движение вниз — горизонтальные и мелкие
-      // касания остаются кнопкам и полям.
-      onMoveShouldSetPanResponder: (_, g) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+      // Захват с первого касания: жест живёт на шапке, где нет кнопок, а
+      // ожидание движения мешало — панель не трогалась с места.
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderMove: (_, g) => {
         if (g.dy > 0) drag.setValue(g.dy);
       },

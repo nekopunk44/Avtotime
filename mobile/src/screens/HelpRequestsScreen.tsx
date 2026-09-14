@@ -173,7 +173,12 @@ export default function HelpRequestsScreen(_props: Props) {
 
   const pan = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+      // Захват с первого касания: на шапке нет кнопок, а ожидание движения
+      // мешало — панель не трогалась с места.
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderMove: (_, g) => { if (g.dy > 0) sheetDrag.setValue(g.dy); },
       onPanResponderRelease: (_, g) => {
         if (g.dy > 90 || g.vy > 0.9) {
@@ -357,8 +362,6 @@ export default function HelpRequestsScreen(_props: Props) {
                   ? 'Потяните экран вниз, чтобы повторить загрузку.'
                   : 'Опишите, что случилось на дороге, — запрос увидят другие водители.'
               }
-              actionLabel={error ? undefined : 'Создать запрос'}
-              onAction={error ? undefined : openCreate}
             />
           }
         />

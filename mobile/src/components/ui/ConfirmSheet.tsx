@@ -68,9 +68,12 @@ export default function ConfirmSheet({
 
   const pan = useRef(
     PanResponder.create({
-      // Перехватываем только явное движение вниз: нажатия на кнопки остаются
-      // кнопкам.
-      onMoveShouldSetPanResponder: (_, g) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+      // Захват с первого касания: жест живёт на шапке, где нет кнопок, и
+      // ожидание движения только мешало — панель не трогалась с места.
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderMove: (_, g) => {
         if (g.dy > 0) drag.setValue(g.dy);
       },
@@ -93,7 +96,6 @@ export default function ConfirmSheet({
       <Animated.View style={[styles.backdrop, { opacity: anim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
         <Animated.View
-          {...pan.panHandlers}
           onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
           style={[
             styles.sheet,
@@ -109,9 +111,13 @@ export default function ConfirmSheet({
             },
           ]}
         >
-          <View style={styles.grabber} />
-          <Text style={styles.title}>{title}</Text>
-          {message ? <Text style={styles.message}>{message}</Text> : null}
+          {/* Тянется шапка: в ней нет кнопок, поэтому жест можно забирать
+              сразу по касанию. */}
+          <View {...pan.panHandlers} style={styles.handleZone}>
+            <View style={styles.grabber} />
+            <Text style={styles.title}>{title}</Text>
+            {message ? <Text style={styles.message}>{message}</Text> : null}
+          </View>
 
           <View style={styles.actions}>
             <PressableScale style={styles.cancelBtn} onPress={onCancel}>
@@ -147,6 +153,7 @@ const styles = StyleSheet.create({
     paddingTop: space.sm,
     ...shadow.card,
   },
+  handleZone: { paddingBottom: space.sm },
   grabber: {
     alignSelf: 'center',
     width: 44,
