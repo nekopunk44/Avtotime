@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
   // Строка прижата к содержимому: переключатель слева, счётчики сразу за ним,
   // а не по разным краям с пустотой посередине.
   top: {
-    flexDirection: 'row', alignItems: 'center', gap: space.md,
+    flexDirection: 'row', alignItems: 'center', gap: space.xl,
     paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: space.xs,
   },
   scopeRow: {
