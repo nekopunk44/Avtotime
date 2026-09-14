@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Animated,
   FlatList,
   Image,
   RefreshControl,
@@ -30,13 +29,6 @@ import { colors } from '../theme';
 import { Skeleton } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
-type FilterMode = 'all' | 'unread';
-
-const FILTERS: Array<{ value: FilterMode; label: string }> = [
-  { value: 'all', label: 'Все' },
-  { value: 'unread', label: 'Непрочитанные' },
-];
-
 const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   like: 'heart',
   comment: 'chatbubble',
@@ -75,17 +67,11 @@ const getIdFromPath = (path: string, prefix: string) => {
 
 export default function NotificationsScreen({ navigation }: Props) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [filter, setFilter] = useState<FilterMode>('all');
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState('');
   const [bulkBusy, setBulkBusy] = useState<'read' | 'clear' | ''>('');
-  const [segLayouts, setSegLayouts] = useState<Array<{ x: number; width: number }>>([]);
-  const thumbX = useRef(new Animated.Value(0)).current;
-  const thumbW = useRef(new Animated.Value(0)).current;
-  const thumbInited = useRef(false);
-  const activeIndex = filter === 'unread' ? 1 : 0;
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -96,26 +82,6 @@ export default function NotificationsScreen({ navigation }: Props) {
       ),
     });
   }, [navigation]);
-
-  useEffect(() => {
-    const layout = segLayouts[activeIndex];
-    if (!layout) return;
-    if (!thumbInited.current) {
-      thumbInited.current = true;
-      thumbX.setValue(layout.x);
-      thumbW.setValue(layout.width);
-      return;
-    }
-    Animated.parallel([
-      Animated.spring(thumbX, { toValue: layout.x, useNativeDriver: false, friction: 10, tension: 90 }),
-      Animated.spring(thumbW, { toValue: layout.width, useNativeDriver: false, friction: 10, tension: 90 }),
-    ]).start();
-  }, [activeIndex, segLayouts, thumbX, thumbW]);
-
-  const filtered = useMemo(
-    () => (filter === 'unread' ? notifications.filter((item) => !item.isRead) : notifications),
-    [filter, notifications],
-  );
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -321,36 +287,6 @@ export default function NotificationsScreen({ navigation }: Props) {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.segment}>
-        {segLayouts.length === FILTERS.length ? (
-          <Animated.View style={[styles.segThumb, { left: thumbX, width: thumbW }]} />
-        ) : null}
-        {FILTERS.map((item, index) => {
-          const active = filter === item.value;
-          return (
-            <TouchableOpacity
-              key={item.value}
-              style={styles.segmentBtn}
-              onPress={() => setFilter(item.value)}
-              onLayout={(e) => {
-                const { x, width } = e.nativeEvent.layout;
-                setSegLayouts((prev) => {
-                  if (prev[index] && prev[index].x === x && prev[index].width === width) return prev;
-                  const next = [...prev];
-                  next[index] = { x, width };
-                  return next;
-                });
-              }}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.segmentText, active && styles.segmentTextActive]} numberOfLines={1}>
-                {item.value === 'unread' ? `Непрочитанные${unreadCount ? ` · ${unreadCount}` : ''}` : item.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
       {notifications.length ? (
         <View style={styles.bulkRow}>
           <TouchableOpacity
@@ -393,7 +329,12 @@ export default function NotificationsScreen({ navigation }: Props) {
         )}
         <View style={styles.cardContent}>
           <View style={styles.cardTop}>
-            <Text style={styles.cardTitle} numberOfLines={1}>{item.title || 'Avtotime'}</Text>
+            <Text
+              style={[styles.cardTitle, item.isRead && styles.cardTitleRead]}
+              numberOfLines={1}
+            >
+              {item.title || 'Avtotime'}
+            </Text>
             <Text style={styles.time}>{formatDate(item.createdAt)}</Text>
           </View>
           <Text style={styles.message} numberOfLines={2}>{message}</Text>
@@ -424,16 +365,16 @@ export default function NotificationsScreen({ navigation }: Props) {
   return (
     <FlatList
       style={styles.container}
-      data={filtered}
+      data={notifications}
       keyExtractor={(item) => item._id}
       renderItem={renderItem}
       ListHeaderComponent={renderHeader()}
-      contentContainerStyle={filtered.length ? styles.list : styles.emptyList}
+      contentContainerStyle={notifications.length ? styles.list : styles.emptyList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       ListEmptyComponent={
         <View style={styles.emptyState}>
           <Ionicons name="notifications-off-outline" size={46} color={colors.textFaint} />
-          <Text style={styles.emptyTitle}>{filter === 'unread' ? 'Непрочитанных нет' : 'Уведомлений нет'}</Text>
+          <Text style={styles.emptyTitle}>Уведомлений нет</Text>
           <Text style={styles.emptyText}>Новые события по профилю, сообщениям и объявлениям появятся здесь.</Text>
         </View>
       }
@@ -453,23 +394,22 @@ const styles = StyleSheet.create({
   headerSettings: { marginRight: 12, padding: 4 },
   // paddingHorizontal insets the thumb on all sides (thumb top: 4). Buttons'
   // onLayout x already includes this padding, so thumb left matches button x.
-  segment: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceAlt, borderRadius: 999, height: 42, paddingHorizontal: 4 },
   segThumb: { position: 'absolute', top: 4, height: 34, borderRadius: 999, backgroundColor: colors.accent },
-  segmentBtn: { height: 34, marginVertical: 4, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
-  segmentText: { color: colors.textMuted, fontSize: 14, fontWeight: '900' },
-  segmentTextActive: { color: colors.onAccent },
   bulkRow: { flexDirection: 'row', gap: 8 },
   bulkBtn: { flex: 1, height: 42, borderRadius: 12, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   bulkBtnDisabled: { opacity: 0.52 },
   bulkText: { color: colors.text, fontSize: 13, fontWeight: '900' },
   bulkTextDanger: { color: colors.danger },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12 },
-  cardUnread: { backgroundColor: colors.surfaceAlt, borderColor: colors.surfaceHi },
+  // Прочитанное живёт на фоне экрана и приглушено, непрочитанное — карточкой
+  // со своим фоном: разницу видно без всяких фильтров.
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: 'transparent', padding: 12, opacity: 0.72 },
+  cardUnread: { backgroundColor: colors.surface, borderColor: colors.border, opacity: 1 },
   iconWrap: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.surfaceHi, justifyContent: 'center', alignItems: 'center' },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surfaceAlt },
   cardContent: { flex: 1 },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   cardTitle: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '900' },
+  cardTitleRead: { color: colors.textMuted, fontWeight: '800' },
   time: { color: colors.textFaint, fontSize: 11, fontWeight: '700' },
   message: { marginTop: 3, color: colors.textMuted, fontSize: 13, lineHeight: 18 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
