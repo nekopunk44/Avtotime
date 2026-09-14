@@ -1,30 +1,44 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Dimensions,
+  Easing,
   FlatList,
   Image,
   KeyboardAvoidingView,
   Modal,
+  PanResponder,
   Platform,
+  Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { createEcoTip, EcoTip, getEcoTips } from '../api/ecoTips';
 import { AppStackParamList } from '../navigation/AppNavigator';
-import { colors } from '../theme';
+import { colors, font, radius, shadow, space } from '../theme';
+import { EmptyState, PressableScale, Skeleton } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'EcoTips'> };
 
-const CATEGORIES = ['Все', 'Вождение', 'Обслуживание', 'Электромобили', 'Образ жизни', 'Другое'];
+const CATEGORIES = ['Вождение', 'Обслуживание', 'Электромобили', 'Образ жизни', 'Другое'];
+const ALL = 'Все';
+
+// Ход выезда больше любой панели: старт всегда за краем экрана.
+const SHEET_TRAVEL = Dimensions.get('window').height;
+
+const TITLE_LIMIT = 80;
+const TEXT_LIMIT = 600;
 
 const formatDate = (tip: EcoTip) => {
   if (tip.date) return tip.date;
@@ -34,30 +48,42 @@ const formatDate = (tip: EcoTip) => {
   return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 };
 
-export default function EcoTipsScreen({ navigation }: Props) {
+export default function EcoTipsScreen(_props: Props) {
+  const insets = useSafeAreaInsets();
   const [tips, setTips] = useState<EcoTip[]>([]);
-  const [category, setCategory] = useState('Все');
+  const [category, setCategory] = useState(ALL);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
   const [modalOpen, setModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [draftCategory, setDraftCategory] = useState('Вождение');
+  const [draftCategory, setDraftCategory] = useState(CATEGORIES[0]);
   const [imageUri, setImageUri] = useState('');
   const [saving, setSaving] = useState(false);
 
   const filteredTips = useMemo(() => {
-    if (category === 'Все') return tips;
+    if (category === ALL) return tips;
     return tips.filter((tip) => (tip.category || '').toLowerCase() === category.toLowerCase());
   }, [category, tips]);
+
+  // Сколько советов в каждой категории — цифра рядом с названием избавляет от
+  // проверки вкладок наугад.
+  const counts = useMemo(() => {
+    const map: Record<string, number> = { [ALL]: tips.length };
+    CATEGORIES.forEach((name) => {
+      map[name] = tips.filter((tip) => (tip.category || '').toLowerCase() === name.toLowerCase()).length;
+    });
+    return map;
+  }, [tips]);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError('');
     try {
-      const data = await getEcoTips(false);
-      setTips(data);
+      setTips(await getEcoTips(false));
     } catch (e: any) {
       setError(e.response?.data?.message || 'Не удалось загрузить советы');
     } finally {
@@ -75,18 +101,61 @@ export default function EcoTipsScreen({ navigation }: Props) {
     load(true);
   };
 
-  const resetDraft = () => {
-    setTitle('');
-    setDescription('');
-    setDraftCategory('Вождение');
-    setImageUri('');
-  };
+  // ── Шторка публикации ────────────────────────────────────────────────────
+  const [sheetMounted, setSheetMounted] = useState(false);
+  const sheetAnim = useRef(new Animated.Value(0)).current;
+  const sheetDrag = useRef(new Animated.Value(0)).current;
 
-  const closeModal = () => {
+  useEffect(() => {
+    if (modalOpen) {
+      setSheetMounted(true);
+      sheetAnim.setValue(0);
+      sheetDrag.setValue(0);
+      Animated.timing(sheetAnim, {
+        toValue: 1, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: false,
+      }).start();
+      return;
+    }
+    Animated.parallel([
+      Animated.timing(sheetAnim, { toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: false }),
+      Animated.timing(sheetDrag, { toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: false }),
+    ]).start(({ finished }) => {
+      if (finished) setSheetMounted(false);
+    });
+  }, [modalOpen, sheetAnim, sheetDrag]);
+
+  const closeModal = useCallback(() => {
     if (saving) return;
     setModalOpen(false);
-    resetDraft();
-  };
+    setTitle('');
+    setDescription('');
+    setDraftCategory(CATEGORIES[0]);
+    setImageUri('');
+  }, [saving]);
+
+  const closeRef = useRef(closeModal);
+  closeRef.current = closeModal;
+
+  const pan = useRef(
+    PanResponder.create({
+      // Захват с первого касания: жест живёт на шапке, где нет кнопок.
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+      onPanResponderMove: (_, g) => { if (g.dy > 0) sheetDrag.setValue(g.dy); },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > 90 || g.vy > 0.9) {
+          closeRef.current();
+          return;
+        }
+        Animated.spring(sheetDrag, { toValue: 0, useNativeDriver: false, bounciness: 6, speed: 14 }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(sheetDrag, { toValue: 0, useNativeDriver: false, bounciness: 6, speed: 14 }).start();
+      },
+    }),
+  ).current;
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -96,7 +165,7 @@ export default function EcoTipsScreen({ navigation }: Props) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.85,
     });
@@ -104,25 +173,25 @@ export default function EcoTipsScreen({ navigation }: Props) {
     if (!result.canceled) setImageUri(result.assets[0].uri);
   };
 
+  const canPublish = Boolean(title.trim() && description.trim()) && !saving;
+
   const saveTip = async () => {
-    const cleanTitle = title.trim();
-    const cleanDescription = description.trim();
-    if (!cleanTitle || !cleanDescription) {
-      Alert.alert('Совет', 'Заполните заголовок и текст совета.');
-      return;
-    }
+    if (!canPublish) return;
 
     setSaving(true);
     try {
       const created = await createEcoTip({
-        title: cleanTitle,
-        description: cleanDescription,
+        title: title.trim(),
+        description: description.trim(),
         category: draftCategory,
         imageUri,
       });
       setTips((prev) => [created, ...prev.filter((tip) => (tip._id || tip.id) !== (created._id || created.id))]);
-      closeModal();
-      Alert.alert('Готово', 'Совет опубликован.');
+      setModalOpen(false);
+      setTitle('');
+      setDescription('');
+      setDraftCategory(CATEGORIES[0]);
+      setImageUri('');
     } catch (e: any) {
       Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось опубликовать совет');
     } finally {
@@ -130,62 +199,77 @@ export default function EcoTipsScreen({ navigation }: Props) {
     }
   };
 
-  const renderCategory = ({ item }: { item: string }) => {
-    const active = item === category;
+  const renderTip = ({ item }: { item: EcoTip }) => {
+    const key = String(item._id || item.id || item.title);
+    const open = Boolean(expanded[key]);
     return (
-      <TouchableOpacity
-        style={[styles.categoryBtn, active && styles.categoryBtnActive]}
-        onPress={() => setCategory(item)}
-        activeOpacity={0.85}
+      <PressableScale
+        style={styles.card}
+        scaleTo={0.99}
+        // Совет раскрывается на месте: отдельный экран ради трёх абзацев —
+        // лишний переход.
+        onPress={() => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
       >
-        <Text style={[styles.categoryText, active && styles.categoryTextActive]}>{item}</Text>
-      </TouchableOpacity>
+        {item.image ? (
+          <View>
+            <Image source={{ uri: item.image }} style={styles.image} />
+            <View style={styles.imageScrim} />
+            <Text style={styles.imagePill}>{item.category || CATEGORIES[0]}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.cardBody}>
+          {!item.image ? (
+            <View style={styles.metaRow}>
+              <Text style={styles.pill}>{item.category || CATEGORIES[0]}</Text>
+              <Text style={styles.date}>{formatDate(item)}</Text>
+            </View>
+          ) : null}
+
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          <Text style={styles.description} numberOfLines={open ? undefined : 4}>{item.description}</Text>
+
+          <View style={styles.cardFooter}>
+            {item.image ? <Text style={styles.date}>{formatDate(item)}</Text> : <View />}
+            <Text style={styles.more}>{open ? 'Свернуть' : 'Читать полностью'}</Text>
+          </View>
+        </View>
+      </PressableScale>
     );
   };
 
-  const renderTip = ({ item }: { item: EcoTip }) => (
-    <View style={styles.card}>
-      {item.image ? (
-        <Image source={{ uri: item.image }} style={styles.image} />
-      ) : (
-        <View style={[styles.image, styles.imageFallback]}>
-          <Ionicons name="leaf-outline" size={32} color={colors.success} />
-        </View>
-      )}
-
-      <View style={styles.cardBody}>
-        <View style={styles.cardMeta}>
-          <Text style={styles.pill}>{item.category || 'Вождение'}</Text>
-          <Text style={styles.date}>{formatDate(item)}</Text>
-        </View>
-        <Text style={styles.cardTitle}>{item.title}</Text>
-        <Text style={styles.description} numberOfLines={5}>{item.description}</Text>
-      </View>
-    </View>
-  );
+  const renderChip = (name: string) => {
+    const active = name === category;
+    const count = counts[name] ?? 0;
+    return (
+      <PressableScale
+        key={name}
+        scaleTo={0.95}
+        style={[styles.chip, active && styles.chipActive]}
+        onPress={() => setCategory(name)}
+      >
+        <Text style={[styles.chipText, active && styles.chipTextActive]}>{name}</Text>
+        {count > 0 ? (
+          <Text style={[styles.chipCount, active && styles.chipCountActive]}>{count}</Text>
+        ) : null}
+      </PressableScale>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.top}>
-        <View style={styles.headerRow}>
-          <FlatList
-            data={CATEGORIES}
-            horizontal
-            keyExtractor={(item) => item}
-            renderItem={renderCategory}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryList}
-            style={styles.categoryScroller}
-          />
-          <TouchableOpacity style={styles.addBtn} onPress={() => setModalOpen(true)}>
-            <Ionicons name="add" size={24} color={colors.onAccent} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.chipScroller}
+        contentContainerStyle={styles.chipRow}
+      >
+        {[ALL, ...CATEGORIES].map(renderChip)}
+      </ScrollView>
 
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.text} />
+        <View style={styles.list}>
+          {[0, 1].map((i) => <Skeleton key={i} style={styles.skeletonCard} />)}
         </View>
       ) : (
         <FlatList
@@ -195,91 +279,138 @@ export default function EcoTipsScreen({ navigation }: Props) {
           contentContainerStyle={filteredTips.length ? styles.list : styles.emptyList}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
           ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Ionicons name={error ? 'alert-circle-outline' : 'leaf-outline'} size={38} color={colors.textFaint} />
-              <Text style={styles.emptyTitle}>{error || 'Советов пока нет'}</Text>
-              <Text style={styles.emptyText}>
-                {error ? 'Потяните экран вниз, чтобы повторить загрузку.' : 'Поделитесь первым советом для сообщества.'}
-              </Text>
-            </View>
+            <EmptyState
+              icon={error ? 'alert-circle-outline' : 'leaf-outline'}
+              title={error || (category === ALL ? 'Советов пока нет' : `В разделе «${category}» пусто`)}
+              subtitle={
+                error
+                  ? 'Потяните экран вниз, чтобы повторить загрузку.'
+                  : 'Поделитесь тем, что экономит топливо и бережёт машину.'
+              }
+            />
           }
         />
       )}
 
-      <Modal visible={modalOpen} transparent animationType="slide" onRequestClose={closeModal}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalRoot}
-        >
-          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeModal} />
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Новый эко совет</Text>
+      <PressableScale
+        style={[styles.fab, { bottom: insets.bottom + space.xl }]}
+        scaleTo={0.94}
+        onPress={() => setModalOpen(true)}
+      >
+        <Ionicons name="add" size={26} color={colors.onAccent} />
+      </PressableScale>
 
-            <TouchableOpacity style={styles.imagePicker} onPress={pickImage} activeOpacity={0.85}>
-              {imageUri ? (
-                <Image source={{ uri: imageUri }} style={styles.pickedImage} />
-              ) : (
-                <>
-                  <Ionicons name="image-outline" size={24} color={colors.success} />
-                  <Text style={styles.imagePickerText}>Добавить фото</Text>
-                </>
-              )}
-            </TouchableOpacity>
+      <Modal visible={sheetMounted} transparent animationType="none" onRequestClose={closeModal} statusBarTranslucent>
+        <Animated.View style={[styles.backdrop, { opacity: sheetAnim }]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeModal} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.sheetWrap}
+            pointerEvents="box-none"
+          >
+            <Animated.View
+              style={[
+                styles.sheet,
+                {
+                  paddingBottom: insets.bottom + space.lg,
+                  transform: [{
+                    translateY: Animated.add(
+                      sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [SHEET_TRAVEL, 0] }),
+                      sheetDrag,
+                    ),
+                  }],
+                },
+              ]}
+            >
+              <View {...pan.panHandlers} style={styles.handleZone}>
+                <View style={styles.grabber} />
+                <Text style={styles.sheetTitle}>Новый совет</Text>
+              </View>
 
-            {imageUri ? (
-              <TouchableOpacity style={styles.removeImageBtn} onPress={() => setImageUri('')}>
-                <Text style={styles.removeImageText}>Убрать фото</Text>
-              </TouchableOpacity>
-            ) : null}
+              <ScrollView
+                style={styles.sheetBody}
+                contentContainerStyle={styles.sheetContent}
+                keyboardShouldPersistTaps="always"
+                showsVerticalScrollIndicator={false}
+              >
+                <PressableScale style={styles.imagePicker} scaleTo={0.98} onPress={pickImage}>
+                  {imageUri ? (
+                    <>
+                      <Image source={{ uri: imageUri }} style={styles.pickedImage} />
+                      <Pressable style={styles.removeImage} onPress={() => setImageUri('')} hitSlop={8}>
+                        <Ionicons name="close" size={16} color={colors.white} />
+                      </Pressable>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="image-outline" size={22} color={colors.success} />
+                      <Text style={styles.imagePickerText}>Добавить фото</Text>
+                    </>
+                  )}
+                </PressableScale>
 
-            <Text style={styles.inputLabel}>Заголовок</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Например: Проверяйте давление в шинах"
-              placeholderTextColor={colors.textFaint}
-              value={title}
-              onChangeText={(value) => setTitle(value.slice(0, 80))}
-            />
+                <View style={styles.field}>
+                  <View style={styles.labelRow}>
+                    <Text style={styles.label}>Заголовок</Text>
+                    <Text style={styles.counter}>{title.length}/{TITLE_LIMIT}</Text>
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Например: Проверяйте давление в шинах"
+                    placeholderTextColor={colors.textFaint}
+                    value={title}
+                    onChangeText={(value) => setTitle(value.slice(0, TITLE_LIMIT))}
+                  />
+                </View>
 
-            <Text style={styles.inputLabel}>Категория</Text>
-            <View style={styles.draftCategories}>
-              {CATEGORIES.filter((item) => item !== 'Все').map((item) => {
-                const active = item === draftCategory;
-                return (
-                  <TouchableOpacity
-                    key={item}
-                    style={[styles.draftCategoryBtn, active && styles.draftCategoryActive]}
-                    onPress={() => setDraftCategory(item)}
-                  >
-                    <Text style={[styles.draftCategoryText, active && styles.draftCategoryTextActive]}>{item}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                <View style={styles.field}>
+                  <Text style={styles.label}>Категория</Text>
+                  <View style={styles.draftChips}>
+                    {CATEGORIES.map((name) => {
+                      const active = name === draftCategory;
+                      return (
+                        <PressableScale
+                          key={name}
+                          scaleTo={0.95}
+                          style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => setDraftCategory(name)}
+                        >
+                          <Text style={[styles.chipText, active && styles.chipTextActive]}>{name}</Text>
+                        </PressableScale>
+                      );
+                    })}
+                  </View>
+                </View>
 
-            <Text style={styles.inputLabel}>Текст совета</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Опишите совет подробнее"
-              placeholderTextColor={colors.textFaint}
-              value={description}
-              onChangeText={(value) => setDescription(value.slice(0, 600))}
-              multiline
-              textAlignVertical="top"
-            />
-            <Text style={styles.counter}>{description.length}/600</Text>
+                <View style={styles.field}>
+                  <View style={styles.labelRow}>
+                    <Text style={styles.label}>Текст совета</Text>
+                    <Text style={styles.counter}>{description.length}/{TEXT_LIMIT}</Text>
+                  </View>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="Опишите совет подробнее"
+                    placeholderTextColor={colors.textFaint}
+                    value={description}
+                    onChangeText={(value) => setDescription(value.slice(0, TEXT_LIMIT))}
+                    multiline
+                    textAlignVertical="top"
+                  />
+                </View>
+              </ScrollView>
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={closeModal} disabled={saving}>
-                <Text style={styles.cancelText}>Отмена</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={saveTip} disabled={saving}>
-                {saving ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.saveText}>Опубликовать</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
+              <PressableScale
+                style={[styles.publishBtn, !canPublish && styles.publishBtnDisabled]}
+                scaleTo={0.98}
+                onPress={saveTip}
+              >
+                {saving
+                  ? <ActivityIndicator color={colors.onAccent} />
+                  : <Text style={styles.publishText}>Опубликовать</Text>}
+              </PressableScale>
+            </Animated.View>
+          </KeyboardAvoidingView>
+        </Animated.View>
       </Modal>
     </View>
   );
@@ -287,52 +418,106 @@ export default function EcoTipsScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  top: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  categoryScroller: { flex: 1 },
-  addBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  categoryList: { gap: 8, paddingVertical: 2 },
-  categoryBtn: { height: 36, borderRadius: 10, paddingHorizontal: 12, justifyContent: 'center', backgroundColor: colors.surfaceAlt },
-  categoryBtnActive: { backgroundColor: colors.accent },
-  categoryText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
-  categoryTextActive: { color: colors.onAccent },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list: { padding: 12, gap: 10 },
-  emptyList: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  emptyState: { alignItems: 'center' },
-  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  card: { backgroundColor: colors.surface, borderRadius: 14, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  image: { width: '100%', height: 178, backgroundColor: 'rgba(61,214,140,0.14)' },
-  imageFallback: { alignItems: 'center', justifyContent: 'center' },
-  cardBody: { padding: 14 },
-  cardMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  pill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: 'rgba(61,214,140,0.14)', color: colors.success, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  date: { color: colors.textFaint, fontSize: 12, fontWeight: '800' },
-  cardTitle: { marginTop: 12, color: colors.text, fontSize: 18, lineHeight: 23, fontWeight: '900' },
-  description: { marginTop: 8, color: colors.textMuted, fontSize: 14, lineHeight: 20 },
-  modalRoot: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
-  sheet: { maxHeight: '92%', backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
-  sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: colors.surfaceHi, marginBottom: 12 },
-  sheetTitle: { color: colors.text, fontSize: 20, fontWeight: '900', marginBottom: 14 },
-  imagePicker: { height: 116, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(61,214,140,0.3)', backgroundColor: 'rgba(61,214,140,0.14)', alignItems: 'center', justifyContent: 'center', gap: 6, overflow: 'hidden' },
-  imagePickerText: { color: colors.success, fontSize: 14, fontWeight: '900' },
+
+  chipScroller: { flexGrow: 0, paddingTop: space.sm },
+  chipRow: { gap: space.sm, paddingHorizontal: space.md, paddingBottom: space.sm },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    height: 36, borderRadius: radius.pill, paddingHorizontal: space.md,
+    backgroundColor: colors.surfaceAlt,
+  },
+  chipActive: { backgroundColor: colors.accent },
+  chipText: { color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
+  chipTextActive: { color: colors.onAccent, fontWeight: '900' },
+  chipCount: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '900' },
+  chipCountActive: { color: 'rgba(11,11,14,0.55)' },
+
+  list: { paddingHorizontal: space.md, paddingTop: space.xs, paddingBottom: space.xxxl, gap: space.md },
+  emptyList: { flexGrow: 1, justifyContent: 'center', padding: space.lg },
+  skeletonCard: { height: 240, borderRadius: radius.lg, marginBottom: space.md },
+
+  card: { backgroundColor: colors.surface, borderRadius: radius.lg, overflow: 'hidden', ...shadow.card },
+  image: { width: '100%', height: 180, backgroundColor: colors.surfaceAlt },
+  // Затемнение снизу картинки: белая плашка категории читается на любом фото.
+  imageScrim: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, height: 64,
+    backgroundColor: 'rgba(8,8,10,0.45)',
+  },
+  imagePill: {
+    position: 'absolute', left: space.md, bottom: space.md, overflow: 'hidden',
+    borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 5,
+    backgroundColor: 'rgba(61,214,140,0.9)', color: colors.ink,
+    fontSize: font.tiny, fontWeight: '900',
+  },
+  cardBody: { padding: space.md },
+  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  pill: {
+    overflow: 'hidden', borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 5,
+    backgroundColor: 'rgba(61,214,140,0.14)', color: colors.success,
+    fontSize: font.tiny, fontWeight: '900',
+  },
+  date: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
+  cardTitle: { marginTop: space.sm, color: colors.text, fontSize: font.h3, lineHeight: 23, fontWeight: '900' },
+  description: { marginTop: 6, color: colors.textMuted, fontSize: font.small, lineHeight: 20, fontWeight: '600' },
+  cardFooter: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginTop: space.md,
+  },
+  more: { color: colors.success, fontSize: font.tiny, fontWeight: '900' },
+
+  fab: {
+    position: 'absolute', right: space.lg, width: 58, height: 58, borderRadius: radius.pill,
+    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', ...shadow.float,
+  },
+
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
+  sheetWrap: { flex: 1, justifyContent: 'flex-end' },
+  sheet: {
+    maxHeight: '90%', backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
+    paddingHorizontal: space.xl, paddingTop: space.sm,
+  },
+  handleZone: { paddingTop: space.xs, paddingBottom: space.xs, alignItems: 'center' },
+  grabber: {
+    width: 44, height: 5, borderRadius: radius.pill,
+    backgroundColor: colors.surfaceHi, marginBottom: space.md,
+  },
+  sheetTitle: { color: colors.text, fontSize: font.h2, fontWeight: '900', textAlign: 'center' },
+
+  sheetBody: { marginTop: space.md },
+  sheetContent: { gap: space.lg, paddingBottom: space.md },
+  imagePicker: {
+    height: 120, borderRadius: radius.md, borderWidth: 1, borderStyle: 'dashed',
+    borderColor: 'rgba(61,214,140,0.35)', backgroundColor: 'rgba(61,214,140,0.12)',
+    alignItems: 'center', justifyContent: 'center', gap: 6, overflow: 'hidden',
+  },
+  imagePickerText: { color: colors.success, fontSize: font.small, fontWeight: '900' },
   pickedImage: { width: '100%', height: '100%' },
-  removeImageBtn: { alignSelf: 'flex-end', paddingVertical: 8 },
-  removeImageText: { color: colors.danger, fontSize: 13, fontWeight: '800' },
-  inputLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '800', marginTop: 12, marginBottom: 7 },
-  input: { minHeight: 46, borderRadius: 12, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 15 },
-  draftCategories: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  draftCategoryBtn: { height: 34, borderRadius: 10, paddingHorizontal: 10, backgroundColor: colors.surfaceAlt, justifyContent: 'center' },
-  draftCategoryActive: { backgroundColor: colors.accent },
-  draftCategoryText: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
-  draftCategoryTextActive: { color: colors.onAccent },
-  textArea: { minHeight: 112, paddingTop: 12, lineHeight: 21 },
-  counter: { marginTop: 5, color: colors.textFaint, fontSize: 12, textAlign: 'right', fontWeight: '700' },
-  modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  cancelBtn: { flex: 1, height: 46, borderRadius: 12, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  saveBtn: { flex: 1, height: 46, borderRadius: 12, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  saveText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
+  removeImage: {
+    position: 'absolute', top: space.sm, right: space.sm,
+    width: 30, height: 30, borderRadius: radius.pill,
+    backgroundColor: 'rgba(8,8,10,0.6)', alignItems: 'center', justifyContent: 'center',
+  },
+
+  field: { gap: space.sm },
+  labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  label: {
+    color: colors.textMuted, fontSize: font.tiny, fontWeight: '900',
+    marginLeft: 2, textTransform: 'uppercase', letterSpacing: 0.4,
+  },
+  counter: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
+  input: {
+    minHeight: 48, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+    paddingHorizontal: space.md, color: colors.text, fontSize: font.body,
+  },
+  textArea: { minHeight: 120, paddingTop: space.md, lineHeight: 21 },
+  draftChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+
+  publishBtn: {
+    marginTop: space.md, height: 52, borderRadius: radius.pill, backgroundColor: colors.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  publishBtnDisabled: { opacity: 0.45 },
+  publishText: { color: colors.onAccent, fontSize: font.body, fontWeight: '900' },
 });
