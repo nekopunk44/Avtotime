@@ -27,7 +27,9 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -66,7 +68,15 @@
           "backgroundColor": "#0B0B0B"
         }
       ],
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Местоположение нужно, чтобы точно указать, где вам нужна помощь на дороге.",
+          "locationWhenInUsePermission": "Местоположение нужно, чтобы точно указать, где вам нужна помощь на дороге.",
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ]
     ],
     "extra": {
       "googleWebClientId": "602150943944-45oom92dmun40ae6qhk1iepc05la8ahd.apps.googleusercontent.com",

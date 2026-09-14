@@ -27,11 +27,13 @@ import {
   deleteHelpRequest,
   getHelpRequestKey,
   getHelpRequests,
+  HelpCoordinates,
   HelpRequest,
   HelpRequestStatus,
   updateHelpRequest,
 } from '../api/helpRequests';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { getDeviceLocation } from '../services/deviceLocation';
 import { colors, font, radius, shadow, space } from '../theme';
 import { ConfirmSheet, EmptyState, PressableScale, Skeleton } from '../components/ui';
 
@@ -41,9 +43,11 @@ type DraftState = {
   location: string;
   description: string;
   status: HelpRequestStatus;
+  /** Точка на карте: по ней помогающий строит маршрут, а не ищет по названию. */
+  coordinates: HelpCoordinates | null;
 };
 
-const emptyDraft: DraftState = { location: '', description: '', status: 'active' };
+const emptyDraft: DraftState = { location: '', description: '', status: 'active', coordinates: null };
 
 // Ход выезда больше любой панели: старт всегда за краем экрана.
 const SHEET_TRAVEL = Dimensions.get('window').height;
@@ -208,8 +212,38 @@ export default function HelpRequestsScreen(_props: Props) {
       location: request.location || '',
       description: request.description || '',
       status: request.status || 'active',
+      coordinates: request.coordinates || null,
     });
     setModalOpen(true);
+  };
+
+  const [locating, setLocating] = useState(false);
+
+  const detectLocation = async () => {
+    if (locating) return;
+    setLocating(true);
+    try {
+      const found = await getDeviceLocation();
+      if (!found) {
+        Alert.alert('Местоположение', 'Не удалось определить, где вы находитесь.');
+        return;
+      }
+      setDraft((prev) => ({
+        ...prev,
+        location: found.label,
+        coordinates: found.lat !== null && found.lng !== null
+          ? { lat: found.lat, lng: found.lng }
+          : null,
+      }));
+      if (!found.precise) {
+        Alert.alert(
+          'Местоположение',
+          'Точные координаты недоступны — подставили город по подключению. Уточните адрес вручную.',
+        );
+      }
+    } finally {
+      setLocating(false);
+    }
   };
 
   const canSave = Boolean(draft.location.trim() && draft.description.trim()) && !saving;
@@ -227,10 +261,10 @@ export default function HelpRequestsScreen(_props: Props) {
           location,
           description,
           status: draft.status,
-          coordinates: editing.coordinates || null,
+          coordinates: draft.coordinates || editing.coordinates || null,
         });
       } else {
-        await createHelpRequest({ location, description, coordinates: null });
+        await createHelpRequest({ location, description, coordinates: draft.coordinates });
         setScope('mine');
       }
       setModalOpen(false);
@@ -407,13 +441,25 @@ export default function HelpRequestsScreen(_props: Props) {
 
               <View style={styles.field}>
                 <Text style={styles.label}>Где вы</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Например: Кишинев, Ботаника"
-                  placeholderTextColor={colors.textFaint}
-                  value={draft.location}
-                  onChangeText={(location) => setDraft((prev) => ({ ...prev, location }))}
-                />
+                <View style={[styles.input, styles.inputWithAction]}>
+                  <TextInput
+                    style={styles.inputInner}
+                    placeholder="Например: Кишинев, Ботаника"
+                    placeholderTextColor={colors.textFaint}
+                    value={draft.location}
+                    // Правка руками сбрасывает точку: адрес и координаты
+                    // разошлись бы, и помощь поехала бы не туда.
+                    onChangeText={(location) => setDraft((prev) => ({ ...prev, location, coordinates: null }))}
+                  />
+                  <Pressable onPress={detectLocation} hitSlop={10} style={styles.inputAction}>
+                    {locating
+                      ? <ActivityIndicator size="small" color={colors.text} />
+                      : <Ionicons name="locate" size={18} color={draft.coordinates ? colors.accent : colors.textMuted} />}
+                  </Pressable>
+                </View>
+                {draft.coordinates ? (
+                  <Text style={styles.hint}>Точка на карте сохранена — помощь приедет по координатам</Text>
+                ) : null}
               </View>
 
               <View style={styles.field}>
@@ -571,6 +617,11 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
     paddingHorizontal: space.md, color: colors.text, fontSize: font.body,
   },
+  // Кнопка внутри поля: рамка одна на ввод и действие.
+  inputWithAction: { flexDirection: 'row', alignItems: 'center', paddingRight: 6 },
+  inputInner: { flex: 1, height: 46, color: colors.text, fontSize: font.body, padding: 0 },
+  inputAction: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  hint: { marginLeft: 2, color: colors.success, fontSize: font.tiny, fontWeight: '800' },
   textArea: { minHeight: 110, paddingTop: space.md, lineHeight: 21 },
 
   statusSwitch: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: radius.md, padding: 4, gap: 4 },
