@@ -588,8 +588,9 @@ const styles = StyleSheet.create({
     maxHeight: '86%',
     ...shadow.card,
   },
-  // Зона перетаскивания шире самой полоски: попасть пальцем в 4 пикселя нельзя.
-  handleZone: { paddingTop: space.xs, paddingBottom: space.sm, alignItems: 'center' },
+  // Зона перетаскивания шире самой полоски: попасть пальцем в пять пикселей
+  // нельзя, поэтому тянется вся шапка вместе с заголовком.
+  handleZone: { paddingTop: space.md, paddingBottom: space.md, alignItems: 'center' },
   grabber: {
     width: 44, height: 5, borderRadius: radius.pill,
     backgroundColor: colors.surfaceHi, marginBottom: space.md,

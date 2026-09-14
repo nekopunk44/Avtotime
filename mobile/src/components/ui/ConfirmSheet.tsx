@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Modal, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, font, radius, shadow, space } from '../../theme';
 import PressableScale from './PressableScale';
 
@@ -19,6 +19,9 @@ interface ConfirmSheetProps {
  * Кастомное подтверждение вместо системного Alert: тёмная шторка в языке
  * приложения. Тап по подложке равен «отмене» — случайное касание не должно
  * выполнять действие.
+ *
+ * Панель идёт за пальцем и закрывается, если утянуть её вниз: полоска-грабер
+ * обещает это движение, и она не должна обманывать.
  */
 export default function ConfirmSheet({
   visible,
@@ -30,25 +33,82 @@ export default function ConfirmSheet({
   onConfirm,
   onCancel,
 }: ConfirmSheetProps) {
-  const slide = useRef(new Animated.Value(48)).current;
-  const fade = useRef(new Animated.Value(0)).current;
+  // Модалка живёт до конца анимации ухода — иначе шторка исчезала бы
+  // мгновенно вместо того, чтобы уехать вниз.
+  const [mounted, setMounted] = useState(visible);
+  const [sheetHeight, setSheetHeight] = useState(280);
+  const anim = useRef(new Animated.Value(0)).current;
+  // Смещение пальцем. Драйвер общий (JS): нативная и не-нативная анимации на
+  // одном transform несовместимы.
+  const drag = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
-      slide.setValue(48);
-      fade.setValue(0);
-      Animated.parallel([
-        Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: true }),
-        Animated.spring(slide, { toValue: 0, useNativeDriver: true, damping: 18, stiffness: 200 }),
-      ]).start();
+      setMounted(true);
+      anim.setValue(0);
+      drag.setValue(0);
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 280,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+      return;
     }
-  }, [visible, slide, fade]);
+    Animated.parallel([
+      Animated.timing(anim, { toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: false }),
+      Animated.timing(drag, { toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: false }),
+    ]).start(({ finished }) => {
+      if (finished) setMounted(false);
+    });
+  }, [visible, anim, drag]);
+
+  const cancelRef = useRef(onCancel);
+  cancelRef.current = onCancel;
+
+  const pan = useRef(
+    PanResponder.create({
+      // Перехватываем только явное движение вниз: нажатия на кнопки остаются
+      // кнопкам.
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) drag.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        // Либо утянули достаточно далеко, либо бросили резким движением вниз.
+        if (g.dy > 80 || g.vy > 0.9) {
+          cancelRef.current();
+          return;
+        }
+        Animated.spring(drag, { toValue: 0, useNativeDriver: false, bounciness: 6, speed: 14 }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(drag, { toValue: 0, useNativeDriver: false, bounciness: 6, speed: 14 }).start();
+      },
+    }),
+  ).current;
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onCancel}>
-      <Animated.View style={[styles.backdrop, { opacity: fade }]}>
+    <Modal visible={mounted} transparent animationType="none" onRequestClose={onCancel} statusBarTranslucent>
+      <Animated.View style={[styles.backdrop, { opacity: anim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: slide }] }]}>
+        <Animated.View
+          {...pan.panHandlers}
+          onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
+          style={[
+            styles.sheet,
+            {
+              transform: [
+                {
+                  translateY: Animated.add(
+                    anim.interpolate({ inputRange: [0, 1], outputRange: [sheetHeight, 0] }),
+                    drag,
+                  ),
+                },
+              ],
+            },
+          ]}
+        >
           <View style={styles.grabber} />
           <Text style={styles.title}>{title}</Text>
           {message ? <Text style={styles.message}>{message}</Text> : null}
@@ -89,8 +149,8 @@ const styles = StyleSheet.create({
   },
   grabber: {
     alignSelf: 'center',
-    width: 40,
-    height: 4,
+    width: 44,
+    height: 5,
     borderRadius: radius.pill,
     backgroundColor: colors.surfaceHi,
     marginBottom: space.lg,
