@@ -489,8 +489,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: space.xs,
   },
   scopeRow: {
-    // Ширина по содержимому: две короткие подписи не должны занимать всю строку.
-    width: 150, flexDirection: 'row', backgroundColor: colors.surfaceAlt,
+    // Занимает свободное место, но не растягивается на всю строку: так нет ни
+    // полосы во всю ширину, ни пустоты рядом со счётчиками.
+    flex: 1, maxWidth: 230, flexDirection: 'row', backgroundColor: colors.surfaceAlt,
     borderRadius: radius.pill, padding: 3,
   },
   scopeThumb: {
@@ -500,7 +501,7 @@ const styles = StyleSheet.create({
   scopeBtn: { flex: 1, height: 30, alignItems: 'center', justifyContent: 'center' },
   scopeText: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '800' },
   scopeTextActive: { color: colors.onAccent, fontWeight: '900' },
-  counters: { flex: 1, alignItems: 'flex-start' },
+  counters: { alignItems: 'flex-end' },
   counterActive: { color: colors.text, fontSize: font.tiny, fontWeight: '900' },
   counterResolved: { marginTop: 2, color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
 
