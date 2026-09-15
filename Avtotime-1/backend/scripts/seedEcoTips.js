@@ -16,7 +16,18 @@ import User from "../models/user.model.js";
 
 dotenv.config({ path: process.env.ENV_FILE || ".env" });
 
+// Картинка берётся с нашего же домена: внешние ссылки в данных живут ровно
+// до того дня, когда чужой хостинг их уберёт.
+const IMAGE_BASE = process.env.PUBLIC_ASSET_BASE || "https://avtotime.org/api/public";
+
 const TIPS = [
+  {
+    category: "Вождение",
+    title: "Смотрите дальше капота",
+    description:
+      "Взгляд, перенесённый на десяток машин вперёд, отменяет половину торможений: вы заранее видите затор и просто отпускаете газ. Ровный накат экономит топливо и заметно бережёт тормоза — колодки на городском цикле ходят в полтора раза дольше.",
+    image: `${IMAGE_BASE}/746d6f1b9b92457c0e96457ad3afc2c0.jpg`,
+  },
   {
     category: "Вождение",
     title: "Держите ровную скорость на трассе",
@@ -109,7 +120,7 @@ const run = async () => {
       title: tip.title,
       description: tip.description,
       category: tip.category,
-      image: "",
+      image: tip.image || "",
       author: author._id,
       moderationStatus: "approved",
       moderationProvider: "seed",

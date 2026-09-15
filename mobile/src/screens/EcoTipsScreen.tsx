@@ -158,20 +158,35 @@ export default function EcoTipsScreen(_props: Props) {
     }),
   ).current;
 
-  // Клавиатура: на Android с edge-to-edge окно под неё не ужимается, поэтому
-  // высоту берём из события и поднимаем на неё саму шторку.
-  const [keyboard, setKeyboard] = useState(0);
+  /**
+   * Клавиатура: на Android с edge-to-edge окно под неё не ужимается, поэтому
+   * высоту берём из события и поднимаем на неё саму шторку.
+   *
+   * Значение анимированное, а не состояние: подстановка числа переставляла
+   * панель мгновенно, и на уходе клавиатуры она сначала висела, а потом
+   * прыгала вниз. Слушаем и will-, и did-события: на разных платформах раньше
+   * приходит своё, а повторный запуск к той же цели ничего не портит.
+   */
+  const keyboardAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const show = Keyboard.addListener(showEvent, (e) => setKeyboard(e.endCoordinates.height));
-    const hide = Keyboard.addListener(hideEvent, () => setKeyboard(0));
-    return () => {
-      show.remove();
-      hide.remove();
+    const glide = (toValue: number, duration?: number) => {
+      Animated.timing(keyboardAnim, {
+        toValue,
+        duration: duration && duration > 0 ? duration : 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
     };
-  }, []);
+
+    const subs = [
+      Keyboard.addListener('keyboardWillShow', (e) => glide(e.endCoordinates.height, e.duration)),
+      Keyboard.addListener('keyboardDidShow', (e) => glide(e.endCoordinates.height, e.duration)),
+      Keyboard.addListener('keyboardWillHide', (e) => glide(0, e.duration)),
+      Keyboard.addListener('keyboardDidHide', (e) => glide(0, e?.duration)),
+    ];
+    return () => subs.forEach((sub) => sub.remove());
+  }, [keyboardAnim]);
 
   // Появление и уход превью: блок перетекает между строкой «добавить фото» и
   // самой картинкой, а не подменяется рывком.
@@ -343,10 +358,19 @@ export default function EcoTipsScreen(_props: Props) {
                 styles.sheet,
                 {
                   // Панель встаёт над клавиатурой, а её высота ужимается на ту
-                  // же величину — верх не уезжает за экран.
-                  marginBottom: Math.max(0, keyboard - insets.bottom),
-                  maxHeight: SCREEN_HEIGHT - keyboard - 60,
-                  paddingBottom: keyboard > 0 ? space.lg : insets.bottom + space.lg,
+                  // же величину — верх не уезжает за экран. Отступ снизу
+                  // экрана вычитается: он уже перекрыт клавиатурой.
+                  marginBottom: keyboardAnim.interpolate({
+                    inputRange: [0, Math.max(insets.bottom, 1), SCREEN_HEIGHT],
+                    outputRange: [0, 0, SCREEN_HEIGHT - Math.max(insets.bottom, 1)],
+                    extrapolate: 'clamp',
+                  }),
+                  maxHeight: keyboardAnim.interpolate({
+                    inputRange: [0, SCREEN_HEIGHT],
+                    outputRange: [SCREEN_HEIGHT - 60, -60],
+                    extrapolate: 'clamp',
+                  }),
+                  paddingBottom: insets.bottom + space.lg,
                   transform: [{
                     translateY: Animated.add(
                       sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [SHEET_TRAVEL, 0] }),
