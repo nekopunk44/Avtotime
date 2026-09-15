@@ -8,6 +8,7 @@ import {
   FlatList,
   Image,
   Keyboard,
+  LayoutAnimation,
   Modal,
   PanResponder,
   Platform,
@@ -17,6 +18,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  UIManager,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,8 +40,48 @@ const ALL = 'Все';
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SHEET_TRAVEL = SCREEN_HEIGHT;
 
+// Плавное разворачивание карточки: высота меняется анимацией раскладки, а не
+// скачком. На старой архитектуре Android это нужно включить явно.
+const enableLayoutAnimation = () => {
+  const manager = UIManager as unknown as {
+    setLayoutAnimationEnabledExperimental?: (enabled: boolean) => void;
+  };
+  manager.setLayoutAnimationEnabledExperimental?.(true);
+};
+
 const TITLE_LIMIT = 80;
 const TEXT_LIMIT = 600;
+
+/**
+ * Карточка совета: появляется со сдвигом по своему номеру, поэтому при смене
+ * категории список набегает волной, а не подменяется целиком.
+ */
+function TipCard({ index, children }: { index: number; children: React.ReactNode }) {
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Задержка ограничена: у двадцатой карточки ждать полсекунды незачем, да
+    // и увидеть её всё равно нельзя.
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 260,
+      delay: Math.min(index, 6) * 55,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [anim, index]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: anim,
+        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
+}
 
 const formatDate = (tip: EcoTip) => {
   if (tip.date) return tip.date;
@@ -51,6 +93,7 @@ const formatDate = (tip: EcoTip) => {
 
 export default function EcoTipsScreen(_props: Props) {
   const insets = useSafeAreaInsets();
+  useEffect(enableLayoutAnimation, []);
   const [tips, setTips] = useState<EcoTip[]>([]);
   const [category, setCategory] = useState(ALL);
   const [loading, setLoading] = useState(true);
@@ -248,16 +291,25 @@ export default function EcoTipsScreen(_props: Props) {
     }
   };
 
-  const renderTip = ({ item }: { item: EcoTip }) => {
+  const renderTip = ({ item, index }: { item: EcoTip; index: number }) => {
     const key = String(item._id || item.id || item.title);
     const open = Boolean(expanded[key]);
     return (
+      <TipCard index={index}>
       <PressableScale
         style={styles.card}
         scaleTo={0.99}
         // Совет раскрывается на месте: отдельный экран ради трёх абзацев —
         // лишний переход.
-        onPress={() => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
+        onPress={() => {
+          LayoutAnimation.configureNext({
+            duration: 240,
+            update: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.scaleXY },
+            create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+            delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+          });
+          setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+        }}
       >
         {item.image ? (
           <View>
@@ -284,6 +336,7 @@ export default function EcoTipsScreen(_props: Props) {
           </View>
         </View>
       </PressableScale>
+      </TipCard>
     );
   };
 
@@ -322,6 +375,9 @@ export default function EcoTipsScreen(_props: Props) {
         </View>
       ) : (
         <FlatList
+          // Ключ по категории: список пересоздаётся, и карточки набегают
+          // заново, а не остаются от прошлого фильтра.
+          key={category}
           data={filteredTips}
           keyExtractor={(item, index) => String(item._id || item.id || index)}
           renderItem={renderTip}
