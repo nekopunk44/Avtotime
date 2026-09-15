@@ -138,7 +138,7 @@ const SERVICES = [
   {
     title: "Замена масла и фильтров за час",
     category: "Техобслуживание",
-    price: "25",
+    price: 25,
     pricePrefix: "от",
     unit: "€",
     location: "Кишинев",
@@ -149,7 +149,7 @@ const SERVICES = [
   {
     title: "Компьютерная диагностика двигателя",
     category: "Диагностика",
-    price: "20",
+    price: 20,
     pricePrefix: "от",
     unit: "€",
     location: "Кишинев",
@@ -163,7 +163,7 @@ const TUNING = [
   {
     title: "Литые диски R18, комплект",
     category: "Диски и шины",
-    price: "480",
+    price: 480,
     location: "Кишинев",
     image: img("seed-tuning-wheel"),
     rating: 4.9,
@@ -173,7 +173,7 @@ const TUNING = [
   {
     title: "Аэродинамический обвес и занижение",
     category: "Внешний тюнинг",
-    price: "1 200",
+    price: 1200,
     location: "Бельцы",
     image: img("seed-tuning-porsche"),
     rating: 4.7,
@@ -186,7 +186,7 @@ const CLEANING = [
   {
     title: "Химчистка салона целиком",
     category: "Химчистка",
-    price: "70",
+    price: 70,
     location: "Кишинев",
     image: img("seed-clean-myjnia"),
     rating: 4.8,
@@ -196,7 +196,7 @@ const CLEANING = [
   {
     title: "Мойка кузова с полировкой воском",
     category: "Мойка",
-    price: "18",
+    price: 18,
     location: "Кишинев",
     image: img("seed-clean-wash"),
     rating: 4.6,
