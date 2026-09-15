@@ -7,7 +7,7 @@ import {
   Easing,
   FlatList,
   Image,
-  KeyboardAvoidingView,
+  Keyboard,
   Modal,
   PanResponder,
   Platform,
@@ -35,7 +35,8 @@ const CATEGORIES = ['Вождение', 'Обслуживание', 'Элект�
 const ALL = 'Все';
 
 // Ход выезда больше любой панели: старт всегда за краем экрана.
-const SHEET_TRAVEL = Dimensions.get('window').height;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+const SHEET_TRAVEL = SCREEN_HEIGHT;
 
 const TITLE_LIMIT = 80;
 const TEXT_LIMIT = 600;
@@ -156,6 +157,39 @@ export default function EcoTipsScreen(_props: Props) {
       },
     }),
   ).current;
+
+  // Клавиатура: на Android с edge-to-edge окно под неё не ужимается, поэтому
+  // высоту берём из события и поднимаем на неё саму шторку.
+  const [keyboard, setKeyboard] = useState(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvent, (e) => setKeyboard(e.endCoordinates.height));
+    const hide = Keyboard.addListener(hideEvent, () => setKeyboard(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  // Появление и уход превью: блок перетекает между строкой «добавить фото» и
+  // самой картинкой, а не подменяется рывком.
+  const photoAnim = useRef(new Animated.Value(0)).current;
+  const [shownUri, setShownUri] = useState('');
+
+  useEffect(() => {
+    if (imageUri) setShownUri(imageUri);
+    Animated.timing(photoAnim, {
+      toValue: imageUri ? 1 : 0,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start(({ finished }) => {
+      // Картинку убираем только после ухода, иначе она мигнёт пустотой.
+      if (finished && !imageUri) setShownUri('');
+    });
+  }, [imageUri, photoAnim]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -303,16 +337,16 @@ export default function EcoTipsScreen(_props: Props) {
       <Modal visible={sheetMounted} transparent animationType="none" onRequestClose={closeModal} statusBarTranslucent>
         <Animated.View style={[styles.backdrop, { opacity: sheetAnim }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={closeModal} />
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.sheetWrap}
-            pointerEvents="box-none"
-          >
+          <View style={styles.sheetWrap} pointerEvents="box-none">
             <Animated.View
               style={[
                 styles.sheet,
                 {
-                  paddingBottom: insets.bottom + space.lg,
+                  // Панель встаёт над клавиатурой, а её высота ужимается на ту
+                  // же величину — верх не уезжает за экран.
+                  marginBottom: Math.max(0, keyboard - insets.bottom),
+                  maxHeight: SCREEN_HEIGHT - keyboard - 60,
+                  paddingBottom: keyboard > 0 ? space.lg : insets.bottom + space.lg,
                   transform: [{
                     translateY: Animated.add(
                       sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [SHEET_TRAVEL, 0] }),
@@ -333,21 +367,46 @@ export default function EcoTipsScreen(_props: Props) {
                 keyboardShouldPersistTaps="always"
                 showsVerticalScrollIndicator={false}
               >
-                <PressableScale style={styles.imagePicker} scaleTo={0.98} onPress={pickImage}>
-                  {imageUri ? (
-                    <>
-                      <Image source={{ uri: imageUri }} style={styles.pickedImage} />
-                      <Pressable style={styles.removeImage} onPress={() => setImageUri('')} hitSlop={8}>
+                {/* Строка «добавить фото» и превью — один блок: высота и
+                    прозрачность перетекают, поэтому подмены рывком нет. */}
+                <Animated.View
+                  style={[
+                    styles.photoBox,
+                    { height: photoAnim.interpolate({ inputRange: [0, 1], outputRange: [56, 170] }) },
+                  ]}
+                >
+                  <Animated.View
+                    style={[
+                      StyleSheet.absoluteFill,
+                      { opacity: photoAnim.interpolate({ inputRange: [0, 0.4, 1], outputRange: [1, 0, 0] }) },
+                    ]}
+                    pointerEvents={imageUri ? 'none' : 'auto'}
+                  >
+                    <PressableScale style={styles.photoRow} scaleTo={0.98} onPress={pickImage}>
+                      <View style={styles.photoIcon}>
+                        <Ionicons name="image-outline" size={18} color={colors.textMuted} />
+                      </View>
+                      <Text style={styles.photoRowText}>Добавить фото</Text>
+                      <Text style={styles.photoRowHint}>необязательно</Text>
+                    </PressableScale>
+                  </Animated.View>
+
+                  {shownUri ? (
+                    <Animated.View
+                      style={[StyleSheet.absoluteFill, { opacity: photoAnim }]}
+                      pointerEvents={imageUri ? 'auto' : 'none'}
+                    >
+                      <Image source={{ uri: shownUri }} style={styles.previewImage} />
+                      <Pressable style={styles.previewRemove} onPress={() => setImageUri('')} hitSlop={8}>
                         <Ionicons name="close" size={16} color={colors.white} />
                       </Pressable>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons name="image-outline" size={22} color={colors.success} />
-                      <Text style={styles.imagePickerText}>Добавить фото</Text>
-                    </>
-                  )}
-                </PressableScale>
+                      <PressableScale style={styles.previewReplace} scaleTo={0.95} onPress={pickImage}>
+                        <Ionicons name="image-outline" size={15} color={colors.text} />
+                        <Text style={styles.previewReplaceText}>Заменить</Text>
+                      </PressableScale>
+                    </Animated.View>
+                  ) : null}
+                </Animated.View>
 
                 <View style={styles.field}>
                   <View style={styles.labelRow}>
@@ -365,17 +424,24 @@ export default function EcoTipsScreen(_props: Props) {
 
                 <View style={styles.field}>
                   <Text style={styles.label}>Категория</Text>
-                  <View style={styles.draftChips}>
+                  {/* Сетка в две колонки: пилюли разной длины выстраивались
+                      рваной лесенкой. */}
+                  <View style={styles.draftGrid}>
                     {CATEGORIES.map((name) => {
                       const active = name === draftCategory;
                       return (
                         <PressableScale
                           key={name}
-                          scaleTo={0.95}
-                          style={[styles.chip, active && styles.chipActive]}
+                          scaleTo={0.96}
+                          style={[styles.draftCell, active && styles.draftCellActive]}
                           onPress={() => setDraftCategory(name)}
                         >
-                          <Text style={[styles.chipText, active && styles.chipTextActive]}>{name}</Text>
+                          <Text
+                            style={[styles.draftCellText, active && styles.draftCellTextActive]}
+                            numberOfLines={1}
+                          >
+                            {name}
+                          </Text>
                         </PressableScale>
                       );
                     })}
@@ -409,7 +475,7 @@ export default function EcoTipsScreen(_props: Props) {
                   : <Text style={styles.publishText}>Опубликовать</Text>}
               </PressableScale>
             </Animated.View>
-          </KeyboardAvoidingView>
+          </View>
         </Animated.View>
       </Modal>
     </View>
@@ -473,7 +539,7 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
   sheetWrap: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
-    maxHeight: '90%', backgroundColor: colors.surface,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
     paddingHorizontal: space.xl, paddingTop: space.sm,
   },
@@ -486,18 +552,33 @@ const styles = StyleSheet.create({
 
   sheetBody: { marginTop: space.md },
   sheetContent: { gap: space.lg, paddingBottom: space.md },
-  imagePicker: {
-    height: 120, borderRadius: radius.md, borderWidth: 1, borderStyle: 'dashed',
-    borderColor: 'rgba(61,214,140,0.35)', backgroundColor: 'rgba(61,214,140,0.12)',
-    alignItems: 'center', justifyContent: 'center', gap: 6, overflow: 'hidden',
+  photoBox: { borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.surfaceAlt },
+  photoRow: {
+    flexDirection: 'row', alignItems: 'center', gap: space.md,
+    height: '100%', borderRadius: radius.md, paddingHorizontal: space.md,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
   },
-  imagePickerText: { color: colors.success, fontSize: font.small, fontWeight: '900' },
-  pickedImage: { width: '100%', height: '100%' },
-  removeImage: {
+  photoIcon: {
+    width: 36, height: 36, borderRadius: radius.sm, backgroundColor: colors.surface,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  photoRowText: { flex: 1, color: colors.text, fontSize: font.small, fontWeight: '800' },
+  photoRowHint: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '700' },
+
+  previewImage: { width: '100%', height: '100%' },
+  previewRemove: {
     position: 'absolute', top: space.sm, right: space.sm,
     width: 30, height: 30, borderRadius: radius.pill,
-    backgroundColor: 'rgba(8,8,10,0.6)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(8,8,10,0.65)', alignItems: 'center', justifyContent: 'center',
   },
+  previewReplace: {
+    position: 'absolute', left: space.sm, bottom: space.sm,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    height: 32, paddingHorizontal: space.md, borderRadius: radius.pill,
+    backgroundColor: 'rgba(8,8,10,0.65)',
+  },
+  previewReplaceText: { color: colors.text, fontSize: font.tiny, fontWeight: '900' },
 
   field: { gap: space.sm },
   labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -512,7 +593,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md, color: colors.text, fontSize: font.body,
   },
   textArea: { minHeight: 120, paddingTop: space.md, lineHeight: 21 },
-  draftChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  draftGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  draftCell: {
+    // Половина ширины за вычетом половины зазора — колонки сходятся по краям.
+    width: '48.5%', height: 44, borderRadius: radius.md,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+  },
+  draftCellActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  draftCellText: { color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
+  draftCellTextActive: { color: colors.onAccent, fontWeight: '900' },
 
   publishBtn: {
     marginTop: space.md, height: 52, borderRadius: radius.pill, backgroundColor: colors.accent,
