@@ -77,7 +77,12 @@ export type AppStackParamList = {
   EditPost: { post: Post };
   PostComments: { postId: string };
   EditProfile: undefined;
-  MarketListingDetails: { listing: MarketListing; categoryId: MarketCategoryId };
+  MarketListingDetails: {
+    listing: MarketListing;
+    categoryId: MarketCategoryId;
+    /** Где на экране лежала карточка — из неё разворачивается экран. */
+    origin?: { x: number; y: number; width: number; height: number };
+  };
   CreateMarketListing: undefined;
   MarketAnalytics: undefined;
   MarketServices: undefined;
@@ -263,7 +268,12 @@ export default function AppNavigator() {
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: '' }} />
       <Stack.Screen name="PostComments" component={PostCommentsScreen} options={{ title: 'Комментарии' }} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Редактировать профиль' }} />
-      <Stack.Screen name="MarketListingDetails" component={MarketListingDetailsScreen} options={{ title: 'Объявление' }} />
+      <Stack.Screen
+        name="MarketListingDetails"
+        component={MarketListingDetailsScreen}
+        // Без бокового въезда: экран разворачивается из карточки сам.
+        options={{ title: 'Объявление', animation: 'fade', animationDuration: 160 }}
+      />
       <Stack.Screen name="CreateMarketListing" component={CreateMarketListingScreen} options={{ title: 'Новое объявление' }} />
       <Stack.Screen name="MarketAnalytics" component={MarketAnalyticsScreen} options={{ title: 'Аналитика' }} />
       <Stack.Screen name="MarketServices" component={MarketServicesScreen} options={{ title: 'Сервисы' }} />

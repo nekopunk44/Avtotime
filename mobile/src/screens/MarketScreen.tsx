@@ -194,6 +194,9 @@ export default function MarketScreen({ navigation }: Props) {
   const renderListing = ({ item }: { item: MarketListing }) => {
     const image = getListingImage(item);
     const km = distanceOf(item);
+    // Ref на карточку: перед переходом меряем её место на экране, чтобы
+    // экран объявления вырос именно отсюда.
+    const cellRef = React.createRef<View>();
     // В общей выдаче раздел у каждого объявления свой — берём его из самого
     // объявления, а не из состояния экрана.
     const itemCategoryId = item.listingType
@@ -201,10 +204,23 @@ export default function MarketScreen({ navigation }: Props) {
       : (categoryId || 'cars');
     const itemCategory = getMarketCategory(itemCategoryId);
     return (
+      <View ref={cellRef} collapsable={false} style={styles.cell}>
       <PressableScale
-        style={styles.cell}
+        style={styles.cellInner}
         scaleTo={0.98}
-        onPress={() => navigation.navigate('MarketListingDetails', { listing: item, categoryId: itemCategoryId })}
+        onPress={() => {
+          const open = (origin?: { x: number; y: number; width: number; height: number }) =>
+            navigation.navigate('MarketListingDetails', { listing: item, categoryId: itemCategoryId, origin });
+
+          const node = cellRef.current;
+          if (!node) {
+            open();
+            return;
+          }
+          // measureInWindow — единственный способ узнать место карточки уже
+          // после прокрутки списка.
+          node.measureInWindow((x, y, width, height) => open({ x, y, width, height }));
+        }}
       >
         <Card style={styles.card}>
           {image ? (
@@ -228,6 +244,7 @@ export default function MarketScreen({ navigation }: Props) {
           </View>
         </Card>
       </PressableScale>
+      </View>
     );
   };
 
@@ -378,6 +395,7 @@ const styles = StyleSheet.create({
   listContent: { paddingBottom: space.lg },
   emptyContent: { flexGrow: 1 },
   cell: { width: '50%', paddingHorizontal: 3, marginBottom: space.md },
+  cellInner: { flex: 1 },
   card: { padding: 0, overflow: 'hidden' },
   cardImage: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceAlt },
   noImage: { alignItems: 'center', justifyContent: 'center' },

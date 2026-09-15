@@ -1,6 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Dimensions,
+  Easing,
   Alert,
   Image,
   ScrollView,
@@ -40,6 +43,8 @@ type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'MarketListingDetails'>;
   route: RouteProp<AppStackParamList, 'MarketListingDetails'>;
 };
+
+const SCREEN = Dimensions.get('window');
 
 const isObjectId = (value: string) => /^[0-9a-fA-F]{24}$/.test(value);
 
@@ -189,7 +194,51 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
     navigation.navigate('MarketReviews', { listing, categoryId });
   };
 
+  /**
+   * Раскрытие из карточки: экран начинает жизнь в её прямоугольнике и
+   * разворачивается на весь экран. Прямоугольник приходит из списка — сам
+   * экран знать о нём неоткуда.
+   *
+   * Масштаб и сдвиг, а не ширина с высотой: их считает нативный драйвер, и
+   * раскрытие не спотыкается о работу JS-потока.
+   */
+  const origin = route.params?.origin;
+  const grow = useRef(new Animated.Value(origin ? 0 : 1)).current;
+
+  useEffect(() => {
+    if (!origin) return;
+    Animated.timing(grow, {
+      toValue: 1,
+      duration: 320,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [grow, origin]);
+
+  const growStyle = origin
+    ? {
+      opacity: grow.interpolate({ inputRange: [0, 0.35, 1], outputRange: [0.35, 1, 1] }),
+      transform: [
+        {
+          translateX: grow.interpolate({
+            inputRange: [0, 1],
+            outputRange: [origin.x + origin.width / 2 - SCREEN.width / 2, 0],
+          }),
+        },
+        {
+          translateY: grow.interpolate({
+            inputRange: [0, 1],
+            outputRange: [origin.y + origin.height / 2 - SCREEN.height / 2, 0],
+          }),
+        },
+        { scaleX: grow.interpolate({ inputRange: [0, 1], outputRange: [origin.width / SCREEN.width, 1] }) },
+        { scaleY: grow.interpolate({ inputRange: [0, 1], outputRange: [origin.height / SCREEN.height, 1] }) },
+      ],
+    }
+    : null;
+
   return (
+    <Animated.View style={[styles.container, growStyle]}>
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.hero}>
         {images[imageIndex] ? (
@@ -317,6 +366,7 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
 
       <ImageViewer uri={images[imageIndex]} visible={viewerOpen} onClose={() => setViewerOpen(false)} />
     </ScrollView>
+    </Animated.View>
   );
 }
 
