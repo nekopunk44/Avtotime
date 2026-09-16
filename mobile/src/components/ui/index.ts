@@ -8,3 +8,4 @@ export { default as SectionHeader } from './SectionHeader';
 export { default as ConfirmSheet } from './ConfirmSheet';
 export { default as Avatar } from './Avatar';
 export { default as SuggestField } from './SuggestField';
+export { default as PopoverMenu } from './PopoverMenu';
