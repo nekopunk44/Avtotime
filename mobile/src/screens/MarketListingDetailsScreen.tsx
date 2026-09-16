@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   getAuthorId,
@@ -51,7 +50,6 @@ const SCREEN = Dimensions.get('window');
 const isObjectId = (value: string) => /^[0-9a-fA-F]{24}$/.test(value);
 
 export default function MarketListingDetailsScreen({ navigation, route }: Props) {
-  const insets = useSafeAreaInsets();
   const { listing: initialListing, categoryId } = route.params;
   const [listing, setListing] = useState(initialListing);
   const [imageIndex, setImageIndex] = useState(0);
@@ -68,9 +66,28 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
     return all.filter(Boolean);
   }, [listing]);
 
+  // Сравнение живёт в шапке: в содержимом ему места нет, а действие нужно с
+  // любого места экрана.
   useEffect(() => {
-    navigation.setOptions({ title: category.label });
-  }, [category.label, navigation]);
+    navigation.setOptions({
+      title: category.label,
+      headerRight: () => (
+        <PressableScale style={styles.headerCompare} scaleTo={0.92} onPress={toggleCompareRef.current}>
+          {compareLoading
+            ? <ActivityIndicator size="small" color={colors.text} />
+            : (
+              // Состояние показывает сам значок: залитый — объявление уже в
+              // сравнении.
+              <Ionicons
+                name={isCompared ? 'git-compare' : 'git-compare-outline'}
+                size={22}
+                color={isCompared ? colors.accent : colors.text}
+              />
+            )}
+        </PressableScale>
+      ),
+    });
+  }, [category.label, navigation, isCompared, compareLoading]);
 
   useEffect(() => {
     // Screens like search pass trimmed listing objects; silently
@@ -126,32 +143,49 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
     { label: 'Консультации', value: listing.consultations },
   ].filter((item) => item.value != null && item.value !== '');
 
-  const openSeller = async () => {
+  /**
+   * Кто продавец: сперва идентификатор из объявления, иначе ищем по нику.
+   * Одна функция на профиль и на переписку — разъехавшись, они однажды повели
+   * бы в разные места.
+   */
+  const resolveSeller = async (): Promise<{ id: string; name: string; userName: string } | null> => {
     if (listing.id) recordMarketLead(categoryId, listing.id);
+
+    const nickname = getSellerNickname(listing);
+    const displayName = listing.seller || listing.name || (nickname ? `@${nickname}` : 'Продавец');
 
     const authorId = getAuthorId(listing);
     if (authorId && isObjectId(authorId)) {
-      navigation.navigate('UserProfile', { userId: authorId });
-      return;
+      return { id: authorId, name: displayName, userName: nickname || '' };
     }
 
-    const nickname = getSellerNickname(listing);
     if (!nickname) {
       Alert.alert('Продавец', 'Профиль продавца не указан в объявлении');
-      return;
+      return null;
     }
 
     try {
       const users = await searchUsers(nickname);
       const exact = users.find((user) => user.userName?.toLowerCase() === nickname.toLowerCase()) || users[0];
       if (exact?._id) {
-        navigation.navigate('UserProfile', { userId: exact._id });
-        return;
+        return { id: exact._id, name: exact.name || displayName, userName: exact.userName || nickname };
       }
       Alert.alert('Продавец', `Не удалось найти профиль @${nickname}`);
     } catch (e: any) {
       Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось открыть профиль продавца');
     }
+    return null;
+  };
+
+  const openSeller = async () => {
+    const seller = await resolveSeller();
+    if (seller) navigation.navigate('UserProfile', { userId: seller.id });
+  };
+
+  const writeSeller = async () => {
+    const seller = await resolveSeller();
+    if (!seller) return;
+    navigation.navigate('Chat', { userId: seller.id, name: seller.name, userName: seller.userName });
   };
 
   const nextImage = () => {
@@ -192,6 +226,11 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
       setCompareLoading(false);
     }
   };
+
+  // Ссылка на актуальный обработчик: шапка перерисовывается редко, а функция
+  // пересоздаётся на каждый рендер.
+  const toggleCompareRef = useRef(toggleCompare);
+  toggleCompareRef.current = toggleCompare;
 
   const openReviews = () => {
     navigation.navigate('MarketReviews', { listing, categoryId });
@@ -258,13 +297,11 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
             </View>
           )}
 
-          {/* Затемнение снизу: под ним начинается карточка, и стык не режет кадр. */}
-          <View style={styles.heroScrim} pointerEvents="none" />
-
           <View style={styles.heroCategory}>
             <Ionicons name={category.icon as any} size={14} color={colors.text} />
             <Text style={styles.heroCategoryText}>{category.label}</Text>
           </View>
+
 
           {images.length > 1 ? (
             <>
@@ -347,46 +384,28 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
             <Text style={styles.sellerLabel}>Продавец</Text>
             <Text style={styles.sellerName} numberOfLines={1}>{sellerName}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+          {/* Написать — отдельным действием: карточка целиком ведёт в профиль,
+              а разговор начинают чаще, чем изучают профиль. */}
+          <PressableScale style={styles.writeBtn} scaleTo={0.94} onPress={writeSeller}>
+            <Ionicons name="chatbubble-ellipses" size={19} color={colors.onAccent} />
+          </PressableScale>
         </PressableScale>
 
         <ImageViewer uri={images[imageIndex]} visible={viewerOpen} onClose={() => setViewerOpen(false)} />
       </ScrollView>
 
-      {/* Главное действие закреплено внизу: до него не нужно долистывать
-          характеристики и описание. */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + space.sm }]}>
-        <PressableScale
-          style={[styles.compareBtn, isCompared && styles.compareBtnActive]}
-          scaleTo={0.94}
-          onPress={toggleCompare}
-        >
-          {compareLoading
-            ? <ActivityIndicator size="small" color={isCompared ? colors.onAccent : colors.text} />
-            : <Ionicons name="git-compare" size={20} color={isCompared ? colors.onAccent : colors.text} />}
-        </PressableScale>
-
-        <PressableScale style={styles.primaryBtn} scaleTo={0.98} onPress={openSeller}>
-          <Ionicons name="person-circle-outline" size={19} color={colors.onAccent} />
-          <Text style={styles.primaryText}>Профиль продавца</Text>
-        </PressableScale>
-      </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingBottom: 110 },
+  content: { paddingBottom: space.xxl },
 
   hero: { position: 'relative', backgroundColor: colors.surfaceAlt },
   // 4:3 вместо квадрата: под кадром остаётся место цене и заголовку.
   heroImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: colors.surfaceAlt },
   noImage: { alignItems: 'center', justifyContent: 'center' },
-  heroScrim: {
-    position: 'absolute', left: 0, right: 0, bottom: 0, height: 90,
-    backgroundColor: 'rgba(8,8,10,0.35)',
-  },
   heroCategory: {
     position: 'absolute', left: space.md, top: space.md,
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -394,6 +413,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(8,8,10,0.6)',
   },
   heroCategoryText: { color: colors.text, fontSize: font.tiny, fontWeight: '900' },
+  headerCompare: {
+    marginRight: space.md, width: 36, height: 36,
+    alignItems: 'center', justifyContent: 'center',
+  },
   imageNav: {
     position: 'absolute', top: '46%', width: 38, height: 38, borderRadius: radius.pill,
     backgroundColor: 'rgba(8,8,10,0.6)', justifyContent: 'center', alignItems: 'center',
@@ -452,22 +475,9 @@ const styles = StyleSheet.create({
   sellerBody: { flex: 1 },
   sellerLabel: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
   sellerName: { marginTop: 2, color: colors.text, fontSize: font.body, fontWeight: '900' },
+  writeBtn: {
+    width: 44, height: 44, borderRadius: radius.pill,
+    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
+  },
 
-  bottomBar: {
-    position: 'absolute', left: 0, right: 0, bottom: 0,
-    flexDirection: 'row', alignItems: 'center', gap: space.sm,
-    paddingHorizontal: space.md, paddingTop: space.sm,
-    backgroundColor: colors.surface,
-    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border,
-  },
-  compareBtn: {
-    width: 52, height: 52, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  compareBtnActive: { backgroundColor: colors.accent },
-  primaryBtn: {
-    flex: 1, height: 52, borderRadius: radius.pill, backgroundColor: colors.accent,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
-  },
-  primaryText: { color: colors.onAccent, fontSize: font.body, fontWeight: '900' },
 });
