@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   getAuthorId,
@@ -37,7 +38,8 @@ import {
 import { searchUsers } from '../api/users';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import ImageViewer from '../components/ImageViewer';
-import { colors, radius } from '../theme';
+import { colors, font, radius, shadow, space } from '../theme';
+import { Avatar, PressableScale } from '../components/ui';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'MarketListingDetails'>;
@@ -49,6 +51,7 @@ const SCREEN = Dimensions.get('window');
 const isObjectId = (value: string) => /^[0-9a-fA-F]{24}$/.test(value);
 
 export default function MarketListingDetailsScreen({ navigation, route }: Props) {
+  const insets = useSafeAreaInsets();
   const { listing: initialListing, categoryId } = route.params;
   const [listing, setListing] = useState(initialListing);
   const [imageIndex, setImageIndex] = useState(0);
@@ -237,193 +240,234 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
     }
     : null;
 
+
+  const sellerName = listing.seller || listing.name
+    || (getSellerNickname(listing) ? `@${getSellerNickname(listing)}` : 'Профиль Avtotime');
+
   return (
     <Animated.View style={[styles.container, growStyle]}>
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.hero}>
-        {images[imageIndex] ? (
-          <TouchableOpacity activeOpacity={0.95} onPress={() => setViewerOpen(true)}>
-            <Image source={{ uri: images[imageIndex] }} style={styles.heroImage} />
-          </TouchableOpacity>
-        ) : (
-          <View style={[styles.heroImage, styles.noImage]}>
-            <Ionicons name={category.icon as any} size={42} color={colors.textFaint} />
-          </View>
-        )}
-
-        {images.length > 1 ? (
-          <>
-            <TouchableOpacity style={[styles.imageNav, styles.imageNavLeft]} onPress={previousImage} hitSlop={8}>
-              <Ionicons name="chevron-back" size={24} color={colors.text} />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.hero}>
+          {images[imageIndex] ? (
+            <TouchableOpacity activeOpacity={0.95} onPress={() => setViewerOpen(true)}>
+              <Image source={{ uri: images[imageIndex] }} style={styles.heroImage} />
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.imageNav, styles.imageNavRight]} onPress={nextImage} hitSlop={8}>
-              <Ionicons name="chevron-forward" size={24} color={colors.text} />
-            </TouchableOpacity>
-            <View style={styles.imageCounter}>
-              <Text style={styles.imageCounterText}>{imageIndex + 1}/{images.length}</Text>
-            </View>
-          </>
-        ) : null}
-      </View>
-
-      <View style={styles.panel}>
-        <View style={styles.panelTopRow}>
-          <View style={styles.categoryLine}>
-            <Ionicons name={category.icon as any} size={17} color={colors.textMuted} />
-            <Text style={styles.categoryText}>{category.label}</Text>
-          </View>
-          <View style={styles.panelActions}>
-            <TouchableOpacity
-              style={[styles.saveBtn, isCompared && styles.saveBtnActive]}
-              onPress={toggleCompare}
-              disabled={compareLoading}
-              activeOpacity={0.85}
-            >
-              {compareLoading ? (
-                <ActivityIndicator size="small" color={isCompared ? colors.onAccent : colors.text} />
-              ) : (
-                <Ionicons name="git-compare-outline" size={20} color={isCompared ? colors.onAccent : colors.text} />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-        <Text style={styles.title}>{getListingTitle(listing)}</Text>
-        <Text style={styles.price}>{getListingPrice(listing, categoryId)}</Text>
-
-        <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={16} color={colors.textMuted} />
-          <Text style={styles.locationText}>{listing.location || listing.region || 'Локация не указана'}</Text>
-        </View>
-
-        <TouchableOpacity style={styles.reviewsBtn} onPress={openReviews} activeOpacity={0.85}>
-          <View style={styles.reviewsLeft}>
-            <Ionicons name="star" size={17} color={colors.star} />
-            <Text style={styles.reviewsText}>
-              {reviewCount > 0 ? `${reviewRating ? reviewRating.toFixed(1) : '0.0'} · ${reviewCount} отзывов` : 'Отзывы'}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </TouchableOpacity>
-
-        {listing.sellerBadge ? (
-          <Text style={styles.sellerBadge}>{listing.sellerBadge}</Text>
-        ) : null}
-      </View>
-
-      {specs.length ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Характеристики</Text>
-          <View style={styles.specGrid}>
-            {specs.map((item) => (
-              <View key={item.label} style={styles.specItem}>
-                <Text style={styles.specLabel}>{item.label}</Text>
-                <Text style={styles.specValue} numberOfLines={2}>{String(item.value)}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      ) : null}
-
-      {listing.description ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Описание</Text>
-          <Text style={styles.description}>{listing.description}</Text>
-        </View>
-      ) : null}
-
-      {listing.specialties?.length || listing.tags?.length ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Направления</Text>
-          <View style={styles.tagRow}>
-            {[...(listing.specialties || []), ...(listing.tags || [])].map((tag) => (
-              <Text key={tag} style={styles.tag}>{tag}</Text>
-            ))}
-          </View>
-        </View>
-      ) : null}
-
-      <View style={styles.sellerBox}>
-        <View style={styles.sellerInfo}>
-          {listing.sellerAvatar || listing.avatar ? (
-            <Image source={{ uri: listing.sellerAvatar || listing.avatar }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatar, styles.avatarFallback]}>
-              <Ionicons name="person-outline" size={20} color={colors.textMuted} />
+            <View style={[styles.heroImage, styles.noImage]}>
+              <Ionicons name={category.icon as any} size={44} color={colors.textFaint} />
             </View>
           )}
-          <View style={styles.sellerTextWrap}>
-            <Text style={styles.sellerTitle}>Продавец</Text>
-            <Text style={styles.sellerName} numberOfLines={1}>
-              {listing.seller || listing.name || (getSellerNickname(listing) ? `@${getSellerNickname(listing)}` : 'Профиль Avtotime')}
-            </Text>
-          </View>
-        </View>
-        <TouchableOpacity style={styles.contactBtn} onPress={openSeller}>
-          <Ionicons name="person-circle-outline" size={19} color={colors.onAccent} />
-          <Text style={styles.contactText}>Профиль</Text>
-        </TouchableOpacity>
-      </View>
 
-      <ImageViewer uri={images[imageIndex]} visible={viewerOpen} onClose={() => setViewerOpen(false)} />
-    </ScrollView>
+          {/* Затемнение снизу: под ним начинается карточка, и стык не режет кадр. */}
+          <View style={styles.heroScrim} pointerEvents="none" />
+
+          <View style={styles.heroCategory}>
+            <Ionicons name={category.icon as any} size={14} color={colors.text} />
+            <Text style={styles.heroCategoryText}>{category.label}</Text>
+          </View>
+
+          {images.length > 1 ? (
+            <>
+              <TouchableOpacity style={[styles.imageNav, styles.imageNavLeft]} onPress={previousImage} hitSlop={8}>
+                <Ionicons name="chevron-back" size={22} color={colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.imageNav, styles.imageNavRight]} onPress={nextImage} hitSlop={8}>
+                <Ionicons name="chevron-forward" size={22} color={colors.text} />
+              </TouchableOpacity>
+              <View style={styles.imageCounter}>
+                <Text style={styles.imageCounterText}>{imageIndex + 1}/{images.length}</Text>
+              </View>
+            </>
+          ) : null}
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.title}>{getListingTitle(listing)}</Text>
+          <Text style={styles.price}>{getListingPrice(listing, categoryId)}</Text>
+
+          <View style={styles.metaRow}>
+            <Ionicons name="location-outline" size={15} color={colors.textMuted} />
+            <Text style={styles.metaText} numberOfLines={1}>
+              {listing.location || listing.region || 'Локация не указана'}
+            </Text>
+            {listing.sellerBadge ? <Text style={styles.badge}>{listing.sellerBadge}</Text> : null}
+          </View>
+
+          <PressableScale style={styles.reviewsRow} scaleTo={0.98} onPress={openReviews}>
+            <Ionicons name="star" size={16} color={colors.star} />
+            <Text style={styles.reviewsText}>
+              {reviewCount > 0
+                ? `${reviewRating ? reviewRating.toFixed(1) : '0.0'} · ${reviewCount} отзывов`
+                : 'Отзывов пока нет'}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+          </PressableScale>
+        </View>
+
+        {specs.length ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Характеристики</Text>
+            <View style={styles.specGrid}>
+              {specs.map((item) => (
+                <View key={item.label} style={styles.specItem}>
+                  <Text style={styles.specLabel}>{item.label}</Text>
+                  <Text style={styles.specValue} numberOfLines={2}>{String(item.value)}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {listing.description ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Описание</Text>
+            <Text style={styles.description}>{listing.description}</Text>
+          </View>
+        ) : null}
+
+        {listing.specialties?.length || listing.tags?.length ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Направления</Text>
+            <View style={styles.tagRow}>
+              {[...(listing.specialties || []), ...(listing.tags || [])].map((tag) => (
+                <Text key={tag} style={styles.tag}>{tag}</Text>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        <PressableScale style={styles.sellerCard} scaleTo={0.99} onPress={openSeller}>
+          <Avatar
+            uri={listing.sellerAvatar || listing.avatar}
+            name={sellerName}
+            userName={getSellerNickname(listing)}
+            size={46}
+          />
+          <View style={styles.sellerBody}>
+            <Text style={styles.sellerLabel}>Продавец</Text>
+            <Text style={styles.sellerName} numberOfLines={1}>{sellerName}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+        </PressableScale>
+
+        <ImageViewer uri={images[imageIndex]} visible={viewerOpen} onClose={() => setViewerOpen(false)} />
+      </ScrollView>
+
+      {/* Главное действие закреплено внизу: до него не нужно долистывать
+          характеристики и описание. */}
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + space.sm }]}>
+        <PressableScale
+          style={[styles.compareBtn, isCompared && styles.compareBtnActive]}
+          scaleTo={0.94}
+          onPress={toggleCompare}
+        >
+          {compareLoading
+            ? <ActivityIndicator size="small" color={isCompared ? colors.onAccent : colors.text} />
+            : <Ionicons name="git-compare" size={20} color={isCompared ? colors.onAccent : colors.text} />}
+        </PressableScale>
+
+        <PressableScale style={styles.primaryBtn} scaleTo={0.98} onPress={openSeller}>
+          <Ionicons name="person-circle-outline" size={19} color={colors.onAccent} />
+          <Text style={styles.primaryText}>Профиль продавца</Text>
+        </PressableScale>
+      </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingBottom: 28 },
+  content: { paddingBottom: 110 },
+
   hero: { position: 'relative', backgroundColor: colors.surfaceAlt },
-  heroImage: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceAlt },
+  // 4:3 вместо квадрата: под кадром остаётся место цене и заголовку.
+  heroImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: colors.surfaceAlt },
   noImage: { alignItems: 'center', justifyContent: 'center' },
+  heroScrim: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, height: 90,
+    backgroundColor: 'rgba(8,8,10,0.35)',
+  },
+  heroCategory: {
+    position: 'absolute', left: space.md, top: space.md,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: space.md, height: 32, borderRadius: radius.pill,
+    backgroundColor: 'rgba(8,8,10,0.6)',
+  },
+  heroCategoryText: { color: colors.text, fontSize: font.tiny, fontWeight: '900' },
   imageNav: {
-    position: 'absolute', top: '48%', width: 38, height: 38, borderRadius: 19,
-    backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center',
+    position: 'absolute', top: '46%', width: 38, height: 38, borderRadius: radius.pill,
+    backgroundColor: 'rgba(8,8,10,0.6)', justifyContent: 'center', alignItems: 'center',
   },
-  imageNavLeft: { left: 12 },
-  imageNavRight: { right: 12 },
+  imageNavLeft: { left: space.md },
+  imageNavRight: { right: space.md },
   imageCounter: {
-    position: 'absolute', right: 12, bottom: 12, paddingHorizontal: 10, paddingVertical: 5,
-    borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.65)',
+    position: 'absolute', right: space.md, bottom: space.md,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
+    backgroundColor: 'rgba(8,8,10,0.65)',
   },
-  imageCounterText: { color: colors.white, fontWeight: '800', fontSize: 12 },
-  panel: { backgroundColor: colors.surface, padding: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  panelTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  categoryLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  categoryText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
-  panelActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  saveBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  saveBtnActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  title: { marginTop: 10, color: colors.text, fontSize: 24, fontWeight: '900', lineHeight: 29 },
-  price: { marginTop: 10, color: colors.text, fontSize: 24, fontWeight: '900' },
-  locationRow: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  locationText: { flex: 1, color: colors.textMuted, fontSize: 14 },
-  reviewsBtn: { marginTop: 12, minHeight: 44, borderRadius: radius.sm, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
-  reviewsLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  reviewsText: { color: colors.text, fontSize: 14, fontWeight: '900' },
-  sellerBadge: { alignSelf: 'flex-start', marginTop: 12, paddingHorizontal: 9, paddingVertical: 5, borderRadius: radius.sm, backgroundColor: colors.surfaceHi, color: colors.text, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  section: { marginTop: 10, backgroundColor: colors.surface, padding: 16, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 12 },
-  specGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  specItem: { width: '48%', minHeight: 64, borderRadius: radius.sm, backgroundColor: colors.surfaceAlt, padding: 10 },
-  specLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 5 },
-  specValue: { color: colors.text, fontSize: 14, fontWeight: '800' },
-  description: { color: colors.textMuted, fontSize: 14, lineHeight: 21 },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  tag: { paddingHorizontal: 9, paddingVertical: 6, borderRadius: radius.sm, backgroundColor: colors.surfaceAlt, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  sellerBox: {
-    marginTop: 10, marginHorizontal: 12, borderRadius: radius.sm, backgroundColor: colors.surface,
-    padding: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+  imageCounterText: { color: colors.white, fontWeight: '800', fontSize: font.tiny },
+
+  // Карточки с полями вместо полос во всю ширину: экран перестаёт выглядеть
+  // стопкой панелей.
+  card: {
+    marginTop: space.md, marginHorizontal: space.md, padding: space.lg,
+    borderRadius: radius.lg, backgroundColor: colors.surface, ...shadow.card,
   },
-  sellerInfo: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surfaceAlt },
-  avatarFallback: { justifyContent: 'center', alignItems: 'center' },
-  sellerTextWrap: { flex: 1 },
-  sellerTitle: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  sellerName: { color: colors.text, fontSize: 16, fontWeight: '900', marginTop: 2 },
-  contactBtn: {
-    height: 46, borderRadius: radius.sm, backgroundColor: colors.accent,
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7,
+  title: { color: colors.text, fontSize: font.h2, lineHeight: 26, fontWeight: '900' },
+  // Цена крупнее заголовка: за ней приходят в первую очередь.
+  price: { marginTop: space.sm, color: colors.text, fontSize: font.display, fontWeight: '900' },
+  metaRow: { marginTop: space.md, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  metaText: { flexShrink: 1, color: colors.textMuted, fontSize: font.small, fontWeight: '700' },
+  badge: {
+    overflow: 'hidden', marginLeft: space.xs, paddingHorizontal: 9, paddingVertical: 4,
+    borderRadius: radius.pill, backgroundColor: colors.surfaceHi,
+    color: colors.text, fontSize: 10, fontWeight: '900', textTransform: 'uppercase',
   },
-  contactText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
+  reviewsRow: {
+    marginTop: space.md, height: 46, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: space.md,
+  },
+  reviewsText: { flex: 1, color: colors.text, fontSize: font.small, fontWeight: '800' },
+
+  sectionTitle: { color: colors.text, fontSize: font.h3, fontWeight: '900', marginBottom: space.md },
+  specGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  specItem: {
+    width: '48.5%', minHeight: 62, borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt, padding: space.md,
+  },
+  specLabel: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
+  specValue: { marginTop: 4, color: colors.text, fontSize: font.small, fontWeight: '900' },
+  description: { color: colors.textMuted, fontSize: font.small, lineHeight: 21, fontWeight: '600' },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  tag: {
+    overflow: 'hidden', paddingHorizontal: space.md, paddingVertical: 7, borderRadius: radius.pill,
+    backgroundColor: colors.surfaceAlt, color: colors.textMuted, fontSize: font.tiny, fontWeight: '800',
+  },
+
+  sellerCard: {
+    marginTop: space.md, marginHorizontal: space.md, padding: space.md,
+    borderRadius: radius.lg, backgroundColor: colors.surface,
+    flexDirection: 'row', alignItems: 'center', gap: space.md, ...shadow.card,
+  },
+  sellerBody: { flex: 1 },
+  sellerLabel: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
+  sellerName: { marginTop: 2, color: colors.text, fontSize: font.body, fontWeight: '900' },
+
+  bottomBar: {
+    position: 'absolute', left: 0, right: 0, bottom: 0,
+    flexDirection: 'row', alignItems: 'center', gap: space.sm,
+    paddingHorizontal: space.md, paddingTop: space.sm,
+    backgroundColor: colors.surface,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border,
+  },
+  compareBtn: {
+    width: 52, height: 52, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  compareBtnActive: { backgroundColor: colors.accent },
+  primaryBtn: {
+    flex: 1, height: 52, borderRadius: radius.pill, backgroundColor: colors.accent,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+  },
+  primaryText: { color: colors.onAccent, fontSize: font.body, fontWeight: '900' },
 });
