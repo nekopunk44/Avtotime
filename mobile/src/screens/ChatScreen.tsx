@@ -26,6 +26,7 @@ import {
 } from 'expo-audio';
 import { Ionicons } from '@expo/vector-icons';
 import VoiceMessage from '../components/VoiceMessage';
+import VoiceWave from '../components/VoiceWave';
 import ImageViewer from '../components/ImageViewer';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -152,7 +153,9 @@ export default function ChatScreen({ route, navigation }: Props) {
     }).start();
   }, [attachOpen, attachLift]);
 
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  // Метеринг включается опцией: без него громкость не приходит и линия
+  // записи была бы нарисованной, а не живой.
+  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -283,7 +286,7 @@ export default function ChatScreen({ route, navigation }: Props) {
   useLayoutEffect(() => {
     navigation.setOptions({
       title: name,
-      headerTitleAlign: 'left',
+      headerTitleAlign: 'center',
       // Собеседник в шапке: лицо и ник вместо одной строки — по имени
       // «Автосалон Avtotime» непонятно, с кем именно идёт переписка.
       headerTitle: () => (
@@ -614,8 +617,9 @@ export default function ChatScreen({ route, navigation }: Props) {
             </TouchableOpacity>
             <View style={styles.recordingBar}>
               <View style={styles.recordDot} />
+              <VoiceWave recorder={recorder} />
               <Text style={styles.recordingText}>
-                Запись… {Math.floor(recordSeconds / 60)}:{(recordSeconds % 60).toString().padStart(2, '0')}
+                {Math.floor(recordSeconds / 60)}:{(recordSeconds % 60).toString().padStart(2, '0')}
               </Text>
             </View>
             <TouchableOpacity style={styles.roundAccent} onPress={stopAndSendRecording}>
@@ -741,7 +745,7 @@ const styles = StyleSheet.create({
   listWrap: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
   headerBtn: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingRight: space.md },
+  headerTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm },
   headerTitleText: { flexShrink: 1 },
   headerName: { color: colors.text, fontSize: font.body, fontWeight: '900' },
   headerTag: { marginTop: 1, color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
@@ -806,7 +810,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.md, gap: space.sm,
   },
   recordDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.danger },
-  recordingText: { color: colors.text, fontSize: font.small, fontWeight: '800' },
+  // Ширина фиксирована: иначе на переходе 0:09 → 0:10 линия дёргается.
+  recordingText: { minWidth: 34, textAlign: 'right', color: colors.text, fontSize: font.small, fontWeight: '800' },
 
   attachPanel: { overflow: 'hidden' },
   attachCard: {
