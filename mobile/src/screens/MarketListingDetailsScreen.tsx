@@ -35,6 +35,7 @@ import {
   toggleCompareItem,
 } from '../api/compare';
 import { searchUsers } from '../api/users';
+import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import ImageViewer from '../components/ImageViewer';
 import { colors, font, radius, shadow, space } from '../theme';
@@ -51,6 +52,7 @@ const isObjectId = (value: string) => /^[0-9a-fA-F]{24}$/.test(value);
 
 export default function MarketListingDetailsScreen({ navigation, route }: Props) {
   const { listing: initialListing, categoryId } = route.params;
+  const me = useAuthStore((state) => state.user);
   const [listing, setListing] = useState(initialListing);
   const [imageIndex, setImageIndex] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -280,6 +282,14 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
     : null;
 
 
+  // Своё объявление: писать самому себе некому, кнопку показывать незачем.
+  const sellerId = getAuthorId(listing);
+  const sellerNick = getSellerNickname(listing);
+  const isMyListing = Boolean(
+    (me?._id && sellerId && me._id === sellerId)
+    || (me?.userName && sellerNick && me.userName.toLowerCase() === sellerNick.toLowerCase()),
+  );
+
   const sellerName = listing.seller || listing.name
     || (getSellerNickname(listing) ? `@${getSellerNickname(listing)}` : 'Профиль Avtotime');
 
@@ -386,9 +396,13 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
           </View>
           {/* Написать — отдельным действием: карточка целиком ведёт в профиль,
               а разговор начинают чаще, чем изучают профиль. */}
-          <PressableScale style={styles.writeBtn} scaleTo={0.94} onPress={writeSeller}>
-            <Ionicons name="chatbubble-ellipses" size={19} color={colors.onAccent} />
-          </PressableScale>
+          {isMyListing ? (
+            <Text style={styles.ownBadge}>Ваше</Text>
+          ) : (
+            <PressableScale style={styles.writeBtn} scaleTo={0.94} onPress={writeSeller}>
+              <Ionicons name="chatbubble-ellipses" size={19} color={colors.onAccent} />
+            </PressableScale>
+          )}
         </PressableScale>
 
         <ImageViewer uri={images[imageIndex]} visible={viewerOpen} onClose={() => setViewerOpen(false)} />
@@ -478,6 +492,11 @@ const styles = StyleSheet.create({
   writeBtn: {
     width: 44, height: 44, borderRadius: radius.pill,
     backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
+  },
+  ownBadge: {
+    overflow: 'hidden', paddingHorizontal: space.md, paddingVertical: 6,
+    borderRadius: radius.pill, backgroundColor: colors.surfaceAlt,
+    color: colors.textMuted, fontSize: font.tiny, fontWeight: '900',
   },
 
 });

@@ -12,6 +12,8 @@
  * условие лицензии, а не украшение.
  */
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
 import dotenv from "dotenv";
 import MarketCarListing from "../models/marketCarListing.model.js";
 import MarketPartListing from "../models/marketPartListing.model.js";
@@ -29,6 +31,28 @@ const img = (name) => `${BASE}/${name}.jpg`;
 const credit = (author, license) => `Фото: ${author}, ${license} / Wikimedia Commons.`;
 
 const CARS = [
+  {
+    title: "BMW X5 xDrive40i, синий",
+    price: "34 900 €",
+    image: img("seed-car-x5blue-1"),
+    // Три кадра одной машины: снаружи, сбоку и сзади.
+    images: [img("seed-car-x5blue-1"), img("seed-car-x5blue-2"), img("seed-car-x5blue-3")],
+    brand: "BMW",
+    model: "X5",
+    year: "2021",
+    mileage: "74 000 км",
+    fuel: "Бензин",
+    transmission: "Автомат",
+    bodyType: "Внедорожник",
+    driveType: "Полный",
+    engineVolume: "3.0",
+    seats: "5",
+    location: "Кишинев",
+    region: "Кишинев",
+    type: "cars",
+    description:
+      "Один владелец, обслуживание по регламенту у дилера. Панорамная крыша, адаптивная подвеска, аудиосистема Harman Kardon, зимний пакет. Осмотр в Кишинёве, помощь с проверкой на подъёмнике.",
+  },
   {
     title: "Toyota RAV4 Hybrid 2021",
     price: "24 900 €",
@@ -252,17 +276,37 @@ const seed = async (Model, rows, { key = "title", extra = {} } = {}) => {
   return { created, skipped };
 };
 
+/**
+ * Продавец для стартовых объявлений — отдельная учётная запись.
+ *
+ * Иначе автором становится владелец приложения, и на своих же объявлениях
+ * нельзя ни написать, ни поторговаться: чат с самим собой смысла не имеет.
+ * Пароль случайный и никуда не сохраняется: входить в эту запись не нужно,
+ * она существует ради авторства.
+ */
+const ensureSeller = async () => {
+  const existing = await User.findOne({ userName: "avtotime_demo" }).select("_id name").lean();
+  if (existing) return existing;
+
+  const password = await bcrypt.hash(crypto.randomBytes(24).toString("hex"), 10);
+  const created = await User.create({
+    name: "Автосалон Avtotime",
+    userName: "avtotime_demo",
+    email: "demo-seller@avtotime.org",
+    password,
+    isEmailVerified: true,
+    bio: "Витрина маркета: примеры объявлений Avtotime.",
+  });
+  return { _id: created._id, name: created.name };
+};
+
 const run = async () => {
   const url = process.env.MONGODB_URL;
   if (!url) throw new Error("MONGODB_URL не задан");
 
   await mongoose.connect(url);
 
-  const author =
-    (await User.findOne({ isAdmin: true }).select("_id name").lean())
-    || (await User.findOne().sort({ createdAt: 1 }).select("_id name").lean());
-
-  if (!author) throw new Error("В базе нет ни одного пользователя — некого назначить автором");
+  const author = await ensureSeller();
 
   // Объявления наши, проверять их у модерации нечего, но происхождение видно
   // по провайдеру.
@@ -280,7 +324,20 @@ const run = async () => {
     moderationCheckedAt: new Date(),
   };
 
+  // Ранее засеянные записи переписываем на демо-продавца: они создавались от
+  // владельца, и на своих объявлениях кнопка сообщения не имеет смысла.
+  const reassign = { moderationProvider: "seed", author: { $ne: author._id } };
+  const moved = await Promise.all([
+    MarketCarListing.updateMany(reassign, { $set: { author: author._id, seller: author.name } }),
+    MarketPartListing.updateMany(reassign, { $set: { author: author._id, seller: author.name } }),
+    MarketCarServiceListing.updateMany(reassign, { $set: { author: author._id } }),
+    MarketAutoTuningListing.updateMany(reassign, { $set: { author: author._id } }),
+    MarketDryCleaningListing.updateMany(reassign, { $set: { author: author._id } }),
+    MarketConsultationExpert.updateMany(reassign, { $set: { author: author._id } }),
+  ]);
+
   const result = {
+    reassigned: moved.reduce((sum, r) => sum + (r.modifiedCount || 0), 0),
     cars: await seed(MarketCarListing, CARS, { extra: base }),
     parts: await seed(MarketPartListing, PARTS, { extra: base }),
     services: await seed(MarketCarServiceListing, SERVICES, { extra: shortBase }),
