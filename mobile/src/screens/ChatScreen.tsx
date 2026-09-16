@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,6 +8,7 @@ import {
   Image,
   Keyboard,
   Linking,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -28,6 +29,7 @@ import VoiceMessage from '../components/VoiceMessage';
 import ImageViewer from '../components/ImageViewer';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   blockUser,
@@ -40,6 +42,9 @@ import {
   sendMessage,
   unblockUser,
 } from '../api/messages';
+import { getUserById } from '../api/users';
+import { Avatar, ConfirmSheet, PopoverMenu } from '../components/ui';
+import type { PopoverAction } from '../components/ui/PopoverMenu';
 import { getSocket } from '../hooks/useSocket';
 import { colors, font, radius, shadow, space } from '../theme';
 import { AppStackParamList } from '../navigation/AppNavigator';
@@ -106,9 +111,13 @@ export default function ChatScreen({ route, navigation }: Props) {
   const [menuBusy, setMenuBusy] = useState(false);
   const [viewerUri, setViewerUri] = useState<string | undefined>();
   const [attachOpen, setAttachOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirm, setConfirm] = useState<'block' | 'delete' | null>(null);
+  const [peerImage, setPeerImage] = useState<string | undefined>();
   const flatRef = useRef<FlatList>(null);
   const me = useAuthStore((s) => s.user);
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
 
   // Панель ввода поднимается сама: под edge-to-edge окно под клавиатуру не
   // сжимается, поэтому высоту берём из события, а не из KeyboardAvoidingView.
@@ -176,10 +185,12 @@ export default function ChatScreen({ route, navigation }: Props) {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [data, blocked] = await Promise.all([
+      const [data, blocked, peer] = await Promise.all([
         getMessages(userId, { page: 1, limit: CHAT_PAGE_SIZE }),
         getBlockedStatus(userId).catch(() => ({ isBlocked: false })),
+        getUserById(userId).catch(() => null),
       ]);
+      setPeerImage(peer?.profileImage || undefined);
       setMessages(data.reverse());
       pageRef.current = 1;
       hasMoreRef.current = data.length === CHAT_PAGE_SIZE;
@@ -226,75 +237,71 @@ export default function ChatScreen({ route, navigation }: Props) {
     navigation.navigate('UserProfile', { userId });
   }, [navigation, userId]);
 
-  const toggleBlock = useCallback(() => {
+  const applyBlockToggle = useCallback(async () => {
     const nextAction = isBlocked ? unblockUser : blockUser;
-    Alert.alert(
-      isBlocked ? 'Разблокировать пользователя?' : 'Заблокировать пользователя?',
-      isBlocked
-        ? 'Вы снова сможете отправлять сообщения этому пользователю.'
-        : 'Вы не сможете отправлять сообщения, пока пользователь заблокирован.',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: isBlocked ? 'Разблокировать' : 'Заблокировать',
-          style: isBlocked ? 'default' : 'destructive',
-          onPress: async () => {
-            setMenuBusy(true);
-            try {
-              await nextAction(userId);
-              setIsBlocked((prev) => !prev);
-            } catch (e: any) {
-              Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось обновить блокировку');
-            } finally {
-              setMenuBusy(false);
-            }
-          },
-        },
-      ],
-    );
+    setMenuBusy(true);
+    try {
+      await nextAction(userId);
+      setIsBlocked((prev) => !prev);
+    } catch (e: any) {
+      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось обновить блокировку');
+    } finally {
+      setMenuBusy(false);
+    }
   }, [isBlocked, userId]);
 
-  const confirmDeleteConversation = useCallback(() => {
-    Alert.alert('Удалить переписку?', 'Сообщения будут удалены из этой переписки.', [
-      { text: 'Отмена', style: 'cancel' },
-      {
-        text: 'Удалить',
-        style: 'destructive',
-        onPress: async () => {
-          setMenuBusy(true);
-          try {
-            await deleteConversation(userId);
-            setMessages([]);
-            Alert.alert('Готово', 'Переписка удалена');
-          } catch (e: any) {
-            Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось удалить переписку');
-          } finally {
-            setMenuBusy(false);
-          }
-        },
-      },
-    ]);
+  const applyDeleteConversation = useCallback(async () => {
+    setMenuBusy(true);
+    try {
+      await deleteConversation(userId);
+      setMessages([]);
+    } catch (e: any) {
+      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось удалить переписку');
+    } finally {
+      setMenuBusy(false);
+    }
   }, [userId]);
 
-  const openActions = useCallback(() => {
-    Alert.alert(name, userName ? `@${userName}` : 'Действия с чатом', [
-      { text: 'Открыть профиль', onPress: openProfile },
-      { text: isBlocked ? 'Разблокировать' : 'Заблокировать', style: isBlocked ? 'default' : 'destructive', onPress: toggleBlock },
-      { text: 'Удалить переписку', style: 'destructive', onPress: confirmDeleteConversation },
-      { text: 'Отмена', style: 'cancel' },
-    ]);
-  }, [confirmDeleteConversation, isBlocked, name, openProfile, toggleBlock, userName]);
+  const chatActions = useMemo<PopoverAction[]>(() => [
+    { key: 'profile', label: 'Открыть профиль', icon: 'person-outline', onPress: openProfile },
+    {
+      key: 'block',
+      label: isBlocked ? 'Разблокировать' : 'Заблокировать',
+      icon: isBlocked ? 'lock-open-outline' : 'ban-outline',
+      danger: !isBlocked,
+      onPress: () => setConfirm('block'),
+    },
+    {
+      key: 'delete',
+      label: 'Удалить переписку',
+      icon: 'trash-outline',
+      danger: true,
+      onPress: () => setConfirm('delete'),
+    },
+  ], [isBlocked, openProfile]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
       title: name,
+      headerTitleAlign: 'left',
+      // Собеседник в шапке: лицо и ник вместо одной строки — по имени
+      // «Автосалон Avtotime» непонятно, с кем именно идёт переписка.
+      headerTitle: () => (
+        <TouchableOpacity style={styles.headerTitle} activeOpacity={0.7} onPress={openProfile}>
+          <Avatar uri={peerImage} userName={userName} name={name} size={36} />
+          <View style={styles.headerTitleText}>
+            <Text style={styles.headerName} numberOfLines={1}>{name || 'Пользователь'}</Text>
+            {userName ? <Text style={styles.headerTag} numberOfLines={1}>@{userName}</Text> : null}
+          </View>
+        </TouchableOpacity>
+      ),
       headerRight: () => (
-        <TouchableOpacity style={styles.headerBtn} onPress={openActions} disabled={menuBusy}>
+        <TouchableOpacity style={styles.headerBtn} onPress={() => setMenuOpen(true)} disabled={menuBusy}>
           {menuBusy ? <ActivityIndicator color={colors.text} /> : <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />}
         </TouchableOpacity>
       ),
     });
-  }, [menuBusy, name, navigation, openActions]);
+  }, [menuBusy, name, navigation, openProfile, peerImage, userName]);
 
   useEffect(() => {
     load();
@@ -542,31 +549,37 @@ export default function ChatScreen({ route, navigation }: Props) {
         <View style={styles.blockedBanner}>
           <Ionicons name="ban-outline" size={18} color={colors.danger} />
           <Text style={styles.blockedText}>Пользователь заблокирован вами</Text>
-          <TouchableOpacity onPress={toggleBlock}>
+          <TouchableOpacity onPress={() => setConfirm('block')}>
             <Text style={styles.unblockText}>Разблокировать</Text>
           </TouchableOpacity>
         </View>
       ) : null}
 
-      <FlatList
-        ref={flatRef}
-        data={messages}
-        keyExtractor={(item) => item._id}
-        renderItem={renderMessage}
-        inverted
-        contentContainerStyle={messages.length ? styles.list : styles.emptyList}
-        onEndReached={loadOlder}
-        onEndReachedThreshold={0.4}
-        ListFooterComponent={loadingOlder ? <ActivityIndicator style={styles.olderSpinner} color={colors.text} /> : null}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Ionicons name="chatbubble-ellipses-outline" size={42} color={colors.textFaint} />
-            <Text style={styles.emptyTitle}>Сообщений пока нет</Text>
-            <Text style={styles.emptyText}>Напишите первое сообщение, чтобы начать диалог.</Text>
-          </View>
-        }
-      />
+      <View style={styles.listWrap}>
+        <FlatList
+          ref={flatRef}
+          data={messages}
+          keyExtractor={(item) => item._id}
+          renderItem={renderMessage}
+          inverted
+          contentContainerStyle={messages.length ? styles.list : styles.emptyList}
+          onEndReached={loadOlder}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={loadingOlder ? <ActivityIndicator style={styles.olderSpinner} color={colors.text} /> : null}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="chatbubble-ellipses-outline" size={42} color={colors.textFaint} />
+              <Text style={styles.emptyTitle}>Сообщений пока нет</Text>
+              <Text style={styles.emptyText}>Напишите первое сообщение, чтобы начать диалог.</Text>
+            </View>
+          }
+        />
+        {/* Тап по переписке закрывает панель вложений — как по фону шторки. */}
+        {attachOpen ? (
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setAttachOpen(false)} />
+        ) : null}
+      </View>
 
       {attachment ? (
         <View style={styles.previewRow}>
@@ -687,6 +700,37 @@ export default function ChatScreen({ route, navigation }: Props) {
 
       <View style={{ height: insets.bottom + space.sm }} />
 
+      <PopoverMenu
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        actions={chatActions}
+        top={headerHeight + space.xs}
+      />
+
+      <ConfirmSheet
+        visible={confirm === 'block'}
+        title={isBlocked ? 'Разблокировать пользователя?' : 'Заблокировать пользователя?'}
+        message={isBlocked
+          ? 'Вы снова сможете отправлять сообщения этому пользователю.'
+          : 'Вы не сможете отправлять сообщения, пока пользователь заблокирован.'}
+        confirmLabel={isBlocked ? 'Разблокировать' : 'Заблокировать'}
+        cancelLabel="Отмена"
+        destructive={!isBlocked}
+        onConfirm={() => { setConfirm(null); applyBlockToggle(); }}
+        onCancel={() => setConfirm(null)}
+      />
+
+      <ConfirmSheet
+        visible={confirm === 'delete'}
+        title="Удалить переписку?"
+        message="Сообщения будут удалены из этой переписки."
+        confirmLabel="Удалить"
+        cancelLabel="Отмена"
+        destructive
+        onConfirm={() => { setConfirm(null); applyDeleteConversation(); }}
+        onCancel={() => setConfirm(null)}
+      />
+
       <ImageViewer uri={viewerUri} visible={!!viewerUri} onClose={() => setViewerUri(undefined)} />
     </Animated.View>
   );
@@ -694,8 +738,13 @@ export default function ChatScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
+  listWrap: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
   headerBtn: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingRight: space.md },
+  headerTitleText: { flexShrink: 1 },
+  headerName: { color: colors.text, fontSize: font.body, fontWeight: '900' },
+  headerTag: { marginTop: 1, color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
   blockedBanner: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: 'rgba(255,90,95,0.12)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,90,95,0.25)' },
   blockedText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
   unblockText: { color: colors.text, fontSize: 13, fontWeight: '900' },
@@ -766,7 +815,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     borderRadius: radius.xl, backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
-    ...shadow.float,
   },
   attachOption: { flex: 1, alignItems: 'center', gap: 7 },
   attachIcon: {
