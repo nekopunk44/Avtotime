@@ -193,35 +193,29 @@ export default function SearchScreen({ navigation }: Props) {
   );
 
   const renderUser = ({ item }: { item: User }) => (
-    <View style={styles.userCard}>
-      <TouchableOpacity
-        style={styles.userMain}
-        onPress={() => navigation.navigate('UserProfile', { userId: item._id })}
-        activeOpacity={0.86}
-      >
-        <Avatar uri={item.profileImage} userName={item.userName} name={item.name} size={52} />
-        <View style={styles.userInfo}>
-          <Text style={styles.name} numberOfLines={1}>{item.name || 'Пользователь'}</Text>
-          <Text style={styles.username} numberOfLines={1}>@{item.userName || 'avtotime'}</Text>
-          {item.bio || item.profession || item.location ? (
-            <Text style={styles.userMeta} numberOfLines={1}>{item.bio || item.profession || item.location}</Text>
-          ) : null}
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
-      </TouchableOpacity>
+    // Карточка целиком ведёт в профиль, а сообщение — значком справа: две
+    // кнопки-дубля под карточкой занимали строку и повторяли то же самое.
+    <TouchableOpacity
+      style={styles.userCard}
+      onPress={() => navigation.navigate('UserProfile', { userId: item._id })}
+      activeOpacity={0.86}
+    >
+      <Avatar uri={item.profileImage} userName={item.userName} name={item.name} size={52} />
+      <View style={styles.userInfo}>
+        <Text style={styles.name} numberOfLines={1}>{item.name || 'Пользователь'}</Text>
+        <Text style={styles.username} numberOfLines={1}>@{item.userName || 'avtotime'}</Text>
+        {item.bio || item.profession || item.location ? (
+          <Text style={styles.userMeta} numberOfLines={1}>{item.bio || item.profession || item.location}</Text>
+        ) : null}
+      </View>
       {item._id !== user?._id ? (
-        <View style={styles.userActions}>
-          <TouchableOpacity style={styles.userActionBtn} onPress={() => openChat(item)}>
-            <Ionicons name="chatbubble-outline" size={17} color={colors.text} />
-            <Text style={styles.userActionText}>Сообщение</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.userActionBtn} onPress={() => navigation.navigate('UserProfile', { userId: item._id })}>
-            <Ionicons name="person-circle-outline" size={17} color={colors.text} />
-            <Text style={styles.userActionText}>Профиль</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-    </View>
+        <TouchableOpacity style={styles.messageBtn} onPress={() => openChat(item)} hitSlop={8}>
+          <Ionicons name="chatbubble-ellipses" size={19} color={colors.onAccent} />
+        </TouchableOpacity>
+      ) : (
+        <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+      )}
+    </TouchableOpacity>
   );
 
   const renderPost = ({ item }: { item: Post }) => {
@@ -323,16 +317,20 @@ const styles = StyleSheet.create({
   hintText: { flex: 1, color: colors.textMuted, fontSize: 13, fontWeight: '700' },
   searchingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', paddingVertical: 8 },
   searchingText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
-  userCard: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
-  userMain: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12 },
+  userCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12,
+    borderRadius: 14, backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+  },
+  messageBtn: {
+    width: 42, height: 42, borderRadius: 21, backgroundColor: colors.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
   avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.surfaceAlt },
   userInfo: { flex: 1 },
   name: { color: colors.text, fontSize: 15, fontWeight: '900' },
   username: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
   userMeta: { marginTop: 4, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  userActions: { flexDirection: 'row', gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, padding: 8 },
-  userActionBtn: { flex: 1, height: 36, borderRadius: 8, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
-  userActionText: { color: colors.text, fontSize: 12, fontWeight: '900' },
   postCard: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
   postAuthor: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
   postAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt },

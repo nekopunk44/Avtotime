@@ -265,7 +265,13 @@ export default function AppNavigator() {
       <Stack.Screen name="MarketTabs" component={MarketTabs} options={{ headerShown: false, animation: 'fade', animationDuration: 200 }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Уведомления' }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ title: '' }} />
-      <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: '' }} />
+      <Stack.Screen
+        name="UserProfile"
+        component={UserProfileScreen}
+        // Мягкое появление вместо резкого въезда: содержимое экрана
+        // всплывает само, и переход читается одним движением.
+        options={{ title: '', animation: 'fade_from_bottom', animationDuration: 260 }}
+      />
       <Stack.Screen name="PostComments" component={PostCommentsScreen} options={{ title: 'Комментарии' }} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Редактировать профиль' }} />
       <Stack.Screen
