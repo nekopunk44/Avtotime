@@ -204,9 +204,6 @@ export default function SearchScreen({ navigation }: Props) {
       <View style={styles.userInfo}>
         <Text style={styles.name} numberOfLines={1}>{item.name || 'Пользователь'}</Text>
         <Text style={styles.username} numberOfLines={1}>@{item.userName || 'avtotime'}</Text>
-        {item.bio || item.profession || item.location ? (
-          <Text style={styles.userMeta} numberOfLines={1}>{item.bio || item.profession || item.location}</Text>
-        ) : null}
       </View>
       {item._id !== user?._id ? (
         <TouchableOpacity style={styles.messageBtn} onPress={() => openChat(item)} hitSlop={8}>
@@ -330,7 +327,6 @@ const styles = StyleSheet.create({
   userInfo: { flex: 1 },
   name: { color: colors.text, fontSize: 15, fontWeight: '900' },
   username: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '800' },
-  userMeta: { marginTop: 4, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
   postCard: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
   postAuthor: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
   postAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt },
