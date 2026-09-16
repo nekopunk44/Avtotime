@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
   FlatList,
   Image,
-  KeyboardAvoidingView,
+  Keyboard,
   Linking,
-  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -27,7 +28,7 @@ import VoiceMessage from '../components/VoiceMessage';
 import ImageViewer from '../components/ImageViewer';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useHeaderHeight } from '@react-navigation/elements';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   blockUser,
   deleteConversation,
@@ -40,7 +41,7 @@ import {
   unblockUser,
 } from '../api/messages';
 import { getSocket } from '../hooks/useSocket';
-import { colors } from '../theme';
+import { colors, font, radius, shadow, space } from '../theme';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { useAuthStore } from '../store/authStore';
 import { useBadgeStore } from '../store/badgeStore';
@@ -79,6 +80,14 @@ const formatTime = (value?: string) => {
   return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 };
 
+const ATTACH_PANEL_H = 116;
+
+const ATTACH_OPTIONS = [
+  { key: 'camera', icon: 'camera-outline', label: 'Камера' },
+  { key: 'gallery', icon: 'images-outline', label: 'Галерея' },
+  { key: 'file', icon: 'document-outline', label: 'Файл' },
+] as const;
+
 const formatFileSize = (value?: number) => {
   if (!value) return '';
   if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} КБ`;
@@ -96,9 +105,43 @@ export default function ChatScreen({ route, navigation }: Props) {
   const [sending, setSending] = useState(false);
   const [menuBusy, setMenuBusy] = useState(false);
   const [viewerUri, setViewerUri] = useState<string | undefined>();
+  const [attachOpen, setAttachOpen] = useState(false);
   const flatRef = useRef<FlatList>(null);
   const me = useAuthStore((s) => s.user);
-  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
+
+  // Панель ввода поднимается сама: под edge-to-edge окно под клавиатуру не
+  // сжимается, поэтому высоту берём из события, а не из KeyboardAvoidingView.
+  const kbLift = useRef(new Animated.Value(0)).current;
+  const attachLift = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const glide = (height: number, duration?: number) => {
+      Animated.timing(kbLift, {
+        // Системная полоса внизу уже даёт отступ — вычитаем, иначе останется щель.
+        toValue: Math.max(0, height - insets.bottom),
+        duration: duration && duration > 0 ? duration : 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    };
+    const subs = [
+      Keyboard.addListener('keyboardWillShow', (e) => glide(e.endCoordinates.height, e.duration)),
+      Keyboard.addListener('keyboardDidShow', (e) => glide(e.endCoordinates.height, e.duration)),
+      Keyboard.addListener('keyboardWillHide', (e) => glide(0, e.duration)),
+      Keyboard.addListener('keyboardDidHide', (e) => glide(0, e.duration)),
+    ];
+    return () => subs.forEach((s) => s.remove());
+  }, [insets.bottom, kbLift]);
+
+  useEffect(() => {
+    Animated.timing(attachLift, {
+      toValue: attachOpen ? ATTACH_PANEL_H : 0,
+      duration: attachOpen ? 260 : 200,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [attachOpen, attachLift]);
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [recording, setRecording] = useState(false);
@@ -330,18 +373,24 @@ export default function ChatScreen({ route, navigation }: Props) {
     }
   };
 
-  const openAttachmentMenu = () => {
+  // Системный диалог выезжал светлой коробкой посреди тёмного экрана —
+  // вместо него панель выезжает снизу и приподнимает строку ввода.
+  const toggleAttachmentMenu = () => {
     if (isBlocked || sending) return;
-    Alert.alert('Вложение', undefined, [
-      { text: 'Камера', onPress: takePhoto },
-      { text: 'Галерея', onPress: pickImage },
-      { text: 'Файл', onPress: pickFile },
-      { text: 'Отмена', style: 'cancel' },
-    ]);
+    Keyboard.dismiss();
+    setAttachOpen((open) => !open);
+  };
+
+  const chooseAttachment = (key: (typeof ATTACH_OPTIONS)[number]['key']) => {
+    setAttachOpen(false);
+    if (key === 'camera') takePhoto();
+    else if (key === 'gallery') pickImage();
+    else pickFile();
   };
 
   const startRecording = async () => {
     if (isBlocked || sending || recording) return;
+    setAttachOpen(false);
     try {
       const { granted } = await requestRecordingPermissionsAsync();
       if (!granted) {
@@ -488,11 +537,7 @@ export default function ChatScreen({ route, navigation }: Props) {
   const canSend = hasContent && !sending && !isBlocked;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={headerHeight}
-    >
+    <Animated.View style={[styles.container, { paddingBottom: kbLift }]}>
       {isBlocked ? (
         <View style={styles.blockedBanner}>
           <Ionicons name="ban-outline" size={18} color={colors.danger} />
@@ -546,50 +591,104 @@ export default function ChatScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
-      {recording ? (
-        <View style={styles.inputRow}>
-          <TouchableOpacity style={styles.attachBtn} onPress={cancelRecording}>
-            <Ionicons name="trash-outline" size={23} color={colors.danger} />
-          </TouchableOpacity>
-          <View style={styles.recordingBar}>
-            <View style={styles.recordDot} />
-            <Text style={styles.recordingText}>Запись… {Math.floor(recordSeconds / 60)}:{(recordSeconds % 60).toString().padStart(2, '0')}</Text>
+      {/* Панель ввода парит над краем экрана: полем во всю ширину она
+          прилипала к нижней границе и давила на переписку. */}
+      <View style={styles.composerWrap}>
+        {recording ? (
+          <View style={styles.composer}>
+            <TouchableOpacity style={styles.roundGhost} onPress={cancelRecording}>
+              <Ionicons name="trash-outline" size={21} color={colors.danger} />
+            </TouchableOpacity>
+            <View style={styles.recordingBar}>
+              <View style={styles.recordDot} />
+              <Text style={styles.recordingText}>
+                Запись… {Math.floor(recordSeconds / 60)}:{(recordSeconds % 60).toString().padStart(2, '0')}
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.roundAccent} onPress={stopAndSendRecording}>
+              <Ionicons name="send" size={19} color={colors.onAccent} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={[styles.sendBtn, styles.sendBtnActive]} onPress={stopAndSendRecording}>
-            <Ionicons name="send" size={19} color={colors.onAccent} />
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={styles.inputRow}>
-          <TouchableOpacity style={styles.attachBtn} onPress={openAttachmentMenu} disabled={sending || isBlocked}>
-            <Ionicons name="attach-outline" size={24} color={isBlocked ? colors.textFaint : colors.textMuted} />
-          </TouchableOpacity>
-          <TextInput
-            style={[styles.input, isBlocked && styles.inputDisabled]}
-            placeholder={isBlocked ? 'Пользователь заблокирован' : 'Сообщение...'}
-            placeholderTextColor={colors.textFaint}
-            value={text}
-            onChangeText={setText}
-            multiline
-            editable={!isBlocked}
-          />
-          {hasContent ? (
-            <TouchableOpacity style={[styles.sendBtn, canSend && styles.sendBtnActive]} onPress={handleSend} disabled={!canSend}>
-              {sending
-                ? <ActivityIndicator size="small" color={colors.onAccent} />
-                : <Ionicons name="send" size={19} color={canSend ? colors.onAccent : colors.textFaint} />
-              }
+        ) : (
+          <View style={styles.composer}>
+            <TouchableOpacity style={styles.roundGhost} onPress={toggleAttachmentMenu} disabled={sending || isBlocked}>
+              <Animated.View
+                style={{
+                  transform: [{
+                    rotate: attachLift.interpolate({
+                      inputRange: [0, ATTACH_PANEL_H],
+                      outputRange: ['0deg', '45deg'],
+                    }),
+                  }],
+                }}
+              >
+                <Ionicons name="add" size={24} color={isBlocked ? colors.textFaint : colors.textMuted} />
+              </Animated.View>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.micBtn} onPress={startRecording} disabled={sending || isBlocked}>
-              <Ionicons name="mic" size={22} color={isBlocked ? colors.textFaint : colors.onAccent} />
+            <TextInput
+              style={[styles.input, isBlocked && styles.inputDisabled]}
+              placeholder={isBlocked ? 'Пользователь заблокирован' : 'Сообщение'}
+              placeholderTextColor={colors.textFaint}
+              value={text}
+              onChangeText={setText}
+              onFocus={() => setAttachOpen(false)}
+              multiline
+              editable={!isBlocked}
+            />
+            {hasContent ? (
+              <TouchableOpacity
+                style={[styles.roundAccent, !canSend && styles.roundDisabled]}
+                onPress={handleSend}
+                disabled={!canSend}
+              >
+                {sending
+                  ? <ActivityIndicator size="small" color={colors.onAccent} />
+                  : <Ionicons name="arrow-up" size={21} color={canSend ? colors.onAccent : colors.textFaint} />}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.roundAccent, isBlocked && styles.roundDisabled]}
+                onPress={startRecording}
+                disabled={sending || isBlocked}
+              >
+                <Ionicons name="mic" size={21} color={isBlocked ? colors.textFaint : colors.onAccent} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* Панель вложений раскрывается под строкой ввода и поднимает её,
+          как это делает клавиатура. */}
+      <Animated.View style={[styles.attachPanel, { height: attachLift }]} pointerEvents={attachOpen ? 'auto' : 'none'}>
+        <Animated.View
+          style={[
+            styles.attachCard,
+            {
+              opacity: attachLift.interpolate({ inputRange: [0, ATTACH_PANEL_H], outputRange: [0, 1] }),
+            },
+          ]}
+        >
+          {ATTACH_OPTIONS.map((option) => (
+            <TouchableOpacity
+              key={option.key}
+              style={styles.attachOption}
+              activeOpacity={0.75}
+              onPress={() => chooseAttachment(option.key)}
+            >
+              <View style={styles.attachIcon}>
+                <Ionicons name={option.icon} size={23} color={colors.text} />
+              </View>
+              <Text style={styles.attachLabel}>{option.label}</Text>
             </TouchableOpacity>
-          )}
-        </View>
-      )}
+          ))}
+        </Animated.View>
+      </Animated.View>
+
+      <View style={{ height: insets.bottom + space.sm }} />
 
       <ImageViewer uri={viewerUri} visible={!!viewerUri} onClose={() => setViewerUri(undefined)} />
-    </KeyboardAvoidingView>
+    </Animated.View>
   );
 }
 
@@ -601,15 +700,15 @@ const styles = StyleSheet.create({
   blockedText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
   unblockText: { color: colors.text, fontSize: 13, fontWeight: '900' },
   olderSpinner: { paddingVertical: 14 },
-  list: { paddingHorizontal: 12, paddingVertical: 10 },
-  emptyList: { flexGrow: 1, justifyContent: 'center', padding: 24 },
+  list: { paddingHorizontal: space.md, paddingVertical: space.md },
+  emptyList: { flexGrow: 1, justifyContent: 'center', padding: space.xxl },
   emptyState: { alignItems: 'center' },
-  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 16, fontWeight: '900' },
-  emptyText: { marginTop: 5, color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
-  bubble: { maxWidth: '80%', borderRadius: 20, padding: 12, marginVertical: 4 },
-  mine: { alignSelf: 'flex-end', backgroundColor: colors.accent, borderBottomRightRadius: 6 },
-  theirs: { alignSelf: 'flex-start', backgroundColor: colors.surfaceAlt, borderBottomLeftRadius: 6, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  msgText: { fontSize: 15, color: colors.text, lineHeight: 20 },
+  emptyTitle: { marginTop: space.md, color: colors.text, fontSize: font.h3, fontWeight: '900' },
+  emptyText: { marginTop: 5, color: colors.textMuted, fontSize: font.small, textAlign: 'center', lineHeight: 19 },
+  bubble: { maxWidth: '78%', borderRadius: radius.lg, paddingHorizontal: 14, paddingVertical: 10, marginVertical: 3 },
+  mine: { alignSelf: 'flex-end', backgroundColor: colors.accent, borderBottomRightRadius: radius.sm },
+  theirs: { alignSelf: 'flex-start', backgroundColor: colors.surface, borderBottomLeftRadius: radius.sm, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  msgText: { fontSize: font.body, color: colors.text, lineHeight: 21 },
   mineText: { color: colors.onAccent },
   msgTime: { fontSize: 10, color: colors.textFaint, marginTop: 5, alignSelf: 'flex-end' },
   mineTime: { color: 'rgba(11,11,14,0.55)' },
@@ -619,21 +718,60 @@ const styles = StyleSheet.create({
   attachmentTextWrap: { flex: 1 },
   attachmentTitle: { color: colors.text, fontSize: 13, fontWeight: '900' },
   attachmentMeta: { marginTop: 2, color: colors.textMuted, fontSize: 11, fontWeight: '700' },
-  previewRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-  previewImage: { width: 64, height: 64, borderRadius: 10, backgroundColor: colors.surfaceHi },
-  previewFileIcon: { width: 64, height: 64, borderRadius: 10, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  previewRow: {
+    flexDirection: 'row', alignItems: 'center', gap: space.md,
+    marginHorizontal: space.md, marginTop: space.sm, padding: space.sm,
+    borderRadius: radius.lg, backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+  },
+  previewImage: { width: 56, height: 56, borderRadius: radius.md, backgroundColor: colors.surfaceHi },
+  previewFileIcon: {
+    width: 56, height: 56, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    alignItems: 'center', justifyContent: 'center',
+  },
   previewText: { flex: 1 },
-  previewTitle: { color: colors.text, fontSize: 14, fontWeight: '900' },
-  previewMeta: { marginTop: 2, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  previewTitle: { color: colors.text, fontSize: font.small, fontWeight: '900' },
+  previewMeta: { marginTop: 2, color: colors.textMuted, fontSize: font.tiny, fontWeight: '700' },
   removePreview: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-  attachBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  input: { flex: 1, minHeight: 40, maxHeight: 120, backgroundColor: colors.surfaceAlt, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, fontSize: 15, color: colors.text },
-  inputDisabled: { color: colors.textFaint, backgroundColor: colors.surfaceHi },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt, justifyContent: 'center', alignItems: 'center' },
-  sendBtnActive: { backgroundColor: colors.accent },
-  micBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center' },
-  recordingBar: { flex: 1, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 8 },
-  recordDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.danger },
-  recordingText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  composerWrap: { paddingHorizontal: space.md, paddingTop: space.sm, backgroundColor: 'transparent' },
+  composer: {
+    flexDirection: 'row', alignItems: 'flex-end', gap: space.xs,
+    borderRadius: radius.xl, backgroundColor: colors.surface,
+    paddingHorizontal: 6, paddingVertical: 6,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+    ...shadow.float,
+  },
+  roundGhost: { width: 44, height: 44, borderRadius: radius.pill, justifyContent: 'center', alignItems: 'center' },
+  roundAccent: {
+    width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.accent,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  roundDisabled: { backgroundColor: colors.surfaceAlt },
+  input: {
+    flex: 1, minHeight: 44, maxHeight: 120, paddingHorizontal: space.sm,
+    paddingTop: 11, paddingBottom: 11, fontSize: font.body, color: colors.text,
+  },
+  inputDisabled: { color: colors.textFaint },
+  recordingBar: {
+    flex: 1, height: 44, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt,
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.md, gap: space.sm,
+  },
+  recordDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.danger },
+  recordingText: { color: colors.text, fontSize: font.small, fontWeight: '800' },
+
+  attachPanel: { overflow: 'hidden' },
+  attachCard: {
+    position: 'absolute', left: space.md, right: space.md, bottom: space.sm,
+    height: ATTACH_PANEL_H - space.sm * 2,
+    flexDirection: 'row', alignItems: 'center',
+    borderRadius: radius.xl, backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+    ...shadow.float,
+  },
+  attachOption: { flex: 1, alignItems: 'center', gap: 7 },
+  attachIcon: {
+    width: 48, height: 48, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  attachLabel: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '800' },
 });
