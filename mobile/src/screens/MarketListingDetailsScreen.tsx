@@ -190,16 +190,6 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
     navigation.navigate('Chat', { userId: seller.id, name: seller.name, userName: seller.userName });
   };
 
-  const nextImage = () => {
-    if (!images.length) return;
-    setImageIndex((prev) => (prev + 1) % images.length);
-  };
-
-  const previousImage = () => {
-    if (!images.length) return;
-    setImageIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
-
   const toggleCompare = async () => {
     if (!canCompareListing(listing) || typeof listing.id !== 'number') {
       Alert.alert('Сравнение', 'Это объявление нельзя добавить в сравнение.');
@@ -297,10 +287,28 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
     <Animated.View style={[styles.container, growStyle]}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          {images[imageIndex] ? (
-            <TouchableOpacity activeOpacity={0.95} onPress={() => setViewerOpen(true)}>
-              <Image source={{ uri: images[imageIndex] }} style={styles.heroImage} />
-            </TouchableOpacity>
+          {images.length ? (
+            /* Свайп вместо стрелок: листать кадры пальцем привычнее, чем
+               целиться в кнопку поверх фотографии. */
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const page = Math.round(e.nativeEvent.contentOffset.x / SCREEN.width);
+                setImageIndex(Math.max(0, Math.min(images.length - 1, page)));
+              }}
+            >
+              {images.map((uri, index) => (
+                <TouchableOpacity
+                  key={`${uri}-${index}`}
+                  activeOpacity={0.95}
+                  onPress={() => setViewerOpen(true)}
+                >
+                  <Image source={{ uri }} style={styles.heroImage} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           ) : (
             <View style={[styles.heroImage, styles.noImage]}>
               <Ionicons name={category.icon as any} size={44} color={colors.textFaint} />
@@ -312,15 +320,16 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
             <Text style={styles.heroCategoryText}>{category.label}</Text>
           </View>
 
-
           {images.length > 1 ? (
             <>
-              <TouchableOpacity style={[styles.imageNav, styles.imageNavLeft]} onPress={previousImage} hitSlop={8}>
-                <Ionicons name="chevron-back" size={22} color={colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.imageNav, styles.imageNavRight]} onPress={nextImage} hitSlop={8}>
-                <Ionicons name="chevron-forward" size={22} color={colors.text} />
-              </TouchableOpacity>
+              <View style={styles.dots}>
+                {images.map((uri, index) => (
+                  <View
+                    key={`dot-${uri}-${index}`}
+                    style={[styles.dot, index === imageIndex && styles.dotActive]}
+                  />
+                ))}
+              </View>
               <View style={styles.imageCounter}>
                 <Text style={styles.imageCounterText}>{imageIndex + 1}/{images.length}</Text>
               </View>
@@ -418,7 +427,7 @@ const styles = StyleSheet.create({
 
   hero: { position: 'relative', backgroundColor: colors.surfaceAlt },
   // 4:3 вместо квадрата: под кадром остаётся место цене и заголовку.
-  heroImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: colors.surfaceAlt },
+  heroImage: { width: SCREEN.width, aspectRatio: 4 / 3, backgroundColor: colors.surfaceAlt },
   noImage: { alignItems: 'center', justifyContent: 'center' },
   heroCategory: {
     position: 'absolute', left: space.md, top: space.md,
@@ -431,18 +440,18 @@ const styles = StyleSheet.create({
     marginRight: space.md, width: 36, height: 36,
     alignItems: 'center', justifyContent: 'center',
   },
-  imageNav: {
-    position: 'absolute', top: '46%', width: 38, height: 38, borderRadius: radius.pill,
-    backgroundColor: 'rgba(8,8,10,0.6)', justifyContent: 'center', alignItems: 'center',
-  },
-  imageNavLeft: { left: space.md },
-  imageNavRight: { right: space.md },
   imageCounter: {
     position: 'absolute', right: space.md, bottom: space.md,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill,
     backgroundColor: 'rgba(8,8,10,0.65)',
   },
   imageCounterText: { color: colors.white, fontWeight: '800', fontSize: font.tiny },
+  dots: {
+    position: 'absolute', left: 0, right: 0, bottom: space.md,
+    flexDirection: 'row', justifyContent: 'center', gap: 6,
+  },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.45)' },
+  dotActive: { backgroundColor: colors.white, width: 18 },
 
   // Карточки с полями вместо полос во всю ширину: экран перестаёт выглядеть
   // стопкой панелей.
