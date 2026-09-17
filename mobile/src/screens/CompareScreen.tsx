@@ -1,19 +1,18 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import { colors } from '../theme';
-import { Skeleton } from '../components/ui';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { colors, font, radius, shadow, space } from '../theme';
+import { EmptyState, PressableScale, Skeleton } from '../components/ui';
+import { showToast } from '../store/toastStore';
 import {
   CompareItem,
   CompareItemType,
@@ -50,53 +49,107 @@ const typeLabel: Record<CompareItemType, string> = {
   consultation: 'Консультации',
 };
 
-const compareRows: Array<{ label: string; getValue: (item: ResolvedCompareItem) => string }> = [
-  { label: 'Цена', getValue: (item) => item.listing ? getListingPrice(item.listing, item.categoryId) : '' },
+/**
+ * Куда смотрит «лучше»: у цены и пробега выигрывает меньшее, у года и оценок —
+ * большее. Там, где лучшего не бывает (цвет, город), сравнение молчит.
+ */
+type Better = 'low' | 'high' | undefined;
+
+const compareRows: Array<{
+  label: string;
+  better?: Better;
+  /** Цена сопоставима только внутри одного раздела: «€ 20/ч» и «34 900 €» — разные величины. */
+  sameCategoryOnly?: boolean;
+  getValue: (item: ResolvedCompareItem) => string;
+}> = [
+  { label: 'Цена', better: 'low', sameCategoryOnly: true, getValue: (item) => item.listing ? getListingPrice(item.listing, item.categoryId) : '' },
   { label: 'Локация', getValue: (item) => item.listing?.location || item.listing?.region || '' },
   { label: 'Марка', getValue: (item) => item.listing?.brand || '' },
   { label: 'Модель', getValue: (item) => item.listing?.model || '' },
-  { label: 'Год', getValue: (item) => item.listing?.year || '' },
-  { label: 'Пробег', getValue: (item) => item.listing?.mileage || '' },
+  { label: 'Год', better: 'high', getValue: (item) => item.listing?.year || '' },
+  { label: 'Пробег', better: 'low', getValue: (item) => item.listing?.mileage || '' },
   { label: 'Топливо', getValue: (item) => item.listing?.fuel || '' },
   { label: 'КПП', getValue: (item) => item.listing?.transmission || '' },
   { label: 'Категория', getValue: (item) => item.listing?.category || item.listing?.partCategory || item.listing?.partGroup || '' },
-  { label: 'Рейтинг', getValue: (item) => {
+  { label: 'Рейтинг', better: 'high', getValue: (item) => {
     const value = item.listing?.rating ?? item.listing?.serviceQuality;
     return value ? `${value}/5` : '';
   } },
-  { label: 'Опыт', getValue: (item) => {
+  { label: 'Опыт', better: 'high', getValue: (item) => {
     const years = Number(item.listing?.experience);
     return Number.isFinite(years) && years > 0 ? `${years} ${plural(years, ['год', 'года', 'лет'])}` : '';
   } },
 ];
 
-// Resolve one compare item by id against the categories its type maps to —
-// a couple of by-id requests instead of downloading whole category lists.
+/** Число из «34 900 €» или «74 000 км»: пробелы внутри цифр разделяют разряды. */
+export function numericOf(value: string): number | null {
+  const digits = value.replace(/\s| /g, '').match(/-?\d+(?:[.,]\d+)?/);
+  if (!digits) return null;
+  const num = Number(digits[0].replace(',', '.'));
+  return Number.isFinite(num) ? num : null;
+}
+
+/** Индекс выигравшего значения или -1: равные и несравнимые победителя не дают. */
+export function betterIndex(values: string[], better: Better, comparable: boolean): number {
+  if (!better || !comparable || values.length < 2) return -1;
+  if (values.some((value) => !value)) return -1;
+  const numbers = values.map(numericOf);
+  if (numbers.some((num) => num === null)) return -1;
+  const nums = numbers as number[];
+  if (nums[0] === nums[1]) return -1;
+  const wins0 = better === 'low' ? nums[0] < nums[1] : nums[0] > nums[1];
+  return wins0 ? 0 : 1;
+}
+
+const same = (values: string[]) =>
+  values.length > 1 && values.every((value) => value.trim().toLowerCase() === values[0].trim().toLowerCase());
+
+// Одну позицию ищем по id в тех разделах, куда ведёт её тип: пара запросов
+// вместо выкачивания целых списков.
 const resolveItem = async (item: CompareItem): Promise<ResolvedCompareItem> => {
   for (const categoryId of categoriesByType[item.type] || []) {
     try {
       const listing = await getMarketListingById(categoryId, item.id);
       if (listing) return { ...item, listing, categoryId };
     } catch {
-      // 404 in this category — try the next one.
+      // В этом разделе не нашлось — пробуем следующий.
     }
   }
   return { ...item };
 };
 
 export default function CompareScreen() {
+  const navigation = useNavigation<any>();
   const [items, setItems] = useState<CompareItem[]>([]);
   const [resolvedItems, setResolvedItems] = useState<ResolvedCompareItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  // Главный вопрос сравнения — чем они отличаются. Одинаковые строки можно
+  // убрать с глаз одним нажатием.
+  const [diffOnly, setDiffOnly] = useState(false);
 
   const comparisonType = items[0]?.type;
-  const visibleRows = useMemo(
-    () => compareRows.filter((row) => resolvedItems.some((item) => row.getValue(item))),
-    [resolvedItems],
-  );
+  const pair = resolvedItems.length === 2;
+
+  const rows = useMemo(() => {
+    const sameCategory = pair && resolvedItems[0]?.categoryId === resolvedItems[1]?.categoryId;
+    return compareRows
+      .map((row) => {
+        const values = resolvedItems.map((item) => row.getValue(item));
+        return {
+          label: row.label,
+          values,
+          equal: same(values),
+          winner: betterIndex(values, row.better, !row.sameCategoryOnly || sameCategory),
+        };
+      })
+      .filter((row) => row.values.some(Boolean));
+  }, [resolvedItems, pair]);
+
+  const diffCount = useMemo(() => rows.filter((row) => !row.equal).length, [rows]);
+  const shownRows = diffOnly ? rows.filter((row) => !row.equal) : rows;
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -131,24 +184,33 @@ export default function CompareScreen() {
     load(true);
   };
 
-  const saveNextItems = async (nextItems: CompareItem[]) => {
+  const saveNextItems = async (nextItems: CompareItem[], done: string) => {
     setSaving(true);
     try {
       await saveCompareItems(nextItems);
       await load(true);
+      showToast(done);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось обновить сравнение');
+      showToast(e.response?.data?.message || 'Не удалось обновить сравнение', 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  const removeItem = (item: CompareItem) => {
-    const next = items.filter((candidate) => !(candidate.id === item.id && candidate.type === item.type));
-    saveNextItems(next);
+  const removeItem = (item: CompareItem) => saveNextItems(
+    items.filter((candidate) => !(candidate.id === item.id && candidate.type === item.type)),
+    'Убрано из сравнения',
+  );
+
+  const clear = () => saveNextItems([], 'Сравнение очищено');
+
+  const openListing = (item: ResolvedCompareItem) => {
+    if (!item.listing || !item.categoryId) return;
+    navigation.navigate('MarketListingDetails', { listing: item.listing, categoryId: item.categoryId });
   };
 
-  const clear = () => saveNextItems([]);
+  const shortTitle = (item: ResolvedCompareItem) =>
+    (item.listing ? getListingTitle(item.listing) : `ID ${item.id}`);
 
   if (loading) {
     return (
@@ -166,119 +228,274 @@ export default function CompareScreen() {
     );
   }
 
+  const header = (
+    <View key="head" style={styles.head}>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>Сравнение</Text>
+        {items.length ? (
+          <PressableScale style={styles.clearBtn} onPress={clear} disabled={saving} scaleTo={0.94}>
+            {saving
+              ? <ActivityIndicator size="small" color={colors.textMuted} />
+              : <Ionicons name="trash-outline" size={18} color={colors.textMuted} />}
+          </PressableScale>
+        ) : null}
+      </View>
+      {items.length && comparisonType ? (
+        <Text style={styles.subtitle}>
+          {typeLabel[comparisonType]} · {items.length} из 2
+        </Text>
+      ) : null}
+    </View>
+  );
+
+  // Полоса с колонками липнет к верху: прокручивая таблицу, надо помнить,
+  // где чьё значение.
+  const columnBar = pair ? (
+    <View key="columns" style={styles.columnBar}>
+      {resolvedItems.map((item) => (
+        <View key={`col-${item.type}-${item.id}`} style={styles.column}>
+          {item.listing && getListingImage(item.listing) ? (
+            <Image source={{ uri: getListingImage(item.listing) }} style={styles.columnThumb} />
+          ) : (
+            <View style={[styles.columnThumb, styles.itemImageFallback]}>
+              <Ionicons name="image-outline" size={14} color={colors.textFaint} />
+            </View>
+          )}
+          <Text style={styles.columnName} numberOfLines={1}>{shortTitle(item)}</Text>
+        </View>
+      ))}
+    </View>
+  ) : null;
+
+  const body: React.ReactNode[] = [header];
+
+  if (error) {
+    body.push(
+      <EmptyState
+        key="error"
+        icon="alert-circle-outline"
+        title={error}
+        subtitle="Потяните экран вниз, чтобы попробовать снова."
+      />,
+    );
+  } else if (!items.length) {
+    body.push(
+      <EmptyState
+        key="empty"
+        icon="git-compare-outline"
+        title="Сравнивать пока нечего"
+        subtitle="Нажмите значок сравнения на карточке объявления — здесь появится разбор по характеристикам."
+        actionLabel="Перейти в маркет"
+        onAction={() => navigation.navigate('Market')}
+      />,
+    );
+  } else {
+    body.push(
+      <View key="cards" style={styles.cardsRow}>
+        {resolvedItems.map((item) => (
+          <PressableScale
+            key={`${item.type}-${item.id}`}
+            style={styles.itemCard}
+            scaleTo={0.98}
+            onPress={() => openListing(item)}
+          >
+            {item.listing && getListingImage(item.listing) ? (
+              <Image source={{ uri: getListingImage(item.listing) }} style={styles.itemImage} />
+            ) : (
+              <View style={[styles.itemImage, styles.itemImageFallback]}>
+                <Ionicons name="image-outline" size={25} color={colors.textFaint} />
+              </View>
+            )}
+            {/* Убрать — маленьким крестиком на фото: удаление здесь не главное
+                действие, а красная кнопка во всю ширину кричала о нём. */}
+            <PressableScale
+              style={styles.removeBtn}
+              scaleTo={0.9}
+              onPress={() => removeItem(item)}
+              disabled={saving}
+            >
+              <Ionicons name="close" size={16} color={colors.text} />
+            </PressableScale>
+            <View style={styles.itemBody}>
+              <Text style={styles.itemPrice} numberOfLines={1}>
+                {item.listing ? getListingPrice(item.listing, item.categoryId) : 'Не найдено'}
+              </Text>
+              <Text style={styles.itemTitle} numberOfLines={2}>{shortTitle(item)}</Text>
+            </View>
+          </PressableScale>
+        ))}
+
+        {/* Второе место пустует — предлагаем занять его, а не оставляем дыру. */}
+        {resolvedItems.length === 1 ? (
+          <PressableScale
+            style={[styles.itemCard, styles.addCard]}
+            scaleTo={0.98}
+            onPress={() => navigation.navigate('Market')}
+          >
+            <Ionicons name="add" size={26} color={colors.textMuted} />
+            <Text style={styles.addText}>Добавить второе объявление</Text>
+          </PressableScale>
+        ) : null}
+      </View>,
+    );
+
+    if (columnBar) body.push(columnBar);
+
+    if (pair) {
+      body.push(
+        <View key="toolbar" style={styles.toolbar}>
+          <Text style={styles.diffCount}>
+            {diffCount
+              ? `${diffCount} ${plural(diffCount, ['отличие', 'отличия', 'отличий'])}`
+              : 'Отличий нет'}
+          </Text>
+          <PressableScale
+            style={[styles.diffChip, diffOnly && styles.diffChipOn]}
+            scaleTo={0.96}
+            onPress={() => setDiffOnly((prev) => !prev)}
+          >
+            <Ionicons
+              name={diffOnly ? 'funnel' : 'funnel-outline'}
+              size={14}
+              color={diffOnly ? colors.onAccent : colors.textMuted}
+            />
+            <Text style={[styles.diffChipText, diffOnly && styles.diffChipTextOn]}>Только отличия</Text>
+          </PressableScale>
+        </View>,
+      );
+    }
+
+    body.push(
+      <View key="table" style={styles.table}>
+        {shownRows.length ? shownRows.map((row, rowIndex) => (
+          <View key={row.label} style={[styles.tableRow, rowIndex === shownRows.length - 1 && styles.tableRowLast]}>
+            <Text style={styles.rowLabel}>{row.label}</Text>
+            <View style={styles.rowValues}>
+              {row.values.map((value, index) => (
+                <View key={`${row.label}-${index}`} style={styles.valueCell}>
+                  {row.winner === index ? (
+                    <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.rowValue,
+                      // Совпало — значит выбор от этой строки не зависит.
+                      row.equal && styles.rowValueSame,
+                      row.winner === index && styles.rowValueWin,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {value || '—'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )) : (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyText}>
+              {diffOnly ? 'Объявления одинаковы по всем характеристикам.' : 'Нет общих характеристик для сравнения.'}
+            </Text>
+          </View>
+        )}
+      </View>,
+    );
+  }
+
+  // Полоса колонок — третий блок: шапка, карточки, она. Пока пары нет,
+  // липнуть нечему.
+  const stickyIndices = columnBar ? [2] : undefined;
+
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
+      stickyHeaderIndices={stickyIndices}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
     >
-      {/* Экран стал вкладкой: в шапке теперь переключатель режимов, поэтому
-          название раздела живёт в самом содержимом. */}
-      <View style={styles.titleRow}>
-        <Text style={styles.title}>Сравнение</Text>
-        {items.length ? <Text style={styles.titleCount}>{items.length}/2</Text> : null}
-      </View>
-
-      {error ? (
-        <View style={styles.emptyWrap}>
-          <Ionicons name="alert-circle-outline" size={40} color={colors.danger} />
-          <Text style={styles.emptyTitle}>{error}</Text>
-          <Text style={styles.emptyText}>Потяните экран вниз, чтобы попробовать снова.</Text>
-        </View>
-      ) : !items.length ? (
-        <View style={styles.emptyWrap}>
-          <Ionicons name="albums-outline" size={42} color={colors.textFaint} />
-          <Text style={styles.emptyTitle}>Список сравнения пуст</Text>
-          <Text style={styles.emptyText}>Откройте объявление в маркете и нажмите “Сравнить”.</Text>
-        </View>
-      ) : (
-        <>
-          <View style={styles.topRow}>
-            <Text style={styles.countText}>
-              {comparisonType ? `${typeLabel[comparisonType]} · ` : ''}{items.length}/2
-            </Text>
-            <TouchableOpacity style={styles.clearBtn} onPress={clear} disabled={saving}>
-              {saving ? <ActivityIndicator size="small" color={colors.danger} /> : <Text style={styles.clearText}>Очистить</Text>}
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.cardsRow}>
-            {resolvedItems.map((item) => (
-              <View key={`${item.type}-${item.id}`} style={styles.itemCard}>
-                {item.listing && getListingImage(item.listing) ? (
-                  <Image source={{ uri: getListingImage(item.listing) }} style={styles.itemImage} />
-                ) : (
-                  <View style={[styles.itemImage, styles.itemImageFallback]}>
-                    <Ionicons name="image-outline" size={25} color={colors.textFaint} />
-                  </View>
-                )}
-                <Text style={styles.itemTitle} numberOfLines={2}>
-                  {item.listing ? getListingTitle(item.listing) : `ID ${item.id}`}
-                </Text>
-                <Text style={styles.itemPrice} numberOfLines={1}>
-                  {item.listing ? getListingPrice(item.listing, item.categoryId) : 'Не найдено'}
-                </Text>
-                <TouchableOpacity style={styles.removeBtn} onPress={() => removeItem(item)} disabled={saving}>
-                  <Ionicons name="close" size={16} color={colors.danger} />
-                  <Text style={styles.removeText}>Убрать</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.table}>
-            {visibleRows.length ? visibleRows.map((row) => (
-              <View key={row.label} style={styles.tableRow}>
-                <Text style={styles.rowLabel}>{row.label}</Text>
-                <View style={styles.rowValues}>
-                  {resolvedItems.map((item) => (
-                    <Text key={`${row.label}-${item.type}-${item.id}`} style={styles.rowValue} numberOfLines={2}>
-                      {row.getValue(item) || '—'}
-                    </Text>
-                  ))}
-                </View>
-              </View>
-            )) : (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyText}>Нет общих характеристик для сравнения.</Text>
-              </View>
-            )}
-          </View>
-        </>
-      )}
+      {body}
     </ScrollView>
   );
 }
 
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { flexGrow: 1, padding: 16, paddingBottom: 28 },
-  titleRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 12 },
-  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
-  titleCount: { color: colors.textFaint, fontSize: 15, fontWeight: '900' },
-  skeletonCard: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden', paddingBottom: 14 },
+  content: { flexGrow: 1, padding: space.md, paddingBottom: space.xxl },
+
+  head: { marginBottom: space.md },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  title: { color: colors.text, fontSize: font.display, fontWeight: '900' },
+  subtitle: { marginTop: 2, color: colors.textMuted, fontSize: font.small, fontWeight: '700' },
+  clearBtn: {
+    width: 38, height: 38, borderRadius: radius.pill,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceAlt,
+  },
+
+  skeletonCard: {
+    flex: 1, borderRadius: radius.lg, backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+    overflow: 'hidden', paddingBottom: space.md,
+  },
   skeletonImage: { width: '100%', height: 112, borderRadius: 0 },
-  skeletonLine: { marginTop: 10, marginHorizontal: 10, height: 14, width: '80%' },
-  skeletonLineShort: { marginTop: 8, marginHorizontal: 10, height: 12, width: '55%' },
-  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-  emptyTitle: { marginTop: 10, color: colors.text, fontSize: 17, fontWeight: '900', textAlign: 'center' },
-  emptyText: { marginTop: 6, color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 10 },
-  countText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
-  clearBtn: { minWidth: 88, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
-  clearText: { color: colors.danger, fontSize: 13, fontWeight: '900' },
-  cardsRow: { flexDirection: 'row', gap: 10 },
-  itemCard: { flex: 1, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
-  itemImage: { width: '100%', height: 112, backgroundColor: colors.surfaceAlt },
+  skeletonLine: { marginTop: space.sm, marginHorizontal: space.sm, height: 14, width: '80%' },
+  skeletonLineShort: { marginTop: 6, marginHorizontal: space.sm, height: 12, width: '55%' },
+
+  cardsRow: { flexDirection: 'row', gap: space.sm },
+  itemCard: {
+    flex: 1, borderRadius: radius.lg, backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden',
+  },
+  itemImage: { width: '100%', height: 118, backgroundColor: colors.surfaceAlt },
   itemImageFallback: { alignItems: 'center', justifyContent: 'center' },
-  itemTitle: { marginTop: 10, paddingHorizontal: 10, color: colors.text, fontSize: 14, lineHeight: 19, fontWeight: '900', minHeight: 38 },
-  itemPrice: { paddingHorizontal: 10, marginTop: 5, color: colors.text, fontSize: 14, fontWeight: '900' },
-  removeBtn: { margin: 10, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
-  removeText: { color: colors.danger, fontSize: 12, fontWeight: '900' },
-  table: { marginTop: 12, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
-  tableRow: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, padding: 12 },
-  rowLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 8 },
-  rowValues: { flexDirection: 'row', gap: 10 },
-  rowValue: { flex: 1, color: colors.text, fontSize: 14, lineHeight: 19, fontWeight: '800' },
-  emptyBox: { padding: 18, alignItems: 'center' },
+  removeBtn: {
+    position: 'absolute', top: space.sm, right: space.sm,
+    width: 30, height: 30, borderRadius: radius.pill,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(11,11,14,0.6)',
+  },
+  itemBody: { padding: space.sm, gap: 3 },
+  itemPrice: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
+  itemTitle: { color: colors.textMuted, fontSize: font.small, lineHeight: 18, fontWeight: '700', minHeight: 36 },
+  addCard: {
+    alignItems: 'center', justifyContent: 'center', gap: 6, padding: space.md,
+    minHeight: 190, backgroundColor: colors.bg, borderStyle: 'dashed', borderColor: colors.surfaceHi,
+  },
+  addText: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '800', textAlign: 'center' },
+
+  columnBar: {
+    flexDirection: 'row', gap: space.sm, marginTop: space.md,
+    paddingVertical: space.sm, backgroundColor: colors.bg,
+  },
+  column: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  columnThumb: { width: 26, height: 26, borderRadius: radius.sm, backgroundColor: colors.surfaceAlt },
+  columnName: { flex: 1, color: colors.text, fontSize: font.tiny, fontWeight: '900' },
+
+  toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.sm },
+  diffCount: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
+  diffChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    height: 32, paddingHorizontal: space.md, borderRadius: radius.pill,
+    backgroundColor: colors.surfaceAlt,
+  },
+  diffChipOn: { backgroundColor: colors.accent },
+  diffChipText: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '900' },
+  diffChipTextOn: { color: colors.onAccent },
+
+  table: {
+    borderRadius: radius.lg, backgroundColor: colors.surface, overflow: 'hidden',
+    ...shadow.card,
+  },
+  tableRow: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, padding: space.md },
+  tableRowLast: { borderBottomWidth: 0 },
+  rowLabel: {
+    color: colors.textFaint, fontSize: font.tiny, fontWeight: '900',
+    textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6,
+  },
+  rowValues: { flexDirection: 'row', gap: space.sm },
+  valueCell: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  rowValue: { flex: 1, color: colors.text, fontSize: font.small, lineHeight: 19, fontWeight: '800' },
+  rowValueSame: { color: colors.textMuted, fontWeight: '700' },
+  rowValueWin: { color: colors.success },
+  emptyBox: { padding: space.lg, alignItems: 'center' },
+  emptyText: { color: colors.textMuted, fontSize: font.small, lineHeight: 19, textAlign: 'center' },
 });
