@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
 import {
   CompareItem,
   CompareItemType,
@@ -7,6 +6,7 @@ import {
   saveCompareItems,
   toggleCompareItem,
 } from '../api/compare';
+import { showToast } from '../store/toastStore';
 
 /**
  * Список сравнения, общий для витрины и карточки объявления: правила «не
@@ -35,7 +35,7 @@ export function useCompare() {
 
   const toggle = useCallback(async (id: number | undefined, type: CompareItemType) => {
     if (typeof id !== 'number' || !Number.isFinite(id)) {
-      Alert.alert('Сравнение', 'Это объявление нельзя добавить в сравнение.');
+      showToast('Это объявление нельзя добавить в сравнение', 'error');
       return;
     }
 
@@ -43,19 +43,23 @@ export function useCompare() {
     const already = items.some((item) => item.id === id && item.type === type);
     // Список не изменился, хотя объявления в нём не было — значит пара занята.
     if (!already && nextItems.length === items.length && items.length >= 2 && items[0]?.type === type) {
-      Alert.alert('Сравнение', 'Можно сравнить максимум два объявления одного типа.');
+      showToast('В сравнении уже два объявления — уберите одно');
       return;
     }
 
     setBusyId(id);
     try {
+      const replaced = !already && items.length > 0 && items[0]?.type !== type;
       const saved = await saveCompareItems(nextItems);
       setItems(saved);
-      if (!already && items.length > 0 && items[0]?.type !== type) {
-        Alert.alert('Сравнение', 'Список сравнения был заменён, потому что можно сравнивать только один тип объявлений за раз.');
-      }
+      // Сообщение одно: два подряд перебивают друг друга, и человек успевает
+      // прочитать только последнее.
+      if (already) showToast('Убрано из сравнения');
+      else if (replaced) showToast('Список заменён: сравнивать можно только один тип');
+      else if (saved.length >= 2) showToast('Два объявления в сравнении — можно смотреть', 'success');
+      else showToast('Добавлено в сравнение', 'success');
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось обновить сравнение');
+      showToast(e.response?.data?.message || 'Не удалось обновить сравнение', 'error');
     } finally {
       setBusyId(null);
     }

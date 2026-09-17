@@ -2,7 +2,9 @@ import 'react-native-gesture-handler';
 import React, { useEffect } from 'react';
 import { DarkTheme, NavigationContainer, Theme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import ModeTransition from './src/components/ModeTransition';
+import ToastHost from './src/components/ui/ToastHost';
 import * as SplashScreen from 'expo-splash-screen';
 import RootNavigator from './src/navigation/RootNavigator';
 import { navigationRef } from './src/navigation/navigationRef';
@@ -32,11 +34,17 @@ export default function App() {
   }, []);
 
   return (
-    <NavigationContainer ref={navigationRef} theme={navTheme} onReady={consumePendingPush}>
-      <StatusBar style="light" />
-      <RootNavigator />
-      {/* Кинопереход Соцсеть <-> Маркет; живёт поверх всех экранов. */}
-      <ModeTransition />
-    </NavigationContainer>
+    // Провайдер безопасных зон общий на всё приложение: плашки поверх экранов
+    // живут вне навигаторов, а отступы под вырез им тоже нужны.
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <NavigationContainer ref={navigationRef} theme={navTheme} onReady={consumePendingPush}>
+        <StatusBar style="light" />
+        <RootNavigator />
+        {/* Кинопереход Соцсеть <-> Маркет; живёт поверх всех экранов. */}
+        <ModeTransition />
+        {/* Короткие сообщения приложения — поверх любого экрана. */}
+        <ToastHost />
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
