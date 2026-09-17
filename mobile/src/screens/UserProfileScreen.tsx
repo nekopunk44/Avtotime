@@ -89,7 +89,6 @@ export default function UserProfileScreen({ route, navigation }: Props) {
         getUserRatingStats(userId).catch(() => emptyRatingStats),
       ]);
       setUser(freshUser);
-      navigation.setOptions({ title: freshUser.name || freshUser.userName });
       setPosts(postsPage.posts);
       setPostsTotal(postsPage.total);
       setIsFollowing(status.isFollowing);
@@ -100,7 +99,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [navigation, userId]);
+  }, [userId]);
 
   const hasProfile = !!user;
   useFocusEffect(useCallback(() => {
