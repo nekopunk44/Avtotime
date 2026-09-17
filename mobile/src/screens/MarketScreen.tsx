@@ -30,6 +30,8 @@ import {
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors, font, radius, shadow, space } from '../theme';
 import { Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
+import { canCompareListing, getCompareType } from '../api/compare';
+import { useCompare } from '../hooks/useCompare';
 import MarketFiltersSheet, {
   countActiveFilters,
   emptyMarketFilters,
@@ -64,6 +66,8 @@ export default function MarketScreen({ navigation }: Props) {
 
   const activeFilterCount = countActiveFilters(filters);
   const filtered = activeFilterCount > 0;
+
+  const { isCompared, toggle: toggleCompare, busyId } = useCompare();
 
   const loadListings = useCallback(async (silent = false) => {
     const requestId = ++requestIdRef.current;
@@ -203,6 +207,8 @@ export default function MarketScreen({ navigation }: Props) {
       ? getMarketCategoryFromListingType(item.listingType)
       : (categoryId || 'cars');
     const itemCategory = getMarketCategory(itemCategoryId);
+    const compareType = getCompareType(itemCategoryId);
+    const compared = isCompared(item.id, compareType);
     return (
       <View ref={cellRef} collapsable={false} style={styles.cell}>
       <PressableScale
@@ -230,6 +236,25 @@ export default function MarketScreen({ navigation }: Props) {
               <Ionicons name={itemCategory.icon as any} size={28} color={colors.textFaint} />
             </View>
           )}
+          {/* Сравнение прямо из выдачи: раньше пару приходилось собирать,
+              заходя в каждое объявление. */}
+          {canCompareListing(item) ? (
+            <PressableScale
+              style={[styles.compareBtn, compared && styles.compareBtnOn]}
+              scaleTo={0.9}
+              onPress={() => toggleCompare(item.id, compareType)}
+            >
+              {busyId === item.id ? (
+                <ActivityIndicator size="small" color={compared ? colors.onAccent : colors.text} />
+              ) : (
+                <Ionicons
+                  name={compared ? 'git-compare' : 'git-compare-outline'}
+                  size={17}
+                  color={compared ? colors.onAccent : colors.text}
+                />
+              )}
+            </PressableScale>
+          ) : null}
           {item.sellerBadge ? <Text style={styles.badge}>{item.sellerBadge}</Text> : null}
           <View style={styles.cardBody}>
             <Text style={styles.price}>{getListingPrice(item, itemCategoryId)}</Text>
@@ -283,19 +308,19 @@ export default function MarketScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      {/* Что именно сейчас показано — одной строкой, раз чипов разделов
-          больше нет. */}
-      <View style={styles.scopeRow}>
-        <Text style={styles.scopeText}>
-          {activeCategory ? activeCategory.label : 'Все разделы'}
-        </Text>
-        {filtered ? (
-          <PressableScale style={styles.scopeReset} onPress={() => setFilters(emptyMarketFilters)}>
-            <Ionicons name="close" size={13} color={colors.textMuted} />
-            <Text style={styles.scopeResetText}>Сбросить</Text>
-          </PressableScale>
-        ) : null}
-      </View>
+      {/* Заголовок появляется, только когда выбран раздел: «Все разделы» над
+          всеми объявлениями ничего не сообщали. */}
+      {activeCategory || filtered ? (
+        <View style={styles.scopeRow}>
+          <Text style={styles.scopeText}>{activeCategory ? activeCategory.label : ''}</Text>
+          {filtered ? (
+            <PressableScale style={styles.scopeReset} onPress={() => setFilters(emptyMarketFilters)}>
+              <Ionicons name="close" size={13} color={colors.textMuted} />
+              <Text style={styles.scopeResetText}>Сбросить</Text>
+            </PressableScale>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 
@@ -383,6 +408,13 @@ const styles = StyleSheet.create({
   },
   filterDotText: { color: colors.onAccent, fontSize: 10, fontWeight: '900' },
 
+  compareBtn: {
+    position: 'absolute', top: space.sm, right: space.sm, zIndex: 2,
+    width: 34, height: 34, borderRadius: radius.pill,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(11,11,14,0.55)',
+  },
+  compareBtnOn: { backgroundColor: colors.accent },
   scopeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.md, marginBottom: 2 },
   scopeText: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
   scopeReset: {

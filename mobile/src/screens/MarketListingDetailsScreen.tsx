@@ -26,14 +26,8 @@ import {
   recordMarketLead,
   recordMarketView,
 } from '../api/market';
-import {
-  canCompareListing,
-  CompareItem,
-  getCompareItems,
-  getCompareType,
-  saveCompareItems,
-  toggleCompareItem,
-} from '../api/compare';
+import { getCompareType } from '../api/compare';
+import { useCompare } from '../hooks/useCompare';
 import { searchUsers } from '../api/users';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
@@ -56,13 +50,14 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
   const [listing, setListing] = useState(initialListing);
   const [imageIndex, setImageIndex] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
-  const [compareItems, setCompareItems] = useState<CompareItem[]>([]);
-  const [compareLoading, setCompareLoading] = useState(false);
+  // Список сравнения общий с витриной: правила и сообщения живут в хуке.
+  const { isCompared: checkCompared, toggle: switchCompare, busyId } = useCompare();
   const category = getMarketCategory(categoryId);
   const compareType = getCompareType(categoryId);
   const reviewCount = Number(listing.reviews ?? listing.reviewsCount ?? 0);
   const reviewRating = Number(listing.rating || listing.serviceQuality || 0);
-  const isCompared = typeof listing.id === 'number' && compareItems.some((item) => item.id === listing.id && item.type === compareType);
+  const isCompared = checkCompared(listing.id, compareType);
+  const compareLoading = busyId === listing.id;
   const images = useMemo(() => {
     const all = listing.images?.length ? listing.images : [getListingImage(listing)];
     return all.filter(Boolean);
@@ -112,19 +107,6 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
   useEffect(() => {
     if (listing.id) recordMarketView(categoryId, listing.id);
   }, [categoryId, listing.id]);
-
-  useEffect(() => {
-    let mounted = true;
-    getCompareItems()
-      .then((items) => {
-        if (mounted) setCompareItems(items);
-      })
-      .catch(() => {});
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const specs = [
     { label: 'Марка', value: listing.brand },
@@ -190,34 +172,7 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
     navigation.navigate('Chat', { userId: seller.id, name: seller.name, userName: seller.userName });
   };
 
-  const toggleCompare = async () => {
-    if (!canCompareListing(listing) || typeof listing.id !== 'number') {
-      Alert.alert('Сравнение', 'Это объявление нельзя добавить в сравнение.');
-      return;
-    }
-
-    const nextItem = { id: listing.id, type: compareType };
-    const nextItems = toggleCompareItem(compareItems, nextItem);
-    const alreadyCompared = compareItems.some((item) => item.id === nextItem.id && item.type === nextItem.type);
-
-    if (!alreadyCompared && nextItems.length === compareItems.length && compareItems.length >= 2 && compareItems[0]?.type === nextItem.type) {
-      Alert.alert('Сравнение', 'Можно сравнить максимум два объявления одного типа.');
-      return;
-    }
-
-    setCompareLoading(true);
-    try {
-      const saved = await saveCompareItems(nextItems);
-      setCompareItems(saved);
-      if (!alreadyCompared && compareItems.length > 0 && compareItems[0]?.type !== nextItem.type) {
-        Alert.alert('Сравнение', 'Список сравнения был заменён, потому что можно сравнивать только один тип объявлений за раз.');
-      }
-    } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось обновить сравнение');
-    } finally {
-      setCompareLoading(false);
-    }
-  };
+  const toggleCompare = () => switchCompare(listing.id, compareType);
 
   // Ссылка на актуальный обработчик: шапка перерисовывается редко, а функция
   // пересоздаётся на каждый рендер.
