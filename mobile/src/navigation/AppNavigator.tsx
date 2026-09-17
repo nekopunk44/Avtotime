@@ -87,7 +87,7 @@ export type AppStackParamList = {
   MarketAnalytics: undefined;
   MarketServices: undefined;
   CarRequest: undefined;
-  HelpRequests: undefined;
+  MyListings: undefined;
   EcoTips: undefined;
   KidsGames: undefined;
   Coloring: undefined;
@@ -130,7 +130,7 @@ export type SocialTabParamList = {
 export type MarketTabParamList = {
   Market: undefined;
   Compare: undefined;
-  MyListings: undefined;
+  HelpRequests: undefined;
   Driving: undefined;
   Profile: undefined;
 };
@@ -238,7 +238,7 @@ function MarketTabs() {
     >
       <MarketTab.Screen name="Market" component={MarketScreen} />
       <MarketTab.Screen name="Compare" component={CompareScreen} />
-      <MarketTab.Screen name="MyListings" component={MyListingsScreen} />
+      <MarketTab.Screen name="HelpRequests" component={HelpRequestsScreen} />
       <MarketTab.Screen name="Driving" component={DrivingCoursesScreen} />
       <MarketTab.Screen name="Profile" component={MarketProfileScreen} />
     </MarketTab.Navigator>
@@ -286,7 +286,7 @@ export default function AppNavigator() {
       <Stack.Screen name="MarketAnalytics" component={MarketAnalyticsScreen} options={{ title: 'Аналитика' }} />
       <Stack.Screen name="MarketServices" component={MarketServicesScreen} options={{ title: 'Сервисы' }} />
       <Stack.Screen name="CarRequest" component={CarRequestScreen} options={{ title: 'Подбор авто' }} />
-      <Stack.Screen name="HelpRequests" component={HelpRequestsScreen} options={{ title: 'Помощь другим' }} />
+      <Stack.Screen name="MyListings" component={MyListingsScreen} options={{ title: 'Мои объявления' }} />
       <Stack.Screen name="EcoTips" component={EcoTipsScreen} options={{ title: 'Эко советы' }} />
       <Stack.Screen name="KidsGames" component={KidsGamesScreen} options={{ title: 'Детям и игры' }} />
       <Stack.Screen name="Coloring" component={ColoringScreen} options={{ title: 'Раскраски' }} />

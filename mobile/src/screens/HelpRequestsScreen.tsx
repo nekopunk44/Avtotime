@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   createHelpRequest,
@@ -32,12 +32,13 @@ import {
   HelpRequestStatus,
   updateHelpRequest,
 } from '../api/helpRequests';
-import { AppStackParamList } from '../navigation/AppNavigator';
+import { MarketTabParamList } from '../navigation/AppNavigator';
 import { getDeviceLocation } from '../services/deviceLocation';
 import { colors, font, radius, shadow, space } from '../theme';
 import { ConfirmSheet, EmptyState, PressableScale, Skeleton } from '../components/ui';
 
-type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'HelpRequests'> };
+// Экран живёт вкладкой маркета и своей навигацией не пользуется.
+type Props = { navigation: BottomTabNavigationProp<MarketTabParamList, 'HelpRequests'> };
 
 type DraftState = {
   location: string;
@@ -357,6 +358,13 @@ export default function HelpRequestsScreen(_props: Props) {
 
   return (
     <View style={styles.container}>
+      {/* Раздел стал вкладкой, и название теперь на самом экране: в шапке
+          вкладок стоит переключатель Соцсеть/Маркет. */}
+      <View style={styles.hero}>
+        <Text style={styles.heroTitle}>Помощь другим</Text>
+        <Text style={styles.heroSubtitle}>Запросы водителей рядом и ваши собственные</Text>
+      </View>
+
       <View style={styles.top}>
         <View style={styles.scopeRow} onLayout={(e) => setScopeWidth(e.nativeEvent.layout.width)}>
           {scopeSeg > 0 ? (
@@ -534,6 +542,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: space.xl,
     paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: space.xs,
   },
+  hero: { paddingHorizontal: space.md, paddingTop: space.sm },
+  heroTitle: { color: colors.text, fontSize: font.h1, fontWeight: '900' },
+  heroSubtitle: { marginTop: 3, color: colors.textMuted, fontSize: font.small, fontWeight: '700' },
   scopeRow: {
     // Занимает свободное место, но не растягивается на всю строку: так нет ни
     // полосы во всю ширину, ни пустоты рядом со счётчиками.

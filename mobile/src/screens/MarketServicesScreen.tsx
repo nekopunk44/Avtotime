@@ -32,7 +32,6 @@ const FEATURED: Service = {
 
 const SERVICES: Service[] = [
   { icon: 'bar-chart-outline', label: 'Аналитика', desc: 'Просмотры и контакты по объявлениям', screen: 'MarketAnalytics' },
-  { icon: 'heart-outline', label: 'Запросы помощи', desc: 'Помощь на дороге и вашим заявкам', screen: 'HelpRequests' },
   { icon: 'leaf-outline', label: 'Эко советы', desc: 'Экономия и забота об экологии', screen: 'EcoTips' },
   { icon: 'game-controller-outline', label: 'Детям и игры', desc: 'Раскраски и мини-игры про машины', screen: 'KidsGames' },
 ];

@@ -228,7 +228,7 @@ export default function NotificationsScreen({ navigation }: Props) {
       }
 
       if (item.type === 'listing_rejected' || item.type === 'listing_approved') {
-        navigation.navigate('MarketTabs', { screen: 'MyListings' });
+        navigation.navigate('MyListings');
         return;
       }
 

@@ -141,7 +141,7 @@ function navigateFromPush(data: PushData) {
         return;
       }
       if (data.type === 'listing_rejected' || data.type === 'listing_approved') {
-        navigationRef.navigate('MarketTabs', { screen: 'MyListings' });
+        navigationRef.navigate('MyListings');
         return;
       }
       navigationRef.navigate('MarketTabs', { screen: 'Market' });

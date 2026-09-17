@@ -377,7 +377,7 @@ export default function SettingsScreen({ navigation }: Props) {
             icon: 'albums-outline',
             title: 'Мои объявления',
             description: 'Открыть маркет с фильтром ваших объявлений',
-            onPress: () => navigation.navigate('MarketTabs', { screen: 'MyListings' }),
+            onPress: () => navigation.navigate('MyListings'),
           })}
           {renderAction({
             icon: 'bar-chart-outline',
@@ -450,7 +450,7 @@ export default function SettingsScreen({ navigation }: Props) {
             icon: 'heart-outline',
             title: 'Запросы помощи',
             description: 'Ваши заявки и помощь другим водителям',
-            onPress: () => navigation.navigate('HelpRequests'),
+            onPress: () => navigation.navigate('MarketTabs', { screen: 'HelpRequests' }),
           })}
           {renderAction({
             icon: 'shield-checkmark-outline',

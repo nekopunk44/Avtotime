@@ -240,11 +240,6 @@ export default function MyListingsScreen({ navigation }: Props) {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.hero}>
-        <Text style={styles.title}>Мои объявления</Text>
-        <Text style={styles.subtitle}>Все ваши публикации в маркете Avtotime</Text>
-      </View>
-
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{items.length}</Text>
