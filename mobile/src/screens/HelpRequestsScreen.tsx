@@ -362,7 +362,9 @@ export default function HelpRequestsScreen(_props: Props) {
           вкладок стоит переключатель Соцсеть/Маркет. */}
       <View style={styles.hero}>
         <Text style={styles.heroTitle}>Помощь другим</Text>
-        <Text style={styles.heroSubtitle}>Запросы водителей рядом и ваши собственные</Text>
+        <PressableScale style={styles.addBtn} scaleTo={0.94} onPress={openCreate}>
+          <Ionicons name="add" size={24} color={colors.onAccent} />
+        </PressableScale>
       </View>
 
       <View style={styles.top}>
@@ -410,15 +412,6 @@ export default function HelpRequestsScreen(_props: Props) {
           }
         />
       )}
-
-      {/* Кнопка создания плавает над списком: она нужна с любого места. */}
-      <PressableScale
-        style={[styles.fab, { bottom: insets.bottom + space.xl }]}
-        scaleTo={0.94}
-        onPress={openCreate}
-      >
-        <Ionicons name="add" size={26} color={colors.onAccent} />
-      </PressableScale>
 
       <Modal visible={sheetMounted} transparent animationType="none" onRequestClose={closeModal} statusBarTranslucent>
         <Animated.View style={[styles.backdrop, { opacity: sheetAnim }]}>
@@ -542,9 +535,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: space.xl,
     paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: space.xs,
   },
-  hero: { paddingHorizontal: space.md, paddingTop: space.sm },
+  hero: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: space.md, paddingTop: space.sm,
+  },
   heroTitle: { color: colors.text, fontSize: font.h1, fontWeight: '900' },
-  heroSubtitle: { marginTop: 3, color: colors.textMuted, fontSize: font.small, fontWeight: '700' },
+  // Кнопка та же, что в маркете: одинаковые действия должны выглядеть одинаково.
+  addBtn: {
+    width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.accent,
+    alignItems: 'center', justifyContent: 'center', ...shadow.card,
+  },
   scopeRow: {
     // Занимает свободное место, но не растягивается на всю строку: так нет ни
     // полосы во всю ширину, ни пустоты рядом со счётчиками.
@@ -597,11 +597,6 @@ const styles = StyleSheet.create({
   iconBtn: {
     width: 42, height: 42, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt,
     alignItems: 'center', justifyContent: 'center',
-  },
-
-  fab: {
-    position: 'absolute', right: space.lg, width: 58, height: 58, borderRadius: radius.pill,
-    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', ...shadow.float,
   },
 
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
