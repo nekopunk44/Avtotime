@@ -351,13 +351,15 @@ export default function MarketScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
+      {/* Шапка вынесена из списка: поиск нужен на любой глубине прокрутки,
+          а не только у самого верха выдачи. */}
+      {Header}
       <FlatList
         style={styles.container}
         data={ordered}
         numColumns={2}
         keyExtractor={(item, index) => `${item.listingType || categoryId || 'all'}-${item._id || item.id || index}`}
         renderItem={renderListing}
-        ListHeaderComponent={Header}
         columnWrapperStyle={styles.grid}
         contentContainerStyle={ordered.length ? styles.listContent : styles.emptyContent}
         onEndReached={loadMore}
@@ -390,7 +392,7 @@ export default function MarketScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   footerSpinner: { paddingVertical: 16 },
-  header: { paddingHorizontal: space.md, paddingTop: space.md },
+  header: { paddingHorizontal: space.md, paddingTop: space.md, paddingBottom: space.md },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: font.display, fontWeight: '900', color: colors.text },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -415,7 +417,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(11,11,14,0.55)',
   },
   compareBtnOn: { backgroundColor: colors.accent },
-  scopeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.md, marginBottom: 2 },
+  scopeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.md },
   scopeText: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
   scopeReset: {
     flexDirection: 'row', alignItems: 'center', gap: 4, height: 30, paddingHorizontal: space.md,
