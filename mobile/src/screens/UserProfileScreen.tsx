@@ -89,6 +89,9 @@ export default function UserProfileScreen({ route, navigation }: Props) {
         getUserRatingStats(userId).catch(() => emptyRatingStats),
       ]);
       setUser(freshUser);
+      // В шапке ник, а не имя: имя и так крупно стоит строкой ниже, а ник
+      // короче и однозначно называет, чей это профиль.
+      navigation.setOptions({ title: freshUser.userName ? `@${freshUser.userName}` : 'Профиль' });
       setPosts(postsPage.posts);
       setPostsTotal(postsPage.total);
       setIsFollowing(status.isFollowing);
@@ -99,7 +102,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userId]);
+  }, [navigation, userId]);
 
   const hasProfile = !!user;
   useFocusEffect(useCallback(() => {

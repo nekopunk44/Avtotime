@@ -270,7 +270,8 @@ export default function AppNavigator() {
         component={UserProfileScreen}
         // Мягкое появление вместо резкого въезда: содержимое экрана
         // всплывает само, и переход читается одним движением.
-        // В шапке «Профиль», а не имя: имя и ник и так крупно стоят под ней.
+        // «Профиль» — заглушка на время загрузки: как только придут данные,
+        // экран ставит в шапку ник пользователя.
         options={{ title: 'Профиль', animation: 'fade_from_bottom', animationDuration: 260 }}
       />
       <Stack.Screen name="PostComments" component={PostCommentsScreen} options={{ title: 'Комментарии' }} />
