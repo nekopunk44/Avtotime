@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -14,13 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors, font, radius, shadow, space } from '../theme';
 import { EmptyState, PressableScale, Skeleton } from '../components/ui';
-import { showToast } from '../store/toastStore';
+import { useCompareStore } from '../store/compareStore';
 import {
   CompareItem,
   CompareItemType,
-  getCompareItems,
   ResolvedCompareItem,
-  saveCompareItems,
 } from '../api/compare';
 import {
   getListingImage,
@@ -116,12 +114,17 @@ const resolveItem = async (item: CompareItem): Promise<ResolvedCompareItem> => {
 
 export default function CompareScreen() {
   const navigation = useNavigation<any>();
-  const [items, setItems] = useState<CompareItem[]>([]);
+  // Список общий со всем приложением: убрали здесь — отметка на карточке в
+  // маркете гаснет сама.
+  const items = useCompareStore((s) => s.items);
+  const saving = useCompareStore((s) => s.saving);
+  const refreshItems = useCompareStore((s) => s.refresh);
+  const removeItem = useCompareStore((s) => s.remove);
+  const clear = useCompareStore((s) => s.clear);
   const [resolvedItems, setResolvedItems] = useState<ResolvedCompareItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
   // Главный вопрос сравнения — чем они отличаются. Одинаковые строки можно
   // убрать с глаз одним нажатием.
   const [diffOnly, setDiffOnly] = useState(false);
@@ -154,26 +157,23 @@ export default function CompareScreen() {
   const diffCount = useMemo(() => rows.filter((row) => !row.equal).length, [rows]);
   const shownRows = diffOnly ? rows.filter((row) => !row.equal) : rows;
 
+  const itemKey = (item: CompareItem) => `${item.type}-${item.id}`;
+  // Ключ состава: объявления перечитываются, когда меняется сам список, а не
+  // на каждое обновление стора.
+  const itemsKey = items.map(itemKey).join(',');
+
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError('');
     try {
-      const nextItems = await getCompareItems();
-      setItems(nextItems);
-
-      if (!nextItems.length) {
-        setResolvedItems([]);
-        return;
-      }
-
-      setResolvedItems(await Promise.all(nextItems.map(resolveItem)));
+      await refreshItems();
     } catch (e: any) {
       setError(e.response?.data?.message || 'Не удалось загрузить сравнение');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [refreshItems]);
 
   const hasDataRef = React.useRef(false);
   hasDataRef.current = resolvedItems.length > 0 || items.length > 0;
@@ -182,30 +182,24 @@ export default function CompareScreen() {
     load(hasDataRef.current);
   }, [load]));
 
+  // Сами объявления подтягиваются по id: в списке лежат только ссылки.
+  useEffect(() => {
+    if (!items.length) {
+      setResolvedItems([]);
+      return;
+    }
+    let alive = true;
+    Promise.all(items.map(resolveItem))
+      .then((next) => { if (alive) setResolvedItems(next); })
+      .catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemsKey]);
+
   const refresh = () => {
     setRefreshing(true);
     load(true);
   };
-
-  const saveNextItems = async (nextItems: CompareItem[], done: string): Promise<void> => {
-    setSaving(true);
-    try {
-      await saveCompareItems(nextItems);
-      await load(true);
-      showToast(done);
-    } catch (e: any) {
-      showToast(e.response?.data?.message || 'Не удалось обновить сравнение', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const removeItem = (item: CompareItem) => saveNextItems(
-    items.filter((candidate) => !(candidate.id === item.id && candidate.type === item.type)),
-    'Убрано из сравнения',
-  );
-
-  const itemKey = (item: CompareItem) => `${item.type}-${item.id}`;
 
   /**
    * Карточка летит по дуге в корзину в шапке и только потом удаляется. Место
@@ -249,8 +243,6 @@ export default function CompareScreen() {
       });
     });
   };
-
-  const clear = () => saveNextItems([], 'Сравнение очищено');
 
   const openListing = (item: ResolvedCompareItem) => {
     if (!item.listing || !item.categoryId) return;
