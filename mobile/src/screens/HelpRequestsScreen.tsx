@@ -36,6 +36,7 @@ import { MarketTabParamList } from '../navigation/AppNavigator';
 import { getDeviceLocation } from '../services/deviceLocation';
 import { colors, font, radius, shadow, space } from '../theme';
 import { ConfirmSheet, EmptyState, PressableScale, Skeleton } from '../components/ui';
+import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 
 // Экран живёт вкладкой маркета и своей навигацией не пользуется.
 type Props = { navigation: BottomTabNavigationProp<MarketTabParamList, 'HelpRequests'> };
@@ -562,8 +563,8 @@ const styles = StyleSheet.create({
   counterActive: { color: colors.text, fontSize: font.tiny, fontWeight: '900' },
   counterResolved: { marginTop: 2, color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
 
-  list: { paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: space.xxxl, gap: space.sm },
-  emptyList: { flexGrow: 1, justifyContent: 'center', padding: space.lg },
+  list: { paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: TAB_BAR_SPACE, gap: space.sm },
+  emptyList: { flexGrow: 1, justifyContent: 'center', padding: space.lg, paddingBottom: TAB_BAR_SPACE },
   skeletonCard: { height: 150, borderRadius: radius.lg },
 
   card: {

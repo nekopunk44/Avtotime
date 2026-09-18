@@ -28,6 +28,7 @@ import {
   searchMarketListings,
 } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 import { colors, font, radius, shadow, space } from '../theme';
 import { Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
 import { canCompareListing, getCompareType } from '../api/compare';
@@ -426,8 +427,8 @@ const styles = StyleSheet.create({
   scopeResetText: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '900' },
 
   grid: { paddingHorizontal: space.md - 3, justifyContent: 'space-between' },
-  listContent: { paddingBottom: space.lg },
-  emptyContent: { flexGrow: 1 },
+  listContent: { paddingBottom: TAB_BAR_SPACE },
+  emptyContent: { flexGrow: 1, paddingBottom: TAB_BAR_SPACE },
   cell: { width: '50%', paddingHorizontal: 3, marginBottom: space.md },
   cellInner: { flex: 1 },
   card: { padding: 0, overflow: 'hidden' },

@@ -165,9 +165,10 @@ function HeaderBack() {
 }
 
 const makeTabOptions = (current: 'social' | 'market') => () => ({
-  // The floating tab bar (custom `tabBar` below) handles icons/animation.
-  // Keep scene content clear of the floating bar.
-  sceneStyle: { backgroundColor: colors.bg, paddingBottom: 90 },
+  // Панель плавает над содержимым: сцена идёт до самого низа, и список
+  // виден за панелью, а не обрывается по её верхнему краю. Место под
+  // последнюю строку экраны добавляют сами (TAB_BAR_SPACE).
+  sceneStyle: { backgroundColor: colors.bg },
   headerShown: true,
   headerStyle: { backgroundColor: colors.bg },
   headerShadowVisible: false,

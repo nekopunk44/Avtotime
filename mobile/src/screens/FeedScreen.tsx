@@ -11,6 +11,7 @@ import { deletePost, FEED_PAGE_SIZE, getFeed, getVideoPoster, isPostSaved, toggl
 import { getStories, getStoryByUserName, Story, uploadStory } from '../api/stories';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 import { colors, font, radius, space, shadow } from '../theme';
 import { Avatar, Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
 import ReportSheet from '../components/ReportSheet';
@@ -409,7 +410,7 @@ export default function FeedScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   list: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingBottom: space.lg },
+  content: { paddingBottom: TAB_BAR_SPACE },
   footer: { paddingVertical: space.xl },
 
   storiesWrap: { backgroundColor: colors.surface, marginBottom: space.md, ...shadow.card },

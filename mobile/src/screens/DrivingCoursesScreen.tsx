@@ -19,6 +19,7 @@ import {
   getDrivingTickets,
 } from '../api/driving';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 import { colors } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
@@ -224,7 +225,7 @@ export default function DrivingCoursesScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 16, paddingBottom: 28 },
+  content: { padding: 16, paddingBottom: TAB_BAR_SPACE },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   header: { paddingTop: 6, paddingBottom: 16, alignItems: 'center' },
   title: { color: colors.text, fontSize: 26, fontWeight: '900', textAlign: 'center' },

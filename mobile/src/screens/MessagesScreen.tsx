@@ -7,6 +7,7 @@ import { Conversation, deleteConversation, getConversations } from '../api/messa
 import { useSocketEvent } from '../hooks/useSocket';
 import { useBadgeStore } from '../store/badgeStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 import { colors, font, radius, shadow, space } from '../theme';
 import { Avatar, Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
 
@@ -188,8 +189,8 @@ export default function MessagesScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  list: { padding: space.md, paddingBottom: space.xxl, gap: space.sm },
-  emptyList: { flexGrow: 1, padding: space.md },
+  list: { padding: space.md, paddingBottom: TAB_BAR_SPACE, gap: space.sm },
+  emptyList: { flexGrow: 1, padding: space.md, paddingBottom: TAB_BAR_SPACE },
   emptyWrap: { flex: 1, justifyContent: 'center' },
   header: { gap: space.md },
   searchBox: { height: 46, borderRadius: radius.md, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, ...shadow.card },

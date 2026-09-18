@@ -21,6 +21,7 @@ import { getListingImage, getListingPrice, getListingTitle, loadMyMarketListings
 import { DrivingTestResult, getDrivingResults } from '../api/driving';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 import { colors, font, radius, shadow, space } from '../theme';
 import { Avatar, EmptyState, PressableScale, Skeleton } from '../components/ui';
 
@@ -620,8 +621,8 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  list: { padding: space.md, paddingBottom: space.xxl },
-  emptyList: { flexGrow: 1, padding: space.md, paddingBottom: space.xxl },
+  list: { padding: space.md, paddingBottom: TAB_BAR_SPACE },
+  emptyList: { flexGrow: 1, padding: space.md, paddingBottom: TAB_BAR_SPACE },
   skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   header: { gap: space.md, marginBottom: space.md },
 

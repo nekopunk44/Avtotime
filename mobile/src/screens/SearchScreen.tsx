@@ -19,6 +19,7 @@ import { User } from '../api/auth';
 import { getFeed, Post, searchPosts, toggleLike } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 import { colors } from '../theme';
 import { Avatar } from '../components/ui';
 
@@ -303,8 +304,8 @@ export default function SearchScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  list: { padding: 12, paddingBottom: 28 },
-  emptyList: { flexGrow: 1, padding: 12, paddingBottom: 28 },
+  list: { padding: 12, paddingBottom: TAB_BAR_SPACE },
+  emptyList: { flexGrow: 1, padding: 12, paddingBottom: TAB_BAR_SPACE },
   header: { gap: 12, marginBottom: 6 },
   title: { color: colors.text, fontSize: 28, fontWeight: '900' },
   searchBar: { height: 46, borderRadius: 14, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14 },

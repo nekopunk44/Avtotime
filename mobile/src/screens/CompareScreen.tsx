@@ -27,6 +27,7 @@ import {
   getMarketListingById,
   MarketCategoryId,
 } from '../api/market';
+import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 
 const plural = (n: number, forms: [string, string, string]) => {
   const abs = Math.abs(n) % 100;
@@ -486,7 +487,7 @@ export default function CompareScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { flexGrow: 1, padding: space.md, paddingBottom: space.xxl },
+  content: { flexGrow: 1, padding: space.md, paddingBottom: TAB_BAR_SPACE },
 
   head: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
