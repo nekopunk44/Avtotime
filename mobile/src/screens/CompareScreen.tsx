@@ -290,25 +290,6 @@ export default function CompareScreen() {
     </View>
   );
 
-  // Полоса с колонками липнет к верху: прокручивая таблицу, надо помнить,
-  // где чьё значение.
-  const columnBar = pair ? (
-    <View key="columns" style={styles.columnBar}>
-      {resolvedItems.map((item) => (
-        <View key={`col-${item.type}-${item.id}`} style={styles.column}>
-          {item.listing && getListingImage(item.listing) ? (
-            <Image source={{ uri: getListingImage(item.listing) }} style={styles.columnThumb} />
-          ) : (
-            <View style={[styles.columnThumb, styles.itemImageFallback]}>
-              <Ionicons name="image-outline" size={14} color={colors.textFaint} />
-            </View>
-          )}
-          <Text style={styles.columnName} numberOfLines={1}>{shortTitle(item)}</Text>
-        </View>
-      ))}
-    </View>
-  ) : null;
-
   // Дуга, а не прямая: карточка сперва подбрасывается и лишь потом ныряет
   // в корзину — по прямой движение читается как рывок.
   const flyStyle = flying ? {
@@ -405,8 +386,6 @@ export default function CompareScreen() {
       </View>,
     );
 
-    if (columnBar) body.push(columnBar);
-
     if (pair) {
       body.push(
         <View key="toolbar" style={styles.toolbar}>
@@ -468,15 +447,10 @@ export default function CompareScreen() {
     );
   }
 
-  // Полоса колонок — третий блок: шапка, карточки, она. Пока пары нет,
-  // липнуть нечему.
-  const stickyIndices = columnBar ? [2] : undefined;
-
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      stickyHeaderIndices={stickyIndices}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
     >
       {body}
@@ -529,14 +503,6 @@ const styles = StyleSheet.create({
     minHeight: 190, backgroundColor: colors.bg, borderStyle: 'dashed', borderColor: colors.surfaceHi,
   },
   addText: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '800', textAlign: 'center' },
-
-  columnBar: {
-    flexDirection: 'row', gap: space.sm,
-    paddingVertical: space.sm, backgroundColor: colors.bg,
-  },
-  column: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  columnThumb: { width: 26, height: 26, borderRadius: radius.sm, backgroundColor: colors.surfaceAlt },
-  columnName: { flex: 1, color: colors.text, fontSize: font.tiny, fontWeight: '900' },
 
   toolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.sm },
   diffCount: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
