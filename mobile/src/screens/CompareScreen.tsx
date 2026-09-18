@@ -478,7 +478,7 @@ export default function CompareScreen() {
             <Text style={styles.rowLabel} numberOfLines={2}>{row.label}</Text>
             {row.values.map((value, index) => (
               <View key={`${row.label}-${index}`} style={styles.valueCell}>
-                <View style={[styles.valuePill, row.winner === index && styles.valuePillWin]}>
+                <View style={styles.valuePill}>
                   <Text
                     style={[
                       styles.rowValue,
@@ -585,10 +585,9 @@ const styles = StyleSheet.create({
   tableRowLast: { borderBottomWidth: 0 },
   rowLabel: { width: 92, color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
   valueCell: { flex: 1, alignItems: 'center' },
-  // Выгодное значение подсвечено фоном, а не значком: значок сдвигал текст
-  // вбок, и колонки переставали стоять друг под другом.
-  valuePill: { maxWidth: '100%', paddingHorizontal: space.sm, paddingVertical: 3, borderRadius: radius.pill },
-  valuePillWin: { backgroundColor: 'rgba(61,214,140,0.14)' },
+  valuePill: { maxWidth: '100%', paddingHorizontal: space.sm, paddingVertical: 3 },
+  // Выгодное значение отличается только цветом: подложка спорила с рамками
+  // таблицы и тянула взгляд сильнее самого числа.
   rowValue: { color: colors.text, fontSize: font.small, lineHeight: 19, fontWeight: '800', textAlign: 'center' },
   rowValueSame: { color: colors.textMuted, fontWeight: '700' },
   rowValueWin: { color: colors.success },
