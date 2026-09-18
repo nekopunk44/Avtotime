@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Image,
   RefreshControl,
   ScrollView,
@@ -41,12 +43,6 @@ const categoriesByType: Record<CompareItemType, MarketCategoryId[]> = {
   car: ['cars', 'parts'],
   service: ['car-services', 'auto-tuning', 'dry-cleaning'],
   consultation: ['consultations'],
-};
-
-const typeLabel: Record<CompareItemType, string> = {
-  car: 'Авто и запчасти',
-  service: 'Услуги',
-  consultation: 'Консультации',
 };
 
 /**
@@ -130,7 +126,14 @@ export default function CompareScreen() {
   // убрать с глаз одним нажатием.
   const [diffOnly, setDiffOnly] = useState(false);
 
-  const comparisonType = items[0]?.type;
+  // Карточка улетает в корзину: удаление видно как движение, а не как
+  // мгновенное исчезновение, и понятно, куда именно она делась.
+  const trashRef = React.useRef<View>(null);
+  const cardRefs = React.useRef<Record<string, View | null>>({});
+  const fly = React.useRef(new Animated.Value(0)).current;
+  const trashPulse = React.useRef(new Animated.Value(0)).current;
+  const [flying, setFlying] = useState<{ key: string; dx: number; dy: number } | null>(null);
+
   const pair = resolvedItems.length === 2;
 
   const rows = useMemo(() => {
@@ -184,7 +187,7 @@ export default function CompareScreen() {
     load(true);
   };
 
-  const saveNextItems = async (nextItems: CompareItem[], done: string) => {
+  const saveNextItems = async (nextItems: CompareItem[], done: string): Promise<void> => {
     setSaving(true);
     try {
       await saveCompareItems(nextItems);
@@ -201,6 +204,51 @@ export default function CompareScreen() {
     items.filter((candidate) => !(candidate.id === item.id && candidate.type === item.type)),
     'Убрано из сравнения',
   );
+
+  const itemKey = (item: CompareItem) => `${item.type}-${item.id}`;
+
+  /**
+   * Карточка летит по дуге в корзину в шапке и только потом удаляется. Место
+   * корзины меряем каждый раз: экран прокручивается, и запомненное устареет.
+   */
+  const flyToTrash = (item: ResolvedCompareItem) => {
+    const key = itemKey(item);
+    const node = cardRefs.current[key];
+    const trash = trashRef.current;
+    if (!node || !trash || flying) {
+      removeItem(item);
+      return;
+    }
+
+    node.measureInWindow((x, y, width, height) => {
+      trash.measureInWindow((tx, ty, tw, th) => {
+        setFlying({
+          key,
+          dx: (tx + tw / 2) - (x + width / 2),
+          dy: (ty + th / 2) - (y + height / 2),
+        });
+        // Кадр на применение стиля: иначе анимация стартует с уже сдвинутой карточки.
+        requestAnimationFrame(() => {
+          Animated.timing(fly, {
+            toValue: 1,
+            duration: 460,
+            easing: Easing.in(Easing.cubic),
+            useNativeDriver: true,
+          }).start(() => {
+            // Корзина отзывается на попадание — иначе полёт кончается в никуда.
+            Animated.sequence([
+              Animated.spring(trashPulse, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 16 }),
+              Animated.spring(trashPulse, { toValue: 0, useNativeDriver: true, speed: 30, bounciness: 6 }),
+            ]).start();
+            removeItem(item).finally(() => {
+              fly.setValue(0);
+              setFlying(null);
+            });
+          });
+        });
+      });
+    });
+  };
 
   const clear = () => saveNextItems([], 'Сравнение очищено');
 
@@ -230,20 +278,21 @@ export default function CompareScreen() {
 
   const header = (
     <View key="head" style={styles.head}>
-      <View style={styles.titleRow}>
-        <Text style={styles.title}>Сравнение</Text>
-        {items.length ? (
-          <PressableScale style={styles.clearBtn} onPress={clear} disabled={saving} scaleTo={0.94}>
-            {saving
-              ? <ActivityIndicator size="small" color={colors.textMuted} />
-              : <Ionicons name="trash-outline" size={18} color={colors.textMuted} />}
-          </PressableScale>
-        ) : null}
-      </View>
-      {items.length && comparisonType ? (
-        <Text style={styles.subtitle}>
-          {typeLabel[comparisonType]} · {items.length} из 2
-        </Text>
+      <Text style={styles.title}>Сравнение</Text>
+      {items.length ? (
+        <View ref={trashRef} collapsable={false}>
+          <Animated.View
+            style={{
+              transform: [{ scale: trashPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.28] }) }],
+            }}
+          >
+            <PressableScale style={styles.clearBtn} onPress={clear} disabled={saving} scaleTo={0.94}>
+              {saving
+                ? <ActivityIndicator size="small" color={colors.textMuted} />
+                : <Ionicons name="trash-outline" size={18} color={colors.textMuted} />}
+            </PressableScale>
+          </Animated.View>
+        </View>
       ) : null}
     </View>
   );
@@ -266,6 +315,24 @@ export default function CompareScreen() {
       ))}
     </View>
   ) : null;
+
+  // Дуга, а не прямая: карточка сперва подбрасывается и лишь потом ныряет
+  // в корзину — по прямой движение читается как рывок.
+  const flyStyle = flying ? {
+    zIndex: 5,
+    opacity: fly.interpolate({ inputRange: [0, 0.7, 1], outputRange: [1, 0.9, 0] }),
+    transform: [
+      { translateX: fly.interpolate({ inputRange: [0, 1], outputRange: [0, flying.dx] }) },
+      {
+        translateY: fly.interpolate({
+          inputRange: [0, 0.45, 1],
+          outputRange: [0, flying.dy * 0.25 - 44, flying.dy],
+        }),
+      },
+      { scale: fly.interpolate({ inputRange: [0, 1], outputRange: [1, 0.16] }) },
+      { rotate: fly.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '14deg'] }) },
+    ],
+  } : null;
 
   const body: React.ReactNode[] = [header];
 
@@ -293,8 +360,13 @@ export default function CompareScreen() {
     body.push(
       <View key="cards" style={styles.cardsRow}>
         {resolvedItems.map((item) => (
+          <Animated.View
+            key={itemKey(item)}
+            ref={(node) => { cardRefs.current[itemKey(item)] = node as unknown as View; }}
+            collapsable={false}
+            style={[styles.cardSlot, flying?.key === itemKey(item) ? flyStyle : null]}
+          >
           <PressableScale
-            key={`${item.type}-${item.id}`}
             style={styles.itemCard}
             scaleTo={0.98}
             onPress={() => openListing(item)}
@@ -311,8 +383,8 @@ export default function CompareScreen() {
             <PressableScale
               style={styles.removeBtn}
               scaleTo={0.9}
-              onPress={() => removeItem(item)}
-              disabled={saving}
+              onPress={() => flyToTrash(item)}
+              disabled={saving || !!flying}
             >
               <Ionicons name="close" size={16} color={colors.text} />
             </PressableScale>
@@ -323,6 +395,7 @@ export default function CompareScreen() {
               <Text style={styles.itemTitle} numberOfLines={2}>{shortTitle(item)}</Text>
             </View>
           </PressableScale>
+          </Animated.View>
         ))}
 
         {/* Второе место пустует — предлагаем занять его, а не оставляем дыру. */}
@@ -423,10 +496,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { flexGrow: 1, padding: space.md, paddingBottom: space.xxl },
 
-  head: { marginBottom: space.md },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  head: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: space.md,
+  },
   title: { color: colors.text, fontSize: font.display, fontWeight: '900' },
-  subtitle: { marginTop: 2, color: colors.textMuted, fontSize: font.small, fontWeight: '700' },
   clearBtn: {
     width: 38, height: 38, borderRadius: radius.pill,
     alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceAlt,
@@ -441,9 +515,10 @@ const styles = StyleSheet.create({
   skeletonLine: { marginTop: space.sm, marginHorizontal: space.sm, height: 14, width: '80%' },
   skeletonLineShort: { marginTop: 6, marginHorizontal: space.sm, height: 12, width: '55%' },
 
-  cardsRow: { flexDirection: 'row', gap: space.sm },
+  cardsRow: { flexDirection: 'row', gap: space.sm, marginBottom: space.md },
+  cardSlot: { flex: 1 },
   itemCard: {
-    flex: 1, borderRadius: radius.lg, backgroundColor: colors.surface,
+    borderRadius: radius.lg, backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden',
   },
   itemImage: { width: '100%', height: 118, backgroundColor: colors.surfaceAlt },
@@ -457,13 +532,13 @@ const styles = StyleSheet.create({
   itemPrice: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
   itemTitle: { color: colors.textMuted, fontSize: font.small, lineHeight: 18, fontWeight: '700', minHeight: 36 },
   addCard: {
-    alignItems: 'center', justifyContent: 'center', gap: 6, padding: space.md,
+    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, padding: space.md,
     minHeight: 190, backgroundColor: colors.bg, borderStyle: 'dashed', borderColor: colors.surfaceHi,
   },
   addText: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '800', textAlign: 'center' },
 
   columnBar: {
-    flexDirection: 'row', gap: space.sm, marginTop: space.md,
+    flexDirection: 'row', gap: space.sm,
     paddingVertical: space.sm, backgroundColor: colors.bg,
   },
   column: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
