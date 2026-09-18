@@ -437,13 +437,12 @@ export default function CompareScreen() {
       <View key="table" style={styles.table}>
         {shownRows.length ? shownRows.map((row, rowIndex) => (
           <View key={row.label} style={[styles.tableRow, rowIndex === shownRows.length - 1 && styles.tableRowLast]}>
-            <Text style={styles.rowLabel}>{row.label}</Text>
-            <View style={styles.rowValues}>
-              {row.values.map((value, index) => (
-                <View key={`${row.label}-${index}`} style={styles.valueCell}>
-                  {row.winner === index ? (
-                    <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-                  ) : null}
+            {/* Название слева, значения в своих колонках: у строки появляется
+                ось, вдоль которой глаз идёт сверху вниз. */}
+            <Text style={styles.rowLabel} numberOfLines={2}>{row.label}</Text>
+            {row.values.map((value, index) => (
+              <View key={`${row.label}-${index}`} style={styles.valueCell}>
+                <View style={[styles.valuePill, row.winner === index && styles.valuePillWin]}>
                   <Text
                     style={[
                       styles.rowValue,
@@ -456,8 +455,8 @@ export default function CompareScreen() {
                     {value || '—'}
                   </Text>
                 </View>
-              ))}
-            </View>
+              </View>
+            ))}
           </View>
         )) : (
           <View style={styles.emptyBox}>
@@ -542,17 +541,19 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg, backgroundColor: colors.surface, overflow: 'hidden',
     ...shadow.card,
   },
-  tableRow: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, padding: space.md },
-  tableRowLast: { borderBottomWidth: 0 },
-  // Название строки и значения — по центру: столбцы читаются парой, а не
-  // прижатым к левому краю списком.
-  rowLabel: {
-    color: colors.textFaint, fontSize: font.tiny, fontWeight: '900',
-    textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6, textAlign: 'center',
+  tableRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 9, paddingHorizontal: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border,
   },
-  rowValues: { flexDirection: 'row', gap: space.sm },
-  valueCell: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
-  rowValue: { flexShrink: 1, color: colors.text, fontSize: font.small, lineHeight: 19, fontWeight: '800', textAlign: 'center' },
+  tableRowLast: { borderBottomWidth: 0 },
+  rowLabel: { width: 92, color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
+  valueCell: { flex: 1, alignItems: 'center' },
+  // Выгодное значение подсвечено фоном, а не значком: значок сдвигал текст
+  // вбок, и колонки переставали стоять друг под другом.
+  valuePill: { maxWidth: '100%', paddingHorizontal: space.sm, paddingVertical: 3, borderRadius: radius.pill },
+  valuePillWin: { backgroundColor: 'rgba(61,214,140,0.14)' },
+  rowValue: { color: colors.text, fontSize: font.small, lineHeight: 19, fontWeight: '800', textAlign: 'center' },
   rowValueSame: { color: colors.textMuted, fontWeight: '700' },
   rowValueWin: { color: colors.success },
   emptyBox: { padding: space.lg, alignItems: 'center' },
