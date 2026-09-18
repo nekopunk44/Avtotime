@@ -277,7 +277,9 @@ export default function MarketScreen({ navigation }: Props) {
   const Header = (
     <View style={styles.header}>
       <View style={styles.titleRow}>
-        <Text style={styles.title}>Маркет</Text>
+        {/* Не «Маркет»: это слово уже стоит в переключателе режимов над
+            экраном. Здесь важнее, что именно показано ниже. */}
+        <Text style={styles.title}>Объявления</Text>
         <View style={styles.headerActions}>
           <PressableScale style={styles.iconBtn} onPress={() => navigation.navigate('MarketServices')}>
             <Ionicons name="apps-outline" size={21} color={colors.text} />
