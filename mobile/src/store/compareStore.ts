@@ -28,12 +28,17 @@ interface CompareState {
  */
 export const useCompareStore = create<CompareState>((set, get) => {
   const save = async (next: CompareItem[], done: string, busyId: number | null = null) => {
-    set({ busyId, saving: true });
+    // Список меняется сразу, не дожидаясь сервера: иначе экран замирает на
+    // время запроса, а потом перерисовывается рывком. Не сохранилось —
+    // возвращаем прежний.
+    const previous = get().items;
+    set({ items: next, busyId, saving: true });
     try {
       const saved = await saveCompareItems(next);
       set({ items: saved, loaded: true });
       if (done) showToast(done);
     } catch (e: any) {
+      set({ items: previous });
       showToast(e.response?.data?.message || 'Не удалось обновить сравнение', 'error');
     } finally {
       set({ busyId: null, saving: false });

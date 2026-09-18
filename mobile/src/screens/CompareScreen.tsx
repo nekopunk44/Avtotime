@@ -193,8 +193,8 @@ export default function CompareScreen() {
       await refreshItems();
     } catch (e: any) {
       setError(e.response?.data?.message || 'Не удалось загрузить сравнение');
-    } finally {
       setLoading(false);
+    } finally {
       setRefreshing(false);
     }
   }, [refreshItems]);
@@ -206,22 +206,58 @@ export default function CompareScreen() {
     load(hasDataRef.current);
   }, [load]));
 
+  // Уже загруженные объявления не перезапрашиваются: после удаления одного
+  // второе должно доехать на его место, а не мигнуть пустой карточкой.
+  const resolvedCache = React.useRef<Record<string, ResolvedCompareItem>>({});
+  const [resolveNonce, setResolveNonce] = useState(0);
+
+  // Перестроение экрана идёт одним движением: карточка занимает освободившееся
+  // место, фильтр гаснет, таблица подтягивается вверх.
+  const animateNext = () => {
+    LayoutAnimation.configureNext({
+      duration: 280,
+      update: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.scaleXY },
+      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    });
+  };
+
   // Сами объявления подтягиваются по id: в списке лежат только ссылки.
   useEffect(() => {
     if (!items.length) {
+      animateNext();
       setResolvedItems([]);
+      setLoading(false);
       return;
     }
+
+    const cached = items.map((item) => resolvedCache.current[itemKey(item)]);
+    if (cached.every(Boolean)) {
+      animateNext();
+      setResolvedItems(cached);
+      setLoading(false);
+      return;
+    }
+
     let alive = true;
-    Promise.all(items.map(resolveItem))
-      .then((next) => { if (alive) setResolvedItems(next); })
-      .catch(() => {});
+    Promise.all(items.map(async (item) => resolvedCache.current[itemKey(item)] || resolveItem(item)))
+      .then((next) => {
+        if (!alive) return;
+        next.forEach((entry) => { resolvedCache.current[itemKey(entry)] = entry; });
+        animateNext();
+        setResolvedItems(next);
+        setLoading(false);
+      })
+      .catch(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itemsKey]);
+  }, [itemsKey, resolveNonce]);
 
   const refresh = () => {
     setRefreshing(true);
+    // Потянули список вниз — значит хотят свежие данные, а не то, что уже лежит.
+    resolvedCache.current = {};
+    setResolveNonce((prev) => prev + 1);
     load(true);
   };
 

@@ -60,6 +60,29 @@ describe('общий список сравнения', () => {
     expect(useCompareStore.getState().items).toEqual([]);
   });
 
+  it('список меняется сразу, не дожидаясь сервера', async () => {
+    let release: (value: unknown) => void = () => {};
+    (saveCompareItems as jest.Mock).mockImplementationOnce(
+      (items) => new Promise((resolve) => { release = () => resolve(items); }),
+    );
+
+    const pending = useCompareStore.getState().toggle(1, 'car');
+    // Запрос ещё в полёте, а карточка уже отмечена.
+    expect(useCompareStore.getState().items).toEqual([{ id: 1, type: 'car' }]);
+    release(null);
+    await pending;
+    expect(useCompareStore.getState().items).toEqual([{ id: 1, type: 'car' }]);
+  });
+
+  it('не сохранилось — список возвращается к прежнему', async () => {
+    await useCompareStore.getState().toggle(1, 'car');
+    (saveCompareItems as jest.Mock).mockRejectedValueOnce({ response: { data: { message: 'Нет сети' } } });
+
+    await useCompareStore.getState().toggle(2, 'car');
+    expect(useCompareStore.getState().items).toEqual([{ id: 1, type: 'car' }]);
+    expect(useToastStore.getState().toast?.text).toBe('Нет сети');
+  });
+
   it('объявление без числового id в сравнение не попадает', async () => {
     await useCompareStore.getState().toggle(undefined, 'car');
     expect(useCompareStore.getState().items).toEqual([]);
