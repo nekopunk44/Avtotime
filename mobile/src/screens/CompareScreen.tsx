@@ -4,10 +4,12 @@ import {
   Animated,
   Easing,
   Image,
+  LayoutAnimation,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  UIManager,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -96,6 +98,13 @@ export function betterIndex(values: string[], better: Better, comparable: boolea
   return wins0 ? 0 : 1;
 }
 
+const enableLayoutAnimation = () => {
+  const manager = UIManager as unknown as {
+    setLayoutAnimationEnabledExperimental?: (enabled: boolean) => void;
+  };
+  manager.setLayoutAnimationEnabledExperimental?.(true);
+};
+
 const same = (values: string[]) =>
   values.length > 1 && values.every((value) => value.trim().toLowerCase() === values[0].trim().toLowerCase());
 
@@ -137,6 +146,20 @@ export default function CompareScreen() {
   const fly = React.useRef(new Animated.Value(0)).current;
   const trashPulse = React.useRef(new Animated.Value(0)).current;
   const [flying, setFlying] = useState<{ key: string; dx: number; dy: number } | null>(null);
+
+  useEffect(enableLayoutAnimation, []);
+
+  // Совпавшие строки уходят и возвращаются на месте: таблица перестраивается
+  // плавно, иначе список подменяется рывком и теряешь, где читал.
+  const toggleDiffOnly = () => {
+    LayoutAnimation.configureNext({
+      duration: 260,
+      update: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.scaleXY },
+      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    });
+    setDiffOnly((prev) => !prev);
+  };
 
   const pair = resolvedItems.length === 2;
 
@@ -397,7 +420,7 @@ export default function CompareScreen() {
           <PressableScale
             style={[styles.diffChip, diffOnly && styles.diffChipOn]}
             scaleTo={0.96}
-            onPress={() => setDiffOnly((prev) => !prev)}
+            onPress={toggleDiffOnly}
           >
             <Ionicons
               name={diffOnly ? 'funnel' : 'funnel-outline'}
