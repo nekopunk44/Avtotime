@@ -55,7 +55,6 @@ interface FormState {
   specialties: string;
   tags: string;
   experience: string;
-  consultations: string;
 }
 
 const initialForm: FormState = {
@@ -78,7 +77,6 @@ const initialForm: FormState = {
   specialties: '',
   tags: '',
   experience: '',
-  consultations: '',
 };
 
 const DEFAULT_CATEGORY_BY_MODE: Record<MarketCategoryId, string> = {
@@ -343,7 +341,6 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
         tags: form.tags,
         specialties: form.specialties,
         experience: form.experience,
-        consultations: form.consultations,
       });
 
       Alert.alert('Готово', 'Объявление опубликовано');
@@ -442,7 +439,6 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
               <>
                 {input('specialties', 'Специализации через запятую')}
                 {input('experience', 'Опыт, лет', { keyboardType: 'numeric' })}
-                {input('consultations', 'Количество консультаций', { keyboardType: 'numeric' })}
               </>
             ) : (
               input('tags', 'Теги через запятую')
