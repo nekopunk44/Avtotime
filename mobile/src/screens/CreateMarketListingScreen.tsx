@@ -90,6 +90,36 @@ const DEFAULT_CATEGORY_BY_MODE: Record<MarketCategoryId, string> = {
 
 const isVehicleMode = (mode: MarketCategoryId) => mode === 'cars' || mode === 'parts';
 
+/**
+ * Поле формы при смене раздела появляется со своим сдвигом: набор полей у
+ * разделов разный, и подмена всей пачки разом читается как рывок.
+ */
+function FormBlock({ index, children }: { index: number; children: React.ReactNode }) {
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Задержка ограничена: ждать полсекунды из-за десятого поля незачем.
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 240,
+      delay: Math.min(index, 6) * 45,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [anim, index]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: anim,
+        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
 // Значения известны заранее — печатать их руками незачем, а разнобой в
 // написании ломает фильтры выдачи.
 const FUEL = ['Бензин', 'Дизель', 'Газ', 'Гибрид', 'Электро'];
@@ -403,6 +433,77 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
     </TouchableOpacity>
   );
 
+  const blocks: React.ReactNode[] = [
+    <Text style={styles.sectionTitle}>{isConsultation ? 'Профиль специалиста' : 'Основное'}</Text>,
+    input('title', isConsultation ? 'Имя специалиста' : mode === 'cars' ? 'Название: BMW X5 2020' : 'Название объявления'),
+    input('price', isConsultation ? 'Ставка в EUR / час' : 'Цена в EUR', { keyboardType: 'numeric' }),
+    cityField,
+  ];
+
+  if (!isVehicle) {
+    if (!isConsultation) {
+      blocks.push(input('category', mode === 'car-services' ? 'Тип услуги: Диагностика, ремонт' : activeCategory.label));
+    }
+    if (mode === 'car-services') blocks.push(input('unit', 'Единица: /услуга, /час, /визит'));
+    if (isConsultation) {
+      blocks.push(input('specialties', 'Специализации через запятую'));
+      blocks.push(input('experience', 'Опыт, лет', { keyboardType: 'numeric' }));
+    } else {
+      blocks.push(input('tags', 'Теги через запятую'));
+    }
+  } else {
+    blocks.push(
+      <View style={styles.suggestWrap}>
+        <SuggestField
+          label="Марка"
+          value={form.brand}
+          // Смена марки обнуляет модель: пары «BMW + Octavia» не бывает.
+          onChangeText={(value) => setForm((prev) => ({ ...prev, brand: value, model: '' }))}
+          options={brands}
+          placeholder="Марка"
+          emptyNote="Подсказки недоступны"
+        />
+      </View>,
+      <View style={styles.suggestWrap}>
+        <SuggestField
+          label="Модель"
+          value={form.model}
+          onChangeText={(value) => update('model', value)}
+          options={models}
+          placeholder="Модель"
+          emptyNote={form.brand.trim() && !knownBrand
+            ? 'Выберите марку из списка'
+            : form.brand.trim()
+              ? `Для «${form.brand.trim()}» моделей пока нет`
+              : 'Моделей пока нет'}
+        />
+      </View>,
+      input('year', 'Год', { keyboardType: 'numeric' }),
+    );
+
+    if (mode === 'cars') {
+      blocks.push(
+        <Text style={styles.sectionTitle}>Характеристики авто</Text>,
+        input('mileage', 'Пробег, км', { keyboardType: 'numeric' }),
+        choice('fuel', 'Топливо', FUEL),
+        choice('gearbox', 'Коробка передач', GEARBOX),
+        choice('body', 'Кузов', BODY),
+        choice('drive', 'Привод', DRIVE),
+      );
+    } else {
+      blocks.push(
+        <Text style={styles.sectionTitle}>Категория запчасти</Text>,
+        choice('partGroup', 'Группа', PART_GROUPS),
+        choice('partCategory', 'Категория', PART_CATEGORIES[form.partGroup] || ALL_PART_CATEGORIES),
+      );
+    }
+
+    blocks.push(
+      <Text style={styles.sectionTitle}>Описание</Text>,
+      input('description', 'Кратко опишите состояние, комплектацию и особенности', { multiline: true }),
+    );
+  }
+
   return (
     <Animated.View style={[styles.container, { paddingBottom: kbLift }]}>
       <ScrollView
@@ -426,78 +527,11 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
           })}
         </ScrollView>
 
-        <Text style={styles.sectionTitle}>{isConsultation ? 'Профиль специалиста' : 'Основное'}</Text>
-        {input('title', isConsultation ? 'Имя специалиста' : mode === 'cars' ? 'Название: BMW X5 2020' : 'Название объявления')}
-        {input('price', isConsultation ? 'Ставка в EUR / час' : 'Цена в EUR', { keyboardType: 'numeric' })}
-        {cityField}
-
-        {!isVehicle ? (
-          <>
-            {!isConsultation ? input('category', mode === 'car-services' ? 'Тип услуги: Диагностика, ремонт' : activeCategory.label) : null}
-            {mode === 'car-services' ? input('unit', 'Единица: /услуга, /час, /визит') : null}
-            {isConsultation ? (
-              <>
-                {input('specialties', 'Специализации через запятую')}
-                {input('experience', 'Опыт, лет', { keyboardType: 'numeric' })}
-              </>
-            ) : (
-              input('tags', 'Теги через запятую')
-            )}
-          </>
-        ) : (
-          <>
-            <View style={styles.suggestWrap}>
-            <SuggestField
-              label="Марка"
-              value={form.brand}
-              // Смена марки обнуляет модель: пары «BMW + Octavia» не бывает.
-              onChangeText={(value) => setForm((prev) => ({ ...prev, brand: value, model: '' }))}
-              options={brands}
-              placeholder="Марка"
-              emptyNote="Подсказки недоступны"
-            />
-            </View>
-            <View style={styles.suggestWrap}>
-            <SuggestField
-              label="Модель"
-              value={form.model}
-              onChangeText={(value) => update('model', value)}
-              options={models}
-              placeholder="Модель"
-              emptyNote={form.brand.trim() && !knownBrand
-                ? 'Выберите марку из списка'
-                : form.brand.trim()
-                  ? `Для «${form.brand.trim()}» моделей пока нет`
-                  : 'Моделей пока нет'}
-            />
-            </View>
-            {input('year', 'Год', { keyboardType: 'numeric' })}
-
-            {mode === 'cars' ? (
-              <>
-                <Text style={styles.sectionTitle}>Характеристики авто</Text>
-                {input('mileage', 'Пробег, км', { keyboardType: 'numeric' })}
-                {choice('fuel', 'Топливо', FUEL)}
-                {choice('gearbox', 'Коробка передач', GEARBOX)}
-                {choice('body', 'Кузов', BODY)}
-                {choice('drive', 'Привод', DRIVE)}
-              </>
-            ) : (
-              <>
-                <Text style={styles.sectionTitle}>Категория запчасти</Text>
-                {choice('partGroup', 'Группа', PART_GROUPS)}
-                {choice('partCategory', 'Категория', PART_CATEGORIES[form.partGroup] || ALL_PART_CATEGORIES)}
-              </>
-            )}
-          </>
-        )}
-
-        {isVehicle ? (
-          <>
-            <Text style={styles.sectionTitle}>Описание</Text>
-            {input('description', 'Кратко опишите состояние, комплектацию и особенности', { multiline: true })}
-          </>
-        ) : null}
+        {/* Поля собраны списком, чтобы каждое появилось со своим сдвигом при
+            смене раздела. */}
+        {blocks.map((block, index) => (
+          <FormBlock key={`${mode}-${index}`} index={index}>{block}</FormBlock>
+        ))}
 
         <Text style={styles.sectionTitle}>{isConsultation ? 'Аватар' : 'Фото'}</Text>
         <View style={styles.imageActionRow}>
