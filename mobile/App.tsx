@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import ModeTransition from './src/components/ModeTransition';
 import ToastHost from './src/components/ui/ToastHost';
+import ConfirmHost from './src/components/ui/ConfirmHost';
 import * as SplashScreen from 'expo-splash-screen';
 import RootNavigator from './src/navigation/RootNavigator';
 import { navigationRef } from './src/navigation/navigationRef';
@@ -44,6 +45,8 @@ export default function App() {
         <ModeTransition />
         {/* Короткие сообщения приложения — поверх любого экрана. */}
         <ToastHost />
+        {/* Вопросы «точно?» — одна шторка на всё приложение. */}
+        <ConfirmHost />
       </NavigationContainer>
     </SafeAreaProvider>
   );

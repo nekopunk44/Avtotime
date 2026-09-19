@@ -8,10 +8,20 @@ import { colors, font, radius, shadow, space } from '../../theme';
 // вместо движения получается скачок.
 const SHEET_TRAVEL = Dimensions.get('window').height;
 
+/** Вариант списка: строка либо действие со значком и опасной окраской. */
+export type ChoiceOption =
+  | string
+  | {
+    value: string;
+    label?: string;
+    icon?: React.ComponentProps<typeof Ionicons>['name'];
+    danger?: boolean;
+  };
+
 interface ChoiceSheetProps {
   visible: boolean;
   title: string;
-  options: string[];
+  options: ChoiceOption[];
   value?: string;
   /** Подпись пункта, который сбрасывает выбор. Без неё сброса не будет. */
   clearLabel?: string;
@@ -128,16 +138,25 @@ export default function ChoiceSheet({
               </Pressable>
             ) : null}
 
-            {options.map((option) => (
-              <Pressable
-                key={option}
-                style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
-                onPress={() => pick(option)}
-              >
-                <Text style={styles.optionText}>{option}</Text>
-                {value === option ? <Ionicons name="checkmark" size={18} color={colors.accent} /> : null}
-              </Pressable>
-            ))}
+            {options.map((option) => {
+              const item = typeof option === 'string' ? { value: option } as Exclude<ChoiceOption, string> : option;
+              const label = item.label || item.value;
+              return (
+                <Pressable
+                  key={item.value}
+                  style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+                  onPress={() => pick(item.value)}
+                >
+                  <View style={styles.optionBody}>
+                    {item.icon ? (
+                      <Ionicons name={item.icon} size={19} color={item.danger ? colors.danger : colors.textMuted} />
+                    ) : null}
+                    <Text style={[styles.optionText, item.danger && styles.optionDanger]}>{label}</Text>
+                  </View>
+                  {value === item.value ? <Ionicons name="checkmark" size={18} color={colors.accent} /> : null}
+                </Pressable>
+              );
+            })}
           </ScrollView>
         </Animated.View>
       </View>
@@ -167,6 +186,8 @@ const styles = StyleSheet.create({
     height: 50, paddingHorizontal: space.md, borderRadius: radius.md,
   },
   optionPressed: { backgroundColor: colors.surfaceAlt },
+  optionBody: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  optionDanger: { color: colors.danger },
   optionText: { color: colors.text, fontSize: font.body, fontWeight: '800' },
   optionMuted: { color: colors.textMuted },
 });
