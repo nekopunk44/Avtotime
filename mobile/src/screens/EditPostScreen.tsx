@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -42,7 +42,7 @@ export default function EditPostScreen({ navigation, route }: Props) {
   const pickImages = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Доступ к галерее', 'Разрешите доступ к фото, чтобы заменить медиа публикации.');
+      showToast('Разрешите доступ к фото, чтобы заменить медиа публикации.');
       return;
     }
 
@@ -61,7 +61,7 @@ export default function EditPostScreen({ navigation, route }: Props) {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Доступ к камере', 'Разрешите доступ к камере, чтобы сделать новое фото.');
+      showToast('Разрешите доступ к камере, чтобы сделать новое фото.');
       return;
     }
 
@@ -83,11 +83,11 @@ export default function EditPostScreen({ navigation, route }: Props) {
         mediaUris: replacementUris,
         mediaType: 'image',
       });
-      Alert.alert('Готово', 'Публикация обновлена');
+      showToast('Публикация обновлена', 'success');
       markSaved();
       navigation.replace('PostComments', { postId: updated._id });
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось сохранить публикацию');
+      showToast(e.response?.data?.message || 'Не удалось сохранить публикацию', 'error');
     } finally {
       setSaving(false);
     }

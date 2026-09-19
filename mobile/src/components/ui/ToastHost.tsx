@@ -16,7 +16,7 @@ const TONES: Record<ToastTone, { icon: React.ComponentProps<typeof Ionicons>['na
 /**
  * Плашка с коротким сообщением поверх всех экранов. Выезжает сверху, сама
  * уходит и не мешает нажимать на экран под собой — в отличие от системного
- * Alert, который останавливал работу ради строчки текста.
+ * диалога, который останавливал работу ради строчки текста.
  */
 export default function ToastHost() {
   const toast = useToastStore((s) => s.toast);

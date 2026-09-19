@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   RefreshControl,
@@ -40,7 +40,7 @@ export default function FollowListScreen({ navigation, route }: Props) {
       setUsers(data);
       navigation.setOptions({ title });
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить список');
+      showToast(e.response?.data?.message || 'Не удалось загрузить список', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);

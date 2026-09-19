@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   RefreshControl,
   SectionList,
@@ -63,7 +63,7 @@ export default function SearchScreen({ navigation }: Props) {
       setSuggestedUsers(usersData);
       setSuggestedPosts(feedData.slice(0, 20));
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить рекомендации');
+      showToast(e.response?.data?.message || 'Не удалось загрузить рекомендации', 'error');
     } finally {
       if (requestId === requestIdRef.current) {
         setLoading(false);
@@ -137,7 +137,7 @@ export default function SearchScreen({ navigation }: Props) {
       setSuggestedPosts((prev) => prev.map((post) => (post._id === postId ? { ...post, ...updated } : post)));
       setPostResults((prev) => prev.map((post) => (post._id === postId ? { ...post, ...updated } : post)));
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось обновить лайк');
+      showToast(e.response?.data?.message || 'Не удалось обновить лайк', 'error');
     }
   };
 

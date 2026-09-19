@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   View, Text, TextInput, TouchableOpacity, Image, Animated, Easing, ScrollView,
-  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
-} from 'react-native';
+  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, } from 'react-native';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import SpeedLines from '../components/SpeedLines';
@@ -51,7 +51,7 @@ export default function SignInScreen({ navigation }: Props) {
 
   const handleSignIn = async () => {
     if (!identifier.trim() || !password) {
-      Alert.alert('Ошибка', 'Заполните все поля');
+      showToast('Заполните все поля', 'error');
       return;
     }
     setLoading(true);
@@ -60,12 +60,9 @@ export default function SignInScreen({ navigation }: Props) {
       setUser(user);
     } catch (e: any) {
       const message = e.response?.data?.message || 'Не удалось войти';
-      Alert.alert(
-        'Ошибка',
-        message.includes('Illegal arguments')
+      showToast(message.includes('Illegal arguments')
           ? 'Для этого аккаунта пароль не задан. Восстановите пароль по email.'
-          : message
-      );
+          : message, 'error');
     } finally {
       setLoading(false);
     }
@@ -73,15 +70,12 @@ export default function SignInScreen({ navigation }: Props) {
 
   const handleGoogleSignIn = async () => {
     if (isExpoGo) {
-      Alert.alert(
-        'Google вход недоступен в Expo Go',
-        'Google блокирует OAuth в Expo Go/WebView из-за политики безопасности. Для Google входа нужен development build или локальная native-сборка.'
-      );
+      showToast('Google блокирует OAuth в Expo Go/WebView из-за политики безопасности. Для Google входа нужен development build или локальная native-сборка.');
       return;
     }
 
     if (!googleWebClientId) {
-      Alert.alert('Ошибка', 'Google Client ID не настроен в app.json');
+      showToast('Google Client ID не настроен в app.json', 'error');
       return;
     }
     if (!GoogleSignInModule) return;
@@ -94,7 +88,7 @@ export default function SignInScreen({ navigation }: Props) {
       if (isSuccessResponse(response)) {
         const idToken = response.data.idToken;
         if (!idToken) {
-          Alert.alert('Ошибка', 'Google не вернул токен. Попробуйте ещё раз.');
+          showToast('Google не вернул токен. Попробуйте ещё раз.', 'error');
           return;
         }
         const user = await signInWithGoogleCredential(idToken);
@@ -103,7 +97,7 @@ export default function SignInScreen({ navigation }: Props) {
       // response.type === 'cancelled' — пользователь закрыл окно, ничего не делаем
     } catch (e: any) {
       if (isErrorWithCode(e) && (e.code === statusCodes.IN_PROGRESS || e.code === statusCodes.SIGN_IN_CANCELLED)) return;
-      Alert.alert('Ошибка', e?.response?.data?.message || e?.message || 'Google вход не удался');
+      showToast(e?.response?.data?.message || e?.message || 'Google вход не удался', 'error');
     } finally {
       setGoogleLoading(false);
     }

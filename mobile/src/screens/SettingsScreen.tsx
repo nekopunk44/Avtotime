@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { askConfirm } from '../store/confirmStore';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -75,7 +76,7 @@ export default function SettingsScreen({ navigation }: Props) {
   const toggleBiometric = async (value: boolean) => {
     if (value) {
       if (!bioAvailable) {
-        Alert.alert('Биометрия недоступна', 'На устройстве не настроены отпечаток пальца или Face ID. Добавьте их в настройках телефона.');
+        showToast('На устройстве не настроены отпечаток пальца или Face ID. Добавьте их в настройках телефона.');
         return;
       }
       const ok = await authenticateBiometric('Подтвердите включение блокировки');
@@ -141,15 +142,15 @@ export default function SettingsScreen({ navigation }: Props) {
     const confirm = confirmPassword.trim();
 
     if (!current || !next || !confirm) {
-      Alert.alert('Пароль', 'Заполните все поля.');
+      showToast('Заполните все поля.');
       return;
     }
     if (next.length < 8) {
-      Alert.alert('Пароль', 'Новый пароль должен быть не короче 8 символов.');
+      showToast('Новый пароль должен быть не короче 8 символов.');
       return;
     }
     if (next !== confirm) {
-      Alert.alert('Пароль', 'Новые пароли не совпадают.');
+      showToast('Новые пароли не совпадают.');
       return;
     }
 
@@ -157,50 +158,44 @@ export default function SettingsScreen({ navigation }: Props) {
     try {
       await changePassword(current, next);
       closePassword();
-      Alert.alert('Готово', 'Пароль изменён.');
+      showToast('Пароль изменён.', 'success');
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось изменить пароль');
+      showToast(e.response?.data?.message || 'Не удалось изменить пароль', 'error');
     } finally {
       setSavingPassword(false);
     }
   };
 
   const confirmLogoutAll = () => {
-    Alert.alert(
-      'Завершить другие сессии?',
-      'Все входы на других устройствах будут сброшены. Текущая сессия останется активной.',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Завершить',
-          style: 'destructive',
-          onPress: async () => {
+    askConfirm({
+      title: 'Завершить другие сессии?',
+      message: 'Все входы на других устройствах будут сброшены. Текущая сессия останется активной.',
+      confirmLabel: 'Завершить',
+      cancelLabel: 'Отмена',
+      destructive: true,
+    }).then((agreed) => { if (agreed) (async () => {
             setLogoutAllLoading(true);
             try {
               await logoutAllSessions();
-              Alert.alert('Готово', 'Остальные сессии завершены.');
+              showToast('Остальные сессии завершены.', 'success');
             } catch (e: any) {
-              Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось завершить сессии');
+              showToast(e.response?.data?.message || 'Не удалось завершить сессии', 'error');
             } finally {
               setLogoutAllLoading(false);
             }
-          },
-        },
-      ],
-    );
+          })(); });
   };
 
   const confirmLogout = () => {
-    Alert.alert('Выйти?', 'Вы выйдете из мобильного приложения.', [
-      { text: 'Отмена', style: 'cancel' },
-      {
-        text: 'Выйти',
-        style: 'destructive',
-        onPress: () => {
+    askConfirm({
+      title: 'Выйти?',
+      message: 'Вы выйдете из мобильного приложения.',
+      confirmLabel: 'Выйти',
+      cancelLabel: 'Отмена',
+      destructive: true,
+    }).then((agreed) => { if (agreed) (() => {
           void logout();
-        },
-      },
-    ]);
+        })(); });
   };
 
   const closeDelete = () => {
@@ -215,23 +210,21 @@ export default function SettingsScreen({ navigation }: Props) {
     const confirmation = deleteConfirm.trim().toUpperCase();
 
     if (!password) {
-      Alert.alert('Удаление аккаунта', 'Введите пароль от аккаунта.');
+      showToast('Введите пароль от аккаунта.');
       return;
     }
     if (confirmation !== 'УДАЛИТЬ') {
-      Alert.alert('Удаление аккаунта', 'Введите слово УДАЛИТЬ для подтверждения.');
+      showToast('Введите слово УДАЛИТЬ для подтверждения.');
       return;
     }
 
-    Alert.alert(
-      'Удалить аккаунт навсегда?',
-      'Профиль, публикации, объявления, сообщения и сохраненные данные будут удалены. Это действие нельзя отменить.',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Удалить',
-          style: 'destructive',
-          onPress: async () => {
+    askConfirm({
+      title: 'Удалить аккаунт навсегда?',
+      message: 'Профиль, публикации, объявления, сообщения и сохраненные данные будут удалены. Это действие нельзя отменить.',
+      confirmLabel: 'Удалить',
+      cancelLabel: 'Отмена',
+      destructive: true,
+    }).then((agreed) => { if (agreed) (async () => {
             setDeleting(true);
             try {
               await deleteProfile(password);
@@ -240,14 +233,11 @@ export default function SettingsScreen({ navigation }: Props) {
               setDeleteConfirm('');
               await logout();
             } catch (e: any) {
-              Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось удалить профиль');
+              showToast(e.response?.data?.message || 'Не удалось удалить профиль', 'error');
             } finally {
               setDeleting(false);
             }
-          },
-        },
-      ],
-    );
+          })(); });
   };
 
   const renderAction = ({

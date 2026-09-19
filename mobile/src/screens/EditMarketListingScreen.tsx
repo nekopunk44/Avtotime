@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -115,7 +115,7 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
   const pickImages = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Доступ к галерее', 'Разрешите доступ к фото, чтобы заменить изображение объявления.');
+      showToast('Разрешите доступ к фото, чтобы заменить изображение объявления.');
       return;
     }
 
@@ -135,7 +135,7 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Камера', 'Разрешите доступ к камере, чтобы сделать фото объявления.');
+      showToast('Разрешите доступ к камере, чтобы сделать фото объявления.');
       return;
     }
 
@@ -168,7 +168,7 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
   const submit = async () => {
     const validationError = validate();
     if (validationError) {
-      Alert.alert('Редактирование', validationError);
+      showToast(validationError);
       return;
     }
 
@@ -204,11 +204,11 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
         imageUris: images,
       });
 
-      Alert.alert('Готово', 'Объявление обновлено');
+      showToast('Объявление обновлено', 'success');
       markSaved();
       navigation.replace('MarketListingDetails', { listing: updated, categoryId });
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || e.message || 'Не удалось обновить объявление');
+      showToast(e.response?.data?.message || e.message || 'Не удалось обновить объявление', 'error');
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
   Easing,
@@ -227,7 +227,7 @@ export default function HelpRequestsScreen(_props: Props) {
     try {
       const found = await getDeviceLocation();
       if (!found) {
-        Alert.alert('Местоположение', 'Не удалось определить, где вы находитесь.');
+        showToast('Не удалось определить, где вы находитесь.', 'error');
         return;
       }
       setDraft((prev) => ({
@@ -238,10 +238,7 @@ export default function HelpRequestsScreen(_props: Props) {
           : null,
       }));
       if (!found.precise) {
-        Alert.alert(
-          'Местоположение',
-          'Точные координаты недоступны — подставили город по подключению. Уточните адрес вручную.',
-        );
+        showToast('Точные координаты недоступны — подставили город по подключению. Уточните адрес вручную.');
       }
     } finally {
       setLocating(false);
@@ -274,7 +271,7 @@ export default function HelpRequestsScreen(_props: Props) {
       setDraft(emptyDraft);
       await load(true);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось сохранить запрос');
+      showToast(e.response?.data?.message || 'Не удалось сохранить запрос', 'error');
     } finally {
       setSaving(false);
     }
@@ -290,20 +287,20 @@ export default function HelpRequestsScreen(_props: Props) {
       await deleteHelpRequest(id);
       await load(true);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось удалить запрос');
+      showToast(e.response?.data?.message || 'Не удалось удалить запрос', 'error');
     }
   };
 
   const openRoute = async (request: HelpRequest) => {
     const url = getMapUrl(request);
     if (!url) {
-      Alert.alert('Маршрут', 'У запроса не указано место.');
+      showToast('У запроса не указано место.');
       return;
     }
 
     const canOpen = await Linking.canOpenURL(url);
     if (!canOpen) {
-      Alert.alert('Маршрут', 'Не удалось открыть карты на устройстве.');
+      showToast('Не удалось открыть карты на устройстве.', 'error');
       return;
     }
     await Linking.openURL(url);

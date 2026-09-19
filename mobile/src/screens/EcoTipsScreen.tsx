@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
   Easing,
@@ -252,7 +252,7 @@ export default function EcoTipsScreen(_props: Props) {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Доступ к галерее', 'Разрешите доступ к фото, чтобы добавить изображение.');
+      showToast('Разрешите доступ к фото, чтобы добавить изображение.');
       return;
     }
 
@@ -285,7 +285,7 @@ export default function EcoTipsScreen(_props: Props) {
       setDraftCategory(CATEGORIES[0]);
       setImageUri('');
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось опубликовать совет');
+      showToast(e.response?.data?.message || 'Не удалось опубликовать совет', 'error');
     } finally {
       setSaving(false);
     }

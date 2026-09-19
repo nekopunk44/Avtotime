@@ -1,5 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { askConfirm } from '../store/confirmStore';
+import { showToast } from '../store/toastStore';
+import { FlatList, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -40,7 +42,7 @@ export default function MessagesScreen({ navigation }: Props) {
       setChats(data);
       setUnreadMessages(data.reduce((sum, chat) => sum + (chat.unreadCount || 0), 0));
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить диалоги');
+      showToast(e.response?.data?.message || 'Не удалось загрузить диалоги', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -71,25 +73,24 @@ export default function MessagesScreen({ navigation }: Props) {
   };
 
   const removeConversation = (item: Conversation) => {
-    Alert.alert('Удалить переписку?', `Диалог с ${item.name || item.userName} будет очищен.`, [
-      { text: 'Отмена', style: 'cancel' },
-      {
-        text: 'Удалить',
-        style: 'destructive',
-        onPress: async () => {
+    askConfirm({
+      title: 'Удалить переписку?',
+      message: `Диалог с ${item.name || item.userName} будет очищен.`,
+      confirmLabel: 'Удалить',
+      cancelLabel: 'Отмена',
+      destructive: true,
+    }).then((agreed) => { if (agreed) (async () => {
           setDeletingId(item._id);
           try {
             await deleteConversation(item._id);
             setChats((prev) => prev.filter((chat) => chat._id !== item._id));
             useBadgeStore.getState().refresh();
           } catch (e: any) {
-            Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось удалить переписку');
+            showToast(e.response?.data?.message || 'Не удалось удалить переписку', 'error');
           } finally {
             setDeletingId('');
           }
-        },
-      },
-    ]);
+        })(); });
   };
 
   const renderHeader = () => (

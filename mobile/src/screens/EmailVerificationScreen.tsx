@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
@@ -49,7 +49,7 @@ export default function EmailVerificationScreen({ navigation }: Props) {
       setUser(freshUser);
       return freshUser;
     } catch (e: any) {
-      Alert.alert('Email', e.response?.data?.message || 'Не удалось обновить статус email');
+      showToast(e.response?.data?.message || 'Не удалось обновить статус email');
       return null;
     } finally {
       setRefreshing(false);
@@ -62,11 +62,11 @@ export default function EmailVerificationScreen({ navigation }: Props) {
     try {
       const response = await resendVerificationEmail();
       setLastMessage(response.message || 'Письмо отправлено');
-      Alert.alert('Email', response.message || 'Письмо отправлено');
+      showToast(response.message || 'Письмо отправлено');
     } catch (e: any) {
       const message = e.response?.data?.message || 'Не удалось отправить письмо';
       setLastMessage(message);
-      Alert.alert('Email', message);
+      showToast(message);
     } finally {
       setSending(false);
     }
@@ -75,7 +75,7 @@ export default function EmailVerificationScreen({ navigation }: Props) {
   const handleVerify = async () => {
     const token = extractToken(tokenValue);
     if (!token) {
-      Alert.alert('Email', 'Вставьте token или ссылку подтверждения из письма.');
+      showToast('Вставьте token или ссылку подтверждения из письма.');
       return;
     }
 
@@ -85,18 +85,12 @@ export default function EmailVerificationScreen({ navigation }: Props) {
       const response = await verifyEmailToken(token);
       setLastMessage(response.message || 'Email подтверждён');
       const freshUser = await refreshUser(true);
-      Alert.alert('Email', response.message || 'Email подтверждён', [
-        {
-          text: 'OK',
-          onPress: () => {
-            if (freshUser?.isEmailVerified) navigation.goBack();
-          },
-        },
-      ]);
+      showToast(response.message || 'Email подтверждён', 'success');
+      if (freshUser?.isEmailVerified) navigation.goBack();
     } catch (e: any) {
       const message = e.response?.data?.message || 'Ссылка недействительна или истекла';
       setLastMessage(message);
-      Alert.alert('Email', message);
+      showToast(message);
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -315,7 +315,7 @@ export default function LoopsScreen({ navigation }: Props) {
       const updated = await likeLoop(loopId);
       updateLoop(updated);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось поставить лайк');
+      showToast(e.response?.data?.message || 'Не удалось поставить лайк', 'error');
     }
   };
 
@@ -327,7 +327,7 @@ export default function LoopsScreen({ navigation }: Props) {
   const pickVideo = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Доступ к галерее', 'Разрешите доступ к видео, чтобы загрузить loop.');
+      showToast('Разрешите доступ к видео, чтобы загрузить loop.');
       return;
     }
 
@@ -356,9 +356,9 @@ export default function LoopsScreen({ navigation }: Props) {
       setUploadCaption('');
       setActiveIndex(0);
       requestAnimationFrame(() => listRef.current?.scrollToOffset({ offset: 0, animated: true }));
-      Alert.alert('Готово', 'Видео опубликовано.');
+      showToast('Видео опубликовано.', 'success');
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить видео');
+      showToast(e.response?.data?.message || 'Не удалось загрузить видео', 'error');
     } finally {
       setUploading(false);
     }
@@ -374,7 +374,7 @@ export default function LoopsScreen({ navigation }: Props) {
       updateLoop(updated);
       setCommentText('');
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось отправить комментарий');
+      showToast(e.response?.data?.message || 'Не удалось отправить комментарий', 'error');
     } finally {
       setSendingComment(false);
     }

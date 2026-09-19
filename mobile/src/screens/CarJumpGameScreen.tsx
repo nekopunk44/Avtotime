@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   DimensionValue,
   Pressable,
   RefreshControl,
@@ -112,7 +112,7 @@ export default function CarJumpGameScreen() {
       setProgress(nextProgress);
       setLeaderboard(nextLeaderboard);
     } catch (e: any) {
-      Alert.alert('Car Jump', e.response?.data?.message || 'Не удалось загрузить прогресс игры');
+      showToast(e.response?.data?.message || 'Не удалось загрузить прогресс игры');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -161,7 +161,7 @@ export default function CarJumpGameScreen() {
       setProgress(saved);
       setLeaderboard(await getGameLeaderboard(GAME_ID, 10));
     } catch (e: any) {
-      Alert.alert('Car Jump', e.response?.data?.message || 'Не удалось сохранить результат');
+      showToast(e.response?.data?.message || 'Не удалось сохранить результат');
     } finally {
       savingRef.current = false;
       setSaving(false);

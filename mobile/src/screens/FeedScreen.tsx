@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { askConfirm } from '../store/confirmStore';
+import { showToast } from '../store/toastStore';
 import {
   Animated, FlatList, View, Text, Image, StyleSheet,
-  ActivityIndicator, RefreshControl, Alert,
-} from 'react-native';
+  ActivityIndicator, RefreshControl, } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -15,6 +16,7 @@ import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 import { colors, font, radius, space, shadow } from '../theme';
 import { Avatar, Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
 import ReportSheet from '../components/ReportSheet';
+import { ChoiceSheet } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
@@ -195,7 +197,7 @@ export default function FeedScreen({ navigation }: Props) {
   const pickAndUploadStory = async (mediaType: 'image' | 'video') => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Доступ к галерее', 'Разрешите доступ к медиатеке, чтобы загрузить историю.');
+      showToast('Разрешите доступ к медиатеке, чтобы загрузить историю.');
       return;
     }
 
@@ -214,19 +216,13 @@ export default function FeedScreen({ navigation }: Props) {
       setStories((prev) => [story, ...prev.filter((item) => item._id !== story._id)]);
       navigation.navigate('StoryViewer', { story });
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить историю');
+      showToast(e.response?.data?.message || 'Не удалось загрузить историю', 'error');
     } finally {
       setUploadingStory(false);
     }
   };
 
-  const uploadStoryPrompt = () => {
-    Alert.alert('Новая история', 'Что хотите опубликовать?', [
-      { text: 'Фото', onPress: () => pickAndUploadStory('image') },
-      { text: 'Видео', onPress: () => pickAndUploadStory('video') },
-      { text: 'Отмена', style: 'cancel' },
-    ]);
-  };
+  const uploadStoryPrompt = () => setStoryPrompt(true);
 
   const handleLike = async (postId: string) => {
     if (!user) return;
@@ -252,29 +248,31 @@ export default function FeedScreen({ navigation }: Props) {
       const nextUser = await toggleSavePost(postId);
       setUser({ ...user, saved: nextUser.saved ?? [] });
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось сохранить публикацию');
+      showToast(e.response?.data?.message || 'Не удалось сохранить публикацию', 'error');
     }
   };
 
   const removePost = (post: Post) => {
-    Alert.alert('Удалить публикацию?', 'Публикация исчезнет из вашей ленты и профиля.', [
-      { text: 'Отмена', style: 'cancel' },
-      {
-        text: 'Удалить',
-        style: 'destructive',
-        onPress: async () => {
+    askConfirm({
+      title: 'Удалить публикацию?',
+      message: 'Публикация исчезнет из вашей ленты и профиля.',
+      confirmLabel: 'Удалить',
+      cancelLabel: 'Отмена',
+      destructive: true,
+    }).then((agreed) => { if (agreed) (async () => {
           try {
             await deletePost(post._id);
             setPosts((prev) => prev.filter((item) => item._id !== post._id));
           } catch (e: any) {
-            Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось удалить публикацию');
+            showToast(e.response?.data?.message || 'Не удалось удалить публикацию', 'error');
           }
-        },
-      },
-    ]);
+        })(); });
   };
 
   const [reportPostId, setReportPostId] = useState<string | null>(null);
+  // Выбор снизу вместо системных списков: чем публиковать и что делать с постом.
+  const [storyPrompt, setStoryPrompt] = useState(false);
+  const [postActions, setPostActions] = useState<Post | null>(null);
 
   const openPostActions = (post: Post) => {
     if (post.author?._id !== user?._id) {
@@ -282,11 +280,7 @@ export default function FeedScreen({ navigation }: Props) {
       setReportPostId(post._id);
       return;
     }
-    Alert.alert('Публикация', post.caption || 'Действия с публикацией', [
-      { text: 'Редактировать', onPress: () => navigation.navigate('EditPost', { post }) },
-      { text: 'Удалить', style: 'destructive', onPress: () => removePost(post) },
-      { text: 'Отмена', style: 'cancel' },
-    ]);
+    setPostActions(post);
   };
 
   const renderPost = ({ item }: { item: Post }) => (
@@ -403,6 +397,33 @@ export default function FeedScreen({ navigation }: Props) {
       targetType="post"
       targetId={reportPostId ?? ''}
       onClose={() => setReportPostId(null)}
+    />
+
+    <ChoiceSheet
+      visible={storyPrompt}
+      title="Новая история"
+      options={[
+        { value: 'image', label: 'Фото', icon: 'image-outline' },
+        { value: 'video', label: 'Видео', icon: 'videocam-outline' },
+      ]}
+      onSelect={(value) => pickAndUploadStory(value as 'image' | 'video')}
+      onClose={() => setStoryPrompt(false)}
+    />
+
+    <ChoiceSheet
+      visible={postActions !== null}
+      title="Публикация"
+      options={[
+        { value: 'edit', label: 'Редактировать', icon: 'create-outline' },
+        { value: 'delete', label: 'Удалить', icon: 'trash-outline', danger: true },
+      ]}
+      onSelect={(value) => {
+        const post = postActions;
+        if (!post) return;
+        if (value === 'edit') navigation.navigate('EditPost', { post });
+        else removePost(post);
+      }}
+      onClose={() => setPostActions(null)}
     />
     </>
   );

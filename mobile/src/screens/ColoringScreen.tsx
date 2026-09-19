@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -108,9 +108,9 @@ export default function ColoringScreen({ navigation }: Props) {
       });
       setDrawings((prev) => [saved, ...prev.filter((item) => item.templateId !== template.id)]);
       setActiveSection('drawings');
-      Alert.alert('Готово', 'Раскраска сохранена в ваши рисунки.');
+      showToast('Раскраска сохранена в ваши рисунки.', 'success');
     } catch (e: any) {
-      Alert.alert('Раскраски', e.response?.data?.message || e.message || 'Не удалось сохранить раскраску');
+      showToast(e.response?.data?.message || e.message || 'Не удалось сохранить раскраску');
     } finally {
       setSavingTemplateId('');
     }

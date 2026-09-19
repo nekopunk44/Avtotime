@@ -1,7 +1,7 @@
 import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Linking,
@@ -251,23 +251,20 @@ export default function KidsGamesScreen({ navigation }: Props) {
 
   const openExternalGame = async (url?: string) => {
     if (!url) {
-      Alert.alert('Игра', 'Ссылка на игру не указана.');
+      showToast('Ссылка на игру не указана.');
       return;
     }
 
     const canOpen = await Linking.canOpenURL(url);
     if (!canOpen) {
-      Alert.alert('Игра', 'Не удалось открыть ссылку на этом устройстве.');
+      showToast('Не удалось открыть ссылку на этом устройстве.', 'error');
       return;
     }
     await Linking.openURL(url);
   };
 
   const showPortNotice = () => {
-    Alert.alert(
-      'Мобильная версия игры',
-      'Карточка и прогресс уже подключены. Саму встроенную web-игру нужно портировать отдельным экраном под React Native.',
-    );
+    showToast('Карточка и прогресс уже подключены. Саму встроенную web-игру нужно портировать отдельным экраном под React Native.');
   };
 
   const openBuiltInGame = (gameId: string) => {
@@ -310,7 +307,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
   const openProgressGame = (gameId?: string) => {
     if (!gameId) return;
     if (!getBuiltInGame(gameId)) {
-      Alert.alert('Игра', 'Эта игра добавлена как внешняя ссылка. Откройте ее во вкладке игр.');
+      showToast('Эта игра добавлена как внешняя ссылка. Откройте ее во вкладке игр.');
       return;
     }
     openBuiltInGame(gameId);
@@ -323,7 +320,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
     try {
       setGameLeaderboard(await getGameLeaderboard(gameId, 10));
     } catch (e: any) {
-      Alert.alert('Рейтинг', e.response?.data?.message || 'Не удалось загрузить рейтинг');
+      showToast(e.response?.data?.message || 'Не удалось загрузить рейтинг');
       setGameLeaderboard([]);
     } finally {
       setLeaderboardLoading(false);
@@ -339,7 +336,7 @@ export default function KidsGamesScreen({ navigation }: Props) {
   const saveGame = async () => {
     const title = draft.title.trim();
     if (!title) {
-      Alert.alert('Игра', 'Введите название игры.');
+      showToast('Введите название игры.');
       return;
     }
 
@@ -356,9 +353,9 @@ export default function KidsGamesScreen({ navigation }: Props) {
       setGames((prev) => [created, ...prev.filter((game) => getGameKey(game) !== getGameKey(created))]);
       closeCreate();
       setActiveTab('games');
-      Alert.alert('Готово', 'Игра добавлена.');
+      showToast('Игра добавлена.', 'success');
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось добавить игру');
+      showToast(e.response?.data?.message || 'Не удалось добавить игру', 'error');
     } finally {
       setSaving(false);
     }

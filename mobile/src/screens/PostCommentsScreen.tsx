@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { askConfirm } from '../store/confirmStore';
+import { showToast } from '../store/toastStore';
 import {
   View, Text, FlatList, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Alert,
-} from 'react-native';
+  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -42,7 +43,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
       setPost(data);
       navigation.setOptions({ title: `Комментарии (${data.commentsCount ?? data.comments.length})` });
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить комментарии');
+      showToast(e.response?.data?.message || 'Не удалось загрузить комментарии', 'error');
     } finally {
       setLoading(false);
     }
@@ -61,7 +62,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
       setText('');
       navigation.setOptions({ title: `Комментарии (${updated.commentsCount ?? updated.comments.length})` });
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось добавить комментарий');
+      showToast(e.response?.data?.message || 'Не удалось добавить комментарий', 'error');
     } finally {
       setSending(false);
     }
@@ -73,7 +74,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
       const updated = await toggleLike(post._id);
       setPost((prev) => (prev ? { ...prev, ...updated } : updated));
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось обновить лайк');
+      showToast(e.response?.data?.message || 'Не удалось обновить лайк', 'error');
     }
   };
 
@@ -83,27 +84,26 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
       const nextUser = await toggleSavePost(post._id);
       setUser({ ...user, saved: nextUser.saved ?? [] });
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось сохранить публикацию');
+      showToast(e.response?.data?.message || 'Не удалось сохранить публикацию', 'error');
     }
   };
 
   const confirmDelete = () => {
     if (!post) return;
-    Alert.alert('Удалить публикацию?', 'Публикация исчезнет из ленты и профиля.', [
-      { text: 'Отмена', style: 'cancel' },
-      {
-        text: 'Удалить',
-        style: 'destructive',
-        onPress: async () => {
+    askConfirm({
+      title: 'Удалить публикацию?',
+      message: 'Публикация исчезнет из ленты и профиля.',
+      confirmLabel: 'Удалить',
+      cancelLabel: 'Отмена',
+      destructive: true,
+    }).then((agreed) => { if (agreed) (async () => {
           try {
             await deletePost(post._id);
             navigation.goBack();
           } catch (e: any) {
-            Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось удалить публикацию');
+            showToast(e.response?.data?.message || 'Не удалось удалить публикацию', 'error');
           }
-        },
-      },
-    ]);
+        })(); });
   };
 
   const renderHeader = () => {

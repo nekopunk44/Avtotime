@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { askConfirm } from '../store/confirmStore';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -96,7 +97,7 @@ export default function AdminScreen({ navigation }: Props) {
         : await getPendingMarketListings(selectedCategory);
       setListings(data);
     } catch (e: any) {
-      Alert.alert('Модерация', e.response?.data?.message || 'Не удалось загрузить объявления');
+      showToast(e.response?.data?.message || 'Не удалось загрузить объявления');
       setListings([]);
     } finally {
       setModerationLoading(false);
@@ -110,7 +111,7 @@ export default function AdminScreen({ navigation }: Props) {
       setUsers(page.users);
       setUsersTotal(page.total);
     } catch (e: any) {
-      Alert.alert('Пользователи', e.response?.data?.message || 'Не удалось загрузить пользователей');
+      showToast(e.response?.data?.message || 'Не удалось загрузить пользователей');
       setUsers([]);
       setUsersTotal(0);
     } finally {
@@ -186,7 +187,7 @@ export default function AdminScreen({ navigation }: Props) {
       await approveMarketListing(selectedCategory, id);
       removeListingFromQueue(id);
     } catch (e: any) {
-      Alert.alert('Модерация', e.response?.data?.message || 'Не удалось одобрить объявление');
+      showToast(e.response?.data?.message || 'Не удалось одобрить объявление');
     } finally {
       setActingId('');
     }
@@ -196,28 +197,23 @@ export default function AdminScreen({ navigation }: Props) {
     const id = getListingId(item);
     if (!id) return;
 
-    Alert.alert(
-      'Отклонить объявление?',
-      'Автор получит уведомление с причиной отклонения.',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Отклонить',
-          style: 'destructive',
-          onPress: async () => {
+    askConfirm({
+      title: 'Отклонить объявление?',
+      message: 'Автор получит уведомление с причиной отклонения.',
+      confirmLabel: 'Отклонить',
+      cancelLabel: 'Отмена',
+      destructive: true,
+    }).then((agreed) => { if (agreed) (async () => {
             setActingId(`reject-${id}`);
             try {
               await rejectMarketListing(selectedCategory, id, 'Нарушение правил публикации');
               removeListingFromQueue(id);
             } catch (e: any) {
-              Alert.alert('Модерация', e.response?.data?.message || 'Не удалось отклонить объявление');
+              showToast(e.response?.data?.message || 'Не удалось отклонить объявление');
             } finally {
               setActingId('');
             }
-          },
-        },
-      ],
-    );
+          })(); });
   };
 
   const replaceUser = (next: AdminUser) => {
@@ -228,53 +224,43 @@ export default function AdminScreen({ navigation }: Props) {
     if (!item._id) return;
     const banned = !!item.isBanned;
 
-    Alert.alert(
-      banned ? 'Разблокировать пользователя?' : 'Заблокировать пользователя?',
-      banned ? 'Пользователь снова сможет пользоваться аккаунтом.' : 'Активные сессии пользователя будут сброшены.',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: banned ? 'Разблокировать' : 'Заблокировать',
-          style: banned ? 'default' : 'destructive',
-          onPress: async () => {
+    askConfirm({
+      title: banned ? 'Разблокировать пользователя?' : 'Заблокировать пользователя?',
+      message: banned ? 'Пользователь снова сможет пользоваться аккаунтом.' : 'Активные сессии пользователя будут сброшены.',
+      confirmLabel: banned ? 'Разблокировать' : 'Заблокировать',
+      cancelLabel: 'Отмена',
+      destructive: !banned,
+    }).then((agreed) => { if (agreed) (async () => {
             setActingId(`ban-${item._id}`);
             try {
               replaceUser(banned ? await unbanUser(item._id!) : await banUser(item._id!));
             } catch (e: any) {
-              Alert.alert('Пользователи', e.response?.data?.message || 'Не удалось изменить блокировку');
+              showToast(e.response?.data?.message || 'Не удалось изменить блокировку');
             } finally {
               setActingId('');
             }
-          },
-        },
-      ],
-    );
+          })(); });
   };
 
   const toggleAdmin = (item: AdminUser) => {
     if (!item._id) return;
     const admin = !!item.isAdmin;
-    Alert.alert(
-      admin ? 'Снять права администратора?' : 'Выдать права администратора?',
-      'Изменение прав вступит в силу сразу.',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: admin ? 'Снять' : 'Выдать',
-          style: admin ? 'destructive' : 'default',
-          onPress: async () => {
+    askConfirm({
+      title: admin ? 'Снять права администратора?' : 'Выдать права администратора?',
+      message: 'Изменение прав вступит в силу сразу.',
+      confirmLabel: admin ? 'Снять' : 'Выдать',
+      cancelLabel: 'Отмена',
+      destructive: admin,
+    }).then((agreed) => { if (agreed) (async () => {
             setActingId(`admin-${item._id}`);
             try {
               replaceUser(admin ? await revokeAdmin(item._id!) : await grantAdmin(item._id!));
             } catch (e: any) {
-              Alert.alert('Пользователи', e.response?.data?.message || 'Не удалось изменить права');
+              showToast(e.response?.data?.message || 'Не удалось изменить права');
             } finally {
               setActingId('');
             }
-          },
-        },
-      ],
-    );
+          })(); });
   };
 
   const renderTabs = () => (

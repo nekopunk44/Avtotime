@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Easing,
   Image,
@@ -30,7 +30,6 @@ import {
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 import { ChoiceSheet, SuggestField } from '../components/ui';
-import { showToast } from '../store/toastStore';
 import { colors, radius, space } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'CreateMarketListing'> };
@@ -258,7 +257,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   const pickImages = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Доступ к галерее', 'Разрешите доступ к фото, чтобы добавить изображение объявления.');
+      showToast('Разрешите доступ к фото, чтобы добавить изображение объявления.');
       return;
     }
 
@@ -278,7 +277,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Камера', 'Разрешите доступ к камере, чтобы сделать фото объявления.');
+      showToast('Разрешите доступ к камере, чтобы сделать фото объявления.');
       return;
     }
 
@@ -325,7 +324,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   const submit = async () => {
     const validationError = validate();
     if (validationError) {
-      Alert.alert('Объявление', validationError);
+      showToast(validationError);
       return;
     }
 
@@ -352,7 +351,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
           images,
         });
 
-        Alert.alert('Готово', 'Объявление опубликовано');
+        showToast('Объявление опубликовано', 'success');
         markSaved();
         navigation.replace('MarketListingDetails', { listing, categoryId: mode });
         return;
@@ -373,11 +372,11 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
         experience: form.experience,
       });
 
-      Alert.alert('Готово', 'Объявление опубликовано');
+      showToast('Объявление опубликовано', 'success');
       markSaved();
         navigation.replace('MarketListingDetails', { listing, categoryId: mode });
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось создать объявление');
+      showToast(e.response?.data?.message || 'Не удалось создать объявление', 'error');
     } finally {
       setLoading(false);
     }

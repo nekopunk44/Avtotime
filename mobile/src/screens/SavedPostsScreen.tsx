@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   RefreshControl,
@@ -44,7 +44,7 @@ export default function SavedPostsScreen({ navigation }: Props) {
       const data = await getSavedPosts();
       setPosts(data);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить сохранённые публикации');
+      showToast(e.response?.data?.message || 'Не удалось загрузить сохранённые публикации', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -74,7 +74,7 @@ export default function SavedPostsScreen({ navigation }: Props) {
       if (user) setUser({ ...user, saved: nextUser.saved ?? [] });
       setPosts((prev) => prev.filter((post) => post._id !== postId));
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось убрать публикацию');
+      showToast(e.response?.data?.message || 'Не удалось убрать публикацию', 'error');
     } finally {
       setBusyId('');
     }

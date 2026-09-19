@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { askConfirm } from '../store/confirmStore';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   DimensionValue,
   Image,
   RefreshControl,
@@ -129,7 +130,7 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
         hydrateForm(own);
       }
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить отзывы');
+      showToast(e.response?.data?.message || 'Не удалось загрузить отзывы', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -148,17 +149,17 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
 
   const submit = async () => {
     if (!targetUserId) {
-      Alert.alert('Отзывы', 'У объявления нет автора для отзыва.');
+      showToast('У объявления нет автора для отзыва.');
       return;
     }
 
     if (isMyListing) {
-      Alert.alert('Отзывы', 'Нельзя оставить отзыв самому себе.');
+      showToast('Нельзя оставить отзыв самому себе.');
       return;
     }
 
     if (!comment.trim() && !title.trim()) {
-      Alert.alert('Отзывы', 'Добавьте короткий заголовок или текст отзыва.');
+      showToast('Добавьте короткий заголовок или текст отзыва.');
       return;
     }
 
@@ -182,9 +183,9 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
       }
 
       await load(true);
-      Alert.alert('Готово', myReview ? 'Отзыв обновлен' : 'Отзыв опубликован');
+      showToast(myReview ? 'Отзыв обновлен' : 'Отзыв опубликован', 'success');
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось сохранить отзыв');
+      showToast(e.response?.data?.message || 'Не удалось сохранить отзыв', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -193,25 +194,24 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
   const removeOwnReview = () => {
     if (!myReview) return;
 
-    Alert.alert('Удалить отзыв?', 'Отзыв исчезнет из карточки продавца.', [
-      { text: 'Отмена', style: 'cancel' },
-      {
-        text: 'Удалить',
-        style: 'destructive',
-        onPress: async () => {
+    askConfirm({
+      title: 'Удалить отзыв?',
+      message: 'Отзыв исчезнет из карточки продавца.',
+      confirmLabel: 'Удалить',
+      cancelLabel: 'Отмена',
+      destructive: true,
+    }).then((agreed) => { if (agreed) (async () => {
           setSubmitting(true);
           try {
             await deleteReview(myReview._id);
             hydrateForm();
             await load(true);
           } catch (e: any) {
-            Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось удалить отзыв');
+            showToast(e.response?.data?.message || 'Не удалось удалить отзыв', 'error');
           } finally {
             setSubmitting(false);
           }
-        },
-      },
-    ]);
+        })(); });
   };
 
   const votingRef = React.useRef(false);
@@ -227,7 +227,7 @@ export default function MarketReviewsScreen({ navigation, route }: Props) {
       }
       await load(true);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось обновить оценку отзыва');
+      showToast(e.response?.data?.message || 'Не удалось обновить оценку отзыва', 'error');
     } finally {
       votingRef.current = false;
     }

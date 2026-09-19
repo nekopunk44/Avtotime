@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
   Image,
@@ -56,7 +56,7 @@ export default function CreatePostScreen({ navigation }: Props) {
     try {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Доступ к галерее', 'Разрешите доступ к медиатеке, чтобы добавить фото.');
+      showToast('Разрешите доступ к медиатеке, чтобы добавить фото.');
       if (initial) navigation.goBack();
       return;
     }
@@ -110,7 +110,7 @@ export default function CreatePostScreen({ navigation }: Props) {
 
   const handlePost = async () => {
     if (!mediaUris.length) {
-      Alert.alert('Публикация', 'Добавьте фото.');
+      showToast('Добавьте фото.');
       return;
     }
 
@@ -124,7 +124,7 @@ export default function CreatePostScreen({ navigation }: Props) {
       markSaved();
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось опубликовать');
+      showToast(e.response?.data?.message || 'Не удалось опубликовать', 'error');
     } finally {
       setLoading(false);
     }

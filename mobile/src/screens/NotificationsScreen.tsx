@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { askConfirm } from '../store/confirmStore';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   RefreshControl,
@@ -93,7 +94,7 @@ export default function NotificationsScreen({ navigation }: Props) {
       setNotifications(items);
       setUnreadCount(unread);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить уведомления');
+      showToast(e.response?.data?.message || 'Не удалось загрузить уведомления', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -134,7 +135,7 @@ export default function NotificationsScreen({ navigation }: Props) {
       await markNotificationAsRead(item._id);
       markLocalRead(item._id);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось отметить уведомление');
+      showToast(e.response?.data?.message || 'Не удалось отметить уведомление', 'error');
     } finally {
       setBusyId('');
     }
@@ -147,55 +148,53 @@ export default function NotificationsScreen({ navigation }: Props) {
       setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
       setUnreadCount(0);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось отметить уведомления');
+      showToast(e.response?.data?.message || 'Не удалось отметить уведомления', 'error');
     } finally {
       setBulkBusy('');
     }
   };
 
   const removeOne = (item: AppNotification) => {
-    Alert.alert('Удалить уведомление?', item.title || item.description || 'Это уведомление исчезнет из списка.', [
-      { text: 'Отмена', style: 'cancel' },
-      {
-        text: 'Удалить',
-        style: 'destructive',
-        onPress: async () => {
+    askConfirm({
+      title: 'Удалить уведомление?',
+      message: item.title || item.description || 'Это уведомление исчезнет из списка.',
+      confirmLabel: 'Удалить',
+      cancelLabel: 'Отмена',
+      destructive: true,
+    }).then((agreed) => { if (agreed) (async () => {
           setBusyId(item._id);
           try {
             await deleteNotification(item._id);
             setNotifications((prev) => prev.filter((current) => current._id !== item._id));
             if (!item.isRead) setUnreadCount((prev) => Math.max(0, prev - 1));
           } catch (e: any) {
-            Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось удалить уведомление');
+            showToast(e.response?.data?.message || 'Не удалось удалить уведомление', 'error');
           } finally {
             setBusyId('');
           }
-        },
-      },
-    ]);
+        })(); });
   };
 
   const clearAll = () => {
     if (!notifications.length) return;
-    Alert.alert('Очистить уведомления?', 'Весь список уведомлений будет удален.', [
-      { text: 'Отмена', style: 'cancel' },
-      {
-        text: 'Очистить',
-        style: 'destructive',
-        onPress: async () => {
+    askConfirm({
+      title: 'Очистить уведомления?',
+      message: 'Весь список уведомлений будет удален.',
+      confirmLabel: 'Очистить',
+      cancelLabel: 'Отмена',
+      destructive: true,
+    }).then((agreed) => { if (agreed) (async () => {
           setBulkBusy('clear');
           try {
             await clearAllNotifications();
             setNotifications([]);
             setUnreadCount(0);
           } catch (e: any) {
-            Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось очистить уведомления');
+            showToast(e.response?.data?.message || 'Не удалось очистить уведомления', 'error');
           } finally {
             setBulkBusy('');
           }
-        },
-      },
-    ]);
+        })(); });
   };
 
   const openNotification = (item: AppNotification) => {
@@ -282,7 +281,7 @@ export default function NotificationsScreen({ navigation }: Props) {
       return;
     }
 
-    Alert.alert('Уведомление', item.description || item.title || 'Нет связанного экрана для открытия.');
+    showToast(item.description || item.title || 'Нет связанного экрана для открытия.');
   };
 
   const renderHeader = () => (

@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { askConfirm } from '../store/confirmStore';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -174,28 +175,23 @@ export default function MyListingsScreen({ navigation }: Props) {
 
   const removeListing = (item: MyMarketListing) => {
     const title = getListingTitle(item.listing);
-    Alert.alert(
-      'Удалить объявление?',
-      `${title} исчезнет из маркета. Это действие нельзя отменить.`,
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Удалить',
-          style: 'destructive',
-          onPress: async () => {
+    askConfirm({
+      title: 'Удалить объявление?',
+      message: `${title} исчезнет из маркета. Это действие нельзя отменить.`,
+      confirmLabel: 'Удалить',
+      cancelLabel: 'Отмена',
+      destructive: true,
+    }).then((agreed) => { if (agreed) (async () => {
             setDeletingKey(item.key);
             try {
               await deleteMarketListing(item.categoryId, item.listing);
               setItems((prev) => prev.filter((listing) => listing.key !== item.key));
             } catch (e: any) {
-              Alert.alert('Ошибка', e.response?.data?.message || e.message || 'Не удалось удалить объявление');
+              showToast(e.response?.data?.message || e.message || 'Не удалось удалить объявление', 'error');
             } finally {
               setDeletingKey('');
             }
-          },
-        },
-      ],
-    );
+          })(); });
   };
 
   const closeAppeal = () => {
@@ -208,7 +204,7 @@ export default function MyListingsScreen({ navigation }: Props) {
     if (!appealItem) return;
     const message = appealMessage.trim();
     if (message.length < 10) {
-      Alert.alert('Апелляция', 'Опишите причину апелляции минимум в 10 символов.');
+      showToast('Опишите причину апелляции минимум в 10 символов.');
       return;
     }
 
@@ -230,9 +226,9 @@ export default function MyListingsScreen({ navigation }: Props) {
       )));
       setAppealItem(null);
       setAppealMessage('');
-      Alert.alert('Апелляция', response.message || 'Апелляция отправлена администратору.');
+      showToast(response.message || 'Апелляция отправлена администратору.');
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || e.message || 'Не удалось отправить апелляцию');
+      showToast(e.response?.data?.message || e.message || 'Не удалось отправить апелляцию', 'error');
     } finally {
       setAppealingKey('');
     }

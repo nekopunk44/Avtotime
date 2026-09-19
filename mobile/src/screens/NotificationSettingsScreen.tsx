@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -63,7 +63,7 @@ export default function NotificationSettingsScreen() {
       const data = await getNotificationPreferences();
       setPreferences(data);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить настройки уведомлений');
+      showToast(e.response?.data?.message || 'Не удалось загрузить настройки уведомлений', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -92,9 +92,9 @@ export default function NotificationSettingsScreen() {
     try {
       const next = await updateNotificationPreferences(preferences);
       setPreferences(next);
-      Alert.alert('Готово', 'Настройки уведомлений сохранены');
+      showToast('Настройки уведомлений сохранены', 'success');
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось сохранить настройки');
+      showToast(e.response?.data?.message || 'Не удалось сохранить настройки', 'error');
     } finally {
       setSaving(false);
     }

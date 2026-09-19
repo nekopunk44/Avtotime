@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Easing,
   FlatList,
@@ -97,7 +97,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
       setIsFollowing(status.isFollowing);
       setRatingStats(nextRatingStats);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить профиль');
+      showToast(e.response?.data?.message || 'Не удалось загрузить профиль', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -128,7 +128,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
           : [...prev.followers, me!._id],
       } : prev));
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось обновить подписку');
+      showToast(e.response?.data?.message || 'Не удалось обновить подписку', 'error');
     } finally {
       setFollowLoading(false);
     }
@@ -148,7 +148,7 @@ export default function UserProfileScreen({ route, navigation }: Props) {
     try {
       await Linking.openURL(url);
     } catch {
-      Alert.alert('Ссылка', 'Не удалось открыть ссылку');
+      showToast('Не удалось открыть ссылку', 'error');
     }
   };
 

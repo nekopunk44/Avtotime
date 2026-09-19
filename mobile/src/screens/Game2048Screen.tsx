@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -185,7 +185,7 @@ export default function Game2048Screen() {
       setProgress(nextProgress);
       setLeaderboard(nextLeaderboard);
     } catch (e: any) {
-      Alert.alert('2048', e.response?.data?.message || 'Не удалось загрузить прогресс игры');
+      showToast(e.response?.data?.message || 'Не удалось загрузить прогресс игры');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -242,7 +242,7 @@ export default function Game2048Screen() {
       setLeaderboard(await getGameLeaderboard(GAME_ID, 10));
       setStatus(nextStatus);
     } catch (e: any) {
-      Alert.alert('2048', e.response?.data?.message || 'Не удалось сохранить результат');
+      showToast(e.response?.data?.message || 'Не удалось сохранить результат');
     } finally {
       setSaving(false);
     }

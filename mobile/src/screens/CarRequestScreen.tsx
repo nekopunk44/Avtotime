@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -96,9 +96,9 @@ export default function CarRequestScreen() {
     try {
       const geo = await getViewerGeo();
       if (geo.city) setRegion(geo.city);
-      else Alert.alert('Регион', 'Не удалось определить город по вашему подключению.');
+      else showToast('Не удалось определить город по вашему подключению.', 'error');
     } catch {
-      Alert.alert('Регион', 'Не удалось определить город. Проверьте соединение.');
+      showToast('Не удалось определить город. Проверьте соединение.', 'error');
     } finally {
       setLocating(false);
     }
@@ -122,7 +122,7 @@ export default function CarRequestScreen() {
       setModel('');
       setYear('');
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось отправить заявку. Попробуйте позже.');
+      showToast(e.response?.data?.message || 'Не удалось отправить заявку. Попробуйте позже.', 'error');
     } finally {
       setSending(false);
     }

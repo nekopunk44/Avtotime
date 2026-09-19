@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
   Animated,
   Dimensions,
   Easing,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -144,7 +144,7 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
     }
 
     if (!nickname) {
-      Alert.alert('Продавец', 'Профиль продавца не указан в объявлении');
+      showToast('Профиль продавца не указан в объявлении');
       return null;
     }
 
@@ -154,9 +154,9 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
       if (exact?._id) {
         return { id: exact._id, name: exact.name || displayName, userName: exact.userName || nickname };
       }
-      Alert.alert('Продавец', `Не удалось найти профиль @${nickname}`);
+      showToast(`Не удалось найти профиль @${nickname}`);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось открыть профиль продавца');
+      showToast(e.response?.data?.message || 'Не удалось открыть профиль продавца', 'error');
     }
     return null;
   };

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   LayoutChangeEvent,
   PanResponder,
   StyleSheet,
@@ -140,11 +140,10 @@ export default function ColoringCanvasScreen({ navigation, route }: Props) {
         progress: strokes.length ? 100 : 0,
         colorsUsed: Array.from(new Set(strokes.map((s) => s.color))),
       });
-      Alert.alert('Готово', 'Раскраска сохранена в ваши рисунки.', [
-        { text: 'ОК', onPress: () => navigation.goBack() },
-      ]);
+      showToast('Раскраска сохранена в ваши рисунки', 'success');
+      navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Раскраски', e.response?.data?.message || 'Не удалось сохранить');
+      showToast(e.response?.data?.message || 'Не удалось сохранить');
     } finally {
       setSaving(false);
     }

@@ -1,7 +1,8 @@
 import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import { askConfirm } from '../store/confirmStore';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   Linking,
   RefreshControl,
   ScrollView,
@@ -217,18 +218,19 @@ export default function BillingScreen({ navigation }: Props) {
     try {
       const result = await purchasePlan(plan);
       applyPlanResult(result);
-      Alert.alert('Готово', `Тариф «${PLAN_LABEL[String(result.effectivePlan)] || result.effectivePlan}» активирован.`);
+      showToast(`Тариф «${PLAN_LABEL[String(result.effectivePlan)] || result.effectivePlan}» активирован.`, 'success');
     } catch (e: any) {
       if (isStoreUnavailable(e)) {
         // Не техническое сообщение в лицо: молча переключаемся на веб-оплату.
         setStoreMissing(true);
-        Alert.alert(
-          'Оплата',
-          'В этой сборке приложения покупка через стор недоступна. Откроем страницу оплаты.',
-          [{ text: 'Отмена', style: 'cancel' }, { text: 'Открыть', onPress: openWebCheckout }],
-        );
+        askConfirm({
+          title: 'Оплата',
+          message: 'В этой сборке приложения покупка через стор недоступна. Откроем страницу оплаты.',
+          confirmLabel: 'Открыть',
+          cancelLabel: 'Отмена',
+        }).then((agreed) => { if (agreed) (openWebCheckout)(); });
       } else if (!isCancelled(e)) {
-        Alert.alert('Оплата', e?.response?.data?.message || e?.message || 'Покупка не прошла');
+        showToast(e?.response?.data?.message || e?.message || 'Покупка не прошла');
       }
     } finally {
       setBuyingPlan(null);
@@ -242,16 +244,16 @@ export default function BillingScreen({ navigation }: Props) {
       const result = await restoreStorePurchases();
       if (result) {
         applyPlanResult(result);
-        Alert.alert('Готово', 'Подписка восстановлена.');
+        showToast('Подписка восстановлена.', 'success');
       } else {
-        Alert.alert('Восстановление', 'Активных покупок в сторе не найдено.');
+        showToast('Активных покупок в сторе не найдено.');
       }
     } catch (e: any) {
       if (isStoreUnavailable(e)) {
         setStoreMissing(true);
-        Alert.alert('Восстановление', 'В этой сборке приложения покупки стора недоступны.');
+        showToast('В этой сборке приложения покупки стора недоступны.');
       } else {
-        Alert.alert('Восстановление', e?.response?.data?.message || e?.message || 'Не удалось восстановить покупки');
+        showToast(e?.response?.data?.message || e?.message || 'Не удалось восстановить покупки');
       }
     } finally {
       setRestoring(false);
@@ -261,7 +263,7 @@ export default function BillingScreen({ navigation }: Props) {
   const openWebCheckout = async () => {
     const canOpen = await Linking.canOpenURL(WEB_TARIFFS_URL);
     if (!canOpen) {
-      Alert.alert('Тарифы', 'Не удалось открыть страницу оплаты на этом устройстве.');
+      showToast('Не удалось открыть страницу оплаты на этом устройстве.', 'error');
       return;
     }
     await Linking.openURL(WEB_TARIFFS_URL);
@@ -270,15 +272,13 @@ export default function BillingScreen({ navigation }: Props) {
   const selectFreePlan = () => {
     if (activePlan === 'free') return;
 
-    Alert.alert(
-      'Перейти на базовый тариф?',
-      'Платные возможности и приоритет объявлений будут отключены.',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Перейти',
-          style: 'destructive',
-          onPress: async () => {
+    askConfirm({
+      title: 'Перейти на базовый тариф?',
+      message: 'Платные возможности и приоритет объявлений будут отключены.',
+      confirmLabel: 'Перейти',
+      cancelLabel: 'Отмена',
+      destructive: true,
+    }).then((agreed) => { if (agreed) (async () => {
             setSaving(true);
             try {
               const result = await setFreePlan();
@@ -289,16 +289,13 @@ export default function BillingScreen({ navigation }: Props) {
                 planActivatedAt: result.planActivatedAt,
                 planExpiresAt: result.planExpiresAt,
               }));
-              Alert.alert('Готово', 'Базовый тариф активирован.');
+              showToast('Базовый тариф активирован.', 'success');
             } catch (e: any) {
-              Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось сменить тариф');
+              showToast(e.response?.data?.message || 'Не удалось сменить тариф', 'error');
             } finally {
               setSaving(false);
             }
-          },
-        },
-      ],
-    );
+          })(); });
   };
 
   const renderPlan = (plan: PlanCard) => {

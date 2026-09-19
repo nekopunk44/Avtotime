@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
   Easing,
@@ -229,7 +229,7 @@ export default function MarketFiltersSheet({
     try {
       const geo = await getViewerGeo();
       if (!geo.city) {
-        Alert.alert('Город', 'Не удалось определить город по вашему подключению.');
+        showToast('Не удалось определить город по вашему подключению.', 'error');
         return;
       }
       // Город пишется прямо в поле; координаты рядом — по ним считается,
@@ -242,7 +242,7 @@ export default function MarketFiltersSheet({
         nearLng: geo.lng,
       }));
     } catch {
-      Alert.alert('Город', 'Не удалось определить город. Проверьте соединение.');
+      showToast('Не удалось определить город. Проверьте соединение.', 'error');
     } finally {
       setLocating(false);
     }

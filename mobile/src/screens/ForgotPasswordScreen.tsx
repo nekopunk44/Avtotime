@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
-} from 'react-native';
+  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, } from 'react-native';
 import client from '../api/client';
 import { colors } from '../theme';
 
@@ -40,12 +40,12 @@ export default function ForgotPasswordScreen() {
   const [loading, setLoading] = useState(false);
 
   const showError = (fallback: string, e: any) => {
-    Alert.alert('Ошибка', e.response?.data?.message || fallback);
+    showToast(e.response?.data?.message || fallback, 'error');
   };
 
   const handleSendOtp = async () => {
     const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail) { Alert.alert('Ошибка', 'Введите email'); return; }
+    if (!normalizedEmail) { showToast('Введите email', 'error'); return; }
 
     setLoading(true);
     try {
@@ -60,7 +60,7 @@ export default function ForgotPasswordScreen() {
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp.trim()) { Alert.alert('Ошибка', 'Введите код из письма'); return; }
+    if (!otp.trim()) { showToast('Введите код из письма', 'error'); return; }
 
     setLoading(true);
     try {
@@ -75,11 +75,11 @@ export default function ForgotPasswordScreen() {
 
   const handleResetPassword = async () => {
     if (password.length < 8) {
-      Alert.alert('Ошибка', 'Пароль должен быть не короче 8 символов');
+      showToast('Пароль должен быть не короче 8 символов', 'error');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Ошибка', 'Пароли не совпадают');
+      showToast('Пароли не совпадают', 'error');
       return;
     }
 

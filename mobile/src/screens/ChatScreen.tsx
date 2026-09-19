@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Easing,
   FlatList,
@@ -201,7 +201,7 @@ export default function ChatScreen({ route, navigation }: Props) {
       // Opening the chat marked messages read on the server — refresh tab badges
       useBadgeStore.getState().refresh();
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить чат');
+      showToast(e.response?.data?.message || 'Не удалось загрузить чат', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -247,7 +247,7 @@ export default function ChatScreen({ route, navigation }: Props) {
       await nextAction(userId);
       setIsBlocked((prev) => !prev);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось обновить блокировку');
+      showToast(e.response?.data?.message || 'Не удалось обновить блокировку', 'error');
     } finally {
       setMenuBusy(false);
     }
@@ -259,7 +259,7 @@ export default function ChatScreen({ route, navigation }: Props) {
       await deleteConversation(userId);
       setMessages([]);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось удалить переписку');
+      showToast(e.response?.data?.message || 'Не удалось удалить переписку', 'error');
     } finally {
       setMenuBusy(false);
     }
@@ -335,7 +335,7 @@ export default function ChatScreen({ route, navigation }: Props) {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Доступ к галерее', 'Разрешите доступ к фото, чтобы отправить изображение.');
+      showToast('Разрешите доступ к фото, чтобы отправить изображение.');
       return;
     }
 
@@ -353,7 +353,7 @@ export default function ChatScreen({ route, navigation }: Props) {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Доступ к камере', 'Разрешите доступ к камере, чтобы сделать фото.');
+      showToast('Разрешите доступ к камере, чтобы сделать фото.');
       return;
     }
 
@@ -404,7 +404,7 @@ export default function ChatScreen({ route, navigation }: Props) {
     try {
       const { granted } = await requestRecordingPermissionsAsync();
       if (!granted) {
-        Alert.alert('Доступ к микрофону', 'Разрешите доступ к микрофону, чтобы записывать голосовые сообщения.');
+        showToast('Разрешите доступ к микрофону, чтобы записывать голосовые сообщения.');
         return;
       }
       await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
@@ -414,7 +414,7 @@ export default function ChatScreen({ route, navigation }: Props) {
       setRecording(true);
       recordTimerRef.current = setInterval(() => setRecordSeconds((s) => s + 1), 1000);
     } catch {
-      Alert.alert('Ошибка', 'Не удалось начать запись.');
+      showToast('Не удалось начать запись.', 'error');
     }
   };
 
@@ -435,7 +435,7 @@ export default function ChatScreen({ route, navigation }: Props) {
     try {
       await recorder.stop();
     } catch {
-      Alert.alert('Ошибка', 'Не удалось завершить запись.');
+      showToast('Не удалось завершить запись.', 'error');
       return;
     }
     // Route audio back to the speaker for playback (iOS)
@@ -443,7 +443,7 @@ export default function ChatScreen({ route, navigation }: Props) {
 
     const uri = recorder.uri;
     if (!uri || seconds < 1) {
-      if (seconds < 1) Alert.alert('Слишком коротко', 'Удерживайте запись хотя бы одну секунду.');
+      if (seconds < 1) showToast('Удерживайте запись хотя бы одну секунду.');
       return;
     }
 
@@ -456,7 +456,7 @@ export default function ChatScreen({ route, navigation }: Props) {
       });
       prependMessage(msg);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось отправить голосовое сообщение');
+      showToast(e.response?.data?.message || 'Не удалось отправить голосовое сообщение', 'error');
     } finally {
       setSending(false);
     }
@@ -464,7 +464,7 @@ export default function ChatScreen({ route, navigation }: Props) {
 
   const handleSend = async () => {
     if (isBlocked) {
-      Alert.alert('Чат заблокирован', 'Разблокируйте пользователя, чтобы отправить сообщение.');
+      showToast('Разблокируйте пользователя, чтобы отправить сообщение.');
       return;
     }
 
@@ -488,7 +488,7 @@ export default function ChatScreen({ route, navigation }: Props) {
       // Restore the draft only if the input is still empty — don't clobber text typed meanwhile
       setText((current) => (current ? current : draft));
       setAttachment(pickedAttachment);
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось отправить сообщение');
+      showToast(e.response?.data?.message || 'Не удалось отправить сообщение', 'error');
     } finally {
       setSending(false);
     }
@@ -499,7 +499,7 @@ export default function ChatScreen({ route, navigation }: Props) {
     try {
       await Linking.openURL(url);
     } catch {
-      Alert.alert('Вложение', 'Не удалось открыть файл');
+      showToast('Не удалось открыть файл', 'error');
     }
   };
 

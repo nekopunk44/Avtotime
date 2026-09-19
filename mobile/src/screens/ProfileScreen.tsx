@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Easing,
   FlatList,
@@ -291,7 +291,7 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
         setPostsTotal(postsPage.total);
       }
     } catch (e: any) {
-      if (!silent) Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось загрузить профиль');
+      if (!silent) showToast(e.response?.data?.message || 'Не удалось загрузить профиль', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);

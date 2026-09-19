@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   View, Text, TextInput, TouchableOpacity, Image, Animated, Easing, ScrollView,
-  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
-} from 'react-native';
+  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { signUp } from '../api/auth';
@@ -34,7 +34,7 @@ export default function SignUpScreen({ navigation }: Props) {
 
   const handleSignUp = async () => {
     if (!name.trim() || !username.trim() || !email.trim() || !password) {
-      Alert.alert('Ошибка', 'Заполните все поля');
+      showToast('Заполните все поля', 'error');
       return;
     }
     setLoading(true);
@@ -42,7 +42,7 @@ export default function SignUpScreen({ navigation }: Props) {
       const user = await signUp({ name: name.trim(), userName: username.trim(), email: email.trim(), password });
       setUser(user);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось зарегистрироваться');
+      showToast(e.response?.data?.message || 'Не удалось зарегистрироваться', 'error');
     } finally {
       setLoading(false);
     }

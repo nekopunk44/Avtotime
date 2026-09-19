@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { showToast } from '../store/toastStore';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  StyleSheet, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,7 +36,7 @@ export default function EditProfileScreen({ navigation }: Props) {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Нужен доступ к галерее');
+      showToast('Нужен доступ к галерее');
       return;
     }
 
@@ -51,7 +52,7 @@ export default function EditProfileScreen({ navigation }: Props) {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Камера', 'Разрешите доступ к камере, чтобы сделать фото профиля.');
+      showToast('Разрешите доступ к камере, чтобы сделать фото профиля.');
       return;
     }
 
@@ -65,7 +66,7 @@ export default function EditProfileScreen({ navigation }: Props) {
 
   const handleSave = async () => {
     if (!name.trim() || !userName.trim()) {
-      Alert.alert('Ошибка', 'Имя и username обязательны');
+      showToast('Имя и username обязательны', 'error');
       return;
     }
 
@@ -83,7 +84,7 @@ export default function EditProfileScreen({ navigation }: Props) {
       setUser(updated);
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Ошибка', e.response?.data?.message || 'Не удалось сохранить профиль');
+      showToast(e.response?.data?.message || 'Не удалось сохранить профиль', 'error');
     } finally {
       setSaving(false);
     }
