@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, Easing, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, font, radius, shadow, space } from '../../theme';
@@ -30,27 +30,57 @@ export default function ChoiceSheet({
   // того, чтобы уехать вниз.
   const [mounted, setMounted] = useState(visible);
   const anim = useRef(new Animated.Value(0)).current;
+  // Смещение пальцем. Драйвер общий с выездом (JS): нативная и не-нативная
+  // анимации на одном transform несовместимы.
+  const drag = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) {
       setMounted(true);
       anim.setValue(0);
+      drag.setValue(0);
       Animated.timing(anim, {
         toValue: 1,
         duration: 280,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
       return;
     }
-    Animated.timing(anim, {
-      toValue: 0,
-      duration: 200,
-      easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => { if (finished) setMounted(false); });
-  }, [visible, anim]);
+    Animated.parallel([
+      Animated.timing(anim, { toValue: 0, duration: 200, easing: Easing.in(Easing.cubic), useNativeDriver: false }),
+      Animated.timing(drag, { toValue: 0, duration: 200, easing: Easing.in(Easing.cubic), useNativeDriver: false }),
+    ]).start(({ finished }) => { if (finished) setMounted(false); });
+  }, [visible, anim, drag]);
+
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  const pan = useRef(
+    PanResponder.create({
+      // Захват с первого касания: жест живёт на шапке, где нет кнопок, и
+      // ожидание движения только мешало — панель не трогалась с места.
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) drag.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        // Либо утянули достаточно далеко, либо бросили резким движением вниз.
+        if (g.dy > 80 || g.vy > 0.9) {
+          closeRef.current();
+          return;
+        }
+        Animated.spring(drag, { toValue: 0, useNativeDriver: false, bounciness: 6, speed: 14 }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(drag, { toValue: 0, useNativeDriver: false, bounciness: 6, speed: 14 }).start();
+      },
+    }),
+  ).current;
 
   if (!mounted) return null;
 
@@ -72,13 +102,20 @@ export default function ChoiceSheet({
             { paddingBottom: insets.bottom + space.md },
             {
               transform: [{
-                translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [SHEET_TRAVEL, 0] }),
+                translateY: Animated.add(
+                  anim.interpolate({ inputRange: [0, 1], outputRange: [SHEET_TRAVEL, 0] }),
+                  drag,
+                ),
               }],
             },
           ]}
         >
-          <View style={styles.grabber} />
-          <Text style={styles.title}>{title}</Text>
+          {/* Тянуть можно за всю шапку, а не за саму полоску: попасть в
+              четыре пикселя пальцем нельзя. */}
+          <View {...pan.panHandlers} style={styles.handleZone}>
+            <View style={styles.grabber} />
+            <Text style={styles.title}>{title}</Text>
+          </View>
 
           <ScrollView style={styles.list} bounces={false}>
             {clearLabel ? (
@@ -118,11 +155,12 @@ const styles = StyleSheet.create({
     maxHeight: '75%',
     ...shadow.float,
   },
+  handleZone: { paddingBottom: space.sm },
   grabber: {
     alignSelf: 'center', width: 42, height: 4, borderRadius: radius.pill,
     backgroundColor: colors.surfaceHi, marginBottom: space.md,
   },
-  title: { textAlign: 'center', color: colors.text, fontSize: font.h3, fontWeight: '900', marginBottom: space.sm },
+  title: { textAlign: 'center', color: colors.text, fontSize: font.h3, fontWeight: '900' },
   list: { flexGrow: 0 },
   option: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

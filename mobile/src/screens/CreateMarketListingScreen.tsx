@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
   Image,
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,7 +14,6 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useHeaderHeight } from '@react-navigation/elements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -100,8 +100,31 @@ const BODY = ['Седан', 'Хэтчбек', 'Универсал', 'Кросс�
 const DRIVE = ['Передний', 'Задний', 'Полный'];
 
 export default function CreateMarketListingScreen({ navigation }: Props) {
-  const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
+
+  // Место под клавиатуру считаем по её событиям: под edge-to-edge окно не
+  // сжимается, а KeyboardAvoidingView оставлял экран обрезанным и после того,
+  // как клавиатура уже ушла.
+  const kbLift = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const glide = (height: number, duration?: number) => {
+      Animated.timing(kbLift, {
+        // Системная полоса внизу уже даёт отступ — вычитаем, иначе останется щель.
+        toValue: Math.max(0, height - insets.bottom),
+        duration: duration && duration > 0 ? duration : 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    };
+    const subs = [
+      Keyboard.addListener('keyboardWillShow', (e) => glide(e.endCoordinates.height, e.duration)),
+      Keyboard.addListener('keyboardDidShow', (e) => glide(e.endCoordinates.height, e.duration)),
+      Keyboard.addListener('keyboardWillHide', (e) => glide(0, e.duration)),
+      Keyboard.addListener('keyboardDidHide', (e) => glide(0, e.duration)),
+    ];
+    return () => subs.forEach((sub) => sub.remove());
+  }, [insets.bottom, kbLift]);
   const [mode, setMode] = useState<MarketCategoryId>('cars');
   const [form, setForm] = useState<FormState>(initialForm);
   const [images, setImages] = useState<string[]>([]);
@@ -359,7 +382,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   );
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={headerHeight}>
+    <Animated.View style={[styles.container, { paddingBottom: kbLift }]}>
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.xxl }]}
         keyboardShouldPersistTaps="handled"
@@ -402,6 +425,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
           </>
         ) : (
           <>
+            <View style={styles.suggestWrap}>
             <SuggestField
               label="Марка"
               value={form.brand}
@@ -411,6 +435,8 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
               placeholder="Марка"
               emptyNote="Подсказки недоступны"
             />
+            </View>
+            <View style={styles.suggestWrap}>
             <SuggestField
               label="Модель"
               value={form.model}
@@ -423,6 +449,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
                   ? `Для «${form.brand.trim()}» моделей пока нет`
                   : 'Моделей пока нет'}
             />
+            </View>
             {input('year', 'Год', { keyboardType: 'numeric' })}
 
             {mode === 'cars' ? (
@@ -499,7 +526,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
         onClose={() => setPicker(null)}
       />
       {guardSheet}
-    </KeyboardAvoidingView>
+    </Animated.View>
   );
 }
 
@@ -522,6 +549,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
   },
   textArea: { minHeight: 110, paddingTop: 12, lineHeight: 20 },
+  // У поля с подсказками своя вёрстка с подписью — отбиваем его так же,
+  // как отбиты обычные поля друг от друга.
+  suggestWrap: { marginBottom: 10 },
   inputWrap: { position: 'relative', justifyContent: 'center' },
   inputInline: { paddingRight: 44 },
   inputAction: { position: 'absolute', right: 6, top: 0, bottom: 10, width: 38, alignItems: 'center', justifyContent: 'center' },
