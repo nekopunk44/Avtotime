@@ -6,11 +6,13 @@ import {
   Easing,
   Image,
   Keyboard,
+  LayoutAnimation,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  UIManager,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -87,6 +89,13 @@ const DEFAULT_CATEGORY_BY_MODE: Record<MarketCategoryId, string> = {
   'dry-cleaning': 'Химчистка салона',
 };
 
+const enableLayoutAnimation = () => {
+  const manager = UIManager as unknown as {
+    setLayoutAnimationEnabledExperimental?: (enabled: boolean) => void;
+  };
+  manager.setLayoutAnimationEnabledExperimental?.(true);
+};
+
 const isVehicleMode = (mode: MarketCategoryId) => mode === 'cars' || mode === 'parts';
 
 /**
@@ -154,6 +163,8 @@ const ALL_PART_CATEGORIES = Array.from(new Set(Object.values(PART_CATEGORIES).fl
 export default function CreateMarketListingScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
 
+  useEffect(enableLayoutAnimation, []);
+
   // Место под клавиатуру считаем по её событиям: под edge-to-edge окно не
   // сжимается, а KeyboardAvoidingView оставлял экран обрезанным и после того,
   // как клавиатура уже ушла.
@@ -187,6 +198,15 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   const isVehicle = isVehicleMode(mode);
   const isConsultation = mode === 'consultations';
   const imageLimit = isVehicle ? 6 : 1;
+
+  const animatePhotos = () => {
+    LayoutAnimation.configureNext({
+      duration: 240,
+      update: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.scaleXY },
+      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    });
+  };
 
   const update = (key: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -243,6 +263,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
 
   // ── Выбор из списка вместо ручного ввода ─────────────────────────────────
   const [picker, setPicker] = useState<{ key: keyof FormState; title: string; options: string[] } | null>(null);
+  const [photoPrompt, setPhotoPrompt] = useState(false);
 
   const switchMode = (nextMode: MarketCategoryId) => {
     setMode(nextMode);
@@ -270,6 +291,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
 
     if (!result.canceled) {
       const selected = result.assets.map((asset) => asset.uri);
+      animatePhotos();
       setImages((prev) => (isVehicle ? Array.from(new Set([...prev, ...selected])).slice(0, imageLimit) : selected.slice(0, 1)));
     }
   };
@@ -288,11 +310,14 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
+      animatePhotos();
       setImages((prev) => (isVehicle ? [...prev, uri].slice(0, imageLimit) : [uri]));
     }
   };
 
   const removeImage = (uri: string) => {
+    // Снимок уходит, сетка сдвигается — без этого кадры перескакивают рывком.
+    animatePhotos();
     setImages((prev) => prev.filter((item) => item !== uri));
   };
 
@@ -532,31 +557,40 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
           <FormBlock key={`${mode}-${index}`} index={index}>{block}</FormBlock>
         ))}
 
-        <Text style={styles.sectionTitle}>{isConsultation ? 'Аватар' : 'Фото'}</Text>
-        <View style={styles.imageActionRow}>
-          <TouchableOpacity style={[styles.imagePicker, images.length >= imageLimit && styles.imagePickerDisabled]} onPress={takePhoto} activeOpacity={0.85} disabled={images.length >= imageLimit}>
-            <Ionicons name="camera-outline" size={22} color={colors.text} />
-            <Text style={styles.imagePickerText}>Камера</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.imagePicker, images.length >= imageLimit && styles.imagePickerDisabled]} onPress={pickImages} activeOpacity={0.85} disabled={images.length >= imageLimit}>
-            <Ionicons name="images-outline" size={22} color={colors.text} />
-            <Text style={styles.imagePickerText}>Галерея</Text>
-            <Text style={styles.imagePickerCount}>{images.length}/{imageLimit}</Text>
-          </TouchableOpacity>
+        <View style={styles.photoHead}>
+          <Text style={styles.sectionTitle}>{isConsultation ? 'Аватар' : 'Фото'}</Text>
+          <Text style={styles.photoCount}>{images.length}/{imageLimit}</Text>
         </View>
-
-        {images.length ? (
-          <View style={styles.previewGrid}>
-            {images.map((uri) => (
-              <View key={uri} style={styles.previewItem}>
-                <Image source={{ uri }} style={styles.previewImage} />
-                <TouchableOpacity style={styles.removeImage} onPress={() => removeImage(uri)}>
-                  <Ionicons name="close" size={16} color={colors.white} />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
+        {imageLimit > 1 ? (
+          <Text style={styles.photoHint}>Первое фото станет обложкой объявления</Text>
         ) : null}
+
+        {/* Снимки и кнопка добавления лежат одной сеткой: две широкие кнопки
+            занимали место и не показывали, что уже выбрано. */}
+        <View style={styles.photoGrid}>
+          {images.map((uri, index) => (
+            <View key={uri} style={styles.photoTile}>
+              <Image source={{ uri }} style={styles.photoImage} />
+              {index === 0 && imageLimit > 1 ? (
+                <Text style={styles.coverBadge}>Обложка</Text>
+              ) : null}
+              <TouchableOpacity style={styles.removeImage} onPress={() => removeImage(uri)}>
+                <Ionicons name="close" size={15} color={colors.white} />
+              </TouchableOpacity>
+            </View>
+          ))}
+
+          {images.length < imageLimit ? (
+            <TouchableOpacity
+              style={[styles.photoTile, styles.photoAdd]}
+              activeOpacity={0.85}
+              onPress={() => setPhotoPrompt(true)}
+            >
+              <Ionicons name="add" size={26} color={colors.textMuted} />
+              <Text style={styles.photoAddText}>{images.length ? 'Ещё фото' : 'Добавить фото'}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
 
         <TouchableOpacity style={[styles.submitBtn, loading && styles.submitBtnDisabled]} onPress={submit} disabled={loading}>
           {loading ? (
@@ -583,6 +617,16 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
           else update(picker.key, value);
         }}
         onClose={() => setPicker(null)}
+      />
+      <ChoiceSheet
+        visible={photoPrompt}
+        title={isConsultation ? 'Аватар' : 'Фото объявления'}
+        options={[
+          { value: 'camera', label: 'Камера', icon: 'camera-outline' },
+          { value: 'gallery', label: 'Галерея', icon: 'images-outline' },
+        ]}
+        onSelect={(value) => (value === 'camera' ? takePhoto() : pickImages())}
+        onClose={() => setPhotoPrompt(false)}
       />
       {guardSheet}
     </Animated.View>
@@ -617,19 +661,25 @@ const styles = StyleSheet.create({
   choice: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
   choiceText: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '700' },
   choicePlaceholder: { color: colors.textFaint, fontWeight: '400' },
-  imageActionRow: { flexDirection: 'row', gap: 8 },
-  imagePicker: {
-    flex: 1,
-    height: 50, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
-    backgroundColor: colors.surfaceAlt, flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 14, gap: 8,
+  photoHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  photoCount: { color: colors.textFaint, fontSize: 13, fontWeight: '900' },
+  photoHint: { marginTop: -4, marginBottom: 10, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  photoTile: {
+    width: '31.8%', aspectRatio: 1, borderRadius: radius.md,
+    overflow: 'hidden', backgroundColor: colors.surfaceAlt,
   },
-  imagePickerDisabled: { opacity: 0.5 },
-  imagePickerText: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '800' },
-  imagePickerCount: { color: colors.textMuted, fontWeight: '800' },
-  previewGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  previewItem: { width: '31.8%', aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: colors.surfaceAlt },
-  previewImage: { width: '100%', height: '100%' },
+  photoImage: { width: '100%', height: '100%' },
+  photoAdd: {
+    alignItems: 'center', justifyContent: 'center', gap: 4,
+    borderWidth: 1, borderStyle: 'dashed', borderColor: colors.surfaceHi, backgroundColor: colors.bg,
+  },
+  photoAddText: { color: colors.textMuted, fontSize: 11, fontWeight: '800', textAlign: 'center' },
+  coverBadge: {
+    position: 'absolute', left: 6, bottom: 6,
+    paddingHorizontal: 7, paddingVertical: 2, borderRadius: radius.pill,
+    backgroundColor: 'rgba(8,8,10,0.72)', color: colors.white, fontSize: 10, fontWeight: '900',
+  },
   removeImage: {
     position: 'absolute', top: 5, right: 5, width: 24, height: 24,
     borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.65)',
