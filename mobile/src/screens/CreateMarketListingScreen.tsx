@@ -671,10 +671,15 @@ const styles = StyleSheet.create({
   },
   photoImage: { width: '100%', height: '100%' },
   photoAdd: {
-    alignItems: 'center', justifyContent: 'center', gap: 4,
+    alignItems: 'center', justifyContent: 'center', gap: 4, padding: 6,
     borderWidth: 1, borderStyle: 'dashed', borderColor: colors.surfaceHi, backgroundColor: colors.bg,
   },
-  photoAddText: { color: colors.textMuted, fontSize: 11, fontWeight: '800', textAlign: 'center' },
+  // Подпись занимает всю ширину клетки и выравнивается по центру: короткая
+  // строка иначе прижималась к левому краю, а длинная переносилась уступом.
+  photoAddText: {
+    width: '100%', color: colors.textMuted, fontSize: 11, fontWeight: '800',
+    textAlign: 'center', lineHeight: 14,
+  },
   coverBadge: {
     position: 'absolute', left: 6, bottom: 6,
     paddingHorizontal: 7, paddingVertical: 2, borderRadius: radius.pill,
