@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,18 +14,24 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   createServiceListing,
   createVehicleListing,
+  getDistinctBrands,
+  getDistinctModels,
   getMarketCategory,
+  getViewerGeo,
   MARKET_CATEGORIES,
   MarketCategoryId,
 } from '../api/market';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
-import { colors } from '../theme';
+import { ChoiceSheet, SuggestField } from '../components/ui';
+import { showToast } from '../store/toastStore';
+import { colors, radius, space } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'CreateMarketListing'> };
 
@@ -86,8 +92,16 @@ const DEFAULT_CATEGORY_BY_MODE: Record<MarketCategoryId, string> = {
 
 const isVehicleMode = (mode: MarketCategoryId) => mode === 'cars' || mode === 'parts';
 
+// Значения известны заранее — печатать их руками незачем, а разнобой в
+// написании ломает фильтры выдачи.
+const FUEL = ['Бензин', 'Дизель', 'Газ', 'Гибрид', 'Электро'];
+const GEARBOX = ['Механика', 'Автомат', 'Робот', 'Вариатор'];
+const BODY = ['Седан', 'Хэтчбек', 'Универсал', 'Кроссовер', 'Внедорожник', 'Купе', 'Минивэн', 'Пикап', 'Кабриолет'];
+const DRIVE = ['Передний', 'Задний', 'Полный'];
+
 export default function CreateMarketListingScreen({ navigation }: Props) {
   const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<MarketCategoryId>('cars');
   const [form, setForm] = useState<FormState>(initialForm);
   const [images, setImages] = useState<string[]>([]);
@@ -102,6 +116,58 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   const update = (key: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
+
+  // ── Подсказки марок и моделей ────────────────────────────────────────────
+  // Списки приходят с сервера один раз, совпадения ищутся на месте: подсказка
+  // должна успевать за буквой, а не за сетью.
+  const [brands, setBrands] = useState<string[]>([]);
+  const [models, setModels] = useState<string[]>([]);
+  const isVehicleForm = isVehicleMode(mode);
+
+  useEffect(() => {
+    if (!isVehicleForm) return;
+    let alive = true;
+    getDistinctBrands(mode).then((list) => { if (alive) setBrands(list); }).catch(() => {});
+    return () => { alive = false; };
+  }, [mode, isVehicleForm]);
+
+  // Пока набранное не совпало с маркой из справочника, моделей не показываем:
+  // чужие модели не должны выдаваться за подходящие.
+  const knownBrand = brands.find((item) => item.toLowerCase() === form.brand.trim().toLowerCase()) || '';
+
+  useEffect(() => {
+    if (!isVehicleForm) return;
+    if (form.brand.trim() && !knownBrand) {
+      setModels([]);
+      return;
+    }
+    let alive = true;
+    getDistinctModels(knownBrand, mode).then((list) => { if (alive) setModels(list); }).catch(() => {});
+    return () => { alive = false; };
+  }, [mode, isVehicleForm, form.brand, knownBrand]);
+
+  // ── Город по геолокации ──────────────────────────────────────────────────
+  const [locating, setLocating] = useState(false);
+
+  const detectCity = async () => {
+    if (locating) return;
+    setLocating(true);
+    try {
+      const geo = await getViewerGeo();
+      if (!geo.city) {
+        showToast('Не удалось определить город по вашему подключению', 'error');
+        return;
+      }
+      update('location', geo.city);
+    } catch {
+      showToast('Не удалось определить город. Проверьте соединение', 'error');
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  // ── Выбор из списка вместо ручного ввода ─────────────────────────────────
+  const [picker, setPicker] = useState<{ key: keyof FormState; title: string; options: string[] } | null>(null);
 
   const switchMode = (nextMode: MarketCategoryId) => {
     setMode(nextMode);
@@ -259,11 +325,45 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
     />
   );
 
+  /** Город: ручной ввод и определение прямо внутри поля. */
+  const cityField = (
+    <View style={styles.inputWrap}>
+      <TextInput
+        style={[styles.input, styles.inputInline]}
+        placeholder={isVehicle ? 'Регион / город' : 'Город / регион'}
+        placeholderTextColor={colors.textFaint}
+        value={form.location}
+        onChangeText={(value) => update('location', value)}
+        autoCapitalize="words"
+      />
+      <TouchableOpacity onPress={detectCity} hitSlop={8} style={styles.inputAction}>
+        {locating
+          ? <ActivityIndicator size="small" color={colors.text} />
+          : <Ionicons name="locate" size={18} color={colors.textMuted} />}
+      </TouchableOpacity>
+    </View>
+  );
+
+  /** Значение из списка: поле открывает выбор, а не клавиатуру. */
+  const choice = (key: keyof FormState, placeholder: string, options: string[]) => (
+    <TouchableOpacity
+      style={[styles.input, styles.choice]}
+      activeOpacity={0.8}
+      onPress={() => setPicker({ key, title: placeholder, options })}
+    >
+      <Text style={[styles.choiceText, !form[key] && styles.choicePlaceholder]}>
+        {form[key] || placeholder}
+      </Text>
+      <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
+    </TouchableOpacity>
+  );
+
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={headerHeight}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.lead}>Выберите раздел и заполните карточку — объявление появится в Avtotime Market после проверки.</Text>
-
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.xxl }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modeRow}>
           {MARKET_CATEGORIES.map((category) => {
             const active = mode === category.id;
@@ -284,7 +384,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
         <Text style={styles.sectionTitle}>{isConsultation ? 'Профиль специалиста' : 'Основное'}</Text>
         {input('title', isConsultation ? 'Имя специалиста' : mode === 'cars' ? 'Название: BMW X5 2020' : 'Название объявления')}
         {input('price', isConsultation ? 'Ставка в EUR / час' : 'Цена в EUR', { keyboardType: 'numeric' })}
-        {input('location', isVehicle ? 'Регион / город' : 'Город / регион')}
+        {cityField}
 
         {!isVehicle ? (
           <>
@@ -302,18 +402,37 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
           </>
         ) : (
           <>
-            {input('brand', 'Марка')}
-            {input('model', 'Модель')}
+            <SuggestField
+              label="Марка"
+              value={form.brand}
+              // Смена марки обнуляет модель: пары «BMW + Octavia» не бывает.
+              onChangeText={(value) => setForm((prev) => ({ ...prev, brand: value, model: '' }))}
+              options={brands}
+              placeholder="Марка"
+              emptyNote="Подсказки недоступны"
+            />
+            <SuggestField
+              label="Модель"
+              value={form.model}
+              onChangeText={(value) => update('model', value)}
+              options={models}
+              placeholder="Модель"
+              emptyNote={form.brand.trim() && !knownBrand
+                ? 'Выберите марку из списка'
+                : form.brand.trim()
+                  ? `Для «${form.brand.trim()}» моделей пока нет`
+                  : 'Моделей пока нет'}
+            />
             {input('year', 'Год', { keyboardType: 'numeric' })}
 
             {mode === 'cars' ? (
               <>
                 <Text style={styles.sectionTitle}>Характеристики авто</Text>
                 {input('mileage', 'Пробег, км', { keyboardType: 'numeric' })}
-                {input('fuel', 'Топливо')}
-                {input('gearbox', 'Коробка передач')}
-                {input('body', 'Кузов')}
-                {input('drive', 'Привод')}
+                {choice('fuel', 'Топливо', FUEL)}
+                {choice('gearbox', 'Коробка передач', GEARBOX)}
+                {choice('body', 'Кузов', BODY)}
+                {choice('drive', 'Привод', DRIVE)}
               </>
             ) : (
               <>
@@ -369,6 +488,16 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
           )}
         </TouchableOpacity>
       </ScrollView>
+
+      <ChoiceSheet
+        visible={!!picker}
+        title={picker?.title || ''}
+        options={picker?.options || []}
+        value={picker ? form[picker.key] : ''}
+        clearLabel="Не указано"
+        onSelect={(value) => { if (picker) update(picker.key, value); }}
+        onClose={() => setPicker(null)}
+      />
       {guardSheet}
     </KeyboardAvoidingView>
   );
@@ -376,8 +505,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  lead: { color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700', marginBottom: 14 },
+  content: { padding: 16 },
   modeRow: { gap: 8, paddingBottom: 12 },
   modeBtn: {
     height: 40, borderRadius: 999, backgroundColor: colors.surface,
@@ -394,6 +522,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
   },
   textArea: { minHeight: 110, paddingTop: 12, lineHeight: 20 },
+  inputWrap: { position: 'relative', justifyContent: 'center' },
+  inputInline: { paddingRight: 44 },
+  inputAction: { position: 'absolute', right: 6, top: 0, bottom: 10, width: 38, alignItems: 'center', justifyContent: 'center' },
+  choice: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
+  choiceText: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '700' },
+  choicePlaceholder: { color: colors.textFaint, fontWeight: '400' },
   imageActionRow: { flexDirection: 'row', gap: 8 },
   imagePicker: {
     flex: 1,
