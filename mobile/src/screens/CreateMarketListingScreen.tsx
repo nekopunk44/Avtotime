@@ -32,6 +32,7 @@ import {
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { useUnsavedGuard } from '../hooks/useUnsavedGuard';
 import { ChoiceSheet, SuggestField } from '../components/ui';
+import type { ChoiceOption } from '../components/ui/ChoiceSheet';
 import { colors, radius, space } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'CreateMarketListing'> };
@@ -134,6 +135,15 @@ const FUEL = ['Бензин', 'Дизель', 'Газ', 'Гибрид', 'Эле�
 const GEARBOX = ['Механика', 'Автомат', 'Робот', 'Вариатор'];
 const BODY = ['Седан', 'Хэтчбек', 'Универсал', 'Кроссовер', 'Внедорожник', 'Купе', 'Минивэн', 'Пикап', 'Кабриолет'];
 const DRIVE = ['Передний', 'Задний', 'Полный'];
+
+// За что берут деньги. В карточке единица дописывается к сумме («20 €/час»),
+// поэтому хранится со слешем, а человеку показывается словами.
+const UNITS: ChoiceOption[] = [
+  { value: '/услуга', label: 'За услугу' },
+  { value: '/час', label: 'За час' },
+  { value: '/визит', label: 'За визит' },
+  { value: '/день', label: 'За день' },
+];
 
 // Раздел запчасти: сперва узел, потом конкретная деталь внутри него.
 const PART_GROUPS = [
@@ -262,7 +272,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   };
 
   // ── Выбор из списка вместо ручного ввода ─────────────────────────────────
-  const [picker, setPicker] = useState<{ key: keyof FormState; title: string; options: string[] } | null>(null);
+  const [picker, setPicker] = useState<{ key: keyof FormState; title: string; options: ChoiceOption[] } | null>(null);
   const [photoPrompt, setPhotoPrompt] = useState(false);
 
   const switchMode = (nextMode: MarketCategoryId) => {
@@ -444,18 +454,24 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   );
 
   /** Значение из списка: поле открывает выбор, а не клавиатуру. */
-  const choice = (key: keyof FormState, placeholder: string, options: string[]) => (
-    <TouchableOpacity
-      style={[styles.input, styles.choice]}
-      activeOpacity={0.8}
-      onPress={() => setPicker({ key, title: placeholder, options })}
-    >
-      <Text style={[styles.choiceText, !form[key] && styles.choicePlaceholder]}>
-        {form[key] || placeholder}
-      </Text>
-      <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
-    </TouchableOpacity>
-  );
+  const choice = (key: keyof FormState, placeholder: string, options: ChoiceOption[]) => {
+    // В поле показываем подпись варианта, а не то, что уходит на сервер.
+    const chosen = options.find((option) => (typeof option === 'string' ? option : option.value) === form[key]);
+    const label = typeof chosen === 'string' ? chosen : chosen?.label || chosen?.value;
+
+    return (
+      <TouchableOpacity
+        style={[styles.input, styles.choice]}
+        activeOpacity={0.8}
+        onPress={() => setPicker({ key, title: placeholder, options })}
+      >
+        <Text style={[styles.choiceText, !form[key] && styles.choicePlaceholder]}>
+          {label || placeholder}
+        </Text>
+        <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
+      </TouchableOpacity>
+    );
+  };
 
   const blocks: React.ReactNode[] = [
     <Text style={styles.sectionTitle}>{isConsultation ? 'Профиль специалиста' : 'Основное'}</Text>,
@@ -468,7 +484,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
     if (!isConsultation) {
       blocks.push(input('category', mode === 'car-services' ? 'Тип услуги: Диагностика, ремонт' : activeCategory.label));
     }
-    if (mode === 'car-services') blocks.push(input('unit', 'Единица: /услуга, /час, /визит'));
+    if (mode === 'car-services') blocks.push(choice('unit', 'Единица цены', UNITS));
     if (isConsultation) {
       blocks.push(input('specialties', 'Специализации через запятую'));
       blocks.push(input('experience', 'Опыт, лет', { keyboardType: 'numeric' }));
