@@ -2,6 +2,7 @@ import Payment from "../models/payment.model.js";
 import User from "../models/user.model.js";
 import { getPlanLimits, serializePlanLimits, getEffectivePlan } from "../config/planLimits.js";
 import {
+  PRODUCT_TO_PLAN,
   isGoogleConfigured,
   isAppleConfigured,
   verifyGoogleSubscription,
@@ -22,9 +23,17 @@ const planResponse = async (userId) => {
   };
 };
 
-/** Мобилка спрашивает, какие платформы реально настроены, и прячет остальное. */
-export const getStoreBillingConfig = (req, res) =>
-  res.status(200).json({ google: isGoogleConfigured(), apple: isAppleConfigured() });
+/**
+ * Мобилка спрашивает, какие платформы реально настроены, и прячет остальное.
+ * Заодно отдаём идентификаторы продуктов: приложение не должно хранить свою
+ * копию строк, которые заводятся в консолях сторов, — разъехавшись, они молча
+ * ломают покупку.
+ */
+export const getStoreBillingConfig = (req, res) => {
+  const products = {};
+  for (const [productId, plan] of Object.entries(PRODUCT_TO_PLAN)) products[plan] = productId;
+  return res.status(200).json({ google: isGoogleConfigured(), apple: isAppleConfigured(), products });
+};
 
 /**
  * Единственная точка выдачи тарифа за сторовую покупку. Клиент приносит токен;

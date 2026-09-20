@@ -207,29 +207,45 @@ export default function BillingScreen({ navigation }: Props) {
     }));
   };
 
-  const buyPlanNative = async (plan: PlanKey) => {
+  /**
+   * Покупка всегда начинается со стора: правила Google и Apple запрещают
+   * продавать подписку мимо их биллинга, а веб-страница — запасной путь на
+   * случай, когда стор недоступен (сборка без модуля или сервер без ключей).
+   */
+  const buyPlan = async (plan: PlanKey) => {
     if (plan === 'free' || buyingPlan) return;
+
+    if (!nativeBillingReady) {
+      await offerWebCheckout();
+      return;
+    }
+
     setBuyingPlan(plan);
     try {
-      const result = await purchasePlan(plan);
+      const result = await purchasePlan(plan, storeConfig?.products?.[plan]);
       applyPlanResult(result);
-      showToast(`Тариф «${PLAN_LABEL[String(result.effectivePlan)] || result.effectivePlan}» активирован.`, 'success');
+      showToast(`Тариф «${PLAN_LABEL[String(result.effectivePlan)] || result.effectivePlan}» активирован`, 'success');
     } catch (e: any) {
       if (isStoreUnavailable(e)) {
-        // Не техническое сообщение в лицо: молча переключаемся на веб-оплату.
+        // Модуля в сборке нет — запоминаем и уводим на веб, без технических слов.
         setStoreMissing(true);
-        askConfirm({
-          title: 'Оплата',
-          message: 'В этой сборке приложения покупка через стор недоступна. Откроем страницу оплаты.',
-          confirmLabel: 'Открыть',
-          cancelLabel: 'Отмена',
-        }).then((agreed) => { if (agreed) (openWebCheckout)(); });
+        await offerWebCheckout();
       } else if (!isCancelled(e)) {
-        showToast(e?.response?.data?.message || e?.message || 'Покупка не прошла');
+        showToast(e?.response?.data?.message || e?.message || 'Покупка не прошла', 'error');
       }
     } finally {
       setBuyingPlan(null);
     }
+  };
+
+  const offerWebCheckout = async () => {
+    const agreed = await askConfirm({
+      title: 'Оплата вне приложения',
+      message: 'Покупка через стор сейчас недоступна. Открыть страницу оплаты в браузере?',
+      confirmLabel: 'Открыть',
+      cancelLabel: 'Отмена',
+    });
+    if (agreed) await openWebCheckout();
   };
 
   const restore = async () => {
@@ -338,7 +354,7 @@ export default function BillingScreen({ navigation }: Props) {
 
         <TouchableOpacity
           style={[styles.planBtn, isCurrent ? styles.planBtnDisabled : styles.planBtnActive]}
-          onPress={isFree ? selectFreePlan : nativeBillingReady ? () => buyPlanNative(plan.key) : openWebCheckout}
+          onPress={isFree ? selectFreePlan : () => buyPlan(plan.key)}
           disabled={isCurrent || saving || buyingPlan !== null}
           activeOpacity={0.9}
         >
@@ -346,7 +362,7 @@ export default function BillingScreen({ navigation }: Props) {
             <ActivityIndicator color={colors.onAccent} size="small" />
           ) : (
             <Text style={[styles.planBtnText, isCurrent ? styles.planBtnTextDisabled : styles.planBtnTextActive]}>
-              {isCurrent ? 'Подключён' : isFree ? 'Перейти на базовый' : nativeBillingReady ? 'Оформить подписку' : 'Открыть оплату'}
+              {isCurrent ? 'Подключён' : isFree ? 'Перейти на базовый' : 'Оформить подписку'}
             </Text>
           )}
         </TouchableOpacity>
@@ -412,8 +428,12 @@ export default function BillingScreen({ navigation }: Props) {
             </TouchableOpacity>
           ) : (
             <View style={styles.noticeBox}>
-              <Ionicons name="card-outline" size={18} color={colors.textMuted} />
-              <Text style={styles.noticeText}>Оплата откроется на веб-странице тарифов</Text>
+              <Ionicons name="alert-circle-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.noticeText}>
+                {storeMissing
+                  ? 'Покупки в приложении недоступны в этой сборке — оплата откроется в браузере'
+                  : 'Подписки в сторе ещё настраиваются — оплата откроется в браузере'}
+              </Text>
             </View>
           )}
 

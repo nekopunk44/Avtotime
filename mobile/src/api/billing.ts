@@ -72,6 +72,8 @@ export async function getPaymentGeo(): Promise<{ country: string | null; isCis: 
 export interface StoreBillingConfig {
   google: boolean;
   apple: boolean;
+  /** Идентификаторы продуктов по тарифам — источник правды на сервере. */
+  products: Partial<Record<Exclude<PlanKey, 'free'>, string>>;
 }
 
 export type StorePurchaseProof =
@@ -89,7 +91,11 @@ export interface StorePlanResult {
 /** Какие платформы реально настроены на сервере — остальное экран прячет. */
 export async function getStoreBillingConfig(): Promise<StoreBillingConfig> {
   const { data } = await client.get('/payment/store/config');
-  return { google: !!data?.google, apple: !!data?.apple };
+  return {
+    google: !!data?.google,
+    apple: !!data?.apple,
+    products: data?.products && typeof data.products === 'object' ? data.products : {},
+  };
 }
 
 /**

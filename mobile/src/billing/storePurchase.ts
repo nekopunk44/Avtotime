@@ -82,11 +82,15 @@ const buildProof = async (
  * и выдал тариф: незавершённая транзакция переживает крэш и доигрывается
  * «восстановлением», а завершённая до проверки — потеряна.
  */
-export const purchasePlan = async (plan: Exclude<PlanKey, 'free'>): Promise<StorePlanResult> => {
+export const purchasePlan = async (
+  plan: Exclude<PlanKey, 'free'>,
+  /** Идентификатор от сервера; своя копия — только запасной вариант. */
+  productId?: string,
+): Promise<StorePlanResult> => {
   const iap = loadIap();
   if (!iap) throw new StoreUnavailableError();
 
-  const sku = PLAN_TO_PRODUCT[plan];
+  const sku = productId || PLAN_TO_PRODUCT[plan];
   await iap.initConnection();
 
   try {

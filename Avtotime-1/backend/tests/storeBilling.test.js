@@ -80,7 +80,13 @@ describe("конфигурация сторов", () => {
     const config = await request(app)
       .get("/api/payment/store/config")
       .set("Authorization", `Bearer ${buyer.token}`);
-    expect(config.body).toEqual({ google: false, apple: false });
+    expect(config.body).toEqual({
+      google: false,
+      apple: false,
+      // Идентификаторы продуктов приходят с сервера: своя копия в приложении
+      // однажды разъедется с консолью стора и молча сломает покупку.
+      products: { pro: "avtotime_pro_monthly", business: "avtotime_business_monthly" },
+    });
 
     const response = await verify(buyer.token, { platform: "google", purchaseToken: "t" });
     expect(response.status).toBe(503);
