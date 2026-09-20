@@ -377,7 +377,8 @@ export interface CreateServiceListingPayload {
   hourlyRate?: string;
   pricePrefix?: string;
   unit?: string;
-  imageUri: string;
+  /** Кадры объявления; первый становится обложкой. */
+  imageUris: string[];
   tags?: string;
   specialties?: string;
   experience?: string;
@@ -540,7 +541,7 @@ export async function createServiceListing(payload: CreateServiceListingPayload)
     appendText(formData, 'reviewsCount', payload.reviews);
     // Do not send isVerified: the backend does Boolean(isVerified), and any non-empty
     // string (including 'false') becomes true. Omitting it defaults to false.
-    formData.append('avatar', getUploadFile(payload.imageUri, 'market-avatar.jpg'));
+    formData.append('avatar', getUploadFile(payload.imageUris[0], 'market-avatar.jpg'));
   } else {
     appendText(formData, 'title', payload.title);
     appendText(formData, 'category', payload.category);
@@ -551,7 +552,8 @@ export async function createServiceListing(payload: CreateServiceListingPayload)
     appendText(formData, 'rating', payload.rating);
     appendText(formData, 'reviews', payload.reviews);
     appendText(formData, 'badge', payload.categoryId === 'auto-tuning' ? 'Tuning' : payload.categoryId === 'dry-cleaning' ? 'Clean' : '');
-    formData.append('image', getUploadFile(payload.imageUri, 'market-photo.jpg'));
+    // Услуги, тюнинг и химчистка тоже принимают до шести кадров.
+    payload.imageUris.forEach((uri) => formData.append('images', getUploadFile(uri, 'market-photo.jpg')));
   }
 
   appendText(formData, 'location', payload.location);

@@ -105,7 +105,8 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
 
   const isVehicle = isVehicleMode(categoryId);
   const isConsultation = categoryId === 'consultations';
-  const imageLimit = isVehicle ? 6 : 1;
+  // Кадров до шести везде, кроме анкеты специалиста: там это аватар.
+  const imageLimit = isConsultation ? 1 : 6;
   const previewImage = images[0] || getListingImage(listing);
 
   const update = (key: keyof FormState, value: string) => {
@@ -121,14 +122,14 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsMultipleSelection: isVehicle,
+      allowsMultipleSelection: imageLimit > 1,
       selectionLimit: imageLimit,
       quality: 0.82,
     });
 
     if (!result.canceled) {
       const selected = result.assets.map((asset) => asset.uri);
-      setImages(isVehicle ? selected.slice(0, imageLimit) : selected.slice(0, 1));
+      setImages(imageLimit > 1 ? selected.slice(0, imageLimit) : selected.slice(0, 1));
     }
   };
 
@@ -140,12 +141,12 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: !isVehicle,
+      allowsEditing: imageLimit === 1,
       quality: 0.82,
     });
 
     if (!result.canceled) {
-      setImages((prev) => (isVehicle ? Array.from(new Set([...prev, result.assets[0].uri])) : [result.assets[0].uri]));
+      setImages((prev) => (imageLimit > 1 ? Array.from(new Set([...prev, result.assets[0].uri])).slice(0, imageLimit) : [result.assets[0].uri]));
     }
   };
 
@@ -317,7 +318,7 @@ export default function EditMarketListingScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        {isVehicle && images.length > 1 ? (
+        {images.length > 1 ? (
           <View style={styles.selectedRow}>
             {images.map((uri) => (
               <Image key={uri} source={{ uri }} style={styles.selectedThumb} />

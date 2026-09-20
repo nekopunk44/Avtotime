@@ -207,7 +207,8 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   const activeCategory = useMemo(() => getMarketCategory(mode), [mode]);
   const isVehicle = isVehicleMode(mode);
   const isConsultation = mode === 'consultations';
-  const imageLimit = isVehicle ? 6 : 1;
+  // Кадров до шести везде, кроме анкеты специалиста: там это аватар.
+  const imageLimit = isConsultation ? 1 : 6;
 
   const animatePhotos = () => {
     LayoutAnimation.configureNext({
@@ -294,7 +295,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsMultipleSelection: isVehicle,
+      allowsMultipleSelection: imageLimit > 1,
       selectionLimit: imageLimit,
       quality: 0.82,
     });
@@ -302,7 +303,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
     if (!result.canceled) {
       const selected = result.assets.map((asset) => asset.uri);
       animatePhotos();
-      setImages((prev) => (isVehicle ? Array.from(new Set([...prev, ...selected])).slice(0, imageLimit) : selected.slice(0, 1)));
+      setImages((prev) => (imageLimit > 1 ? Array.from(new Set([...prev, ...selected])).slice(0, imageLimit) : selected.slice(0, 1)));
     }
   };
 
@@ -314,14 +315,14 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: !isVehicle,
+      allowsEditing: imageLimit === 1,
       quality: 0.82,
     });
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
       animatePhotos();
-      setImages((prev) => (isVehicle ? [...prev, uri].slice(0, imageLimit) : [uri]));
+      setImages((prev) => (imageLimit > 1 ? [...prev, uri].slice(0, imageLimit) : [uri]));
     }
   };
 
@@ -401,7 +402,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
         category: form.category || DEFAULT_CATEGORY_BY_MODE[mode],
         location: form.location,
         unit: form.unit,
-        imageUri: images[0],
+        imageUris: images,
         tags: form.tags,
         specialties: form.specialties,
         experience: form.experience,
