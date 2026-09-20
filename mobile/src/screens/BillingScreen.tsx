@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { askConfirm } from '../store/confirmStore';
 import { showToast } from '../store/toastStore';
 import {
@@ -32,7 +32,7 @@ import {
 } from '../billing/storePurchase';
 import { Platform } from 'react-native';
 import { AppStackParamList } from '../navigation/AppNavigator';
-import { colors } from '../theme';
+import { colors, font, radius, shadow, space } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'Billing'> };
 
@@ -40,10 +40,13 @@ type PlanCard = {
   key: PlanKey;
   name: string;
   price: string;
+  /** Период рисуется мельче цены: «29 EUR» и «/ мес» — разного веса. */
+  period?: string;
   eyebrow: string;
   summary: string;
   icon: string;
-  dark?: boolean;
+  /** Тариф, который стоит советовать: получает рамку и пометку. */
+  highlight?: boolean;
   features: string[];
 };
 
@@ -72,7 +75,9 @@ const PLANS: PlanCard[] = [
   {
     key: 'pro',
     name: 'Pro Seller',
-    price: '29 EUR / мес',
+    price: '29 €',
+    period: 'в месяц',
+    highlight: true,
     eyebrow: 'Для активных продавцов',
     summary: 'Больше объявлений, статистика и повышенный приоритет.',
     icon: 'sparkles-outline',
@@ -87,11 +92,11 @@ const PLANS: PlanCard[] = [
   {
     key: 'business',
     name: 'Business',
-    price: '79 EUR / мес',
+    price: '79 €',
+    period: 'в месяц',
     eyebrow: 'Для автосалонов',
     summary: 'Максимальный лимит, топ-приоритет и расширенные карточки.',
     icon: 'business-outline',
-    dark: true,
     features: [
       'Безлимитные объявления',
       'До 40 фото в объявлении',
@@ -170,16 +175,6 @@ export default function BillingScreen({ navigation }: Props) {
   useFocusEffect(useCallback(() => {
     load();
   }, [load]));
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('PaymentHistory')} hitSlop={8} activeOpacity={0.8}>
-          <Ionicons name="receipt-outline" size={22} color={colors.text} />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation]);
 
   const refresh = () => {
     setRefreshing(true);
@@ -301,25 +296,41 @@ export default function BillingScreen({ navigation }: Props) {
   const renderPlan = (plan: PlanCard) => {
     const isCurrent = activePlan === plan.key;
     const isFree = plan.key === 'free';
+    const suggested = plan.highlight && !isCurrent;
 
     return (
-      <View key={plan.key} style={[styles.planCard, plan.dark && styles.planCardHi, isCurrent && styles.planCardCurrent]}>
+      <View
+        key={plan.key}
+        style={[styles.planCard, isCurrent && styles.planCardCurrent, suggested && styles.planCardSuggested]}
+      >
+        {/* Значок, название и цена — одной строкой: раньше карточка занимала
+            экран целиком, и тарифы нельзя было сравнить взглядом. */}
         <View style={styles.planHeader}>
-          <View style={styles.planIcon}>
-            <Ionicons name={plan.icon as any} size={22} color={colors.text} />
+          <View style={[styles.planIcon, suggested && styles.planIconSuggested]}>
+            <Ionicons name={plan.icon as any} size={20} color={suggested ? colors.onAccent : colors.text} />
           </View>
-          {isCurrent ? <Text style={styles.activePill}>Активен</Text> : null}
+          <View style={styles.planTitles}>
+            <Text style={styles.planEyebrow}>{plan.eyebrow}</Text>
+            <Text style={styles.planName}>{plan.name}</Text>
+          </View>
+          <View style={styles.planPriceWrap}>
+            <Text style={styles.planPrice}>{plan.price}</Text>
+            {plan.period ? <Text style={styles.planPeriod}>{plan.period}</Text> : null}
+          </View>
         </View>
 
-        <Text style={styles.planEyebrow}>{plan.eyebrow}</Text>
-        <Text style={styles.planName}>{plan.name}</Text>
-        <Text style={styles.planPrice}>{plan.price}</Text>
+        {isCurrent || suggested ? (
+          <Text style={[styles.pill, suggested && styles.pillSuggested]}>
+            {isCurrent ? 'Ваш тариф' : 'Советуем'}
+          </Text>
+        ) : null}
+
         <Text style={styles.planSummary}>{plan.summary}</Text>
 
         <View style={styles.featureList}>
           {plan.features.map((feature) => (
             <View key={feature} style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={17} color={colors.success} />
+              <Ionicons name="checkmark" size={14} color={suggested ? colors.text : colors.textFaint} />
               <Text style={styles.featureText}>{feature}</Text>
             </View>
           ))}
@@ -335,7 +346,7 @@ export default function BillingScreen({ navigation }: Props) {
             <ActivityIndicator color={colors.onAccent} size="small" />
           ) : (
             <Text style={[styles.planBtnText, isCurrent ? styles.planBtnTextDisabled : styles.planBtnTextActive]}>
-              {isCurrent ? 'Текущий тариф' : isFree ? 'Выбрать базовый' : nativeBillingReady ? 'Оформить подписку' : 'Открыть оплату'}
+              {isCurrent ? 'Подключён' : isFree ? 'Перейти на базовый' : nativeBillingReady ? 'Оформить подписку' : 'Открыть оплату'}
             </Text>
           )}
         </TouchableOpacity>
@@ -362,31 +373,47 @@ export default function BillingScreen({ navigation }: Props) {
           ) : null}
 
           <View style={styles.statusCard}>
-            <View>
-              <Text style={styles.statusLabel}>Текущий план</Text>
-              <Text style={styles.statusPlan}>{currentPlanLabel}</Text>
-              <Text style={styles.statusDate}>Действует до: {formatDate(status.planExpiresAt)}</Text>
-            </View>
+            <Text style={styles.statusLabel}>Ваш тариф</Text>
+            <Text style={styles.statusPlan}>{currentPlanLabel}</Text>
+            <Text style={styles.statusDate}>Действует до: {formatDate(status.planExpiresAt)}</Text>
+
+            {/* Счётчики строкой с разделителем: вложенная плашка «0 оплат /
+                0.00 €» читалась как поломка вёрстки. */}
             <View style={styles.statusStats}>
-              <Text style={styles.statusStatValue}>{successfulPayments.length}</Text>
-              <Text style={styles.statusStatLabel}>оплат</Text>
-              <Text style={styles.statusStatTotal}>{formatAmount(totalPaid, successfulPayments[0]?.currency || 'eur')}</Text>
+              <View style={styles.statusStat}>
+                <Text style={styles.statusStatValue}>{successfulPayments.length}</Text>
+                <Text style={styles.statusStatLabel}>оплат</Text>
+              </View>
+              <View style={styles.statusDivider} />
+              <View style={styles.statusStat}>
+                <Text style={styles.statusStatValue}>
+                  {formatAmount(totalPaid, successfulPayments[0]?.currency || 'eur')}
+                </Text>
+                <Text style={styles.statusStatLabel}>потрачено</Text>
+              </View>
+              <View style={styles.statusDivider} />
+              <TouchableOpacity
+                style={styles.statusStat}
+                onPress={() => navigation.navigate('PaymentHistory')}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="receipt-outline" size={19} color={colors.text} />
+                <Text style={styles.statusStatLabel}>история</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
           {nativeBillingReady ? (
             <TouchableOpacity style={styles.noticeBox} onPress={restore} disabled={restoring} activeOpacity={0.8}>
-              <Ionicons name="refresh-outline" size={22} color={colors.text} />
+              <Ionicons name="refresh-outline" size={18} color={colors.textMuted} />
               <Text style={styles.noticeText}>
                 {restoring ? 'Проверяем покупки…' : 'Уже оплачивали? Восстановить покупки'}
               </Text>
             </TouchableOpacity>
           ) : (
             <View style={styles.noticeBox}>
-              <Ionicons name="card-outline" size={22} color={colors.text} />
-              <Text style={styles.noticeText}>
-                Оплата в этой сборке открывается через веб-страницу тарифов.
-              </Text>
+              <Ionicons name="card-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.noticeText}>Оплата откроется на веб-странице тарифов</Text>
             </View>
           )}
 
@@ -401,39 +428,88 @@ export default function BillingScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  headerBtn: { marginRight: 12, padding: 4 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scrollContent: { padding: 12, paddingTop: 14, paddingBottom: 28, gap: 10 },
-  statusCard: { borderRadius: 8, backgroundColor: colors.surfaceHi, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
-  statusLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  statusPlan: { marginTop: 5, color: colors.text, fontSize: 27, fontWeight: '900' },
-  statusDate: { marginTop: 5, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  statusStats: { minWidth: 92, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)', padding: 11, alignItems: 'flex-end' },
-  statusStatValue: { color: colors.text, fontSize: 24, fontWeight: '900' },
-  statusStatLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '800' },
-  statusStatTotal: { marginTop: 8, color: colors.text, fontSize: 13, fontWeight: '900' },
-  noticeBox: { borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
-  noticeText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 19, fontWeight: '700' },
-  planList: { gap: 10 },
-  planCard: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, backgroundColor: colors.surface, padding: 16 },
-  planCardHi: { backgroundColor: colors.surfaceHi },
-  planCardCurrent: { borderColor: colors.accent, borderWidth: 1.5 },
-  planHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  planIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  activePill: { overflow: 'hidden', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 5, backgroundColor: colors.accent, color: colors.onAccent, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  planEyebrow: { marginTop: 15, color: colors.textMuted, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  planName: { marginTop: 7, color: colors.text, fontSize: 24, fontWeight: '900' },
-  planPrice: { marginTop: 5, color: colors.text, fontSize: 18, fontWeight: '900' },
-  planSummary: { marginTop: 7, color: colors.textMuted, fontSize: 14, lineHeight: 20, fontWeight: '600' },
-  featureList: { gap: 8, marginTop: 14 },
-  featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  featureText: { flex: 1, color: colors.textMuted, fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  planBtn: { height: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
+  scrollContent: { padding: space.md, paddingBottom: space.xxl, gap: space.sm },
+
+  statusCard: {
+    borderRadius: radius.lg, backgroundColor: colors.surface,
+    padding: space.lg, ...shadow.card,
+  },
+  statusLabel: {
+    color: colors.textFaint, fontSize: font.tiny, fontWeight: '900',
+    textTransform: 'uppercase', letterSpacing: 0.4,
+  },
+  statusPlan: { marginTop: 4, color: colors.text, fontSize: font.display, fontWeight: '900' },
+  statusDate: { marginTop: 4, color: colors.textMuted, fontSize: font.small, fontWeight: '700' },
+  statusStats: {
+    flexDirection: 'row', alignItems: 'center', marginTop: space.lg,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingTop: space.md,
+  },
+  statusStat: { flex: 1, alignItems: 'center', gap: 3 },
+  statusDivider: { width: StyleSheet.hairlineWidth, height: 26, backgroundColor: colors.border },
+  statusStatValue: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
+  statusStatLabel: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '800' },
+
+  noticeBox: {
+    flexDirection: 'row', alignItems: 'center', gap: space.sm,
+    paddingHorizontal: space.md, paddingVertical: space.sm,
+    borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+  },
+  noticeText: { flex: 1, color: colors.textMuted, fontSize: font.tiny, lineHeight: 17, fontWeight: '700' },
+
+  planList: { gap: space.sm },
+  planCard: {
+    borderRadius: radius.lg, backgroundColor: colors.surface,
+    padding: space.md, ...shadow.card,
+  },
+  planCardCurrent: { borderColor: colors.accent, borderWidth: 1 },
+  planCardSuggested: { backgroundColor: colors.surfaceAlt, borderColor: colors.surfaceHi, borderWidth: 1 },
+
+  planHeader: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  planIcon: {
+    width: 42, height: 42, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  planIconSuggested: { backgroundColor: colors.accent },
+  planTitles: { flex: 1 },
+  planEyebrow: {
+    color: colors.textFaint, fontSize: 10, fontWeight: '900',
+    textTransform: 'uppercase', letterSpacing: 0.4,
+  },
+  planName: { marginTop: 2, color: colors.text, fontSize: font.h3, fontWeight: '900' },
+  planPriceWrap: { alignItems: 'flex-end' },
+  planPrice: { color: colors.text, fontSize: font.h2, fontWeight: '900' },
+  planPeriod: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
+
+  pill: {
+    alignSelf: 'flex-start', overflow: 'hidden', marginTop: space.md,
+    borderRadius: radius.pill, paddingHorizontal: space.md, paddingVertical: 4,
+    backgroundColor: colors.surfaceHi, color: colors.text,
+    fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.4,
+  },
+  pillSuggested: { backgroundColor: colors.accent, color: colors.onAccent },
+
+  planSummary: {
+    marginTop: space.md, color: colors.textMuted,
+    fontSize: font.small, lineHeight: 19, fontWeight: '600',
+  },
+  featureList: { gap: 6, marginTop: space.md },
+  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  featureText: { flex: 1, color: colors.textMuted, fontSize: font.small, lineHeight: 18, fontWeight: '700' },
+
+  planBtn: {
+    height: 48, borderRadius: radius.md, alignItems: 'center',
+    justifyContent: 'center', marginTop: space.md,
+  },
   planBtnActive: { backgroundColor: colors.accent },
   planBtnDisabled: { backgroundColor: colors.surfaceHi },
-  planBtnText: { fontSize: 14, fontWeight: '900' },
+  planBtnText: { fontSize: font.small, fontWeight: '900' },
   planBtnTextActive: { color: colors.onAccent },
   planBtnTextDisabled: { color: colors.textMuted },
-  errorBox: { borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
+
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center', gap: space.sm,
+    borderRadius: radius.lg, backgroundColor: 'rgba(255,90,95,0.12)', padding: space.md,
+  },
+  errorText: { flex: 1, color: colors.danger, fontSize: font.small, fontWeight: '800' },
 });
