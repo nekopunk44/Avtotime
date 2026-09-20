@@ -748,11 +748,43 @@ export const getCarServiceListings = async (req, res) => {
   }
 };
 
+/**
+ * Картинки запроса одним списком: multer кладёт их по-разному — одну в
+ * req.file, несколько в req.files (массивом или объектом полей). Приложение
+ * шлёт «images», веб исторически шлёт «image», и оба должны работать.
+ */
+export const collectRequestFiles = (req) => {
+  if (Array.isArray(req.files)) return req.files.filter(Boolean);
+  if (req.files && typeof req.files === "object") {
+    return [...(req.files.images || []), ...(req.files.image || [])].filter(Boolean);
+  }
+  return req.file ? [req.file] : [];
+};
+
+/** Загружает файлы запроса и возвращает публичные ссылки по порядку. */
+export const uploadRequestImages = async (req) => {
+  const urls = [];
+  for (const file of collectRequestFiles(req)) {
+    if (!file?.path) continue;
+    // eslint-disable-next-line no-await-in-loop
+    const url = await uploadOnCloudinary(file.path);
+    if (url) {
+      urls.push(url);
+    } else {
+      const localUrl = buildPublicFileUrl(req, file);
+      if (localUrl) urls.push(localUrl);
+    }
+  }
+  return urls;
+};
+
 export const createCarServiceListing = async (req, res) => {
   try {
     const { category, title, location, serviceQuality, reviews, price, pricePrefix, unit } = req.body;
-    const uploadedImage = req.file ? buildPublicFileUrl(req, req.file) : "";
-    const image = uploadedImage || (typeof req.body.image === "string" ? req.body.image.trim() : "");
+    const uploaded = await uploadRequestImages(req);
+    const fallback = typeof req.body.image === "string" ? req.body.image.trim() : "";
+    const images = uploaded.length ? uploaded : fallback ? [fallback] : [];
+    const image = images[0] || "";
 
     if (isBlobUrl(image)) {
       return res
@@ -772,6 +804,7 @@ export const createCarServiceListing = async (req, res) => {
     const listing = await MarketCarServiceListing.create({
       id: buildId(),
       image,
+      images,
       category,
       title,
       location,
@@ -849,8 +882,10 @@ export const getAutoTuningListings = async (req, res) => {
 export const createAutoTuningListing = async (req, res) => {
   try {
     const { title, category, location, rating, reviews, price, badge, tags } = req.body;
-    const uploadedImage = req.file ? buildPublicFileUrl(req, req.file) : "";
-    const image = uploadedImage || (typeof req.body.image === "string" ? req.body.image.trim() : "");
+    const uploaded = await uploadRequestImages(req);
+    const fallback = typeof req.body.image === "string" ? req.body.image.trim() : "";
+    const images = uploaded.length ? uploaded : fallback ? [fallback] : [];
+    const image = images[0] || "";
 
     if (isBlobUrl(image)) {
       return res
@@ -869,6 +904,7 @@ export const createAutoTuningListing = async (req, res) => {
 
     const listing = await MarketAutoTuningListing.create({
       id: buildId(),
+      images,
       title,
       category,
       location,
@@ -1144,8 +1180,12 @@ export const updateCarServiceListing = async (req, res) => {
       }
     });
 
-    if (req.file) {
-      listing.image = buildPublicFileUrl(req, req.file);
+    // Новые кадры заменяют прежние целиком: правка фото — это «вот теперь
+    // такие», а не «добавьте к тем».
+    const uploadedImages = await uploadRequestImages(req);
+    if (uploadedImages.length) {
+      listing.images = uploadedImages;
+      listing.image = uploadedImages[0];
     }
 
     if (isAiModerationEnabled()) {
@@ -1209,8 +1249,12 @@ export const updateAutoTuningListing = async (req, res) => {
       listing.tags = parseArrayField(req.body.tags);
     }
 
-    if (req.file) {
-      listing.image = buildPublicFileUrl(req, req.file);
+    // Новые кадры заменяют прежние целиком: правка фото — это «вот теперь
+    // такие», а не «добавьте к тем».
+    const uploadedImages = await uploadRequestImages(req);
+    if (uploadedImages.length) {
+      listing.images = uploadedImages;
+      listing.image = uploadedImages[0];
     }
 
     if (isAiModerationEnabled()) {

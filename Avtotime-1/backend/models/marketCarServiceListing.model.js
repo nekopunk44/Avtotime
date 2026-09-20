@@ -12,6 +12,8 @@ const marketCarServiceListingSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // Первый кадр — обложка; он же лежит в image ради старых экранов.
+    images: { type: [String], default: [] },
     category: {
       type: String,
       required: true,

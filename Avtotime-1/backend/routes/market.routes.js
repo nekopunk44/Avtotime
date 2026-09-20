@@ -99,13 +99,13 @@ marketRouter.get("/geo", isAuth, getViewerGeo);
 marketRouter.post("/distances", isAuth, getPlaceDistances);
 
 marketRouter.get("/car-services", isAuth, getCarServiceListings);
-marketRouter.post("/car-services", isAuth, isEmailVerified, upload.single("image"), checkPlanLimits("car-services"), createCarServiceListing);
-marketRouter.patch("/car-services/:id", isAuth, validateObjectId("id"), upload.single("image"), updateCarServiceListing);
+marketRouter.post("/car-services", isAuth, isEmailVerified, upload.fields([{ name: "images", maxCount: 6 }, { name: "image", maxCount: 1 }]), checkPlanLimits("car-services"), createCarServiceListing);
+marketRouter.patch("/car-services/:id", isAuth, validateObjectId("id"), upload.fields([{ name: "images", maxCount: 6 }, { name: "image", maxCount: 1 }]), updateCarServiceListing);
 marketRouter.delete("/car-services/:id", isAuth, validateObjectId("id"), deleteCarServiceListing);
 
 marketRouter.get("/auto-tuning", isAuth, getAutoTuningListings);
-marketRouter.post("/auto-tuning", isAuth, isEmailVerified, upload.single("image"), checkPlanLimits("auto-tuning"), createAutoTuningListing);
-marketRouter.patch("/auto-tuning/:id", isAuth, validateObjectId("id"), upload.single("image"), updateAutoTuningListing);
+marketRouter.post("/auto-tuning", isAuth, isEmailVerified, upload.fields([{ name: "images", maxCount: 6 }, { name: "image", maxCount: 1 }]), checkPlanLimits("auto-tuning"), createAutoTuningListing);
+marketRouter.patch("/auto-tuning/:id", isAuth, validateObjectId("id"), upload.fields([{ name: "images", maxCount: 6 }, { name: "image", maxCount: 1 }]), updateAutoTuningListing);
 marketRouter.delete("/auto-tuning/:id", isAuth, validateObjectId("id"), deleteAutoTuningListing);
 
 marketRouter.get("/consultations", isAuth, getConsultationExperts);
@@ -114,8 +114,8 @@ marketRouter.patch("/consultations/:id", isAuth, validateObjectId("id"), upload.
 marketRouter.delete("/consultations/:id", isAuth, validateObjectId("id"), deleteConsultationExpert);
 
 marketRouter.get("/dry-cleaning", isAuth, getDryCleaningListings);
-marketRouter.post("/dry-cleaning", isAuth, isEmailVerified, upload.single("image"), checkPlanLimits("dry-cleaning"), createDryCleaningListing);
-marketRouter.patch("/dry-cleaning/:id", isAuth, validateObjectId("id"), upload.single("image"), updateDryCleaningListing);
+marketRouter.post("/dry-cleaning", isAuth, isEmailVerified, upload.fields([{ name: "images", maxCount: 6 }, { name: "image", maxCount: 1 }]), checkPlanLimits("dry-cleaning"), createDryCleaningListing);
+marketRouter.patch("/dry-cleaning/:id", isAuth, validateObjectId("id"), upload.fields([{ name: "images", maxCount: 6 }, { name: "image", maxCount: 1 }]), updateDryCleaningListing);
 marketRouter.delete("/dry-cleaning/:id", isAuth, validateObjectId("id"), deleteDryCleaningListing);
 
 marketRouter.get("/games", isAuth, getGames);

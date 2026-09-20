@@ -23,6 +23,7 @@ import { enqueueMarketModerationById } from "../moderation/marketModerationWorke
 import { buildPublicFileUrl } from "../config/publicFiles.js";
 import { distanceKm, normalizePlace, resolvePlaces } from "../services/geocode.js";
 import { catalogBrands, catalogModels, isRealName, vehicleCatalog } from "../config/vehicleCatalog.js";
+import { uploadRequestImages } from "./market.controllers.js";
 
 const buildId = () => Date.now() + Math.floor(Math.random() * 1000);
 
@@ -234,8 +235,10 @@ export const getDryCleaningListings = async (req, res) => {
 export const createDryCleaningListing = async (req, res) => {
   try {
     const { title, category, location, rating, reviews, price, badge, tags } = req.body;
-    const uploadedImage = req.file ? buildPublicFileUrl(req, req.file) : "";
-    const image = uploadedImage || (typeof req.body.image === "string" ? req.body.image.trim() : "");
+    const uploaded = await uploadRequestImages(req);
+    const fallback = typeof req.body.image === "string" ? req.body.image.trim() : "";
+    const images = uploaded.length ? uploaded : fallback ? [fallback] : [];
+    const image = images[0] || "";
 
     if (isBlobUrl(image)) {
       return res
@@ -258,6 +261,7 @@ export const createDryCleaningListing = async (req, res) => {
 
     const listing = await MarketDryCleaningListing.create({
       id: buildId(),
+      images,
       title: String(title).trim(),
       category: String(category).trim(),
       location: String(location).trim(),
@@ -633,8 +637,12 @@ export const updateDryCleaningListing = async (req, res) => {
       listing.tags = parseArrayField(req.body.tags);
     }
 
-    if (req.file) {
-      listing.image = buildPublicFileUrl(req, req.file);
+    // Новые кадры заменяют прежние целиком: правка фото — это «вот теперь
+    // такие», а не «добавьте к тем».
+    const uploadedImages = await uploadRequestImages(req);
+    if (uploadedImages.length) {
+      listing.images = uploadedImages;
+      listing.image = uploadedImages[0];
     }
 
     if (isAiModerationEnabled()) {
