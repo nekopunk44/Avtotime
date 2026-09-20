@@ -44,6 +44,7 @@ import BillingScreen from '../screens/BillingScreen';
 import PaymentHistoryScreen from '../screens/PaymentHistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import TermsScreen from '../screens/TermsScreen';
 import EmailVerificationScreen from '../screens/EmailVerificationScreen';
 import AdminScreen from '../screens/AdminScreen';
 import AdminUserDetailsScreen from '../screens/AdminUserDetailsScreen';
@@ -103,6 +104,7 @@ export type AppStackParamList = {
   PaymentHistory: undefined;
   Settings: undefined;
   PrivacyPolicy: undefined;
+  Terms: undefined;
   EmailVerification: undefined;
   Admin: undefined;
   AdminUserDetails: { userId: string };
@@ -303,6 +305,7 @@ export default function AppNavigator() {
       <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} options={{ title: 'История платежей' }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Настройки' }} />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ title: 'Политика' }} />
+      <Stack.Screen name="Terms" component={TermsScreen} options={{ title: 'Условия' }} />
       <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} options={{ title: 'Email' }} />
       <Stack.Screen name="Admin" component={AdminScreen} options={{ title: 'Админ' }} />
       <Stack.Screen name="AdminUserDetails" component={AdminUserDetailsScreen} options={{ title: 'Пользователь' }} />
