@@ -1,11 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { askConfirm } from '../store/confirmStore';
-import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
+  Linking,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -16,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getAdminStatus } from '../api/admin';
@@ -23,7 +20,10 @@ import { getMe } from '../api/auth';
 import { BillingStatus, getBillingStatus } from '../api/billing';
 import { changePassword, deleteProfile, logoutAllSessions } from '../api/users';
 import { AppStackParamList } from '../navigation/AppNavigator';
-import { colors } from '../theme';
+import { Avatar, FormSheet, PressableScale } from '../components/ui';
+import { askConfirm } from '../store/confirmStore';
+import { showToast } from '../store/toastStore';
+import { colors, font, radius, shadow, space } from '../theme';
 import { useAuthStore } from '../store/authStore';
 import { useLockStore } from '../store/lockStore';
 import { authenticateBiometric, getBiometricLabel, isBiometricAvailable } from '../utils/biometric';
@@ -35,6 +35,12 @@ const PLAN_LABEL: Record<string, string> = {
   pro: 'Pro Seller',
   business: 'Business',
 };
+
+// Аналитика открыта платным тарифам. Право проверяет сервер, но знать об
+// этом заранее полезно: незачем открывать экран, который сразу откажет.
+const PAID_PLANS = new Set(['pro', 'business']);
+
+const SUPPORT_EMAIL = 'avtotimereal@gmail.com';
 
 const emptyBilling: BillingStatus = {
   plan: 'free',
@@ -49,6 +55,12 @@ const formatDate = (value?: string | null) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Без срока';
   return date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
+};
+
+const appVersion = () => {
+  const version = Constants.expoConfig?.version || '—';
+  const build = Constants.expoConfig?.android?.versionCode;
+  return build ? `${version} (${build})` : String(version);
 };
 
 export default function SettingsScreen({ navigation }: Props) {
@@ -67,30 +79,16 @@ export default function SettingsScreen({ navigation }: Props) {
   const setBioEnabled = useLockStore((s) => s.setEnabled);
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioLabel, setBioLabel] = useState('биометрию');
-
-  useEffect(() => {
-    isBiometricAvailable().then(setBioAvailable);
-    getBiometricLabel().then(setBioLabel);
-  }, []);
-
-  const toggleBiometric = async (value: boolean) => {
-    if (value) {
-      if (!bioAvailable) {
-        showToast('На устройстве не настроены отпечаток пальца или Face ID. Добавьте их в настройках телефона.');
-        return;
-      }
-      const ok = await authenticateBiometric('Подтвердите включение блокировки');
-      if (!ok) return;
-      await setBioEnabled(true);
-    } else {
-      await setBioEnabled(false);
-    }
-  };
   const [logoutAllLoading, setLogoutAllLoading] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    isBiometricAvailable().then(setBioAvailable);
+    getBiometricLabel().then(setBioLabel);
+  }, []);
 
   const activePlan = billing.effectivePlan || billing.plan || user?.effectivePlan || user?.plan || 'free';
   const planLabel = PLAN_LABEL[activePlan] || 'Базовый';
@@ -124,16 +122,26 @@ export default function SettingsScreen({ navigation }: Props) {
     load(true);
   };
 
-  const resetPasswordForm = () => {
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+  const toggleBiometric = async (value: boolean) => {
+    if (value) {
+      if (!bioAvailable) {
+        showToast('На устройстве не настроены отпечаток пальца или Face ID');
+        return;
+      }
+      const ok = await authenticateBiometric('Подтвердите включение блокировки');
+      if (!ok) return;
+      await setBioEnabled(true);
+      return;
+    }
+    await setBioEnabled(false);
   };
 
   const closePassword = () => {
     if (savingPassword) return;
     setPasswordOpen(false);
-    resetPasswordForm();
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
   };
 
   const submitPassword = async () => {
@@ -142,15 +150,15 @@ export default function SettingsScreen({ navigation }: Props) {
     const confirm = confirmPassword.trim();
 
     if (!current || !next || !confirm) {
-      showToast('Заполните все поля.');
+      showToast('Заполните все поля');
       return;
     }
     if (next.length < 8) {
-      showToast('Новый пароль должен быть не короче 8 символов.');
+      showToast('Новый пароль должен быть не короче 8 символов');
       return;
     }
     if (next !== confirm) {
-      showToast('Новые пароли не совпадают.');
+      showToast('Новые пароли не совпадают');
       return;
     }
 
@@ -158,44 +166,12 @@ export default function SettingsScreen({ navigation }: Props) {
     try {
       await changePassword(current, next);
       closePassword();
-      showToast('Пароль изменён.', 'success');
+      showToast('Пароль изменён', 'success');
     } catch (e: any) {
       showToast(e.response?.data?.message || 'Не удалось изменить пароль', 'error');
     } finally {
       setSavingPassword(false);
     }
-  };
-
-  const confirmLogoutAll = () => {
-    askConfirm({
-      title: 'Завершить другие сессии?',
-      message: 'Все входы на других устройствах будут сброшены. Текущая сессия останется активной.',
-      confirmLabel: 'Завершить',
-      cancelLabel: 'Отмена',
-      destructive: true,
-    }).then((agreed) => { if (agreed) (async () => {
-            setLogoutAllLoading(true);
-            try {
-              await logoutAllSessions();
-              showToast('Остальные сессии завершены.', 'success');
-            } catch (e: any) {
-              showToast(e.response?.data?.message || 'Не удалось завершить сессии', 'error');
-            } finally {
-              setLogoutAllLoading(false);
-            }
-          })(); });
-  };
-
-  const confirmLogout = () => {
-    askConfirm({
-      title: 'Выйти?',
-      message: 'Вы выйдете из мобильного приложения.',
-      confirmLabel: 'Выйти',
-      cancelLabel: 'Отмена',
-      destructive: true,
-    }).then((agreed) => { if (agreed) (() => {
-          void logout();
-        })(); });
   };
 
   const closeDelete = () => {
@@ -210,95 +186,116 @@ export default function SettingsScreen({ navigation }: Props) {
     const confirmation = deleteConfirm.trim().toUpperCase();
 
     if (!password) {
-      showToast('Введите пароль от аккаунта.');
+      showToast('Введите пароль от аккаунта');
       return;
     }
     if (confirmation !== 'УДАЛИТЬ') {
-      showToast('Введите слово УДАЛИТЬ для подтверждения.');
+      showToast('Введите слово УДАЛИТЬ для подтверждения');
       return;
     }
 
-    askConfirm({
+    const agreed = await askConfirm({
       title: 'Удалить аккаунт навсегда?',
-      message: 'Профиль, публикации, объявления, сообщения и сохраненные данные будут удалены. Это действие нельзя отменить.',
+      message: 'Профиль, публикации, объявления, сообщения и сохранённые данные будут удалены. Это действие нельзя отменить.',
       confirmLabel: 'Удалить',
-      cancelLabel: 'Отмена',
       destructive: true,
-    }).then((agreed) => { if (agreed) (async () => {
-            setDeleting(true);
-            try {
-              await deleteProfile(password);
-              setDeleteOpen(false);
-              setDeletePassword('');
-              setDeleteConfirm('');
-              await logout();
-            } catch (e: any) {
-              showToast(e.response?.data?.message || 'Не удалось удалить профиль', 'error');
-            } finally {
-              setDeleting(false);
-            }
-          })(); });
+    });
+    if (!agreed) return;
+
+    setDeleting(true);
+    try {
+      await deleteProfile(password);
+      closeDelete();
+      await logout();
+    } catch (e: any) {
+      showToast(e.response?.data?.message || 'Не удалось удалить профиль', 'error');
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  const renderAction = ({
-    icon,
-    title,
-    description,
-    onPress,
-    danger,
-    loading: itemLoading,
+  const confirmLogoutAll = async () => {
+    const agreed = await askConfirm({
+      title: 'Завершить другие сессии?',
+      message: 'Все входы на других устройствах будут сброшены. Текущая сессия останется активной.',
+      confirmLabel: 'Завершить',
+      destructive: true,
+    });
+    if (!agreed) return;
+
+    setLogoutAllLoading(true);
+    try {
+      await logoutAllSessions();
+      showToast('Остальные сессии завершены', 'success');
+    } catch (e: any) {
+      showToast(e.response?.data?.message || 'Не удалось завершить сессии', 'error');
+    } finally {
+      setLogoutAllLoading(false);
+    }
+  };
+
+  const confirmLogout = async () => {
+    const agreed = await askConfirm({
+      title: 'Выйти?',
+      message: 'Вы выйдете из мобильного приложения.',
+      confirmLabel: 'Выйти',
+      destructive: true,
+    });
+    if (agreed) void logout();
+  };
+
+  // Аналитика без платного тарифа сразу упирается в отказ — предупреждаем
+  // здесь так же, как в маркете.
+  const openAnalytics = async () => {
+    if (PAID_PLANS.has(String(activePlan))) {
+      navigation.navigate('MarketAnalytics');
+      return;
+    }
+    const agreed = await askConfirm({
+      title: 'Аналитика в тарифах Pro и Business',
+      message: 'На текущем тарифе подробная статистика по объявлениям недоступна.',
+      confirmLabel: 'Открыть тарифы',
+      cancelLabel: 'Позже',
+    });
+    if (agreed) navigation.navigate('Billing');
+  };
+
+  const openSupport = () => {
+    const subject = encodeURIComponent('Avtotime: вопрос из приложения');
+    const body = encodeURIComponent(`\n\n—\nВерсия приложения: ${appVersion()}\nАккаунт: @${user?.userName || ''}`);
+    Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`)
+      .catch(() => showToast('Почтовое приложение не найдено. Напишите на ' + SUPPORT_EMAIL));
+  };
+
+  const row = ({
+    icon, title, description, onPress, danger, loading: itemLoading, last,
   }: {
     icon: keyof typeof Ionicons.glyphMap;
     title: string;
-    description: string;
+    description?: string;
     onPress: () => void;
     danger?: boolean;
     loading?: boolean;
+    last?: boolean;
   }) => (
-    <TouchableOpacity style={styles.actionRow} onPress={onPress} activeOpacity={0.85} disabled={itemLoading}>
-      <View style={[styles.actionIcon, danger && styles.actionIconDanger]}>
-        {itemLoading ? (
-          <ActivityIndicator color={danger ? colors.danger : colors.text} />
-        ) : (
-          <Ionicons name={icon} size={21} color={danger ? colors.danger : colors.text} />
-        )}
+    <TouchableOpacity
+      key={title}
+      style={[styles.row, last && styles.rowLast]}
+      onPress={onPress}
+      activeOpacity={0.8}
+      disabled={itemLoading}
+    >
+      <View style={[styles.rowIcon, danger && styles.rowIconDanger]}>
+        {itemLoading
+          ? <ActivityIndicator color={danger ? colors.danger : colors.text} />
+          : <Ionicons name={icon} size={20} color={danger ? colors.danger : colors.text} />}
       </View>
-      <View style={styles.actionBody}>
-        <Text style={[styles.actionTitle, danger && styles.actionTitleDanger]}>{title}</Text>
-        <Text style={styles.actionDescription}>{description}</Text>
+      <View style={styles.rowBody}>
+        <Text style={[styles.rowTitle, danger && styles.rowTitleDanger]}>{title}</Text>
+        {description ? <Text style={styles.rowDescription}>{description}</Text> : null}
       </View>
       <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
     </TouchableOpacity>
-  );
-
-  const renderToggle = ({
-    icon,
-    title,
-    description,
-    value,
-    onValueChange,
-  }: {
-    icon: keyof typeof Ionicons.glyphMap;
-    title: string;
-    description: string;
-    value: boolean;
-    onValueChange: (v: boolean) => void;
-  }) => (
-    <View style={styles.actionRow}>
-      <View style={styles.actionIcon}>
-        <Ionicons name={icon} size={21} color={colors.text} />
-      </View>
-      <View style={styles.actionBody}>
-        <Text style={styles.actionTitle}>{title}</Text>
-        <Text style={styles.actionDescription}>{description}</Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: colors.surfaceHi, true: colors.success }}
-        thumbColor={colors.white}
-      />
-    </View>
   );
 
   if (loading) {
@@ -313,254 +310,254 @@ export default function SettingsScreen({ navigation }: Props) {
     <View style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={refresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       >
         {error ? (
           <View style={styles.errorBox}>
-            <Ionicons name="alert-circle-outline" size={22} color={colors.danger} />
+            <Ionicons name="alert-circle-outline" size={20} color={colors.danger} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
 
-        <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{(user?.name || user?.userName || 'A').slice(0, 1).toUpperCase()}</Text>
-          </View>
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{user?.name || 'Пользователь'}</Text>
-            <Text style={styles.profileUserName}>@{user?.userName || 'avtotime'}</Text>
-            <Text style={styles.profileMeta}>{user?.location || 'Локация не указана'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.planCard}>
-          <View>
-            <Text style={styles.planLabel}>Текущий тариф</Text>
-            <Text style={styles.planName}>{planLabel}</Text>
-            <Text style={styles.planDate}>Действует до: {formatDate(billing.planExpiresAt)}</Text>
-          </View>
-          <TouchableOpacity style={styles.planBtn} onPress={() => navigation.navigate('Billing')} activeOpacity={0.85}>
-            <Ionicons name="card-outline" size={17} color={colors.onAccent} />
-            <Text style={styles.planBtnText}>Тарифы</Text>
-          </TouchableOpacity>
-        </View>
-
+        <Text style={styles.sectionTitle}>Аккаунт</Text>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Аккаунт</Text>
-          {renderAction({
-            icon: 'create-outline',
-            title: 'Редактировать профиль',
-            description: 'Имя, никнейм, аватар, описание и ссылки',
-            onPress: () => navigation.navigate('EditProfile'),
-          })}
-          {renderAction({
+          {/* Личность и переход к правке — одной строкой: карточка сверху
+              повторяла экран профиля и вдобавок не показывала фото. */}
+          <TouchableOpacity
+            style={styles.row}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('EditProfile')}
+          >
+            <Avatar uri={user?.profileImage} userName={user?.userName} name={user?.name} size={46} />
+            <View style={styles.rowBody}>
+              <Text style={styles.identityName} numberOfLines={1}>{user?.name || 'Пользователь'}</Text>
+              <Text style={styles.rowDescription} numberOfLines={1}>@{user?.userName || 'avtotime'}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+          </TouchableOpacity>
+
+          {row({
             icon: user?.isEmailVerified ? 'checkmark-circle-outline' : 'mail-unread-outline',
             title: user?.isEmailVerified ? 'Email подтверждён' : 'Подтвердить email',
             description: user?.isEmailVerified
-              ? 'Аккаунт может публиковать посты, loops и объявления'
-              : 'Нужно для публикаций, loops, объявлений и заявок',
+              ? 'Публикации, loops и объявления доступны'
+              : 'Нужно для публикаций, объявлений и заявок',
             onPress: () => navigation.navigate('EmailVerification'),
           })}
-          {renderAction({
-            icon: 'albums-outline',
-            title: 'Мои объявления',
-            description: 'Открыть маркет с фильтром ваших объявлений',
-            onPress: () => navigation.navigate('MyListings'),
-          })}
-          {renderAction({
-            icon: 'bar-chart-outline',
-            title: 'Аналитика',
-            description: 'Просмотры и контакты по объявлениям',
-            onPress: () => navigation.navigate('MarketAnalytics'),
-          })}
-          {renderAction({
-            icon: 'star-outline',
-            title: 'Отзывы обо мне',
-            description: 'Оценки покупателей и клиентов по вашим объявлениям',
-            onPress: () => navigation.navigate('MyReviews'),
-          })}
-          {renderAction({
+          {row({
             icon: 'notifications-outline',
             title: 'Уведомления',
             description: 'Типы событий, email и частота дайджеста',
             onPress: () => navigation.navigate('NotificationSettings'),
           })}
-          {isAdmin ? renderAction({
+          {row({
+            icon: 'star-outline',
+            title: 'Отзывы обо мне',
+            description: 'Оценки покупателей и клиентов',
+            onPress: () => navigation.navigate('MyReviews'),
+            last: !isAdmin,
+          })}
+          {isAdmin ? row({
             icon: 'shield-checkmark-outline',
             title: 'Админ-панель',
-            description: 'Статистика, модерация маркета и управление пользователями',
+            description: 'Модерация маркета и управление пользователями',
             onPress: () => navigation.navigate('Admin'),
+            last: true,
           }) : null}
         </View>
 
+        <Text style={styles.sectionTitle}>Продажи</Text>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Безопасность</Text>
-          {renderToggle({
-            icon: 'finger-print-outline',
-            title: 'Вход по биометрии',
-            description: bioAvailable
-              ? `Блокировать приложение и открывать через ${bioLabel}`
-              : 'Настройте отпечаток или Face ID в настройках телефона',
-            value: bioEnabled,
-            onValueChange: toggleBiometric,
+          <PressableScale
+            style={styles.planCard}
+            scaleTo={0.99}
+            onPress={() => navigation.navigate('Billing')}
+          >
+            <View style={styles.planBody}>
+              <Text style={styles.planLabel}>Тариф</Text>
+              <Text style={styles.planName}>{planLabel}</Text>
+              <Text style={styles.planDate}>Действует до: {formatDate(billing.planExpiresAt)}</Text>
+            </View>
+            <View style={styles.planAction}>
+              <Ionicons name="card-outline" size={18} color={colors.onAccent} />
+            </View>
+          </PressableScale>
+
+          {row({
+            icon: 'albums-outline',
+            title: 'Мои объявления',
+            description: 'Статусы проверки, правка и снятие с публикации',
+            onPress: () => navigation.navigate('MyListings'),
           })}
-          {renderAction({
+          {row({
+            icon: 'bar-chart-outline',
+            title: 'Аналитика',
+            description: 'Просмотры и контакты по объявлениям',
+            onPress: openAnalytics,
+            last: true,
+          })}
+        </View>
+
+        <Text style={styles.sectionTitle}>Безопасность</Text>
+        <View style={styles.section}>
+          <View style={styles.row}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="finger-print-outline" size={20} color={colors.text} />
+            </View>
+            <View style={styles.rowBody}>
+              <Text style={styles.rowTitle}>Вход по биометрии</Text>
+              <Text style={styles.rowDescription}>
+                {bioAvailable
+                  ? `Блокировать приложение и открывать через ${bioLabel}`
+                  : 'Настройте отпечаток или Face ID в настройках телефона'}
+              </Text>
+            </View>
+            <Switch
+              value={bioEnabled}
+              onValueChange={toggleBiometric}
+              trackColor={{ false: colors.surfaceHi, true: colors.success }}
+              thumbColor={colors.white}
+            />
+          </View>
+
+          {row({
             icon: 'key-outline',
             title: 'Изменить пароль',
             description: 'Обновить пароль для входа',
             onPress: () => setPasswordOpen(true),
           })}
-          {renderAction({
+          {row({
             icon: 'phone-portrait-outline',
             title: 'Завершить другие сессии',
             description: 'Сбросить входы на других устройствах',
             onPress: confirmLogoutAll,
             loading: logoutAllLoading,
           })}
-          {renderAction({
+          {row({
             icon: 'trash-outline',
             title: 'Удалить аккаунт',
             description: 'Навсегда удалить профиль и связанные данные',
             onPress: () => setDeleteOpen(true),
             danger: true,
+            last: true,
           })}
         </View>
 
+        <Text style={styles.sectionTitle}>О приложении</Text>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Навигация</Text>
-          {renderAction({
-            icon: 'receipt-outline',
-            title: 'История платежей',
-            description: 'Оплаты и текущий статус тарифа',
-            onPress: () => navigation.navigate('Billing'),
-          })}
-          {renderAction({
-            icon: 'heart-outline',
-            title: 'Запросы помощи',
-            description: 'Ваши заявки и помощь другим водителям',
-            onPress: () => navigation.navigate('MarketTabs', { screen: 'HelpRequests' }),
-          })}
-          {renderAction({
+          {row({
             icon: 'shield-checkmark-outline',
             title: 'Политика конфиденциальности',
-            description: 'Как Avtotime хранит и обрабатывает персональные данные',
+            description: 'Какие данные хранит Avtotime и зачем',
             onPress: () => navigation.navigate('PrivacyPolicy'),
           })}
-          {renderAction({
-            icon: 'log-out-outline',
-            title: 'Выйти',
-            description: 'Завершить текущую сессию приложения',
-            onPress: confirmLogout,
-            danger: true,
+          {row({
+            icon: 'document-text-outline',
+            title: 'Условия использования',
+            description: 'Правила площадки и публикации объявлений',
+            onPress: () => navigation.navigate('Terms'),
           })}
+          {row({
+            icon: 'chatbubble-ellipses-outline',
+            title: 'Написать в поддержку',
+            description: SUPPORT_EMAIL,
+            onPress: openSupport,
+          })}
+          <View style={[styles.row, styles.rowLast]}>
+            <View style={styles.rowIcon}>
+              <Ionicons name="information-circle-outline" size={20} color={colors.text} />
+            </View>
+            <View style={styles.rowBody}>
+              <Text style={styles.rowTitle}>Версия приложения</Text>
+              <Text style={styles.rowDescription}>Пригодится при обращении в поддержку</Text>
+            </View>
+            <Text style={styles.versionValue}>{appVersion()}</Text>
+          </View>
         </View>
+
+        <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout} activeOpacity={0.85}>
+          <Ionicons name="log-out-outline" size={19} color={colors.danger} />
+          <Text style={styles.logoutText}>Выйти из аккаунта</Text>
+        </TouchableOpacity>
       </ScrollView>
 
-      <Modal visible={passwordOpen} transparent animationType="slide" onRequestClose={closePassword}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalRoot}
-        >
-          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closePassword} />
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Изменить пароль</Text>
+      <FormSheet
+        visible={passwordOpen}
+        title="Изменить пароль"
+        subtitle="Новый пароль должен быть не короче восьми символов"
+        onClose={closePassword}
+      >
+        <TextInput
+          style={styles.input}
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          secureTextEntry
+          placeholder="Текущий пароль"
+          placeholderTextColor={colors.textFaint}
+        />
+        <TextInput
+          style={styles.input}
+          value={newPassword}
+          onChangeText={setNewPassword}
+          secureTextEntry
+          placeholder="Новый пароль"
+          placeholderTextColor={colors.textFaint}
+        />
+        <TextInput
+          style={styles.input}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+          placeholder="Повторите новый пароль"
+          placeholderTextColor={colors.textFaint}
+        />
 
-            <Text style={styles.inputLabel}>Текущий пароль</Text>
-            <TextInput
-              style={styles.input}
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              secureTextEntry
-              placeholder="Введите текущий пароль"
-              placeholderTextColor={colors.textFaint}
-            />
+        <View style={styles.sheetActions}>
+          <TouchableOpacity style={styles.cancelBtn} onPress={closePassword} disabled={savingPassword}>
+            <Text style={styles.cancelText}>Отмена</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.saveBtn} onPress={submitPassword} disabled={savingPassword}>
+            {savingPassword
+              ? <ActivityIndicator color={colors.onAccent} />
+              : <Text style={styles.saveText}>Сохранить</Text>}
+          </TouchableOpacity>
+        </View>
+      </FormSheet>
 
-            <Text style={styles.inputLabel}>Новый пароль</Text>
-            <TextInput
-              style={styles.input}
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry
-              placeholder="Минимум 8 символов"
-              placeholderTextColor={colors.textFaint}
-            />
+      <FormSheet
+        visible={deleteOpen}
+        title="Удалить аккаунт"
+        subtitle="Будут удалены профиль, публикации, объявления, сообщения и результаты тестов"
+        onClose={closeDelete}
+      >
+        <TextInput
+          style={styles.input}
+          value={deletePassword}
+          onChangeText={setDeletePassword}
+          secureTextEntry
+          placeholder="Пароль от аккаунта"
+          placeholderTextColor={colors.textFaint}
+        />
+        <TextInput
+          style={styles.input}
+          value={deleteConfirm}
+          onChangeText={(value) => setDeleteConfirm(value.toUpperCase())}
+          placeholder="Введите УДАЛИТЬ"
+          placeholderTextColor={colors.textFaint}
+          autoCapitalize="characters"
+        />
 
-            <Text style={styles.inputLabel}>Повторите пароль</Text>
-            <TextInput
-              style={styles.input}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              placeholder="Повторите новый пароль"
-              placeholderTextColor={colors.textFaint}
-            />
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={closePassword} disabled={savingPassword}>
-                <Text style={styles.cancelText}>Отмена</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={submitPassword} disabled={savingPassword}>
-                {savingPassword ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.saveText}>Сохранить</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      <Modal visible={deleteOpen} transparent animationType="slide" onRequestClose={closeDelete}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalRoot}
-        >
-          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeDelete} />
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.dangerHeader}>
-              <View style={styles.dangerIcon}>
-                <Ionicons name="warning-outline" size={23} color={colors.danger} />
-              </View>
-              <View style={styles.dangerTextWrap}>
-                <Text style={styles.sheetTitle}>Удалить аккаунт</Text>
-                <Text style={styles.dangerDescription}>
-                  Будут удалены профиль, публикации, объявления, сообщения, избранное и результаты тестов.
-                </Text>
-              </View>
-            </View>
-
-            <Text style={styles.inputLabel}>Пароль</Text>
-            <TextInput
-              style={styles.input}
-              value={deletePassword}
-              onChangeText={setDeletePassword}
-              secureTextEntry
-              placeholder="Введите пароль"
-              placeholderTextColor={colors.textFaint}
-            />
-
-            <Text style={styles.inputLabel}>Подтверждение</Text>
-            <TextInput
-              style={styles.input}
-              value={deleteConfirm}
-              onChangeText={(value) => setDeleteConfirm(value.toUpperCase())}
-              placeholder="Введите УДАЛИТЬ"
-              placeholderTextColor={colors.textFaint}
-              autoCapitalize="characters"
-            />
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={closeDelete} disabled={deleting}>
-                <Text style={styles.cancelText}>Отмена</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteBtn} onPress={submitDeleteProfile} disabled={deleting}>
-                {deleting ? <ActivityIndicator color={colors.white} /> : <Text style={styles.deleteText}>Удалить</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        <View style={styles.sheetActions}>
+          <TouchableOpacity style={styles.cancelBtn} onPress={closeDelete} disabled={deleting}>
+            <Text style={styles.cancelText}>Отмена</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.deleteBtn} onPress={submitDeleteProfile} disabled={deleting}>
+            {deleting
+              ? <ActivityIndicator color={colors.white} />
+              : <Text style={styles.deleteText}>Удалить</Text>}
+          </TouchableOpacity>
+        </View>
+      </FormSheet>
     </View>
   );
 }
@@ -568,51 +565,78 @@ export default function SettingsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  content: { padding: 16, paddingBottom: 30 },
-  hero: { alignItems: 'center', paddingVertical: 16 },
-  heroIcon: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
-  subtitle: { marginTop: 5, color: colors.textMuted, fontSize: 14, textAlign: 'center' },
-  errorBox: { marginBottom: 10, borderRadius: 8, backgroundColor: 'rgba(255,90,95,0.12)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,90,95,0.25)', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  errorText: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '800' },
-  profileCard: { borderRadius: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 58, height: 58, borderRadius: 18, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: colors.onAccent, fontSize: 22, fontWeight: '900' },
-  profileInfo: { flex: 1 },
-  profileName: { color: colors.text, fontSize: 18, fontWeight: '900' },
-  profileUserName: { marginTop: 2, color: colors.textMuted, fontSize: 13, fontWeight: '800' },
-  profileMeta: { marginTop: 5, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  planCard: { marginTop: 10, borderRadius: 14, backgroundColor: colors.surfaceHi, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  planLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  planName: { marginTop: 5, color: colors.text, fontSize: 23, fontWeight: '900' },
-  planDate: { marginTop: 5, color: colors.textMuted, fontSize: 12, fontWeight: '700' },
-  planBtn: { height: 40, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  planBtnText: { color: colors.onAccent, fontSize: 13, fontWeight: '900' },
-  section: { marginTop: 12, borderRadius: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 12, paddingTop: 14, paddingBottom: 4 },
-  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 6 },
-  actionRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 11, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingVertical: 10 },
-  actionIcon: { width: 38, height: 38, borderRadius: 11, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  actionIconDanger: { backgroundColor: 'rgba(255,90,95,0.12)' },
-  actionBody: { flex: 1 },
-  actionTitle: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  actionTitleDanger: { color: colors.danger },
-  actionDescription: { marginTop: 3, color: colors.textMuted, fontSize: 12, lineHeight: 17, fontWeight: '700' },
-  modalRoot: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)' },
-  sheet: { backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 18 },
-  sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: colors.surfaceHi, marginBottom: 12 },
-  sheetTitle: { color: colors.text, fontSize: 20, fontWeight: '900', marginBottom: 14 },
-  dangerHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 14 },
-  dangerIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: 'rgba(255,90,95,0.12)', alignItems: 'center', justifyContent: 'center' },
-  dangerTextWrap: { flex: 1 },
-  dangerDescription: { marginTop: -8, color: colors.textMuted, fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  inputLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '800', marginBottom: 7 },
-  input: { height: 46, borderRadius: 10, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 15, marginBottom: 12 },
-  modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  cancelBtn: { flex: 1, height: 46, borderRadius: 10, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { color: colors.text, fontSize: 15, fontWeight: '900' },
-  saveBtn: { flex: 1, height: 46, borderRadius: 10, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  deleteBtn: { flex: 1, height: 46, borderRadius: 10, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
-  saveText: { color: colors.onAccent, fontSize: 15, fontWeight: '900' },
-  deleteText: { color: colors.white, fontSize: 15, fontWeight: '900' },
+  content: { padding: space.md, paddingBottom: space.xxl },
+
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center', gap: space.sm,
+    marginBottom: space.md, padding: space.md, borderRadius: radius.lg,
+    backgroundColor: 'rgba(255,90,95,0.12)',
+  },
+  errorText: { flex: 1, color: colors.danger, fontSize: font.small, fontWeight: '800' },
+
+  sectionTitle: {
+    marginTop: space.lg, marginBottom: space.sm, marginLeft: space.xs,
+    color: colors.textFaint, fontSize: font.tiny, fontWeight: '900',
+    textTransform: 'uppercase', letterSpacing: 0.4,
+  },
+  section: { borderRadius: radius.lg, backgroundColor: colors.surface, overflow: 'hidden', ...shadow.card },
+
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: space.md,
+    minHeight: 62, paddingHorizontal: space.md, paddingVertical: space.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border,
+  },
+  rowLast: { borderBottomWidth: 0 },
+  rowIcon: {
+    width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  rowIconDanger: { backgroundColor: 'rgba(255,90,95,0.12)' },
+  rowBody: { flex: 1 },
+  rowTitle: { color: colors.text, fontSize: font.small, fontWeight: '900' },
+  rowTitleDanger: { color: colors.danger },
+  rowDescription: { marginTop: 3, color: colors.textMuted, fontSize: font.tiny, lineHeight: 16, fontWeight: '700' },
+  identityName: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
+  versionValue: { color: colors.textMuted, fontSize: font.tiny, fontWeight: '900' },
+
+  planCard: {
+    flexDirection: 'row', alignItems: 'center', gap: space.md,
+    padding: space.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border,
+  },
+  planBody: { flex: 1 },
+  planLabel: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.3 },
+  planName: { marginTop: 3, color: colors.text, fontSize: font.h2, fontWeight: '900' },
+  planDate: { marginTop: 3, color: colors.textMuted, fontSize: font.tiny, fontWeight: '700' },
+  planAction: {
+    width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  logoutBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm,
+    marginTop: space.lg, height: 52, borderRadius: radius.lg, backgroundColor: colors.surface,
+    ...shadow.card,
+  },
+  logoutText: { color: colors.danger, fontSize: font.body, fontWeight: '900' },
+
+  input: {
+    height: 50, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    paddingHorizontal: space.md, color: colors.text, fontSize: font.body, marginBottom: space.sm,
+  },
+  sheetActions: { flexDirection: 'row', gap: space.sm, marginTop: space.sm },
+  cancelBtn: {
+    flex: 1, height: 50, borderRadius: radius.md, backgroundColor: colors.surfaceAlt,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cancelText: { color: colors.text, fontSize: font.body, fontWeight: '900' },
+  saveBtn: {
+    flex: 1, height: 50, borderRadius: radius.md, backgroundColor: colors.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  saveText: { color: colors.onAccent, fontSize: font.body, fontWeight: '900' },
+  deleteBtn: {
+    flex: 1, height: 50, borderRadius: radius.md, backgroundColor: colors.danger,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  deleteText: { color: colors.white, fontSize: font.body, fontWeight: '900' },
 });
