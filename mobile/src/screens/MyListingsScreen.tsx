@@ -72,18 +72,20 @@ const formatDate = (value?: string) => {
   return date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+// Подпись читается как обычная фраза: точки между словами превращали её в
+// список служебных полей.
 const getMeta = (item: MyMarketListing) => {
   const listing = item.listing;
   const location = listing.location || listing.region || 'Локация не указана';
   const details = [
-    listing.year,
     listing.brand,
     listing.model,
+    listing.year,
     listing.category,
     listing.partCategory,
     listing.experience ? `${listing.experience} ${pluralYears(Number(listing.experience))} опыта` : '',
   ].filter(Boolean);
-  return details.length ? `${location} · ${details.slice(0, 2).join(' · ')}` : location;
+  return details.length ? `${details.slice(0, 2).join(' ')}, ${location}` : location;
 };
 
 export default function MyListingsScreen({ navigation }: Props) {
@@ -331,7 +333,7 @@ export default function MyListingsScreen({ navigation }: Props) {
 
         <View style={styles.cardBody}>
           <Text style={styles.cardPrice} numberOfLines={1}>{getListingPrice(item.listing, item.categoryId)}</Text>
-          <Text style={styles.cardTitle} numberOfLines={2}>{getListingTitle(item.listing)}</Text>
+          <Text style={styles.cardTitle} numberOfLines={1}>{getListingTitle(item.listing)}</Text>
           <Text style={styles.cardMeta} numberOfLines={1}>{getMeta(item)}</Text>
 
           <View style={styles.cardTags}>
@@ -489,16 +491,16 @@ const styles = StyleSheet.create({
   filterTextActive: { color: colors.onAccent },
 
   card: {
-    flexDirection: 'row', alignItems: 'center', gap: space.md,
+    flexDirection: 'row', alignItems: 'center', gap: space.sm,
     padding: space.sm, borderRadius: radius.lg, backgroundColor: colors.surface, ...shadow.card,
   },
-  cardImage: { width: 92, height: 92, borderRadius: radius.md, backgroundColor: colors.surfaceAlt },
+  cardImage: { width: 74, height: 74, borderRadius: radius.md, backgroundColor: colors.surfaceAlt },
   cardImageFallback: { alignItems: 'center', justifyContent: 'center' },
-  cardBody: { flex: 1, gap: 3 },
-  cardPrice: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
-  cardTitle: { color: colors.textMuted, fontSize: font.small, lineHeight: 18, fontWeight: '700' },
+  cardBody: { flex: 1, gap: 1 },
+  cardPrice: { color: colors.text, fontSize: font.body, fontWeight: '900' },
+  cardTitle: { color: colors.textMuted, fontSize: font.small, lineHeight: 17, fontWeight: '700' },
   cardMeta: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '700' },
-  cardTags: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' },
+  cardTags: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
   statusPill: {
     overflow: 'hidden', borderRadius: radius.pill, paddingHorizontal: space.sm, paddingVertical: 2,
     fontSize: 10, fontWeight: '900',
@@ -507,7 +509,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden', borderRadius: radius.pill, paddingHorizontal: space.sm, paddingVertical: 2,
     backgroundColor: colors.surfaceAlt, color: colors.textMuted, fontSize: 10, fontWeight: '900',
   },
-  cardDate: { color: colors.textFaint, fontSize: 10, fontWeight: '800' },
+  cardDate: { marginLeft: 'auto', color: colors.textFaint, fontSize: 10, fontWeight: '800' },
   rejectText: { marginTop: 4, color: colors.danger, fontSize: font.tiny, lineHeight: 16, fontWeight: '700' },
   moreBtn: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
 
