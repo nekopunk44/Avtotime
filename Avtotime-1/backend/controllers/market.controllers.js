@@ -34,11 +34,17 @@ const getCurrentUserProfile = async (userId) => {
   };
 };
 
+// Валюта приходит то кодом («EUR»), то знаком («€»). Код без пробела
+// слипается с суммой — «EUR10 000», — поэтому коды переводим в знаки, а сумму
+// ставим первой: так пишут цену в рублях, евро и леях.
+const CURRENCY_SYMBOLS = { EUR: "€", USD: "$", RUB: "₽", MDL: "L", UAH: "₴" };
+
 const formatMoney = (currency, amount) => {
-  const symbol = typeof currency === "string" && currency.trim() ? currency.trim() : "$";
+  const raw = typeof currency === "string" && currency.trim() ? currency.trim() : "€";
+  const symbol = CURRENCY_SYMBOLS[raw.toUpperCase()] || raw;
   const numeric = Number(amount) || 0;
   const spaced = numeric.toLocaleString("en-US").replace(/,/g, " ");
-  return `${symbol}${spaced}`;
+  return `${spaced} ${symbol}`;
 };
 
 const formatMileage = (value) => {
@@ -1079,7 +1085,7 @@ export const updateCarListing = async (req, res) => {
     });
 
     if (req.body.price !== undefined) {
-      listing.price = formatMoney(req.body.currency || "USD", req.body.price);
+      listing.price = formatMoney(req.body.currency || "EUR", req.body.price);
       listing.priceNumeric = Number(req.body.price) || 0;
     }
 
