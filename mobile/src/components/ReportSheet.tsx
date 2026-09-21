@@ -1,15 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
-  KeyboardAvoidingView,
+  Keyboard,
   Modal,
-  Platform,
+  PanResponder,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { useKeyboardLift } from '../hooks/useKeyboardLift';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, space, radius, font, shadow } from '../theme';
 import PressableScale from './ui/PressableScale';
@@ -47,6 +48,9 @@ export default function ReportSheet({ visible, targetType, targetId, targetKind,
   const [comment, setComment] = useState('');
   const [phase, setPhase] = useState<Phase>('pick');
   const [errorText, setErrorText] = useState('');
+  // Подъём под клавиатуру считает общий хук: система на разных сборках
+  // по-разному сжимает окно, и высоте клавиатуры одной верить нельзя.
+  const { lift: kbLift, onLayout: onRootLayout } = useKeyboardLift();
   const slide = useRef(new Animated.Value(60)).current;
   const fade = useRef(new Animated.Value(0)).current;
 
@@ -63,6 +67,36 @@ export default function ReportSheet({ visible, targetType, targetId, targetKind,
       ]).start();
     }
   }, [visible, slide, fade]);
+
+  // Панель идёт за пальцем: полоска-грабер обещает это движение, и обещание
+  // должно работать. Жест берём с первого касания — ожидание сдвига на шапке
+  // без кнопок только мешало.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) slide.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        // Либо утянули достаточно далеко, либо бросили резким движением вниз.
+        if (g.dy > 80 || g.vy > 0.9) {
+          Keyboard.dismiss();
+          closeRef.current();
+          return;
+        }
+        Animated.spring(slide, { toValue: 0, useNativeDriver: true, damping: 18, stiffness: 180 }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(slide, { toValue: 0, useNativeDriver: true, damping: 18, stiffness: 180 }).start();
+      },
+    }),
+  ).current;
 
   const send = async () => {
     if (!reason || phase === 'sending') return;
@@ -86,9 +120,11 @@ export default function ReportSheet({ visible, targetType, targetId, targetKind,
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <Animated.View style={[styles.backdrop, { opacity: fade }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Animated.View style={{ paddingBottom: kbLift }} onLayout={onRootLayout}>
           <Animated.View style={[styles.sheet, { transform: [{ translateY: slide }] }]}>
-            <View style={styles.grabber} />
+            <View {...pan.panHandlers} style={styles.handleZone}>
+              <View style={styles.grabber} />
+            </View>
 
             {finished ? (
               <View style={styles.doneWrap}>
@@ -155,7 +191,7 @@ export default function ReportSheet({ visible, targetType, targetId, targetKind,
               </>
             )}
           </Animated.View>
-        </KeyboardAvoidingView>
+        </Animated.View>
       </Animated.View>
     </Modal>
   );
@@ -176,6 +212,7 @@ const styles = StyleSheet.create({
     paddingTop: space.sm,
     ...shadow.card,
   },
+  handleZone: { paddingBottom: space.xs },
   grabber: {
     alignSelf: 'center',
     width: 40,
