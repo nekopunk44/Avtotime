@@ -2,8 +2,20 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { askConfirm } from '../store/confirmStore';
 import { showToast } from '../store/toastStore';
 import {
-  Animated, FlatList, View, Text, Image, StyleSheet,
-  ActivityIndicator, RefreshControl, } from 'react-native';
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  FlatList,
+  Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -44,9 +56,10 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
     ]).start();
   }, [opacity, translateY]);
 
-  const firstMedia = item.mediaList?.[0] || item.media;
-  const mediaCount = item.mediaList?.length ?? (item.media ? 1 : 0);
+  const gallery = (item.mediaList?.length ? item.mediaList : item.media ? [item.media] : []).filter(Boolean);
+  const firstMedia = gallery[0];
   const isVideo = item.mediaType === 'video';
+  const [mediaIndex, setMediaIndex] = useState(0);
   const poster = isVideo ? getVideoPoster(firstMedia) || firstMedia : firstMedia;
 
   return (
@@ -70,7 +83,36 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
           </PressableScale>
         </View>
 
-        {firstMedia ? (
+        {/* Несколько кадров листаются прямо в ленте: раньше карточка
+            показывала первый снимок и значок «2», а увидеть второй можно
+            было только внутри публикации. */}
+        {gallery.length > 1 && !isVideo ? (
+          <View style={styles.mediaWrap}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) =>
+                setMediaIndex(Math.round(e.nativeEvent.contentOffset.x / MEDIA_WIDTH))
+              }
+            >
+              {gallery.map((uri) => (
+                <Pressable key={uri} onPress={onOpen}>
+                  <Image source={{ uri }} style={styles.slide} resizeMode="cover" />
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            <View style={styles.mediaCounter}>
+              <Text style={styles.mediaCounterText}>{mediaIndex + 1}/{gallery.length}</Text>
+            </View>
+            <View style={styles.dots}>
+              {gallery.map((uri, index) => (
+                <View key={uri} style={[styles.dot, index === mediaIndex && styles.dotActive]} />
+              ))}
+            </View>
+          </View>
+        ) : firstMedia ? (
           <PressableScale onPress={onOpen} scaleTo={0.99}>
             <View style={styles.mediaWrap}>
               <Image source={{ uri: poster }} style={styles.postImage} resizeMode="cover" />
@@ -79,12 +121,6 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
                   <View style={styles.playCircle}>
                     <Ionicons name="play" size={26} color="#fff" />
                   </View>
-                </View>
-              ) : null}
-              {mediaCount > 1 ? (
-                <View style={styles.mediaCounter}>
-                  <Ionicons name="images-outline" size={13} color="#fff" />
-                  <Text style={styles.mediaCounterText}>{mediaCount}</Text>
                 </View>
               ) : null}
             </View>
@@ -132,6 +168,11 @@ function FeedSkeleton() {
     </View>
   );
 }
+
+// Кадр внутри карточки: экран минус поля списка и внутренние отступы
+// карточки. Слайд обязан совпадать с этой шириной, иначе листание не
+// доезжает до края.
+const MEDIA_WIDTH = Dimensions.get('window').width - space.md * 4;
 
 export default function FeedScreen({ navigation }: Props) {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -455,9 +496,16 @@ const styles = StyleSheet.create({
 
   mediaWrap: { width: '100%', aspectRatio: 1, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.surfaceAlt, marginTop: space.md },
   postImage: { width: '100%', height: '100%' },
+  slide: { width: MEDIA_WIDTH, height: MEDIA_WIDTH },
+  dots: {
+    position: 'absolute', left: 0, right: 0, bottom: 10,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5,
+  },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.45)' },
+  dotActive: { backgroundColor: colors.white, width: 18 },
   playBadge: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   playCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', paddingLeft: 4 },
-  mediaCounter: { position: 'absolute', right: 10, top: 10, borderRadius: 14, paddingHorizontal: 8, height: 26, backgroundColor: 'rgba(0,0,0,0.62)', flexDirection: 'row', alignItems: 'center', gap: 4 },
+  mediaCounter: { position: 'absolute', right: 10, top: 10, borderRadius: 14, paddingHorizontal: 9, height: 24, backgroundColor: 'rgba(0,0,0,0.62)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   mediaCounterText: { color: '#fff', fontSize: font.tiny, fontWeight: '900' },
 
   caption: { paddingTop: space.md, fontSize: font.body, color: colors.text, lineHeight: 21 },
