@@ -250,7 +250,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
           >
             {sending
               ? <ActivityIndicator size="small" color={colors.onAccent} />
-              : <Ionicons name="arrow-up" size={20} color={canSend ? colors.onAccent : colors.textFaint} />}
+              : <Ionicons name="arrow-up" size={18} color={canSend ? colors.onAccent : colors.textFaint} />}
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -293,19 +293,21 @@ const styles = StyleSheet.create({
     position: 'absolute', left: 0, right: 0,
     paddingHorizontal: space.md, paddingTop: space.sm, backgroundColor: colors.bg,
   },
+  // Строка комментария ниже, чем в чате: здесь пишут короче, а высокая
+  // пилюля отъедала место у самой переписки.
   composer: {
     flexDirection: 'row', alignItems: 'flex-end', gap: space.xs,
     borderRadius: radius.xl, backgroundColor: colors.surface,
-    paddingHorizontal: 6, paddingVertical: 6,
+    paddingHorizontal: 5, paddingVertical: 5,
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
     ...shadow.float,
   },
   input: {
-    flex: 1, minHeight: 44, maxHeight: 120, paddingHorizontal: space.sm,
-    paddingTop: 11, paddingBottom: 11, fontSize: font.body, color: colors.text,
+    flex: 1, minHeight: 38, maxHeight: 104, paddingHorizontal: space.sm,
+    paddingTop: 8, paddingBottom: 8, fontSize: font.small, color: colors.text,
   },
   sendBtn: {
-    width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.accent,
+    width: 38, height: 38, borderRadius: radius.pill, backgroundColor: colors.accent,
     justifyContent: 'center', alignItems: 'center',
   },
   sendBtnOff: { backgroundColor: colors.surfaceAlt },
