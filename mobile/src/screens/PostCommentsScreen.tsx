@@ -135,18 +135,6 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
 
     return (
       <View style={styles.postHeader}>
-        <View style={styles.authorRow}>
-          <Avatar
-            uri={post.author?.profileImage}
-            userName={post.author?.userName}
-            name={post.author?.name}
-            size={40}
-          />
-          <View style={styles.authorText}>
-            <Text style={styles.name}>{post.author?.name}</Text>
-            <Text style={styles.username}>@{post.author?.userName}</Text>
-          </View>
-        </View>
         {hasMedia ? (
           <PostMediaCarousel media={post.media} mediaList={post.mediaList} mediaType={post.mediaType} />
         ) : null}
@@ -198,32 +186,54 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
 
   const canSend = !!text.trim() && !sending;
 
+  const openAuthor = () => {
+    const authorId = post?.author?._id;
+    if (authorId) navigation.navigate('UserProfile', { userId: authorId });
+  };
+
   return (
-    <Animated.View style={[styles.container, { paddingBottom: kbLift }]}>
+    <View style={styles.container}>
+      {/* Своя строка вместо шапки навигации: возврат слева, автор по центру —
+          чтобы имя стояло на одном уровне с кнопкой, а не под ней. */}
+      <View style={[styles.topBar, { paddingTop: insets.top + space.xs }]}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={10}>
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.topAuthor} activeOpacity={0.8} onPress={openAuthor}>
+          <Avatar
+            uri={post?.author?.profileImage}
+            userName={post?.author?.userName}
+            name={post?.author?.name}
+            size={34}
+          />
+          <View style={styles.topAuthorText}>
+            <Text style={styles.name} numberOfLines={1}>{post?.author?.name || 'Публикация'}</Text>
+            {post?.author?.userName ? (
+              <Text style={styles.username} numberOfLines={1}>@{post.author.userName}</Text>
+            ) : null}
+          </View>
+        </TouchableOpacity>
+
+        {/* Пустое место шириной с кнопку: без него автор смещается вправо. */}
+        <View style={styles.backBtn} />
+      </View>
+
       <FlatList
         data={post?.comments ?? []}
         keyExtractor={(item) => item._id}
         renderItem={renderComment}
         ListHeaderComponent={header}
         ListEmptyComponent={<Text style={styles.empty}>Пока нет комментариев</Text>}
-        contentContainerStyle={[styles.listContent, { paddingTop: insets.top + space.xxl }]}
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 96 }]}
         keyboardShouldPersistTaps="handled"
       />
 
-      {/* Шапки нет — публикация начинается прямо от верха экрана, поэтому
-          возврат живёт кружком поверх снимка. */}
-      <TouchableOpacity
-        style={[styles.backBtn, { top: insets.top + space.sm }]}
-        onPress={() => navigation.goBack()}
-        hitSlop={10}
-        activeOpacity={0.85}
+      {/* Ввод прижат к низу экрана отдельным слоем: в общем потоке его нижний
+          край срезала системная полоса. Клавиатура двигает сам слой. */}
+      <Animated.View
+        style={[styles.composerWrap, { bottom: kbLift, paddingBottom: insets.bottom + space.sm }]}
       >
-        <Ionicons name="chevron-back" size={22} color={colors.white} />
-      </TouchableOpacity>
-
-      {/* Поле ввода парит над краем, как в чате: полоса во всю ширину
-          прижимала комментарии к низу. */}
-      <View style={[styles.composerWrap, { paddingBottom: insets.bottom + space.sm }]}>
         <View style={styles.composer}>
           <TextInput
             style={styles.input}
@@ -243,21 +253,21 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
               : <Ionicons name="arrow-up" size={20} color={canSend ? colors.onAccent : colors.textFaint} />}
           </TouchableOpacity>
         </View>
-      </View>
-    </Animated.View>
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  listContent: { paddingBottom: 16 },
+  listContent: { paddingBottom: space.xxl },
   postHeader: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, paddingBottom: 14 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt },
   authorText: { flex: 1 },
-  name: { fontSize: 14, fontWeight: '700', color: colors.text },
-  username: { fontSize: 12, color: colors.textFaint, marginTop: 1 },
+  name: { fontSize: font.body, fontWeight: '900', color: colors.text },
+  username: { marginTop: 1, fontSize: font.tiny, fontWeight: '800', color: colors.textFaint },
   caption: { paddingHorizontal: 14, paddingTop: 12, fontSize: 14, color: colors.text, lineHeight: 20 },
   postActions: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14, paddingTop: 12 },
   postActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -271,12 +281,18 @@ const styles = StyleSheet.create({
   commentName: { fontSize: 12, fontWeight: '700', color: colors.textMuted, marginBottom: 3 },
   commentText: { fontSize: 14, color: colors.text, lineHeight: 19 },
   empty: { textAlign: 'center', color: colors.textFaint, marginTop: 30, fontSize: 14 },
-  backBtn: {
-    position: 'absolute', left: space.md, zIndex: 5,
-    width: 38, height: 38, borderRadius: radius.pill,
-    backgroundColor: 'rgba(11,11,14,0.55)', alignItems: 'center', justifyContent: 'center',
+  topBar: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: space.sm, paddingBottom: space.sm,
+    backgroundColor: colors.bg,
   },
-  composerWrap: { paddingHorizontal: space.md, paddingTop: space.sm, backgroundColor: 'transparent' },
+  backBtn: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
+  topAuthor: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm },
+  topAuthorText: { flexShrink: 1 },
+  composerWrap: {
+    position: 'absolute', left: 0, right: 0,
+    paddingHorizontal: space.md, paddingTop: space.sm, backgroundColor: colors.bg,
+  },
   composer: {
     flexDirection: 'row', alignItems: 'flex-end', gap: space.xs,
     borderRadius: radius.xl, backgroundColor: colors.surface,
