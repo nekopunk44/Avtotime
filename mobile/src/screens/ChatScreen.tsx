@@ -128,8 +128,9 @@ export default function ChatScreen({ route, navigation }: Props) {
   useEffect(() => {
     const glide = (height: number, duration?: number) => {
       Animated.timing(kbLift, {
-        // Системная полоса внизу уже даёт отступ — вычитаем, иначе останется щель.
-        toValue: Math.max(0, height - insets.bottom),
+        // Полная высота клавиатуры: пока она открыта, safe-area снизу
+        // отдаётся нулём, и вычитание задирало строку ввода под её край.
+        toValue: height,
         duration: duration && duration > 0 ? duration : 220,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
@@ -702,7 +703,17 @@ export default function ChatScreen({ route, navigation }: Props) {
         </Animated.View>
       </Animated.View>
 
-      <View style={{ height: insets.bottom + space.sm }} />
+      {/* Место под системную полосу — только пока клавиатуры нет: под ней
+          полосы всё равно не видно. */}
+      <Animated.View
+        style={{
+          height: kbLift.interpolate({
+            inputRange: [0, 1],
+            outputRange: [insets.bottom + space.sm, space.sm],
+            extrapolate: 'clamp',
+          }),
+        }}
+      />
 
       <PopoverMenu
         visible={menuOpen}

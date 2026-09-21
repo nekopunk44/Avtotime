@@ -59,8 +59,9 @@ export default function FormSheet({ visible, title, subtitle, onClose, children 
   useEffect(() => {
     const glide = (height: number, duration?: number) => {
       Animated.timing(kbLift, {
-        // Системная полоса уже даёт отступ снизу — вычитаем, иначе щель.
-        toValue: Math.max(0, height - insets.bottom),
+        // Полная высота клавиатуры: пока она открыта, safe-area снизу
+        // отдаётся нулём, и вычитание прятало низ формы под её край.
+        toValue: height,
         duration: duration && duration > 0 ? duration : 220,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
@@ -114,7 +115,13 @@ export default function FormSheet({ visible, title, subtitle, onClose, children 
         <Animated.View
           style={[
             styles.sheet,
-            { paddingBottom: insets.bottom + space.lg },
+            {
+              paddingBottom: kbLift.interpolate({
+                inputRange: [0, 1],
+                outputRange: [insets.bottom + space.lg, space.lg],
+                extrapolate: 'clamp',
+              }),
+            },
             {
               transform: [{
                 translateY: Animated.add(

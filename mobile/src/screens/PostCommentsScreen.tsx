@@ -42,7 +42,10 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
   useEffect(() => {
     const glide = (height: number, duration?: number) => {
       Animated.timing(kbLift, {
-        toValue: Math.max(0, height - insets.bottom),
+        // Полная высота клавиатуры, без вычитания системной полосы: пока
+        // клавиатура открыта, safe-area снизу отдаётся нулём, и вычитание
+        // задирало ввод под её край.
+        toValue: height,
         duration: duration && duration > 0 ? duration : 220,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
@@ -232,7 +235,16 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
       {/* Ввод прижат к низу экрана отдельным слоем: в общем потоке его нижний
           край срезала системная полоса. Клавиатура двигает сам слой. */}
       <Animated.View
-        style={[styles.composerWrap, { bottom: kbLift, paddingBottom: insets.bottom + space.sm }]}
+        style={[styles.composerWrap, {
+          bottom: kbLift,
+          // Пока клавиатуры нет — отступ под системную полосу; как только она
+          // появилась, полосы под ней нет, и остаётся только зазор.
+          paddingBottom: kbLift.interpolate({
+            inputRange: [0, 1],
+            outputRange: [insets.bottom + space.sm, space.sm],
+            extrapolate: 'clamp',
+          }),
+        }]}
       >
         <View style={styles.composer}>
           <TextInput

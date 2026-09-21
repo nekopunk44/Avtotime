@@ -183,8 +183,9 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   useEffect(() => {
     const glide = (height: number, duration?: number) => {
       Animated.timing(kbLift, {
-        // Системная полоса внизу уже даёт отступ — вычитаем, иначе останется щель.
-        toValue: Math.max(0, height - insets.bottom),
+        // Полная высота клавиатуры: пока она открыта, safe-area снизу
+        // отдаётся нулём, и вычитание оставляло низ формы под её краем.
+        toValue: height,
         duration: duration && duration > 0 ? duration : 220,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
