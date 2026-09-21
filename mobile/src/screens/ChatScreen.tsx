@@ -32,6 +32,7 @@ import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useKeyboardLift } from '../hooks/useKeyboardLift';
 import {
   blockUser,
   deleteConversation,
@@ -120,30 +121,11 @@ export default function ChatScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
 
-  // Панель ввода поднимается сама: под edge-to-edge окно под клавиатуру не
-  // сжимается, поэтому высоту берём из события, а не из KeyboardAvoidingView.
-  const kbLift = useRef(new Animated.Value(0)).current;
+  // Подъём под клавиатуру считается с оглядкой на то, сжала ли система окно
+  // сама: иначе на одних сборках строка ввода уезжает под клавиатуру, на
+  // других улетает вверх.
+  const { lift: kbLift, onLayout: onRootLayout } = useKeyboardLift();
   const attachLift = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const glide = (height: number, duration?: number) => {
-      Animated.timing(kbLift, {
-        // Полная высота клавиатуры: пока она открыта, safe-area снизу
-        // отдаётся нулём, и вычитание задирало строку ввода под её край.
-        toValue: height,
-        duration: duration && duration > 0 ? duration : 220,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
-    };
-    const subs = [
-      Keyboard.addListener('keyboardWillShow', (e) => glide(e.endCoordinates.height, e.duration)),
-      Keyboard.addListener('keyboardDidShow', (e) => glide(e.endCoordinates.height, e.duration)),
-      Keyboard.addListener('keyboardWillHide', (e) => glide(0, e.duration)),
-      Keyboard.addListener('keyboardDidHide', (e) => glide(0, e.duration)),
-    ];
-    return () => subs.forEach((s) => s.remove());
-  }, [insets.bottom, kbLift]);
 
   useEffect(() => {
     Animated.timing(attachLift, {
@@ -548,7 +530,7 @@ export default function ChatScreen({ route, navigation }: Props) {
   const canSend = hasContent && !sending && !isBlocked;
 
   return (
-    <Animated.View style={[styles.container, { paddingBottom: kbLift }]}>
+    <Animated.View style={[styles.container, { paddingBottom: kbLift }]} onLayout={onRootLayout}>
       {isBlocked ? (
         <View style={styles.blockedBanner}>
           <Ionicons name="ban-outline" size={18} color={colors.danger} />

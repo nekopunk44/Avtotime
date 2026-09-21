@@ -3,11 +3,12 @@ import { askConfirm } from '../store/confirmStore';
 import { showToast } from '../store/toastStore';
 import {
   View, Text, FlatList, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Animated, Easing, Keyboard, } from 'react-native';
+  StyleSheet, ActivityIndicator, Animated, } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useKeyboardLift } from '../hooks/useKeyboardLift';
 import { addComment, deletePost, getPostById, isPostSaved, Post, PostComment, toggleLike, toggleSavePost } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
@@ -35,30 +36,11 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
   const [sending, setSending] = useState(false);
   const insets = useSafeAreaInsets();
 
-  // Место под клавиатуру считаем по её событиям: под edge-to-edge окно не
-  // сжимается, и KeyboardAvoidingView оставлял поле под клавиатурой.
-  const kbLift = useRef(new Animated.Value(0)).current;
+  // Подъём под клавиатуру: величина считается с оглядкой на то, сжала ли
+  // система окно сама — иначе на одних сборках ввод уезжает под клавиатуру,
+  // на других улетает вверх.
+  const { lift: kbLift, onLayout: onRootLayout } = useKeyboardLift();
 
-  useEffect(() => {
-    const glide = (height: number, duration?: number) => {
-      Animated.timing(kbLift, {
-        // Полная высота клавиатуры, без вычитания системной полосы: пока
-        // клавиатура открыта, safe-area снизу отдаётся нулём, и вычитание
-        // задирало ввод под её край.
-        toValue: height,
-        duration: duration && duration > 0 ? duration : 220,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
-    };
-    const subs = [
-      Keyboard.addListener('keyboardWillShow', (e) => glide(e.endCoordinates.height, e.duration)),
-      Keyboard.addListener('keyboardDidShow', (e) => glide(e.endCoordinates.height, e.duration)),
-      Keyboard.addListener('keyboardWillHide', (e) => glide(0, e.duration)),
-      Keyboard.addListener('keyboardDidHide', (e) => glide(0, e.duration)),
-    ];
-    return () => subs.forEach((sub) => sub.remove());
-  }, [insets.bottom, kbLift]);
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
 
@@ -195,7 +177,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={onRootLayout}>
       {/* Своя строка вместо шапки навигации: возврат слева, автор по центру —
           чтобы имя стояло на одном уровне с кнопкой, а не под ней. */}
       <View style={[styles.topBar, { paddingTop: insets.top + space.xs }]}>

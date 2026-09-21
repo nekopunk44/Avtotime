@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useKeyboardLift } from '../../hooks/useKeyboardLift';
 import { colors, font, radius, shadow, space } from '../../theme';
 
 // Ход выезда заведомо больше панели: старт всегда за краем экрана, иначе
@@ -37,7 +38,9 @@ export default function FormSheet({ visible, title, subtitle, onClose, children 
   // Смещение пальцем и подъём под клавиатуру идут тем же (JS) драйвером:
   // нативная и не-нативная анимации на одном transform несовместимы.
   const drag = useRef(new Animated.Value(0)).current;
-  const kbLift = useRef(new Animated.Value(0)).current;
+  // Подъём под клавиатуру считает общий хук: система на разных сборках
+  // по-разному сжимает окно, и слепо доверять высоте клавиатуры нельзя.
+  const { lift: kbLift, onLayout: onRootLayout } = useKeyboardLift();
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -55,26 +58,6 @@ export default function FormSheet({ visible, title, subtitle, onClose, children 
       Animated.timing(drag, { toValue: 0, duration: 200, easing: Easing.in(Easing.cubic), useNativeDriver: false }),
     ]).start(({ finished }) => { if (finished) setMounted(false); });
   }, [visible, anim, drag]);
-
-  useEffect(() => {
-    const glide = (height: number, duration?: number) => {
-      Animated.timing(kbLift, {
-        // Полная высота клавиатуры: пока она открыта, safe-area снизу
-        // отдаётся нулём, и вычитание прятало низ формы под её край.
-        toValue: height,
-        duration: duration && duration > 0 ? duration : 220,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
-    };
-    const subs = [
-      Keyboard.addListener('keyboardWillShow', (e) => glide(e.endCoordinates.height, e.duration)),
-      Keyboard.addListener('keyboardDidShow', (e) => glide(e.endCoordinates.height, e.duration)),
-      Keyboard.addListener('keyboardWillHide', (e) => glide(0, e.duration)),
-      Keyboard.addListener('keyboardDidHide', (e) => glide(0, e.duration)),
-    ];
-    return () => subs.forEach((sub) => sub.remove());
-  }, [insets.bottom, kbLift]);
 
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -107,7 +90,7 @@ export default function FormSheet({ visible, title, subtitle, onClose, children 
 
   return (
     <Modal visible transparent statusBarTranslucent animationType="none" onRequestClose={onClose}>
-      <Animated.View style={[styles.root, { paddingBottom: kbLift }]}>
+      <Animated.View style={[styles.root, { paddingBottom: kbLift }]} onLayout={onRootLayout}>
         <Pressable style={StyleSheet.absoluteFill} onPress={() => { Keyboard.dismiss(); onClose(); }}>
           <Animated.View style={[styles.backdrop, { opacity: anim }]} />
         </Pressable>

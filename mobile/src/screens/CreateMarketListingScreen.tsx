@@ -5,7 +5,6 @@ import {
   Animated,
   Easing,
   Image,
-  Keyboard,
   LayoutAnimation,
   ScrollView,
   StyleSheet,
@@ -17,6 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useKeyboardLift } from '../hooks/useKeyboardLift';
 import * as ImagePicker from 'expo-image-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -175,30 +175,10 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
 
   useEffect(enableLayoutAnimation, []);
 
-  // Место под клавиатуру считаем по её событиям: под edge-to-edge окно не
-  // сжимается, а KeyboardAvoidingView оставлял экран обрезанным и после того,
-  // как клавиатура уже ушла.
-  const kbLift = useRef(new Animated.Value(0)).current;
+  // Подъём под клавиатуру: см. useKeyboardLift — величина зависит от того,
+  // сжала ли система окно сама.
+  const { lift: kbLift, onLayout: onRootLayout } = useKeyboardLift();
 
-  useEffect(() => {
-    const glide = (height: number, duration?: number) => {
-      Animated.timing(kbLift, {
-        // Полная высота клавиатуры: пока она открыта, safe-area снизу
-        // отдаётся нулём, и вычитание оставляло низ формы под её краем.
-        toValue: height,
-        duration: duration && duration > 0 ? duration : 220,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
-    };
-    const subs = [
-      Keyboard.addListener('keyboardWillShow', (e) => glide(e.endCoordinates.height, e.duration)),
-      Keyboard.addListener('keyboardDidShow', (e) => glide(e.endCoordinates.height, e.duration)),
-      Keyboard.addListener('keyboardWillHide', (e) => glide(0, e.duration)),
-      Keyboard.addListener('keyboardDidHide', (e) => glide(0, e.duration)),
-    ];
-    return () => subs.forEach((sub) => sub.remove());
-  }, [insets.bottom, kbLift]);
   const [mode, setMode] = useState<MarketCategoryId>('cars');
   const [form, setForm] = useState<FormState>(initialForm);
   const [images, setImages] = useState<string[]>([]);
@@ -547,7 +527,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   }
 
   return (
-    <Animated.View style={[styles.container, { paddingBottom: kbLift }]}>
+    <Animated.View style={[styles.container, { paddingBottom: kbLift }]} onLayout={onRootLayout}>
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.xxl }]}
         keyboardShouldPersistTaps="handled"
