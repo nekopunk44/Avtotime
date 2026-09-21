@@ -1,19 +1,19 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { askConfirm } from '../store/confirmStore';
 import { showToast } from '../store/toastStore';
 import {
   View, Text, FlatList, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, } from 'react-native';
+  StyleSheet, ActivityIndicator, Animated, Easing, Keyboard, } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useHeaderHeight } from '@react-navigation/elements';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { addComment, deletePost, getPostById, isPostSaved, Post, PostComment, toggleLike, toggleSavePost } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import PostMediaCarousel from '../components/PostMediaCarousel';
 import { Avatar } from '../components/ui';
-import { colors } from '../theme';
+import { colors, font, radius, shadow, space } from '../theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'PostComments'>;
@@ -33,15 +33,36 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const insets = useSafeAreaInsets();
+
+  // Место под клавиатуру считаем по её событиям: под edge-to-edge окно не
+  // сжимается, и KeyboardAvoidingView оставлял поле под клавиатурой.
+  const kbLift = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const glide = (height: number, duration?: number) => {
+      Animated.timing(kbLift, {
+        toValue: Math.max(0, height - insets.bottom),
+        duration: duration && duration > 0 ? duration : 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    };
+    const subs = [
+      Keyboard.addListener('keyboardWillShow', (e) => glide(e.endCoordinates.height, e.duration)),
+      Keyboard.addListener('keyboardDidShow', (e) => glide(e.endCoordinates.height, e.duration)),
+      Keyboard.addListener('keyboardWillHide', (e) => glide(0, e.duration)),
+      Keyboard.addListener('keyboardDidHide', (e) => glide(0, e.duration)),
+    ];
+    return () => subs.forEach((sub) => sub.remove());
+  }, [insets.bottom, kbLift]);
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
-  const headerHeight = useHeaderHeight();
 
   const load = useCallback(async () => {
     try {
       const data = await getPostById(postId);
       setPost(data);
-      navigation.setOptions({ title: `Комментарии (${data.commentsCount ?? data.comments.length})` });
     } catch (e: any) {
       showToast(e.response?.data?.message || 'Не удалось загрузить комментарии', 'error');
     } finally {
@@ -60,7 +81,6 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
       const updated = await addComment(postId, message);
       setPost(updated);
       setText('');
-      navigation.setOptions({ title: `Комментарии (${updated.commentsCount ?? updated.comments.length})` });
     } catch (e: any) {
       showToast(e.response?.data?.message || 'Не удалось добавить комментарий', 'error');
     } finally {
@@ -106,7 +126,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
         })(); });
   };
 
-  const renderHeader = () => {
+  const buildHeader = () => {
     if (!post) return null;
     const liked = user ? post.likes?.includes(user._id) : false;
     const saved = isPostSaved(user, post._id);
@@ -174,47 +194,62 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
     return <View style={styles.center}><ActivityIndicator size="large" color={colors.text} /></View>;
   }
 
+  const header = buildHeader();
+
+  const canSend = !!text.trim() && !sending;
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={headerHeight}
-    >
+    <Animated.View style={[styles.container, { paddingBottom: kbLift }]}>
       <FlatList
         data={post?.comments ?? []}
         keyExtractor={(item) => item._id}
         renderItem={renderComment}
-        ListHeaderComponent={renderHeader()}
+        ListHeaderComponent={header}
         ListEmptyComponent={<Text style={styles.empty}>Пока нет комментариев</Text>}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingTop: insets.top + space.xxl }]}
         keyboardShouldPersistTaps="handled"
       />
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          placeholder="Добавить комментарий..."
-          placeholderTextColor={colors.textFaint}
-          value={text}
-          onChangeText={setText}
-          multiline
-        />
-        <TouchableOpacity
-          style={styles.sendBtn}
-          onPress={handleSend}
-          disabled={sending || !text.trim()}
-        >
-          {sending
-            ? <ActivityIndicator size="small" color={colors.text} />
-            : <Ionicons name="send" size={20} color={text.trim() ? colors.accent : colors.textFaint} />
-          }
-        </TouchableOpacity>
+
+      {/* Шапки нет — публикация начинается прямо от верха экрана, поэтому
+          возврат живёт кружком поверх снимка. */}
+      <TouchableOpacity
+        style={[styles.backBtn, { top: insets.top + space.sm }]}
+        onPress={() => navigation.goBack()}
+        hitSlop={10}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="chevron-back" size={22} color={colors.white} />
+      </TouchableOpacity>
+
+      {/* Поле ввода парит над краем, как в чате: полоса во всю ширину
+          прижимала комментарии к низу. */}
+      <View style={[styles.composerWrap, { paddingBottom: insets.bottom + space.sm }]}>
+        <View style={styles.composer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Добавить комментарий"
+            placeholderTextColor={colors.textFaint}
+            value={text}
+            onChangeText={setText}
+            multiline
+          />
+          <TouchableOpacity
+            style={[styles.sendBtn, !canSend && styles.sendBtnOff]}
+            onPress={handleSend}
+            disabled={!canSend}
+          >
+            {sending
+              ? <ActivityIndicator size="small" color={colors.onAccent} />
+              : <Ionicons name="arrow-up" size={20} color={canSend ? colors.onAccent : colors.textFaint} />}
+          </TouchableOpacity>
+        </View>
       </View>
-    </KeyboardAvoidingView>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
+  container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContent: { paddingBottom: 16 },
   postHeader: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, paddingBottom: 14 },
@@ -236,15 +271,26 @@ const styles = StyleSheet.create({
   commentName: { fontSize: 12, fontWeight: '700', color: colors.textMuted, marginBottom: 3 },
   commentText: { fontSize: 14, color: colors.text, lineHeight: 19 },
   empty: { textAlign: 'center', color: colors.textFaint, marginTop: 30, fontSize: 14 },
-  inputRow: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: 8,
-    paddingHorizontal: 12, paddingVertical: 10,
-    backgroundColor: colors.surface, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border,
+  backBtn: {
+    position: 'absolute', left: space.md, zIndex: 5,
+    width: 38, height: 38, borderRadius: radius.pill,
+    backgroundColor: 'rgba(11,11,14,0.55)', alignItems: 'center', justifyContent: 'center',
+  },
+  composerWrap: { paddingHorizontal: space.md, paddingTop: space.sm, backgroundColor: 'transparent' },
+  composer: {
+    flexDirection: 'row', alignItems: 'flex-end', gap: space.xs,
+    borderRadius: radius.xl, backgroundColor: colors.surface,
+    paddingHorizontal: 6, paddingVertical: 6,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+    ...shadow.float,
   },
   input: {
-    flex: 1, minHeight: 40, maxHeight: 110, backgroundColor: colors.surfaceAlt,
-    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8,
-    fontSize: 15, color: colors.text,
+    flex: 1, minHeight: 44, maxHeight: 120, paddingHorizontal: space.sm,
+    paddingTop: 11, paddingBottom: 11, fontSize: font.body, color: colors.text,
   },
-  sendBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  sendBtn: {
+    width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.accent,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  sendBtnOff: { backgroundColor: colors.surfaceAlt },
 });

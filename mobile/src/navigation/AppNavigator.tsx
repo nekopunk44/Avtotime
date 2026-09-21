@@ -277,7 +277,9 @@ export default function AppNavigator() {
         // экран ставит в шапку ник пользователя.
         options={{ title: 'Профиль', animation: 'fade_from_bottom', animationDuration: 260 }}
       />
-      <Stack.Screen name="PostComments" component={PostCommentsScreen} options={{ title: 'Комментарии' }} />
+      {/* Публикация занимает экран целиком: шапка повторяла бы имя автора,
+          которое и так стоит первой строкой, а возврат живёт кружком поверх снимка. */}
+      <Stack.Screen name="PostComments" component={PostCommentsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Редактировать профиль' }} />
       <Stack.Screen
         name="MarketListingDetails"
