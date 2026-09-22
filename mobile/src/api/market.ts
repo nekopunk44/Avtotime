@@ -51,6 +51,7 @@ export interface MarketListing {
   category?: string;
   partGroup?: string;
   partCategory?: string;
+  currency?: string;
   serviceQuality?: number;
   rating?: number;
   reviews?: number;
@@ -143,9 +144,25 @@ export function getListingTitle(listing: MarketListing) {
   return listing.title || listing.name || 'Объявление';
 }
 
+/** Валюты, в которых можно выставить цену. Коды совпадают с серверными. */
+export const CURRENCIES: Array<{ code: string; symbol: string; label: string }> = [
+  { code: 'EUR', symbol: '€', label: 'Евро' },
+  { code: 'USD', symbol: '$', label: 'Доллар' },
+  { code: 'MDL', symbol: 'L', label: 'Молдавский лей' },
+  { code: 'RUB', symbol: '₽', label: 'Рубль' },
+  { code: 'UAH', symbol: '₴', label: 'Гривна' },
+];
+
+export const currencySymbol = (code?: string) =>
+  CURRENCIES.find((item) => item.code === String(code || '').toUpperCase())?.symbol || '€';
+
 export function getListingPrice(listing: MarketListing, categoryId?: MarketCategoryId) {
+  // Знак всегда после суммы: «10 000 €». Где-то он стоял впереди, и одна и та
+  // же цена выглядела в маркете по-разному.
+  const symbol = currencySymbol(listing.currency);
+
   if (categoryId === 'consultations' && listing.hourlyRate != null) {
-    return `€ ${listing.hourlyRate.toLocaleString('ru-RU')}/ч`;
+    return `${listing.hourlyRate.toLocaleString('ru-RU')} ${symbol}/ч`;
   }
 
   if (listing.price == null || listing.price === '') {
@@ -155,7 +172,7 @@ export function getListingPrice(listing: MarketListing, categoryId?: MarketCateg
   if (typeof listing.price === 'number') {
     const prefix = listing.pricePrefix ? `${listing.pricePrefix} ` : '';
     const unit = listing.unit ? `/${listing.unit}` : '';
-    return `${prefix}€ ${listing.price.toLocaleString('ru-RU')}${unit}`;
+    return `${prefix}${listing.price.toLocaleString('ru-RU')} ${symbol}${unit}`;
   }
 
   return listing.price;
@@ -377,6 +394,8 @@ export interface CreateServiceListingPayload {
   hourlyRate?: string;
   pricePrefix?: string;
   unit?: string;
+  /** Код валюты; сервер хранит его вместе с объявлением. */
+  currency?: string;
   /** Кадры объявления; первый становится обложкой. */
   imageUris: string[];
   tags?: string;
@@ -548,6 +567,7 @@ export async function createServiceListing(payload: CreateServiceListingPayload)
     appendText(formData, 'price', payload.price);
     appendText(formData, 'pricePrefix', payload.pricePrefix);
     appendText(formData, 'unit', payload.unit);
+    appendText(formData, 'currency', payload.currency);
     appendText(formData, 'tags', payload.tags);
     appendText(formData, 'rating', payload.rating);
     appendText(formData, 'reviews', payload.reviews);

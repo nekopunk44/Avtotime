@@ -22,6 +22,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   createServiceListing,
   createVehicleListing,
+  CURRENCIES,
+  currencySymbol,
   getDistinctBrands,
   getDistinctModels,
   getMarketCategory,
@@ -41,6 +43,7 @@ interface FormState {
   title: string;
   price: string;
   category: string;
+  currency: string;
   location: string;
   brand: string;
   model: string;
@@ -63,6 +66,7 @@ const initialForm: FormState = {
   title: '',
   price: '',
   category: '',
+  currency: 'EUR',
   location: '',
   brand: '',
   model: '',
@@ -138,6 +142,11 @@ const DRIVE = ['Передний', 'Задний', 'Полный'];
 
 // За что берут деньги. В карточке единица дописывается к сумме («20 €/час»),
 // поэтому хранится со слешем, а человеку показывается словами.
+const CURRENCY_OPTIONS: ChoiceOption[] = CURRENCIES.map((item) => ({
+  value: item.code,
+  label: `${item.label} (${item.symbol})`,
+}));
+
 const UNITS: ChoiceOption[] = [
   { value: '/услуга', label: 'За услугу' },
   { value: '/час', label: 'За час' },
@@ -380,6 +389,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
         name: form.title,
         price: form.price,
         hourlyRate: form.price,
+        currency: form.currency,
         category: form.category || DEFAULT_CATEGORY_BY_MODE[mode],
         location: form.location,
         unit: form.unit,
@@ -414,6 +424,28 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
       multiline={options.multiline}
       textAlignVertical={options.multiline ? 'top' : 'center'}
     />
+  );
+
+  /** Цена и валюта рядом: валюта относится к сумме, а не к объявлению вообще. */
+  const priceRow = (
+    <View style={styles.priceRow}>
+      <TextInput
+        style={[styles.input, styles.priceInput]}
+        placeholder={isConsultation ? 'Ставка за час' : 'Цена'}
+        placeholderTextColor={colors.textFaint}
+        value={form.price}
+        onChangeText={(value) => update('price', value.replace(/[^0-9]/g, ''))}
+        keyboardType="numeric"
+      />
+      <TouchableOpacity
+        style={[styles.input, styles.currencyBtn]}
+        activeOpacity={0.8}
+        onPress={() => setPicker({ key: 'currency', title: 'Валюта', options: CURRENCY_OPTIONS })}
+      >
+        <Text style={styles.currencyText}>{currencySymbol(form.currency)}</Text>
+        <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
+      </TouchableOpacity>
+    </View>
   );
 
   /** Город: ручной ввод и определение прямо внутри поля. */
@@ -458,7 +490,7 @@ export default function CreateMarketListingScreen({ navigation }: Props) {
   const blocks: React.ReactNode[] = [
     <Text style={styles.sectionTitle}>{isConsultation ? 'Профиль специалиста' : 'Основное'}</Text>,
     input('title', isConsultation ? 'Имя специалиста' : mode === 'cars' ? 'Название: BMW X5 2020' : 'Название объявления'),
-    input('price', isConsultation ? 'Ставка в EUR / час' : 'Цена в EUR', { keyboardType: 'numeric' }),
+    priceRow,
     cityField,
   ];
 
@@ -653,6 +685,12 @@ const styles = StyleSheet.create({
   // У поля с подсказками своя вёрстка с подписью — отбиваем его так же,
   // как отбиты обычные поля друг от друга.
   suggestWrap: { marginBottom: 10 },
+  priceRow: { flexDirection: 'row', gap: 8 },
+  priceInput: { flex: 1 },
+  currencyBtn: {
+    width: 92, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+  },
+  currencyText: { color: colors.text, fontSize: 16, fontWeight: '900' },
   inputWrap: { position: 'relative', justifyContent: 'center' },
   inputInline: { paddingRight: 44 },
   inputAction: { position: 'absolute', right: 6, top: 0, bottom: 10, width: 38, alignItems: 'center', justifyContent: 'center' },

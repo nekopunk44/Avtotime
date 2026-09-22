@@ -39,6 +39,9 @@ const marketAutoTuningListingSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    // Валюта объявления. Хранится кодом: цена показывается по-разному в
+    // разных местах, а вот источник у неё должен быть один.
+    currency: { type: String, default: "EUR", trim: true },
     image: {
       type: String,
       required: true,

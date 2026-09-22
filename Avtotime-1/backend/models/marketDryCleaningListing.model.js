@@ -10,6 +10,9 @@ const marketDryCleaningListingSchema = new mongoose.Schema(
     rating: { type: Number, default: 0, min: 0, max: 5 },
     reviews: { type: Number, default: 0, min: 0 },
     price: { type: Number, required: true, min: 0 },
+    // Валюта объявления. Хранится кодом: цена показывается по-разному в
+    // разных местах, а вот источник у неё должен быть один.
+    currency: { type: String, default: "EUR", trim: true },
     image: { type: String, required: true },
     // Первый кадр — обложка; он же лежит в image ради старых экранов.
     images: { type: [String], default: [] },

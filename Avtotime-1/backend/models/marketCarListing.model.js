@@ -6,6 +6,9 @@ const marketCarListingSchema = new mongoose.Schema(
     image: { type: String, required: true },
     images: { type: [String], default: [] },
     price: { type: String, default: "" },
+    // Валюта объявления. Хранится кодом: цена показывается по-разному в
+    // разных местах, а вот источник у неё должен быть один.
+    currency: { type: String, default: "EUR", trim: true },
     title: { type: String, required: true, trim: true },
     mileage: { type: String, default: "" },
     fuel: { type: String, default: "" },

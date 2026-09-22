@@ -39,6 +39,12 @@ const getCurrentUserProfile = async (userId) => {
 // ставим первой: так пишут цену в рублях, евро и леях.
 const CURRENCY_SYMBOLS = { EUR: "€", USD: "$", RUB: "₽", MDL: "L", UAH: "₴" };
 
+/** Код валюты из запроса; неизвестный код не пускаем — иначе в базе мусор. */
+export const readCurrency = (value, fallback = "EUR") => {
+  const raw = String(value || "").trim().toUpperCase();
+  return CURRENCY_SYMBOLS[raw] ? raw : fallback;
+};
+
 const formatMoney = (currency, amount) => {
   const raw = typeof currency === "string" && currency.trim() ? currency.trim() : "€";
   const symbol = CURRENCY_SYMBOLS[raw.toUpperCase()] || raw;
@@ -435,12 +441,13 @@ export const createCarListing = async (req, res) => {
 
     const rawPriceNum = Number(price) || 0;
     const listing = await MarketCarListing.create({
+      currency: readCurrency(currency),
       sellerBadge: planLimits.badge ?? null,
       id: buildId(),
       image: images[0],
       images,
       videoUrl,
-      price: formatMoney(currency, price),
+      price: formatMoney(readCurrency(currency), price),
       priceNumeric: rawPriceNum,
       yearNumeric: parseInt(String(year || ""), 10) || 0,
       mileageNumeric: Number(String(mileage || "").replace(/\D/g, "")) || 0,
@@ -561,12 +568,13 @@ export const createPartListing = async (req, res) => {
 
     const rawPartPriceNum = Number(price) || 0;
     const listing = await MarketPartListing.create({
+      currency: readCurrency(currency),
       sellerBadge: planLimits.badge ?? null,
       id: buildId(),
       image: images[0],
       images,
       videoUrl,
-      price: formatMoney(currency, price),
+      price: formatMoney(readCurrency(currency), price),
       priceNumeric: rawPartPriceNum,
       yearNumeric: parseInt(String(year || ""), 10) || 0,
       title: String(title).trim(),
@@ -656,7 +664,10 @@ export const updatePartListing = async (req, res) => {
     }
 
     if (typeof req.body?.price === "string" || typeof req.body?.price === "number") {
-      const currency = typeof req.body?.currency === "string" ? req.body.currency.trim() : "$";
+      // Валюта из запроса, иначе прежняя: правка цены не должна переименовывать
+      // доллары в евро.
+      const currency = readCurrency(req.body?.currency, listing.currency || "EUR");
+      patch.currency = currency;
       patch.price = formatMoney(currency, req.body.price);
       patch.priceNumeric = Number(req.body.price) || 0;
     }
@@ -787,6 +798,7 @@ export const uploadRequestImages = async (req) => {
 export const createCarServiceListing = async (req, res) => {
   try {
     const { category, title, location, serviceQuality, reviews, price, pricePrefix, unit } = req.body;
+    const currency = readCurrency(req.body.currency);
     const uploaded = await uploadRequestImages(req);
     const fallback = typeof req.body.image === "string" ? req.body.image.trim() : "";
     const images = uploaded.length ? uploaded : fallback ? [fallback] : [];
@@ -809,6 +821,7 @@ export const createCarServiceListing = async (req, res) => {
 
     const listing = await MarketCarServiceListing.create({
       id: buildId(),
+      currency,
       image,
       images,
       category,
@@ -888,6 +901,7 @@ export const getAutoTuningListings = async (req, res) => {
 export const createAutoTuningListing = async (req, res) => {
   try {
     const { title, category, location, rating, reviews, price, badge, tags } = req.body;
+    const currency = readCurrency(req.body.currency);
     const uploaded = await uploadRequestImages(req);
     const fallback = typeof req.body.image === "string" ? req.body.image.trim() : "";
     const images = uploaded.length ? uploaded : fallback ? [fallback] : [];
@@ -910,6 +924,7 @@ export const createAutoTuningListing = async (req, res) => {
 
     const listing = await MarketAutoTuningListing.create({
       id: buildId(),
+      currency,
       images,
       title,
       category,
@@ -1085,7 +1100,10 @@ export const updateCarListing = async (req, res) => {
     });
 
     if (req.body.price !== undefined) {
-      listing.price = formatMoney(req.body.currency || "EUR", req.body.price);
+      // Без явной валюты остаётся та, в которой объявление создавали: иначе
+      // правка описания молча переименовывала доллары в евро.
+      listing.currency = readCurrency(req.body.currency, listing.currency || "EUR");
+      listing.price = formatMoney(listing.currency, req.body.price);
       listing.priceNumeric = Number(req.body.price) || 0;
     }
 

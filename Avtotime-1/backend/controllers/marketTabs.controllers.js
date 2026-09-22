@@ -23,7 +23,7 @@ import { enqueueMarketModerationById } from "../moderation/marketModerationWorke
 import { buildPublicFileUrl } from "../config/publicFiles.js";
 import { distanceKm, normalizePlace, resolvePlaces } from "../services/geocode.js";
 import { catalogBrands, catalogModels, isRealName, vehicleCatalog } from "../config/vehicleCatalog.js";
-import { uploadRequestImages } from "./market.controllers.js";
+import { readCurrency, uploadRequestImages } from "./market.controllers.js";
 
 const buildId = () => Date.now() + Math.floor(Math.random() * 1000);
 
@@ -261,6 +261,7 @@ export const createDryCleaningListing = async (req, res) => {
 
     const listing = await MarketDryCleaningListing.create({
       id: buildId(),
+      currency: readCurrency(req.body.currency),
       images,
       title: String(title).trim(),
       category: String(category).trim(),
