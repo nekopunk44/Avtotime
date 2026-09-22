@@ -154,6 +154,12 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
 
   return (
     <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 8) + 6 }]}>
+      <View style={styles.barShell} pointerEvents="box-none">
+        {/* Свечение — два слоя ореола за панелью: на тёмном контенте панель
+            сливалась с фоном, а Android не умеет светлых теней. Два кольца
+            убывающей яркости читаются как мягкое гало. */}
+        <View style={styles.glowOuter} pointerEvents="none" />
+        <View style={styles.glowInner} pointerEvents="none" />
       <View style={styles.bar} onLayout={(e) => setBarW(e.nativeEvent.layout.width)}>
         <Animated.View
           style={[
@@ -187,16 +193,27 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
           );
         })}
       </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'stretch', paddingHorizontal: 14 },
+  barShell: { alignSelf: 'stretch' },
+  glowOuter: {
+    position: 'absolute', left: -8, right: -8, top: -8, bottom: -8,
+    borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.035)',
+  },
+  glowInner: {
+    position: 'absolute', left: -4, right: -4, top: -4, bottom: -4,
+    borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.05)',
+  },
   bar: {
     flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', backgroundColor: colors.surface,
     borderRadius: radius.pill, paddingHorizontal: BAR_PAD, height: BAR_HEIGHT,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+    // Кромка светлее обычной: волосяная граница цвета border тонула в контенте.
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.surfaceHi,
     ...shadow.float,
   },
   item: { flex: 1, alignItems: 'center', justifyContent: 'center' },
