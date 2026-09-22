@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
@@ -55,7 +55,6 @@ export default function NotificationSettingsScreen() {
   const [preferences, setPreferences] = useState<NotificationPreferences>(defaultNotificationPreferences);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -79,25 +78,52 @@ export default function NotificationSettingsScreen() {
     load(true);
   };
 
+  // ── Автосохранение ────────────────────────────────────────────────────
+  // Переключатель — уже решение, кнопка «Сохранить» заставляла принимать его
+  // дважды. Каждое изменение уходит на сервер само; пауза собирает серию
+  // быстрых переключений в один запрос.
+  const pendingRef = useRef<NotificationPreferences | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seqRef = useRef(0);
+
+  const flush = useCallback(async () => {
+    const next = pendingRef.current;
+    if (!next) return;
+    pendingRef.current = null;
+    const seq = ++seqRef.current;
+    try {
+      const saved = await updateNotificationPreferences(next);
+      // Ответ применяем, только если за время запроса ничего не поменяли.
+      if (seq === seqRef.current && !pendingRef.current) setPreferences(saved);
+    } catch (e: any) {
+      showToast(e.response?.data?.message || 'Не удалось сохранить настройки', 'error');
+      // Возвращаем правду сервера, чтобы переключатели не врали.
+      if (seq === seqRef.current && !pendingRef.current) load(true);
+    }
+  }, [load]);
+
+  const queueSave = useCallback((mutate: (prev: NotificationPreferences) => NotificationPreferences) => {
+    setPreferences((prev) => {
+      const next = mutate(prev);
+      pendingRef.current = next;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(flush, 600);
+      return next;
+    });
+  }, [flush]);
+
+  // Уход с экрана не должен терять несохранённую серию.
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    flush();
+  }, [flush]);
+
   const setToggle = (key: keyof NotificationPreferences, value: boolean) => {
-    setPreferences((prev) => ({ ...prev, [key]: value }));
+    queueSave((prev) => ({ ...prev, [key]: value }));
   };
 
   const setDigest = (value: DigestFrequency) => {
-    setPreferences((prev) => ({ ...prev, digestFrequency: value }));
-  };
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      const next = await updateNotificationPreferences(preferences);
-      setPreferences(next);
-      showToast('Настройки уведомлений сохранены', 'success');
-    } catch (e: any) {
-      showToast(e.response?.data?.message || 'Не удалось сохранить настройки', 'error');
-    } finally {
-      setSaving(false);
-    }
+    queueSave((prev) => ({ ...prev, digestFrequency: value }));
   };
 
   if (loading) {
@@ -114,8 +140,6 @@ export default function NotificationSettingsScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />}
     >
-      <Text style={styles.intro}>Выберите, какие события показывать в приложении и отправлять на email.</Text>
-
       {TOGGLE_GROUPS.map((group) => (
         <View key={group.title} style={styles.section}>
           <Text style={styles.sectionTitle}>{group.title}</Text>
@@ -147,7 +171,7 @@ export default function NotificationSettingsScreen() {
           </View>
           <View style={styles.rowBody}>
             <Text style={styles.rowTitle}>Email-уведомления</Text>
-            <Text style={styles.rowDescription}>Дублировать события на почту, если сервер настроен на отправку email</Text>
+            <Text style={styles.rowDescription}>Дублировать события на почту</Text>
           </View>
           <Switch
             value={preferences.emailNotifications}
@@ -181,16 +205,6 @@ export default function NotificationSettingsScreen() {
         </View>
       </View>
 
-      <TouchableOpacity style={[styles.saveBtn, saving && styles.saveBtnDisabled]} onPress={save} disabled={saving}>
-        {saving ? (
-          <ActivityIndicator color={colors.onAccent} />
-        ) : (
-          <>
-            <Ionicons name="save-outline" size={19} color={colors.onAccent} />
-            <Text style={styles.saveText}>Сохранить</Text>
-          </>
-        )}
-      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -199,7 +213,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32 },
-  intro: { color: colors.textMuted, fontSize: 14, lineHeight: 20, marginBottom: 2 },
   section: { marginTop: 12, borderRadius: 14, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 12, paddingTop: 14, paddingBottom: 4 },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', marginBottom: 6 },
   row: { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 11, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingVertical: 12 },
@@ -217,7 +230,4 @@ const styles = StyleSheet.create({
   digestBody: { flex: 1 },
   digestLabel: { color: colors.text, fontSize: 14, fontWeight: '900' },
   digestDescription: { marginTop: 2, color: colors.textMuted, fontSize: 12, lineHeight: 17, fontWeight: '700' },
-  saveBtn: { marginTop: 18, height: 52, borderRadius: 12, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  saveBtnDisabled: { opacity: 0.65 },
-  saveText: { color: colors.onAccent, fontSize: 16, fontWeight: '900' },
 });

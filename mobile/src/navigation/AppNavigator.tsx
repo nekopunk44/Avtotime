@@ -319,7 +319,7 @@ export default function AppNavigator() {
       <Stack.Screen name="MarketReviews" component={MarketReviewsScreen} options={{ title: 'Отзывы' }} />
       <Stack.Screen name="MyReviews" component={MyReviewsScreen} options={{ title: 'Отзывы обо мне' }} />
       <Stack.Screen name="UserReviews" component={UserReviewsScreen} options={{ title: 'Отзывы' }} />
-      <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ title: 'Уведомления' }} />
+      <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ title: 'Настройки уведомлений' }} />
       <Stack.Screen name="FollowList" component={FollowListScreen} options={{ title: 'Люди' }} />
       <Stack.Screen name="SavedPosts" component={SavedPostsScreen} options={{ title: 'Сохранённые' }} />
       <Stack.Screen name="EditPost" component={EditPostScreen} options={{ title: 'Редактировать' }} />
