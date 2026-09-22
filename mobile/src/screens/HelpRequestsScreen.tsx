@@ -6,11 +6,9 @@ import {
   Dimensions,
   Easing,
   FlatList,
-  KeyboardAvoidingView,
   Linking,
   Modal,
   PanResponder,
-  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -36,6 +34,7 @@ import { MarketTabParamList } from '../navigation/AppNavigator';
 import { getDeviceLocation } from '../services/deviceLocation';
 import { colors, font, radius, shadow, space } from '../theme';
 import { ConfirmSheet, EmptyState, PressableScale, Skeleton } from '../components/ui';
+import { useKeyboardLift } from '../hooks/useKeyboardLift';
 import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 
 // Экран живёт вкладкой маркета и своей навигацией не пользуется.
@@ -90,6 +89,9 @@ export default function HelpRequestsScreen(_props: Props) {
   const [draft, setDraft] = useState<DraftState>(emptyDraft);
   const [editing, setEditing] = useState<HelpRequest | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  // Подъём шторки под клавиатуру: на edge-to-edge KeyboardAvoidingView
+  // бездействует, и клавиатура накрывала поля ввода.
+  const { lift: kbLift, onLayout: onSheetLayout } = useKeyboardLift();
   const [saving, setSaving] = useState(false);
   const [pendingRemoval, setPendingRemoval] = useState<HelpRequest | null>(null);
 
@@ -414,10 +416,10 @@ export default function HelpRequestsScreen(_props: Props) {
       <Modal visible={sheetMounted} transparent animationType="none" onRequestClose={closeModal} statusBarTranslucent>
         <Animated.View style={[styles.backdrop, { opacity: sheetAnim }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={closeModal} />
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.sheetWrap}
+          <Animated.View
+            style={[styles.sheetWrap, { paddingBottom: kbLift }]}
             pointerEvents="box-none"
+            onLayout={onSheetLayout}
           >
             <Animated.View
               style={[
@@ -506,7 +508,7 @@ export default function HelpRequestsScreen(_props: Props) {
                   : <Text style={styles.saveText}>{editing ? 'Сохранить' : 'Опубликовать запрос'}</Text>}
               </PressableScale>
             </Animated.View>
-          </KeyboardAvoidingView>
+          </Animated.View>
         </Animated.View>
       </Modal>
 
