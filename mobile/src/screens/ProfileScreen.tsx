@@ -240,29 +240,46 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
   const tabSlide = useRef(new Animated.Value(0)).current;
   const tabPlaced = useRef(false);
 
-  const selectTab = useCallback((next: ProfileTab) => {
-    setTab(next);
-    if (next === 'saved' && !savedLoaded.current) {
+  /**
+   * Данные раздела. Первое открытие показывает загрузку, возврат на экран
+   * обновляет молча: сохранить пост можно в ленте, а профиль всё это время
+   * остаётся смонтированным во вкладке и сам о таком не узнает.
+   */
+  const loadTabData = useCallback((next: ProfileTab, silent = false) => {
+    if (next === 'saved') {
       savedLoaded.current = true;
-      setSavedLoading(true);
+      if (!silent) setSavedLoading(true);
       getSavedPosts().then(setSaved).catch(() => {}).finally(() => setSavedLoading(false));
+      return;
     }
-    if (next === 'liked' && !likedLoaded.current) {
+    if (next === 'liked') {
       likedLoaded.current = true;
-      setLikedLoading(true);
+      if (!silent) setLikedLoading(true);
       getLikedPosts().then(setLiked).catch(() => {}).finally(() => setLikedLoading(false));
+      return;
     }
-    if (next === 'reviews' && !reviewsLoaded.current && user?._id) {
+    if (next === 'reviews' && user?._id) {
       reviewsLoaded.current = true;
-      setReviewsLoading(true);
+      if (!silent) setReviewsLoading(true);
       getReviews({ targetUserId: user._id }).then((r) => setReviews(r.reviews)).catch(() => {}).finally(() => setReviewsLoading(false));
+      return;
     }
-    if (next === 'driving' && !drivingLoaded.current) {
+    if (next === 'driving') {
       drivingLoaded.current = true;
-      setDrivingLoading(true);
+      if (!silent) setDrivingLoading(true);
       getDrivingResults({ limit: 30 }).then(setDriving).catch(() => {}).finally(() => setDrivingLoading(false));
     }
   }, [user?._id]);
+
+  const selectTab = useCallback((next: ProfileTab) => {
+    setTab(next);
+    const alreadyLoaded = next === 'saved' ? savedLoaded.current
+      : next === 'liked' ? likedLoaded.current
+        : next === 'reviews' ? reviewsLoaded.current
+          : next === 'driving' ? drivingLoaded.current
+            : true;
+    if (!alreadyLoaded) loadTabData(next);
+  }, [loadTabData]);
 
   const load = useCallback(async (silent = false) => {
     if (!user?._id) {
@@ -302,22 +319,20 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
 
   // Refresh silently on focus — the header renders instantly from the stored
   // user, so there's no full-screen spinner blocking the screen.
+  const tabRef = React.useRef(tab);
+  tabRef.current = tab;
+
   useFocusEffect(useCallback(() => {
     load(true);
-  }, [load]));
+    // Открытый раздел перечитывается тоже: иначе сохранённый в ленте пост не
+    // появляется, пока экран не пересоздадут.
+    loadTabData(tabRef.current, true);
+  }, [load, loadTabData]));
 
   const refresh = () => {
     setRefreshing(true);
     // Also silently reload the data of the currently open tab.
-    if (tab === 'saved') {
-      getSavedPosts().then(setSaved).catch(() => {});
-    }
-    if (tab === 'liked') {
-      getLikedPosts().then(setLiked).catch(() => {});
-    }
-    if (tab === 'reviews' && user?._id) {
-      getReviews({ targetUserId: user._id }).then((r) => setReviews(r.reviews)).catch(() => {});
-    }
+    loadTabData(tab, true);
     if (tab === 'driving') {
       getDrivingResults({ limit: 30 }).then(setDriving).catch(() => {});
     }

@@ -60,6 +60,10 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
   const firstMedia = gallery[0];
   const isVideo = item.mediaType === 'video';
   const [mediaIndex, setMediaIndex] = useState(0);
+  // Ширину слайда меряем, а не считаем: у карточки есть ещё волосяная рамка,
+  // и расчётная ширина расходилась с настоящей на пиксель — из-за него в
+  // кадре виднелась полоска соседнего снимка.
+  const [slideWidth, setSlideWidth] = useState(MEDIA_WIDTH);
   const poster = isVideo ? getVideoPoster(firstMedia) || firstMedia : firstMedia;
 
   return (
@@ -87,18 +91,25 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
             показывала первый снимок и значок «2», а увидеть второй можно
             было только внутри публикации. */}
         {gallery.length > 1 && !isVideo ? (
-          <View style={styles.mediaWrap}>
+          <View
+            style={styles.mediaWrap}
+            onLayout={(e) => setSlideWidth(e.nativeEvent.layout.width)}
+          >
             <ScrollView
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) =>
-                setMediaIndex(Math.round(e.nativeEvent.contentOffset.x / MEDIA_WIDTH))
+                setMediaIndex(Math.round(e.nativeEvent.contentOffset.x / slideWidth))
               }
             >
               {gallery.map((uri) => (
                 <Pressable key={uri} onPress={onOpen}>
-                  <Image source={{ uri }} style={styles.slide} resizeMode="cover" />
+                  <Image
+                    source={{ uri }}
+                    style={{ width: slideWidth, height: slideWidth }}
+                    resizeMode="cover"
+                  />
                 </Pressable>
               ))}
             </ScrollView>
@@ -496,7 +507,6 @@ const styles = StyleSheet.create({
 
   mediaWrap: { width: '100%', aspectRatio: 1, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.surfaceAlt, marginTop: space.md },
   postImage: { width: '100%', height: '100%' },
-  slide: { width: MEDIA_WIDTH, height: MEDIA_WIDTH },
   dots: {
     position: 'absolute', left: 0, right: 0, bottom: 10,
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5,

@@ -143,7 +143,9 @@ export async function toggleSavePost(postId: string): Promise<User> {
 
 export async function getSavedPosts(): Promise<Post[]> {
   const user = await getMe();
-  return (user.saved ?? []).filter((item): item is Post => typeof item !== 'string' && !!item?._id && 'caption' in item);
+  // Достаточно того, что запись пришла объектом с идентификатором: пост без
+  // подписи — обычное дело, а раньше он выпадал из списка.
+  return (user.saved ?? []).filter((item): item is Post => typeof item !== 'string' && !!item?._id);
 }
 
 export async function createPost(payload: CreatePostPayload): Promise<Post> {
