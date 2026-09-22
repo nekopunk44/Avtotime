@@ -1,28 +1,35 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Dimensions, Easing, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme';
+import { colors, font } from '../theme';
 
 /**
- * Кинопереход между Соцсетью и Маркетом: экран затемняется, иконка текущего
- * режима плавно распадается на фрагменты, и НАВСТРЕЧУ им из глубины сходятся
- * фрагменты иконки целевого режима — обе живут в кадре одновременно,
- * растворяясь одна в другую. Момента «подмены» не существует: старые
- * фрагменты тают в полёте, новые материализуются дальше от центра уже в
- * движении к своим местам.
+ * Переход Соцсеть <-> Маркет: направленная «продувка».
  *
- * Фрагменты — сетка GRID x GRID клип-ячеек: в каждой лежит полная иконка со
- * смещением, так что ячейка показывает только свой участок глифа. Распад
- * упорядоченный, по радиальным осям, с волной от краёв к центру; сборка —
- * обратной волной, от центра к краям. Обе иконки ведёт ОДНО Animated-значение
- * progress 0→1: у исходной интерполяции живут в первой половине, у целевой —
- * во второй, с перехлёстом вокруг середины.
+ * Раньше экран просто затемнялся и на чёрном шёл морф иконки — два мёртвых
+ * фейда по краям и никакой связи с жестом. Теперь через экран в направлении
+ * переключения проносится сплошная панель, и всё происходит внутри неё одним
+ * непрерывным движением:
  *
- * progress разбит на две последовательные фазы (0→0.5 с ускорением, 0.5→1 с
- * торможением): у нативно-ведомой анимации JS-слушатели значения не
- * вызываются, а навигацию нужно выполнить строго под непрозрачным фоном — в
- * колбэке между фазами. Пара in/out-изингов смыкается в один плавный свод:
- * скорость на стыке максимальна с обеих сторон, рывка нет.
+ *   1. Панель влетает со стороны целевого режима (в Маркет — справа, как едет
+ *      бегунок переключателя) и накрывает экран. На ней уже стоит эмблема
+ *      текущего режима.
+ *   2. «Ветер» разносит эмблему на фрагменты по направлению движения — первым
+ *      срывает наветренный край. Навстречу, с той же стороны, прилетают
+ *      фрагменты целевой эмблемы и оседают по ветру; под ней проявляется имя
+ *      режима. Экраны переключаются под накрытой панелью.
+ *   3. Панель, не меняя направления, уносится за противоположный край и
+ *      открывает новый экран. Эмблема и подпись уезжают вместе с ней.
+ *
+ * Один вектор движения от начала до конца: нет момента «замерли и поехали
+ * обратно», а направление панели совпадает с движением бегунка в шапке.
+ *
+ * Фрагменты — сетка GRID x GRID клип-ячеек, в каждой полная иконка со
+ * смещением. Разлёт и сборку ведёт одно значение progress 0→1, разбитое на
+ * две фазы (0→0.5 с ускорением, 0.5→1 с торможением): у нативно-ведомой
+ * анимации JS-слушатели не работают, а навигация обязана случиться строго под
+ * непрозрачной панелью — в колбэке между фазами. Пара in/out-изингов
+ * смыкается без рывка: скорость на стыке максимальна с обеих сторон.
  */
 
 type ModeIcon = keyof typeof Ionicons.glyphMap;
@@ -30,6 +37,9 @@ type ModeIcon = keyof typeof Ionicons.glyphMap;
 interface TransitionRequest {
   fromIcon: ModeIcon;
   toIcon: ModeIcon;
+  toLabel: string;
+  /** +1 — панель летит справа налево (в Маркет), -1 — слева направо. */
+  dir: 1 | -1;
   onSwitch: () => void;
 }
 
@@ -52,54 +62,60 @@ export const playModeTransition = (
   requestListener({
     fromIcon: icons[to === 'market' ? 'social' : 'market'],
     toIcon: icons[to],
+    toLabel: to === 'market' ? 'Маркет' : 'Соцсеть',
+    dir: to === 'market' ? 1 : -1,
     onSwitch,
   });
 };
 
+const SCREEN_W = Dimensions.get('window').width;
+// Панель шире экрана: её скруглённые углы видны только в полёте, а на месте
+// уходят за края, и покрытие остаётся сплошным.
+const PANEL_OVERHANG = 36;
+const PANEL_W = SCREEN_W + PANEL_OVERHANG * 2;
+
 const ICON_SIZE = 104;
 const GRID = 4;
 const PIECE = ICON_SIZE / GRID;
-// Насколько раздвигается сетка исходной иконки при полном распаде.
-const SPREAD_OUT = 1.9;
-// Фрагменты целевой стартуют чуть дальше — сходятся из более широкого круга.
-const SPREAD_IN = 2.3;
-// Волновые запаздывания: распад начинают внешние фрагменты, сборку
-// завершают тоже внешние — иконка «закрывается» от центра к краям.
+// Как далеко ветер уносит фрагменты старой эмблемы и откуда прилетают новые.
+const BLOW_OUT = ICON_SIZE * 1.15;
+const BLOW_IN = ICON_SIZE * 1.35;
+// Волновые запаздывания по столбцам: срыв идёт с наветренного края, посадка
+// закрывается к нему же — сборка «дозревает» вслед за порывом.
 const OUT_LAG = 0.1;
 const IN_LAG = 0.12;
 
 interface Piece {
   row: number;
   col: number;
-  dxOut: number;
-  dyOut: number;
-  dxIn: number;
-  dyIn: number;
-  /** 0..1 — удаление фрагмента от центра иконки. */
-  rNorm: number;
+  /** Смещение центра фрагмента от центра иконки. */
+  cx: number;
+  cy: number;
+  /** 0..1 вдоль оси X: 0 — левый столбец, 1 — правый. */
+  colNorm: number;
+  /** Детерминированный разброс 0.92..1.08 — живость без хаоса. */
+  scatter: number;
 }
-
-const R_MAX = Math.hypot((GRID / 2 - 0.5) * PIECE, (GRID / 2 - 0.5) * PIECE);
 
 const PIECES: Piece[] = Array.from({ length: GRID * GRID }, (_, index) => {
   const row = Math.floor(index / GRID);
   const col = index % GRID;
-  const cx = (col + 0.5 - GRID / 2) * PIECE;
-  const cy = (row + 0.5 - GRID / 2) * PIECE;
+  // Псевдослучайность из номера фрагмента: стабильна между запусками.
+  const noise = Math.abs(Math.sin(index * 12.9898) * 43758.5453) % 1;
   return {
     row,
     col,
-    dxOut: cx * SPREAD_OUT,
-    dyOut: cy * SPREAD_OUT,
-    dxIn: cx * SPREAD_IN,
-    dyIn: cy * SPREAD_IN,
-    rNorm: Math.hypot(cx, cy) / R_MAX,
+    cx: (col + 0.5 - GRID / 2) * PIECE,
+    cy: (row + 0.5 - GRID / 2) * PIECE,
+    colNorm: GRID > 1 ? col / (GRID - 1) : 0,
+    scatter: 0.92 + noise * 0.16,
   };
 });
 
 export default function ModeTransition() {
   const [request, setRequest] = useState<TransitionRequest | null>(null);
-  const overlay = useRef(new Animated.Value(0)).current;
+  // 0 — панель за стартовым краем, 1 — накрыла экран, 2 — ушла за противоположный.
+  const panel = useRef(new Animated.Value(0)).current;
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -112,141 +128,234 @@ export default function ModeTransition() {
   useEffect(() => {
     if (!request) return;
     running = true;
-    overlay.setValue(0);
+    panel.setValue(0);
     progress.setValue(0);
 
     Animated.sequence([
-      Animated.timing(overlay, { toValue: 1, duration: 240, useNativeDriver: true }),
-      Animated.delay(80),
+      // Панель прилетает быстро и мягко досаживается — рука только что
+      // нажала кнопку, отклик должен быть немедленным.
+      Animated.timing(panel, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.delay(40),
       Animated.timing(progress, {
         toValue: 0.5,
-        duration: 540,
+        duration: 460,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
     ]).start(() => {
-      // Середина морфа, фон непрозрачен: переключаем экраны под оверлеем.
+      // Середина морфа, экран накрыт: переключаем режимы под панелью.
       request.onSwitch();
 
       Animated.sequence([
         Animated.timing(progress, {
           toValue: 1,
-          duration: 580,
+          duration: 500,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.delay(180),
-        Animated.timing(overlay, { toValue: 0, duration: 280, useNativeDriver: true }),
+        Animated.delay(140),
+        // Уходит в ту же сторону, куда летела: движение не разворачивается.
+        Animated.timing(panel, {
+          toValue: 2,
+          duration: 340,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
       ]).start(() => {
         running = false;
         setRequest(null);
       });
     });
-  }, [request, overlay, progress]);
+  }, [request, panel, progress]);
 
   if (!request) return null;
 
-  return (
-    <Animated.View style={[styles.overlay, { opacity: overlay }]} pointerEvents="auto">
-      {/* Исходная иконка: расходится и тает в первой половине progress. */}
-      <View style={styles.iconBox} pointerEvents="none">
-        {PIECES.map((piece, index) => (
-          <Animated.View
-            key={index}
-            style={[
-              styles.piece,
-              {
-                left: piece.col * PIECE,
-                top: piece.row * PIECE,
-                opacity: progress.interpolate({
-                  inputRange: [0.34, 0.56],
-                  outputRange: [1, 0],
-                  extrapolate: 'clamp',
-                }),
-                transform: [
-                  {
-                    translateX: progress.interpolate({
-                      inputRange: [OUT_LAG * (1 - piece.rNorm), 0.56],
-                      outputRange: [0, piece.dxOut],
-                      extrapolate: 'clamp',
-                    }),
-                  },
-                  {
-                    translateY: progress.interpolate({
-                      inputRange: [OUT_LAG * (1 - piece.rNorm), 0.56],
-                      outputRange: [0, piece.dyOut],
-                      extrapolate: 'clamp',
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <View style={{ marginLeft: -piece.col * PIECE, marginTop: -piece.row * PIECE }}>
-              <Ionicons name={request.fromIcon} size={ICON_SIZE} color={colors.accent} />
-            </View>
-          </Animated.View>
-        ))}
-      </View>
+  const { dir } = request;
+  // Куда дует ветер: панель едет из +dir в -dir, фрагменты летят туда же.
+  const windX = -dir;
 
-      {/* Целевая иконка: проявляется навстречу и собирается во второй половине. */}
-      <View style={[styles.iconBox, styles.iconBoxOverlap]} pointerEvents="none">
-        {PIECES.map((piece, index) => (
-          <Animated.View
-            key={index}
-            style={[
-              styles.piece,
-              {
-                left: piece.col * PIECE,
-                top: piece.row * PIECE,
-                opacity: progress.interpolate({
-                  inputRange: [0.44, 0.62],
-                  outputRange: [0, 1],
+  return (
+    <View style={styles.overlay} pointerEvents="auto">
+      <Animated.View
+        style={[
+          styles.panel,
+          {
+            transform: [{
+              translateX: panel.interpolate({
+                inputRange: [0, 1, 2],
+                outputRange: [dir * PANEL_W, 0, -dir * PANEL_W],
+              }),
+            }],
+          },
+        ]}
+      >
+        {/* Эмблема текущего режима: панель привозит её собранной, ветер
+            разносит в первой половине морфа. */}
+        <View style={styles.iconBox} pointerEvents="none">
+          {PIECES.map((piece, index) => {
+            // Наветренный столбец (откуда пришла панель) срывается первым.
+            const upwind = dir === 1 ? piece.colNorm : 1 - piece.colNorm;
+            const start = OUT_LAG * (1 - upwind);
+            return (
+              <Animated.View
+                key={index}
+                style={[
+                  styles.piece,
+                  {
+                    left: piece.col * PIECE,
+                    top: piece.row * PIECE,
+                    opacity: progress.interpolate({
+                      inputRange: [0.3, 0.52],
+                      outputRange: [1, 0],
+                      extrapolate: 'clamp',
+                    }),
+                    transform: [
+                      {
+                        translateX: progress.interpolate({
+                          inputRange: [start, 0.54],
+                          outputRange: [0, windX * BLOW_OUT * piece.scatter],
+                          extrapolate: 'clamp',
+                        }),
+                      },
+                      {
+                        // Лёгкий вертикальный веер: порыв не бывает идеально ровным.
+                        translateY: progress.interpolate({
+                          inputRange: [start, 0.54],
+                          outputRange: [0, piece.cy * 0.5 * piece.scatter],
+                          extrapolate: 'clamp',
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <View style={{ marginLeft: -piece.col * PIECE, marginTop: -piece.row * PIECE }}>
+                  <Ionicons name={request.fromIcon} size={ICON_SIZE} color={colors.accent} />
+                </View>
+              </Animated.View>
+            );
+          })}
+        </View>
+
+        {/* Эмблема целевого режима: фрагменты прилетают той же стороной, что и
+            панель, оседают по ветру, и собранная иконка чуть пружинит. */}
+        <Animated.View
+          style={[
+            styles.iconBox,
+            styles.iconBoxOverlap,
+            {
+              transform: [{
+                scale: progress.interpolate({
+                  inputRange: [0.88, 0.95, 1],
+                  outputRange: [1, 1.05, 1],
                   extrapolate: 'clamp',
                 }),
-                transform: [
+              }],
+            },
+          ]}
+          pointerEvents="none"
+        >
+          {PIECES.map((piece, index) => {
+            // Подветренные фрагменты оседают первыми: сборка закрывается
+            // навстречу источнику ветра.
+            const downwind = dir === 1 ? 1 - piece.colNorm : piece.colNorm;
+            const end = 1 - IN_LAG * downwind;
+            return (
+              <Animated.View
+                key={index}
+                style={[
+                  styles.piece,
                   {
-                    translateX: progress.interpolate({
-                      inputRange: [0.44, 1 - IN_LAG * (1 - piece.rNorm)],
-                      outputRange: [piece.dxIn, 0],
+                    left: piece.col * PIECE,
+                    top: piece.row * PIECE,
+                    opacity: progress.interpolate({
+                      inputRange: [0.42, 0.6],
+                      outputRange: [0, 1],
                       extrapolate: 'clamp',
                     }),
+                    transform: [
+                      {
+                        translateX: progress.interpolate({
+                          inputRange: [0.42, end],
+                          outputRange: [dir * BLOW_IN * piece.scatter, 0],
+                          extrapolate: 'clamp',
+                        }),
+                      },
+                      {
+                        translateY: progress.interpolate({
+                          inputRange: [0.42, end],
+                          outputRange: [piece.cy * 0.25, 0],
+                          extrapolate: 'clamp',
+                        }),
+                      },
+                    ],
                   },
-                  {
-                    translateY: progress.interpolate({
-                      inputRange: [0.44, 1 - IN_LAG * (1 - piece.rNorm)],
-                      outputRange: [piece.dyIn, 0],
-                      extrapolate: 'clamp',
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <View style={{ marginLeft: -piece.col * PIECE, marginTop: -piece.row * PIECE }}>
-              <Ionicons name={request.toIcon} size={ICON_SIZE} color={colors.accent} />
-            </View>
-          </Animated.View>
-        ))}
-      </View>
-    </Animated.View>
+                ]}
+              >
+                <View style={{ marginLeft: -piece.col * PIECE, marginTop: -piece.row * PIECE }}>
+                  <Ionicons name={request.toIcon} size={ICON_SIZE} color={colors.accent} />
+                </View>
+              </Animated.View>
+            );
+          })}
+        </Animated.View>
+
+        {/* Имя режима догоняет эмблему тем же курсом и уедет вместе с панелью. */}
+        <Animated.Text
+          style={[
+            styles.label,
+            {
+              opacity: progress.interpolate({
+                inputRange: [0.66, 0.84],
+                outputRange: [0, 1],
+                extrapolate: 'clamp',
+              }),
+              transform: [{
+                translateX: progress.interpolate({
+                  inputRange: [0.66, 0.92],
+                  outputRange: [dir * 36, 0],
+                  extrapolate: 'clamp',
+                }),
+              }],
+            },
+          ]}
+        >
+          {request.toLabel}
+        </Animated.Text>
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
     zIndex: 1000,
     elevation: 1000,
+  },
+  panel: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: -PANEL_OVERHANG,
+    width: PANEL_W,
+    borderRadius: 32,
+    backgroundColor: colors.bg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   iconBox: {
     width: ICON_SIZE,
     height: ICON_SIZE,
   },
-  // Оба слоя занимают одно и то же место в центре оверлея.
+  // Оба слоя эмблемы занимают одно и то же место в центре панели.
   iconBoxOverlap: {
     position: 'absolute',
   },
@@ -255,5 +364,12 @@ const styles = StyleSheet.create({
     width: PIECE,
     height: PIECE,
     overflow: 'hidden',
+  },
+  label: {
+    marginTop: 18,
+    color: colors.text,
+    fontSize: font.h3,
+    fontWeight: '900',
+    letterSpacing: 0.6,
   },
 });
