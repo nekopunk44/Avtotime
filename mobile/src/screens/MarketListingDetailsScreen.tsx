@@ -339,9 +339,13 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
         {listing.specialties?.length || listing.tags?.length ? (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Направления</Text>
+            {/* Каждая метка — своя коробка с текстом внутри: отступы прямо на
+                Text на Android режутся, и второй ряд обрезался по краю карточки. */}
             <View style={styles.tagRow}>
               {[...(listing.specialties || []), ...(listing.tags || [])].map((tag) => (
-                <Text key={tag} style={styles.tag}>{tag}</Text>
+                <View key={tag} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
               ))}
             </View>
           </View>
@@ -439,11 +443,12 @@ const styles = StyleSheet.create({
   specLabel: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '800' },
   specValue: { marginTop: 4, color: colors.text, fontSize: font.small, fontWeight: '900' },
   description: { color: colors.textMuted, fontSize: font.small, lineHeight: 21, fontWeight: '600' },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: space.sm },
   tag: {
-    overflow: 'hidden', paddingHorizontal: space.md, paddingVertical: 7, borderRadius: radius.pill,
-    backgroundColor: colors.surfaceAlt, color: colors.textMuted, fontSize: font.tiny, fontWeight: '800',
+    paddingHorizontal: space.md, paddingVertical: 7, borderRadius: radius.pill,
+    backgroundColor: colors.surfaceAlt,
   },
+  tagText: { color: colors.textMuted, fontSize: font.tiny, lineHeight: 15, fontWeight: '800' },
 
   sellerCard: {
     marginTop: space.md, marginHorizontal: space.md, padding: space.md,
