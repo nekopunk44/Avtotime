@@ -4,6 +4,7 @@ import {
   FlatList,
   Image,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -150,7 +151,54 @@ export default function MarketScreen({ navigation }: Props) {
     loadListings(true);
   };
 
-  const placeOf = (item: MarketListing) => String(item.location || item.region || '').trim();
+  /**
+ * Фотографии карточки листаются свайпом на месте: раньше в выдаче жила только
+ * обложка, а остальные кадры были видны лишь внутри объявления. Тап по кадру
+ * по-прежнему уходит родительской карточке и открывает объявление.
+ */
+function CardGallery({ images, icon }: { images: string[]; icon: string }) {
+  // Ширину клетки меряем, а не считаем: колонка сетки зависит от экрана,
+  // а слайд обязан совпадать с ней до пикселя, иначе листание не доезжает.
+  const [width, setWidth] = useState(0);
+  const [index, setIndex] = useState(0);
+
+  if (!images.length) {
+    return (
+      <View style={[styles.cardImage, styles.noImage]}>
+        <Ionicons name={icon as any} size={28} color={colors.textFaint} />
+      </View>
+    );
+  }
+
+  if (images.length === 1) {
+    return <Image source={{ uri: images[0] }} style={styles.cardImage} />;
+  }
+
+  return (
+    <View style={styles.cardImage} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      {width > 0 ? (
+        <ScrollView
+          horizontal
+          pagingEnabled
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
+        >
+          {images.map((uri) => (
+            <Image key={uri} source={{ uri }} style={{ width, height: '100%' }} />
+          ))}
+        </ScrollView>
+      ) : null}
+      <View style={styles.cardDots} pointerEvents="none">
+        {images.map((uri, dotIndex) => (
+          <View key={uri} style={[styles.cardDot, dotIndex === index && styles.cardDotActive]} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const placeOf = (item: MarketListing) => String(item.location || item.region || '').trim();
 
   // Расстояния до городов из выдачи: считает сервер (у него справочник
   // координат), клиент только раскладывает по ним объявления.
@@ -230,13 +278,10 @@ export default function MarketScreen({ navigation }: Props) {
         }}
       >
         <Card style={styles.card}>
-          {image ? (
-            <Image source={{ uri: image }} style={styles.cardImage} />
-          ) : (
-            <View style={[styles.cardImage, styles.noImage]}>
-              <Ionicons name={itemCategory.icon as any} size={28} color={colors.textFaint} />
-            </View>
-          )}
+          <CardGallery
+            images={(item.images?.length ? item.images : image ? [image] : []).filter(Boolean)}
+            icon={itemCategory.icon}
+          />
           {/* Сравнение прямо из выдачи: раньше пару приходилось собирать,
               заходя в каждое объявление. */}
           {canCompareListing(item) ? (
@@ -434,8 +479,14 @@ const styles = StyleSheet.create({
   cell: { width: '50%', paddingHorizontal: 3, marginBottom: space.md },
   cellInner: { flex: 1 },
   card: { padding: 0, overflow: 'hidden' },
-  cardImage: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceAlt },
+  cardImage: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
   noImage: { alignItems: 'center', justifyContent: 'center' },
+  cardDots: {
+    position: 'absolute', left: 0, right: 0, bottom: 7,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4,
+  },
+  cardDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.45)' },
+  cardDotActive: { backgroundColor: colors.white, width: 14 },
   badge: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7, backgroundColor: colors.ink, color: colors.white, fontSize: 9, fontWeight: '900', textTransform: 'uppercase', overflow: 'hidden' },
   cardBody: { padding: space.md },
   price: { color: colors.text, fontSize: font.h3, fontWeight: '900' },
