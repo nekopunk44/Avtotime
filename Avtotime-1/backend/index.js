@@ -5,6 +5,7 @@ import { createApp } from "./app.js"
 import { createSocketServer, initializeSocketInfrastructure } from "./socket.js"
 import { startMarketModerationWorker } from "./moderation/marketModerationWorker.js"
 import { startPlanExpirationCron } from "./services/planExpirationCron.js"
+import { startNotificationDigestCron } from "./services/notificationDigestCron.js"
 import { ensureDevSeed } from "./services/devSeed.js"
 import { shouldRunBackgroundJobs } from "./config/workerRoles.js"
 import { initErrorReporting, reportError, flushErrors } from "./services/errorReporter.js"
@@ -55,6 +56,7 @@ const startServer = async () => {
         if (!cluster.isWorker || shouldRunBackgroundJobs()) {
             startMarketModerationWorker()
             startPlanExpirationCron()
+            startNotificationDigestCron()
         }
 
         server.on('error', (err) => {

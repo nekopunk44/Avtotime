@@ -122,6 +122,13 @@ const usersSchema = new mongoose.Schema({
         type: Date,
         default: () => new Date()
     },
+    // Когда пользователю в последний раз уходил email-дайджест. Вне
+    // notificationPreferences: настройки сохраняются целым объектом, и метка
+    // внутри стиралась бы каждым сохранением экрана.
+    notificationDigestLastAt: {
+        type: Date,
+        default: null
+    },
     expoPushTokens: {
         type: [String],
         default: [],
