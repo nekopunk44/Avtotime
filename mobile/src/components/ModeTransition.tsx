@@ -148,9 +148,10 @@ export default function ModeTransition() {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      // Середина морфа, экран накрыт: переключаем режимы под панелью.
-      request.onSwitch();
-
+      // Середина морфа, экран накрыт. Сначала запускаем вторую половину:
+      // она нативная и играет на UI-потоке, пока JS занят монтированием
+      // нового навигатора. Если переключить экраны ДО старта, морф замирает
+      // на полусобранных фрагментах ровно на время монтирования.
       Animated.sequence([
         Animated.timing(progress, {
           toValue: 1,
@@ -158,11 +159,11 @@ export default function ModeTransition() {
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.delay(140),
+        Animated.delay(90),
         // Уходит в ту же сторону, куда летела: движение не разворачивается.
         Animated.timing(panel, {
           toValue: 2,
-          duration: 340,
+          duration: 300,
           easing: Easing.in(Easing.cubic),
           useNativeDriver: true,
         }),
@@ -170,6 +171,11 @@ export default function ModeTransition() {
         running = false;
         setRequest(null);
       });
+
+      // Кадр форы, чтобы команды анимации ушли на натив до тяжёлой навигации.
+      // Панель к этому моменту стоит на месте и накрывает экран целиком —
+      // подмена происходит невидимо, как и раньше.
+      setTimeout(() => request.onSwitch(), 32);
     });
   }, [request, panel, progress]);
 
