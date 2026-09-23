@@ -33,7 +33,7 @@ import {
 import { MarketTabParamList } from '../navigation/AppNavigator';
 import { getDeviceLocation } from '../services/deviceLocation';
 import { colors, font, radius, shadow, space } from '../theme';
-import { ConfirmSheet, EmptyState, PressableScale, Skeleton } from '../components/ui';
+import { ChoiceSheet, ConfirmSheet, EmptyState, PressableScale, Skeleton } from '../components/ui';
 import { useKeyboardLift } from '../hooks/useKeyboardLift';
 import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 
@@ -94,6 +94,9 @@ export default function HelpRequestsScreen(_props: Props) {
   const { lift: kbLift, onLayout: onSheetLayout } = useKeyboardLift();
   const [saving, setSaving] = useState(false);
   const [pendingRemoval, setPendingRemoval] = useState<HelpRequest | null>(null);
+  // Правка и удаление своего запроса живут в шторке за «…»: две круглые
+  // кнопки в каждой карточке спорили с содержимым.
+  const [requestActions, setRequestActions] = useState<HelpRequest | null>(null);
 
   // ── Переключатель статуса в шторке: заливка едет к выбранному ────────────
   const [statusW, setStatusW] = useState(0);
@@ -349,28 +352,27 @@ export default function HelpRequestsScreen(_props: Props) {
 
           <Text style={styles.description}>{item.description}</Text>
 
-          <View style={styles.metaRow}>
-            <Ionicons name="location-outline" size={15} color={colors.textMuted} />
-            <Text style={styles.metaText} numberOfLines={1}>{item.location}</Text>
-            <Text style={styles.metaDot}>·</Text>
-            <Text style={styles.metaText} numberOfLines={1}>{item.user || (isMine ? 'Вы' : 'Пользователь')}</Text>
-          </View>
+          {/* Место и автор слева, действия справа — одной строкой: белая
+              кнопка во всю ширину и пара круглых рядом занимали отдельный
+              этаж и кричали громче самого запроса. */}
+          <View style={styles.cardFooter}>
+            <View style={styles.metaWrap}>
+              <Ionicons name="location-outline" size={13} color={colors.textFaint} />
+              <Text style={styles.metaText} numberOfLines={1}>{item.location}</Text>
+              <Text style={styles.metaAuthor} numberOfLines={1}>
+                {item.user ? `@${item.user}` : isMine ? 'Вы' : 'Пользователь'}
+              </Text>
+            </View>
 
-          <View style={styles.actionRow}>
-            <PressableScale style={styles.routeBtn} scaleTo={0.97} onPress={() => openRoute(item)}>
-              <Ionicons name="navigate" size={16} color={colors.onAccent} />
-              <Text style={styles.routeText}>Маршрут</Text>
+            <PressableScale style={styles.routeChip} scaleTo={0.95} onPress={() => openRoute(item)}>
+              <Ionicons name="navigate" size={14} color={colors.text} />
+              <Text style={styles.routeChipText}>Маршрут</Text>
             </PressableScale>
 
             {isMine ? (
-              <>
-                <PressableScale style={styles.iconBtn} scaleTo={0.94} onPress={() => openEdit(item)}>
-                  <Ionicons name="create-outline" size={18} color={colors.text} />
-                </PressableScale>
-                <PressableScale style={styles.iconBtn} scaleTo={0.94} onPress={() => setPendingRemoval(item)}>
-                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
-                </PressableScale>
-              </>
+              <PressableScale style={styles.moreBtn} scaleTo={0.92} onPress={() => setRequestActions(item)}>
+                <Ionicons name="ellipsis-horizontal" size={17} color={colors.textMuted} />
+              </PressableScale>
             ) : null}
           </View>
         </View>
@@ -536,6 +538,22 @@ export default function HelpRequestsScreen(_props: Props) {
         </Animated.View>
       </Modal>
 
+      <ChoiceSheet
+        visible={requestActions !== null}
+        title={requestActions?.description ? requestActions.description.slice(0, 60) : 'Запрос'}
+        options={[
+          { value: 'edit', label: 'Редактировать', icon: 'create-outline' },
+          { value: 'delete', label: 'Удалить', icon: 'trash-outline', danger: true },
+        ]}
+        onSelect={(value) => {
+          const request = requestActions;
+          if (!request) return;
+          if (value === 'edit') openEdit(request);
+          else setPendingRemoval(request);
+        }}
+        onClose={() => setRequestActions(null)}
+      />
+
       <ConfirmSheet
         visible={pendingRemoval !== null}
         title="Удалить запрос?"
@@ -607,19 +625,20 @@ const styles = StyleSheet.create({
   statusResolved: { color: colors.success, backgroundColor: 'rgba(61,214,140,0.14)' },
   time: { color: colors.textFaint, fontSize: font.tiny, fontWeight: '700' },
 
-  description: { marginTop: space.md, color: colors.text, fontSize: font.body, lineHeight: 21, fontWeight: '600' },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: space.sm },
-  metaText: { flexShrink: 1, color: colors.textMuted, fontSize: font.small, fontWeight: '700' },
-  metaDot: { color: colors.textFaint, fontSize: font.small, fontWeight: '900' },
+  description: { marginTop: space.sm, color: colors.text, fontSize: font.body, lineHeight: 21, fontWeight: '600' },
 
-  actionRow: { flexDirection: 'row', gap: space.sm, marginTop: space.md },
-  routeBtn: {
-    flex: 1, height: 42, borderRadius: radius.pill, backgroundColor: colors.accent,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md },
+  metaWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { flexShrink: 1, color: colors.textMuted, fontSize: font.tiny, fontWeight: '700' },
+  metaAuthor: { flexShrink: 1, marginLeft: 6, color: colors.textFaint, fontSize: font.tiny, fontWeight: '700' },
+  routeChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    height: 34, paddingHorizontal: space.md, borderRadius: radius.pill,
+    backgroundColor: colors.surfaceAlt,
   },
-  routeText: { color: colors.onAccent, fontSize: font.small, fontWeight: '900' },
-  iconBtn: {
-    width: 42, height: 42, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt,
+  routeChipText: { color: colors.text, fontSize: font.tiny, fontWeight: '900' },
+  moreBtn: {
+    width: 34, height: 34, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt,
     alignItems: 'center', justifyContent: 'center',
   },
 
