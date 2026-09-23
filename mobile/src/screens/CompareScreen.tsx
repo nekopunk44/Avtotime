@@ -191,6 +191,10 @@ export default function CompareScreen() {
     setError('');
     try {
       await refreshItems();
+      // Загрузку обычно гасит эффект дозагрузки объявлений, но он просыпается
+      // только на СМЕНУ состава. Пустой список после пустого — состав тот же,
+      // эффект молчит, и без этой строки скелет оставался навсегда.
+      if (!useCompareStore.getState().items.length) setLoading(false);
     } catch (e: any) {
       setError(e.response?.data?.message || 'Не удалось загрузить сравнение');
       setLoading(false);
