@@ -13,6 +13,10 @@ import { Animated, Easing, Keyboard, LayoutChangeEvent } from 'react-native';
  * окно уже сжалось. Поднимаем ровно на разницу, поэтому оба поведения дают
  * одинаковый результат.
  */
+// Зазор между поднятым содержимым и клавиатурой: прижатый вплотную блок
+// выглядит частью клавиатуры, а не приложения.
+const GAP = 10;
+
 export function useKeyboardLift() {
   const lift = useRef(new Animated.Value(0)).current;
   // Высота корня без клавиатуры и текущее сжатие окна.
@@ -22,7 +26,11 @@ export function useKeyboardLift() {
 
   const apply = useCallback((duration?: number) => {
     Animated.timing(lift, {
-      toValue: Math.max(0, keyboardHeight.current - shrink.current),
+      // Зазор добавляется только при видимой клавиатуре — и в том числе когда
+      // окно сжала сама система и поднимать больше нечего.
+      toValue: keyboardHeight.current > 0
+        ? Math.max(0, keyboardHeight.current - shrink.current) + GAP
+        : 0,
       duration: duration && duration > 0 ? duration : 220,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
