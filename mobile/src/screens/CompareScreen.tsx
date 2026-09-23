@@ -371,23 +371,27 @@ export default function CompareScreen() {
 
   if (error) {
     body.push(
-      <EmptyState
-        key="error"
-        icon="alert-circle-outline"
-        title={error}
-        subtitle="Потяните экран вниз, чтобы попробовать снова."
-      />,
+      // Подсказка занимает остаток экрана и стоит по его середине: прижатая
+      // к заголовку, она выглядела всплывшей наверх.
+      <View key="error" style={styles.emptyCenter}>
+        <EmptyState
+          icon="alert-circle-outline"
+          title={error}
+          subtitle="Потяните экран вниз, чтобы попробовать снова."
+        />
+      </View>,
     );
   } else if (!items.length) {
     body.push(
-      <EmptyState
-        key="empty"
-        icon="git-compare-outline"
-        title="Сравнивать пока нечего"
-        subtitle="Нажмите значок сравнения на карточке объявления — здесь появится разбор по характеристикам."
-        actionLabel="Перейти в маркет"
-        onAction={() => navigation.navigate('Market')}
-      />,
+      <View key="empty" style={styles.emptyCenter}>
+        <EmptyState
+          icon="git-compare-outline"
+          title="Сравнивать пока нечего"
+          subtitle="Нажмите значок сравнения на карточке объявления — здесь появится разбор по характеристикам."
+          actionLabel="Перейти в маркет"
+          onAction={() => navigation.navigate('Market')}
+        />
+      </View>,
     );
   } else {
     body.push(
@@ -520,6 +524,7 @@ export default function CompareScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { flexGrow: 1, padding: space.md, paddingBottom: TAB_BAR_SPACE },
+  emptyCenter: { flex: 1, justifyContent: 'center' },
 
   head: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
