@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
+  Animated,
   Dimensions,
   FlatList,
   Image,
@@ -11,6 +12,7 @@ import {
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import ImageViewer from './ImageViewer';
+import PagerDots from './ui/PagerDots';
 
 interface Props {
   media: string;
@@ -42,6 +44,8 @@ export default function PostMediaCarousel({ media, mediaList, mediaType, width, 
   const screenWidth = width ?? Dimensions.get('window').width;
   const mediaHeight = height ?? screenWidth;
   const [index, setIndex] = useState(0);
+  // Сырое положение ленты кадров — им живут перетекающие точки.
+  const scrollX = useRef(new Animated.Value(0)).current;
   const [viewerUri, setViewerUri] = useState<string | undefined>();
 
   const items = (mediaList && mediaList.length ? mediaList : media ? [media] : []).filter(Boolean);
@@ -79,12 +83,17 @@ export default function PostMediaCarousel({ media, mediaList, mediaType, width, 
 
   return (
     <View>
-      <FlatList
+      <Animated.FlatList
         data={items}
-        keyExtractor={(uri, i) => `${uri}-${i}`}
+        keyExtractor={(uri: string, i: number) => `${uri}-${i}`}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: false, listener: onScroll },
+        )}
         onMomentumScrollEnd={onScroll}
         renderItem={({ item }) => (
           <TouchableOpacity activeOpacity={0.95} onPress={() => setViewerUri(item)}>
@@ -92,18 +101,12 @@ export default function PostMediaCarousel({ media, mediaList, mediaType, width, 
           </TouchableOpacity>
         )}
       />
-      <View style={styles.dots}>
-        {items.map((_, i) => (
-          <View key={i} style={[styles.dot, i === index && styles.dotActive]} />
-        ))}
-      </View>
+      <PagerDots count={items.length} scrollX={scrollX} slideWidth={screenWidth} style={styles.dots} />
       {viewer}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  dots: { position: 'absolute', bottom: 10, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.5)' },
-  dotActive: { backgroundColor: '#fff', width: 7, height: 7, borderRadius: 3.5 },
+  dots: { position: 'absolute', bottom: 10, left: 0, right: 0 },
 });

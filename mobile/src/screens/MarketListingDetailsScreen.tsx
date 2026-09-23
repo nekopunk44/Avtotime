@@ -33,7 +33,7 @@ import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import ImageViewer from '../components/ImageViewer';
 import { colors, font, radius, shadow, space } from '../theme';
-import { Avatar, PressableScale } from '../components/ui';
+import { Avatar, PagerDots, PressableScale } from '../components/ui';
 
 type Props = {
   navigation: NativeStackNavigationProp<AppStackParamList, 'MarketListingDetails'>;
@@ -49,6 +49,8 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
   const me = useAuthStore((state) => state.user);
   const [listing, setListing] = useState(initialListing);
   const [imageIndex, setImageIndex] = useState(0);
+  // Сырое положение ленты кадров — им живут перетекающие точки.
+  const heroScrollX = useRef(new Animated.Value(0)).current;
   const [viewerOpen, setViewerOpen] = useState(false);
   // Список сравнения общий с витриной: правила и сообщения живут в хуке.
   const { isCompared: checkCompared, toggle: switchCompare, busyId } = useCompare();
@@ -245,10 +247,15 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
           {images.length ? (
             /* Свайп вместо стрелок: листать кадры пальцем привычнее, чем
                целиться в кнопку поверх фотографии. */
-            <ScrollView
+            <Animated.ScrollView
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
+              scrollEventThrottle={16}
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { x: heroScrollX } } }],
+                { useNativeDriver: false },
+              )}
               onMomentumScrollEnd={(e) => {
                 const page = Math.round(e.nativeEvent.contentOffset.x / SCREEN.width);
                 setImageIndex(Math.max(0, Math.min(images.length - 1, page)));
@@ -263,7 +270,7 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
                   <Image source={{ uri }} style={styles.heroImage} />
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </Animated.ScrollView>
           ) : (
             <View style={[styles.heroImage, styles.noImage]}>
               <Ionicons name={category.icon as any} size={44} color={colors.textFaint} />
@@ -277,14 +284,12 @@ export default function MarketListingDetailsScreen({ navigation, route }: Props)
 
           {images.length > 1 ? (
             <>
-              <View style={styles.dots}>
-                {images.map((uri, index) => (
-                  <View
-                    key={`dot-${uri}-${index}`}
-                    style={[styles.dot, index === imageIndex && styles.dotActive]}
-                  />
-                ))}
-              </View>
+              <PagerDots
+                count={images.length}
+                scrollX={heroScrollX}
+                slideWidth={SCREEN.width}
+                style={styles.dots}
+              />
               <View style={styles.imageCounter}>
                 <Text style={styles.imageCounterText}>{imageIndex + 1}/{images.length}</Text>
               </View>

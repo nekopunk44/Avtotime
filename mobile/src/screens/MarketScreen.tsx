@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Image,
   Pressable,
@@ -32,7 +33,7 @@ import {
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 import { colors, font, radius, shadow, space } from '../theme';
-import { Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
+import { Card, EmptyState, PagerDots, PressableScale, Skeleton } from '../components/ui';
 import { canCompareListing, getCompareType } from '../api/compare';
 import { useCompare } from '../hooks/useCompare';
 import MarketFiltersSheet, {
@@ -161,7 +162,8 @@ function CardGallery({ images, icon, onOpen }: { images: string[]; icon: string;
   // Ширину клетки меряем, а не считаем: колонка сетки зависит от экрана,
   // а слайд обязан совпадать с ней до пикселя, иначе листание не доезжает.
   const [width, setWidth] = useState(0);
-  const [index, setIndex] = useState(0);
+  // Сырое положение ленты кадров — им живут перетекающие точки.
+  const scrollX = useRef(new Animated.Value(0)).current;
 
   if (!images.length) {
     return (
@@ -182,25 +184,32 @@ function CardGallery({ images, icon, onOpen }: { images: string[]; icon: string;
   return (
     <View style={styles.cardImage} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       {width > 0 ? (
-        <ScrollView
+        <Animated.ScrollView
           horizontal
           pagingEnabled
           nestedScrollEnabled
           showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: false },
+          )}
         >
           {images.map((uri) => (
             <Pressable key={uri} onPress={onOpen}>
               <Image source={{ uri }} style={{ width, height: '100%' }} />
             </Pressable>
           ))}
-        </ScrollView>
+        </Animated.ScrollView>
       ) : null}
-      <View style={styles.cardDots} pointerEvents="none">
-        {images.map((uri, dotIndex) => (
-          <View key={uri} style={[styles.cardDot, dotIndex === index && styles.cardDotActive]} />
-        ))}
-      </View>
+      <PagerDots
+        count={images.length}
+        scrollX={scrollX}
+        slideWidth={width}
+        dotSize={5}
+        activeWidth={14}
+        style={styles.cardDots}
+      />
     </View>
   );
 }
@@ -487,12 +496,7 @@ const styles = StyleSheet.create({
   card: { padding: 0, overflow: 'hidden' },
   cardImage: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
   noImage: { alignItems: 'center', justifyContent: 'center' },
-  cardDots: {
-    position: 'absolute', left: 0, right: 0, bottom: 7,
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4,
-  },
-  cardDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.45)' },
-  cardDotActive: { backgroundColor: colors.white, width: 14 },
+  cardDots: { position: 'absolute', left: 0, right: 0, bottom: 7 },
   badge: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7, backgroundColor: colors.ink, color: colors.white, fontSize: 9, fontWeight: '900', textTransform: 'uppercase', overflow: 'hidden' },
   cardBody: { padding: space.md },
   price: { color: colors.text, fontSize: font.h3, fontWeight: '900' },

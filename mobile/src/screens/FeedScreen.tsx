@@ -28,7 +28,7 @@ import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 import { colors, font, radius, space, shadow } from '../theme';
 import { Avatar, Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
 import ReportSheet from '../components/ReportSheet';
-import { ChoiceSheet } from '../components/ui';
+import { ChoiceSheet, PagerDots } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
@@ -60,6 +60,8 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
   const firstMedia = gallery[0];
   const isVideo = item.mediaType === 'video';
   const [mediaIndex, setMediaIndex] = useState(0);
+  // Сырое положение ленты кадров — им живут перетекающие точки.
+  const mediaScrollX = useRef(new Animated.Value(0)).current;
   // Ширину слайда меряем, а не считаем: у карточки есть ещё волосяная рамка,
   // и расчётная ширина расходилась с настоящей на пиксель — из-за него в
   // кадре виднелась полоска соседнего снимка.
@@ -95,10 +97,15 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
             style={styles.mediaWrap}
             onLayout={(e) => setSlideWidth(e.nativeEvent.layout.width)}
           >
-            <ScrollView
+            <Animated.ScrollView
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
+              scrollEventThrottle={16}
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { x: mediaScrollX } } }],
+                { useNativeDriver: false },
+              )}
               onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) =>
                 setMediaIndex(Math.round(e.nativeEvent.contentOffset.x / slideWidth))
               }
@@ -112,16 +119,12 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
                   />
                 </Pressable>
               ))}
-            </ScrollView>
+            </Animated.ScrollView>
 
             <View style={styles.mediaCounter}>
               <Text style={styles.mediaCounterText}>{mediaIndex + 1}/{gallery.length}</Text>
             </View>
-            <View style={styles.dots}>
-              {gallery.map((uri, index) => (
-                <View key={uri} style={[styles.dot, index === mediaIndex && styles.dotActive]} />
-              ))}
-            </View>
+            <PagerDots count={gallery.length} scrollX={mediaScrollX} slideWidth={slideWidth} style={styles.dots} />
           </View>
         ) : firstMedia ? (
           <PressableScale onPress={onOpen} scaleTo={0.99}>
@@ -507,12 +510,7 @@ const styles = StyleSheet.create({
 
   mediaWrap: { width: '100%', aspectRatio: 1, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.surfaceAlt, marginTop: space.md },
   postImage: { width: '100%', height: '100%' },
-  dots: {
-    position: 'absolute', left: 0, right: 0, bottom: 10,
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5,
-  },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.45)' },
-  dotActive: { backgroundColor: colors.white, width: 18 },
+  dots: { position: 'absolute', left: 0, right: 0, bottom: 10 },
   playBadge: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   playCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', paddingLeft: 4 },
   mediaCounter: { position: 'absolute', right: 10, top: 10, borderRadius: 14, paddingHorizontal: 9, height: 24, backgroundColor: 'rgba(0,0,0,0.62)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },

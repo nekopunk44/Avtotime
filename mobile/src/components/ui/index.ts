@@ -12,4 +12,5 @@ export { default as Avatar } from './Avatar';
 export { default as SuggestField } from './SuggestField';
 export { default as PopoverMenu } from './PopoverMenu';
 export { default as ToastHost } from './ToastHost';
+export { default as PagerDots } from './PagerDots';
 export { default as ConfirmHost } from './ConfirmHost';
