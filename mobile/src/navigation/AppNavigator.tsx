@@ -185,11 +185,11 @@ const makeTabOptions = (current: 'social' | 'market') => () => ({
 const SocialProfileScreen = (props: any) => <ProfileScreen {...props} mode="social" />;
 const MarketProfileScreen = (props: any) => <ProfileScreen {...props} mode="market" />;
 
-// Переход между вкладками соцсети — направленный, с глубиной: экраны живут
+// Переход между вкладками — направленный, с глубиной: экраны живут
 // на одной ленте (progress: -1 слева, 0 в фокусе, 1 справа), уходящий
 // сдвигается в сторону движения, слегка уменьшаясь и гаснет, входящий
 // доезжает и распрямляется навстречу. Направление даёт сама навигация.
-const socialTabTransition = {
+const tabTransition = {
   transitionSpec: {
     animation: 'timing' as const,
     config: { duration: 260, easing: Easing.out(Easing.cubic) },
@@ -213,7 +213,7 @@ function SocialTabs() {
   const unreadMessages = useBadgeStore((s) => s.unreadMessages);
   return (
     <SocialTab.Navigator
-      screenOptions={() => ({ ...makeTabOptions('social')(), ...socialTabTransition })}
+      screenOptions={() => ({ ...makeTabOptions('social')(), ...tabTransition })}
       tabBar={(props) => <FloatingTabBar {...props} />}
     >
       <SocialTab.Screen name="Feed" component={FeedScreen} />
@@ -236,7 +236,9 @@ function SocialTabs() {
 function MarketTabs() {
   return (
     <MarketTab.Navigator
-      screenOptions={makeTabOptions('market')}
+      // Тот же направленный переход, что в соцсети: без него вкладки маркета
+      // менялись мгновенной подменой экрана.
+      screenOptions={() => ({ ...makeTabOptions('market')(), ...tabTransition })}
       tabBar={(props) => <FloatingTabBar {...props} />}
     >
       <MarketTab.Screen name="Market" component={MarketScreen} />
