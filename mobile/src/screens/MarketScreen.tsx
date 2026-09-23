@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -156,7 +157,7 @@ export default function MarketScreen({ navigation }: Props) {
  * обложка, а остальные кадры были видны лишь внутри объявления. Тап по кадру
  * по-прежнему уходит родительской карточке и открывает объявление.
  */
-function CardGallery({ images, icon }: { images: string[]; icon: string }) {
+function CardGallery({ images, icon, onOpen }: { images: string[]; icon: string; onOpen: () => void }) {
   // Ширину клетки меряем, а не считаем: колонка сетки зависит от экрана,
   // а слайд обязан совпадать с ней до пикселя, иначе листание не доезжает.
   const [width, setWidth] = useState(0);
@@ -164,14 +165,18 @@ function CardGallery({ images, icon }: { images: string[]; icon: string }) {
 
   if (!images.length) {
     return (
-      <View style={[styles.cardImage, styles.noImage]}>
+      <Pressable onPress={onOpen} style={[styles.cardImage, styles.noImage]}>
         <Ionicons name={icon as any} size={28} color={colors.textFaint} />
-      </View>
+      </Pressable>
     );
   }
 
   if (images.length === 1) {
-    return <Image source={{ uri: images[0] }} style={styles.cardImage} />;
+    return (
+      <Pressable onPress={onOpen}>
+        <Image source={{ uri: images[0] }} style={styles.cardImage} />
+      </Pressable>
+    );
   }
 
   return (
@@ -185,7 +190,9 @@ function CardGallery({ images, icon }: { images: string[]; icon: string }) {
           onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
         >
           {images.map((uri) => (
-            <Image key={uri} source={{ uri }} style={{ width, height: '100%' }} />
+            <Pressable key={uri} onPress={onOpen}>
+              <Image source={{ uri }} style={{ width, height: '100%' }} />
+            </Pressable>
           ))}
         </ScrollView>
       ) : null}
@@ -258,29 +265,30 @@ const placeOf = (item: MarketListing) => String(item.location || item.region || 
     const itemCategory = getMarketCategory(itemCategoryId);
     const compareType = getCompareType(itemCategoryId);
     const compared = isCompared(item.id, compareType);
+    const openListing = () => {
+      const open = (origin?: { x: number; y: number; width: number; height: number }) =>
+        navigation.navigate('MarketListingDetails', { listing: item, categoryId: itemCategoryId, origin });
+
+      const node = cellRef.current;
+      if (!node) {
+        open();
+        return;
+      }
+      // measureInWindow — единственный способ узнать место карточки уже
+      // после прокрутки списка.
+      node.measureInWindow((x, y, width, height) => open({ x, y, width, height }));
+    };
+
     return (
       <View ref={cellRef} collapsable={false} style={styles.cell}>
-      <PressableScale
-        style={styles.cellInner}
-        scaleTo={0.98}
-        onPress={() => {
-          const open = (origin?: { x: number; y: number; width: number; height: number }) =>
-            navigation.navigate('MarketListingDetails', { listing: item, categoryId: itemCategoryId, origin });
-
-          const node = cellRef.current;
-          if (!node) {
-            open();
-            return;
-          }
-          // measureInWindow — единственный способ узнать место карточки уже
-          // после прокрутки списка.
-          node.measureInWindow((x, y, width, height) => open({ x, y, width, height }));
-        }}
-      >
+        {/* Галерея живёт ВНЕ нажималки: горизонтальный жест внутри Pressable
+            не доходил до ленты, и листать фото было нельзя. Тап по кадру
+            открывает объявление через собственный Pressable слайда. */}
         <Card style={styles.card}>
           <CardGallery
             images={(item.images?.length ? item.images : image ? [image] : []).filter(Boolean)}
             icon={itemCategory.icon}
+            onOpen={openListing}
           />
           {/* Сравнение прямо из выдачи: раньше пару приходилось собирать,
               заходя в каждое объявление. */}
@@ -302,7 +310,7 @@ const placeOf = (item: MarketListing) => String(item.location || item.region || 
             </PressableScale>
           ) : null}
           {item.sellerBadge ? <Text style={styles.badge}>{item.sellerBadge}</Text> : null}
-          <View style={styles.cardBody}>
+          <PressableScale scaleTo={0.98} onPress={openListing} style={styles.cardBody}>
             <Text style={styles.price}>{getListingPrice(item, itemCategoryId)}</Text>
             <Text style={styles.cardTitle} numberOfLines={2}>{getListingTitle(item)}</Text>
             <View style={styles.metaRow}>
@@ -312,9 +320,8 @@ const placeOf = (item: MarketListing) => String(item.location || item.region || 
             {km !== null ? (
               <Text style={styles.distanceText}>{km === 0 ? 'Рядом с вами' : `${km} км от вас`}</Text>
             ) : null}
-          </View>
+          </PressableScale>
         </Card>
-      </PressableScale>
       </View>
     );
   };
@@ -477,7 +484,6 @@ const styles = StyleSheet.create({
   listContent: { paddingBottom: TAB_BAR_SPACE },
   emptyContent: { flexGrow: 1, paddingBottom: TAB_BAR_SPACE },
   cell: { width: '50%', paddingHorizontal: 3, marginBottom: space.md },
-  cellInner: { flex: 1 },
   card: { padding: 0, overflow: 'hidden' },
   cardImage: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
   noImage: { alignItems: 'center', justifyContent: 'center' },
