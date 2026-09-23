@@ -97,3 +97,22 @@ describe("фильтр принимает несколько значений в
     expect(titles(response.body).sort()).toEqual(["electric", "petrol"]);
   });
 });
+
+describe("что несёт урезанная выдача фильтра", () => {
+  it("кадры объявления доезжают до карточки", async () => {
+    await car(seller.id, {
+      title: "с галереей",
+      images: ["https://example.com/1.jpg", "https://example.com/2.jpg"],
+    });
+
+    const response = await request(app)
+      .get("/api/market/filter?type=cars")
+      .set("Authorization", `Bearer ${seller.token}`);
+
+    expect(response.status).toBe(200);
+    const rows = Array.isArray(response.body) ? response.body : response.body?.listings || [];
+    const found = rows.find((row) => row.title === "с галереей");
+    // Без images в проекции карточка видела один кадр, и листать было нечего.
+    expect(found?.images).toEqual(["https://example.com/1.jpg", "https://example.com/2.jpg"]);
+  });
+});

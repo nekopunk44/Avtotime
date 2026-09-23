@@ -1469,7 +1469,7 @@ export const searchMarketListings = async (req, res) => {
     // (brand/model/year/price/partGroup/region + text query).
     if (!listingType || listingType === "parts") {
       const parts = await MarketPartListing.find(buildAndQuery(buildPartFilterClauses(fp, base)))
-        .select("id title price image type brand model year location region partGroup partCategory partCategoryKey")
+        .select("id title price image images type brand model year location region partGroup partCategory partCategoryKey")
         .sort({ createdAt: -1 })
         .limit(SEARCH_RESULT_LIMIT)
         .lean();
@@ -1480,7 +1480,7 @@ export const searchMarketListings = async (req, res) => {
     // gearbox/bodyType/driveType/price/region + text query).
     if (!listingType || listingType === "cars") {
       const cars = await MarketCarListing.find(buildAndQuery(buildCarFilterClauses(fp, base)))
-        .select("id title price image type brand model year location region registrationPlace")
+        .select("id title price image images type brand model year location region registrationPlace")
         .sort({ createdAt: -1 })
         .limit(SEARCH_RESULT_LIMIT)
         .lean();
@@ -1491,7 +1491,7 @@ export const searchMarketListings = async (req, res) => {
     if (!listingType || listingType === "car-services") {
       const query = buildAndQuery([base, textClause(["title", "category"]), regionClause, buildPriceClause("price", min, max)]);
       const services = await MarketCarServiceListing.find(query)
-        .select("id title price image category location")
+        .select("id title price image images category location")
         .sort({ createdAt: -1 })
         .limit(SEARCH_RESULT_LIMIT)
         .lean();
@@ -1502,7 +1502,7 @@ export const searchMarketListings = async (req, res) => {
     if (!listingType || listingType === "auto-tuning") {
       const query = buildAndQuery([base, textClause(["title", "category"]), regionClause, buildPriceClause("price", min, max)]);
       const tuning = await MarketAutoTuningListing.find(query)
-        .select("id title price image category location badge")
+        .select("id title price image images category location badge")
         .sort({ createdAt: -1 })
         .limit(SEARCH_RESULT_LIMIT)
         .lean();
@@ -1513,7 +1513,7 @@ export const searchMarketListings = async (req, res) => {
     if (!listingType || listingType === "dry-cleaning") {
       const query = buildAndQuery([base, textClause(["title", "category"]), regionClause, buildPriceClause("price", min, max)]);
       const cleaning = await MarketDryCleaningListing.find(query)
-        .select("id title price image category location badge")
+        .select("id title price image images category location badge")
         .sort({ createdAt: -1 })
         .limit(SEARCH_RESULT_LIMIT)
         .lean();
@@ -1587,7 +1587,7 @@ export const filterMarketListings = async (req, res) => {
         });
       }
       const parts = await MarketPartListing.find(buildAndQuery(clauses))
-        .select("id title price image type brand model year location region partGroup partCategory partCategoryKey")
+        .select("id title price image images type brand model year location region partGroup partCategory partCategoryKey")
         .sort({ createdAt: -1 })
         .limit(SEARCH_RESULT_LIMIT)
         .lean();
@@ -1599,7 +1599,7 @@ export const filterMarketListings = async (req, res) => {
       const clauses = buildCarFilterClauses(fp, base);
       if (categoryValue) clauses.push({ type: new RegExp(escapeRe(categoryValue), "i") });
       const cars = await MarketCarListing.find(buildAndQuery(clauses))
-        .select("id title price image type brand model year location region")
+        .select("id title price image images type brand model year location region")
         .sort({ createdAt: -1 })
         .limit(SEARCH_RESULT_LIMIT)
         .lean();
@@ -1611,7 +1611,7 @@ export const filterMarketListings = async (req, res) => {
       const categoryClause = categoryValue ? { category: new RegExp(escapeRe(categoryValue), "i") } : null;
       const query = buildAndQuery([base, regionClause, categoryClause, buildPriceClause("price", min, max)]);
       const services = await MarketCarServiceListing.find(query)
-        .select("id title price image category location")
+        .select("id title price image images category location")
         .sort({ createdAt: -1 })
         .limit(SEARCH_RESULT_LIMIT)
         .lean();
@@ -1623,7 +1623,7 @@ export const filterMarketListings = async (req, res) => {
       const categoryClause = categoryValue ? { category: new RegExp(escapeRe(categoryValue), "i") } : null;
       const query = buildAndQuery([base, regionClause, categoryClause, buildPriceClause("price", min, max)]);
       const tuning = await MarketAutoTuningListing.find(query)
-        .select("id title price image category location")
+        .select("id title price image images category location")
         .sort({ createdAt: -1 })
         .limit(SEARCH_RESULT_LIMIT)
         .lean();
@@ -1635,7 +1635,7 @@ export const filterMarketListings = async (req, res) => {
       const categoryClause = categoryValue ? { category: new RegExp(escapeRe(categoryValue), "i") } : null;
       const query = buildAndQuery([base, regionClause, categoryClause, buildPriceClause("price", min, max)]);
       const cleaning = await MarketDryCleaningListing.find(query)
-        .select("id title price image category location badge")
+        .select("id title price image images category location badge")
         .sort({ createdAt: -1 })
         .limit(SEARCH_RESULT_LIMIT)
         .lean();
