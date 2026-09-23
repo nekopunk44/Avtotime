@@ -95,6 +95,25 @@ export default function HelpRequestsScreen(_props: Props) {
   const [saving, setSaving] = useState(false);
   const [pendingRemoval, setPendingRemoval] = useState<HelpRequest | null>(null);
 
+  // ── Переключатель статуса в шторке: заливка едет к выбранному ────────────
+  const [statusW, setStatusW] = useState(0);
+  const statusSlide = useRef(new Animated.Value(0)).current;
+  const statusPlaced = useRef(false);
+  const statusSeg = statusW > 0 ? (statusW - 12) / 2 : 0;
+  const statusIndex = draft.status === 'resolved' ? 1 : 0;
+
+  useEffect(() => {
+    if (statusSeg <= 0) return;
+    const target = 4 + statusIndex * (statusSeg + 4);
+    if (!statusPlaced.current) {
+      // Первая раскладка — без анимации: шторка открывается уже с выбранным.
+      statusPlaced.current = true;
+      statusSlide.setValue(target);
+      return;
+    }
+    Animated.spring(statusSlide, { toValue: target, useNativeDriver: true, speed: 16, bounciness: 7 }).start();
+  }, [statusSeg, statusIndex, statusSlide]);
+
   const activeList = scope === 'mine' ? myRequests : requests;
   const activeRequests = useMemo(() => activeList.filter((item) => item.status === 'active'), [activeList]);
   const resolvedRequests = useMemo(() => activeList.filter((item) => item.status === 'resolved'), [activeList]);
@@ -156,6 +175,7 @@ export default function HelpRequestsScreen(_props: Props) {
 
   useEffect(() => {
     if (modalOpen) {
+      statusPlaced.current = false;
       setSheetMounted(true);
       sheetAnim.setValue(0);
       sheetDrag.setValue(0);
@@ -235,7 +255,9 @@ export default function HelpRequestsScreen(_props: Props) {
       setDraft((prev) => ({
         ...prev,
         location: found.label,
-        coordinates: found.lat !== null && found.lng !== null
+        // Координаты сохраняем только точные: городская точка из IP-подключения
+        // выдавала себя за место на карте, хотя показывает лишь город.
+        coordinates: found.precise && found.lat !== null && found.lng !== null
           ? { lat: found.lat, lng: found.lng }
           : null,
       }));
@@ -458,9 +480,6 @@ export default function HelpRequestsScreen(_props: Props) {
                       : <Ionicons name="locate" size={18} color={draft.coordinates ? colors.accent : colors.textMuted} />}
                   </Pressable>
                 </View>
-                {draft.coordinates ? (
-                  <Text style={styles.hint}>Точка на карте сохранена — помощь приедет по координатам</Text>
-                ) : null}
               </View>
 
               <View style={styles.field}>
@@ -479,13 +498,18 @@ export default function HelpRequestsScreen(_props: Props) {
               {editing ? (
                 <View style={styles.field}>
                   <Text style={styles.label}>Статус</Text>
-                  <View style={styles.statusSwitch}>
+                  <View style={styles.statusSwitch} onLayout={(e) => setStatusW(e.nativeEvent.layout.width)}>
+                    {statusSeg > 0 ? (
+                      <Animated.View
+                        style={[styles.statusThumb, { width: statusSeg, transform: [{ translateX: statusSlide }] }]}
+                      />
+                    ) : null}
                     {(['active', 'resolved'] as HelpRequestStatus[]).map((value) => {
                       const on = draft.status === value;
                       return (
                         <Pressable
                           key={value}
-                          style={[styles.statusBtn, on && styles.statusBtnActive]}
+                          style={styles.statusBtn}
                           onPress={() => setDraft((prev) => ({ ...prev, status: value }))}
                         >
                           <Text style={[styles.statusBtnText, on && styles.statusBtnTextActive]}>
@@ -627,12 +651,14 @@ const styles = StyleSheet.create({
   inputWithAction: { flexDirection: 'row', alignItems: 'center', paddingRight: 6 },
   inputInner: { flex: 1, height: 46, color: colors.text, fontSize: font.body, padding: 0 },
   inputAction: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
-  hint: { marginLeft: 2, color: colors.success, fontSize: font.tiny, fontWeight: '800' },
   textArea: { minHeight: 110, paddingTop: space.md, lineHeight: 21 },
 
   statusSwitch: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: radius.md, padding: 4, gap: 4 },
+  statusThumb: {
+    position: 'absolute', top: 4, bottom: 4, left: 0,
+    borderRadius: radius.sm, backgroundColor: colors.accent,
+  },
   statusBtn: { flex: 1, height: 38, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
-  statusBtnActive: { backgroundColor: colors.accent },
   statusBtnText: { color: colors.textMuted, fontSize: font.small, fontWeight: '800' },
   statusBtnTextActive: { color: colors.onAccent, fontWeight: '900' },
 
