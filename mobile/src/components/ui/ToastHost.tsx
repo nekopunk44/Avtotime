@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, font, radius, shadow, space } from '../../theme';
+import { colors, font, radius, space } from '../../theme';
 import { ToastMessage, ToastTone, useToastStore } from '../../store/toastStore';
 
 const VISIBLE_MS = 3400;
@@ -82,11 +82,12 @@ export default function ToastHost() {
 
 const styles = StyleSheet.create({
   host: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, paddingHorizontal: space.md },
+  // Без elevation-тени: на почти чёрном фоне Android рисует её тёмной
+  // плитой под карточкой, и плита читалась как пустая вторая строка.
   card: {
     borderRadius: radius.lg, backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
-    ...shadow.float,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.surfaceHi,
   },
   inner: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md },
-  text: { flex: 1, color: colors.text, fontSize: font.small, fontWeight: '800', lineHeight: 19 },
+  text: { flex: 1, color: colors.text, fontSize: font.small, fontWeight: '800', lineHeight: 19, includeFontPadding: false },
 });

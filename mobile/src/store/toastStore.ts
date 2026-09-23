@@ -24,7 +24,13 @@ let nextId = 0;
  */
 export const useToastStore = create<ToastState>((set) => ({
   toast: null,
-  show: (text, tone = 'info') => set({ toast: { id: ++nextId, text, tone } }),
+  // Обрезка страхует от случайного перевода строки в тексте ошибки сервера:
+  // он раздувал плашку пустой строкой.
+  show: (text, tone = 'info') => {
+    const trimmed = String(text ?? '').trim();
+    if (!trimmed) return;
+    set({ toast: { id: ++nextId, text: trimmed, tone } });
+  },
   hide: () => set({ toast: null }),
 }));
 
