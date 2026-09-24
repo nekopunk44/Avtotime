@@ -3,6 +3,7 @@ import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
   Animated,
+  Easing,
   FlatList,
   Image,
   Modal,
@@ -20,6 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { useKeyboardLift } from '../hooks/useKeyboardLift';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { RouteProp, useFocusEffect, useIsFocused, useRoute } from '@react-navigation/native';
@@ -248,6 +250,15 @@ export default function LoopsScreen({ navigation }: Props) {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const { height } = useWindowDimensions();
+  // Подъём под клавиатуру: со statusBarTranslucent окно модалки система не
+  // сжимает, и без подъёма клавиатура накрывала строку ввода.
+  const { lift: kbLift, onLayout: onRootLayout } = useKeyboardLift();
+
+  // ── Шторка комментариев: фон гаснет, панель едет ─────────────────────────
+  // Системный slide уводил затемнение вместе с панелью: фон должен гаснуть
+  // на месте, а ехать — только шторка.
+  const [commentsMounted, setCommentsMounted] = useState(false);
+  const commentsAnim = useRef(new Animated.Value(0)).current;
 
   // ── Протяжка шторки комментариев вниз ────────────────────────────────────
   const sheetDrag = useRef(new Animated.Value(0)).current;
@@ -448,6 +459,23 @@ export default function LoopsScreen({ navigation }: Props) {
 
   closeCommentsRef.current = () => closeComments();
 
+  useEffect(() => {
+    if (commentTarget) {
+      setCommentsMounted(true);
+      commentsAnim.setValue(0);
+      sheetDrag.setValue(0);
+      Animated.timing(commentsAnim, {
+        toValue: 1, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: true,
+      }).start();
+      return;
+    }
+    Animated.timing(commentsAnim, {
+      toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: true,
+    }).start(({ finished }) => { if (finished) setCommentsMounted(false); });
+    // Модалка живёт до конца анимации ухода — иначе шторка исчезает рывком.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commentTarget]);
+
   const closeComments = () => {
     setCommentTarget(null);
     setCommentText('');
@@ -554,8 +582,8 @@ export default function LoopsScreen({ navigation }: Props) {
         </View>
       </View>
 
-      <Modal visible={!!pendingVideo} transparent animationType="slide" onRequestClose={() => !uploading && setPendingVideo(null)}>
-        <View style={styles.modalRoot}>
+      <Modal visible={!!pendingVideo} transparent statusBarTranslucent animationType="slide" onRequestClose={() => !uploading && setPendingVideo(null)}>
+        <Animated.View style={[styles.modalRoot, { paddingBottom: kbLift }]} onLayout={onRootLayout}>
           <TouchableOpacity
             style={styles.modalBackdrop}
             activeOpacity={1}
@@ -571,13 +599,27 @@ export default function LoopsScreen({ navigation }: Props) {
               uploading={uploading}
             />
           ) : null}
-        </View>
+        </Animated.View>
       </Modal>
 
-      <Modal visible={!!activeLoop} transparent animationType="slide" onRequestClose={closeComments}>
-        <View style={styles.modalRoot}>
-          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeComments} />
-          <Animated.View style={[styles.commentsSheet, { transform: [{ translateY: sheetDrag }] }]}>
+      <Modal visible={commentsMounted} transparent statusBarTranslucent animationType="none" onRequestClose={closeComments}>
+        <Animated.View style={[styles.modalRoot, { paddingBottom: kbLift }]} onLayout={onRootLayout}>
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeComments}>
+            <Animated.View style={[StyleSheet.absoluteFillObject, styles.backdropFill, { opacity: commentsAnim }]} />
+          </TouchableOpacity>
+          <Animated.View
+            style={[
+              styles.commentsSheet,
+              {
+                transform: [{
+                  translateY: Animated.add(
+                    commentsAnim.interpolate({ inputRange: [0, 1], outputRange: [height, 0] }),
+                    sheetDrag,
+                  ),
+                }],
+              },
+            ]}
+          >
             {/* Тянуть можно за всю шапку: в полоску в четыре пикселя пальцем
                 не попасть. Крестик стал не нужен — закрывают протяжка вниз и
                 тап по фону. */}
@@ -647,7 +689,7 @@ export default function LoopsScreen({ navigation }: Props) {
               </View>
             </View>
           </Animated.View>
-        </View>
+        </Animated.View>
       </Modal>
     </View>
   );
@@ -684,7 +726,8 @@ const styles = StyleSheet.create({
   emptyTitle: { marginTop: 12, color: '#fff', fontSize: 18, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 8, color: colors.textFaint, fontSize: 14, textAlign: 'center', lineHeight: 20 },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject },
+  backdropFill: { backgroundColor: 'rgba(0,0,0,0.45)' },
   commentsSheet: { maxHeight: '72%', minHeight: '50%', backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingTop: 8 },
   handleZone: { paddingBottom: 2 },
   sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: colors.surfaceHi, marginBottom: 8 },
