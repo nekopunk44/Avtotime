@@ -70,3 +70,48 @@ export function useKeyboardLift() {
 
   return { lift, onLayout };
 }
+
+/**
+ * Подъём для полноэкранных модалок (statusBarTranslucent): их корень занимает
+ * экран целиком, поэтому перекрытие считается точно — низ корня минус
+ * абсолютный верх клавиатуры из события. Никаких сравнений высот: формула
+ * верна и когда система сжимает окно, и когда нет.
+ *
+ * Для обычных экранов не годится: их корень начинается под шапкой навигации,
+ * и высота корня не совпадает с экранной координатой.
+ */
+export function useModalKeyboardLift() {
+  const lift = useRef(new Animated.Value(0)).current;
+  const rootHeight = useRef(0);
+  /** Абсолютный Y верха клавиатуры; null — клавиатуры нет. */
+  const keyboardTop = useRef<number | null>(null);
+
+  const apply = useCallback((duration?: number) => {
+    const target = keyboardTop.current === null
+      ? 0
+      : Math.max(0, rootHeight.current - keyboardTop.current) + GAP;
+    Animated.timing(lift, {
+      toValue: target,
+      duration: duration && duration > 0 ? duration : 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [lift]);
+
+  const onLayout = useCallback((event: LayoutChangeEvent) => {
+    rootHeight.current = event.nativeEvent.layout.height;
+    apply();
+  }, [apply]);
+
+  useEffect(() => {
+    const subs = [
+      Keyboard.addListener('keyboardWillShow', (e) => { keyboardTop.current = e.endCoordinates.screenY; apply(e.duration); }),
+      Keyboard.addListener('keyboardDidShow', (e) => { keyboardTop.current = e.endCoordinates.screenY; apply(e.duration); }),
+      Keyboard.addListener('keyboardWillHide', (e) => { keyboardTop.current = null; apply(e.duration); }),
+      Keyboard.addListener('keyboardDidHide', (e) => { keyboardTop.current = null; apply(e.duration); }),
+    ];
+    return () => subs.forEach((sub) => sub.remove());
+  }, [apply]);
+
+  return { lift, onLayout };
+}
