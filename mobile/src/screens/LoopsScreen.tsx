@@ -666,7 +666,7 @@ export default function LoopsScreen({ navigation }: Props) {
         </View>
       </View>
 
-      <Modal visible={!!pendingVideo} transparent statusBarTranslucent animationType="slide" onRequestClose={() => !uploading && setPendingVideo(null)}>
+      <Modal visible={!!pendingVideo} transparent statusBarTranslucent navigationBarTranslucent animationType="slide" onRequestClose={() => !uploading && setPendingVideo(null)}>
         <View style={styles.modalRoot} onLayout={onRootLayout}>
           <TouchableOpacity
             style={styles.modalBackdrop}
@@ -688,7 +688,7 @@ export default function LoopsScreen({ navigation }: Props) {
         </View>
       </Modal>
 
-      <Modal visible={commentsMounted} transparent statusBarTranslucent animationType="none" onRequestClose={closeComments}>
+      <Modal visible={commentsMounted} transparent statusBarTranslucent navigationBarTranslucent animationType="none" onRequestClose={closeComments}>
         {/* Поднимается сама шторка, а не корень: отступ корня оставлял под
             затемнением непрокрашенную полосу — absolute-слои не заходят в
             padding. */}
