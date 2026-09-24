@@ -90,7 +90,7 @@ export default function FormSheet({ visible, title, subtitle, onClose, children 
 
   return (
     <Modal visible transparent statusBarTranslucent animationType="none" onRequestClose={onClose}>
-      <Animated.View style={[styles.root, { paddingBottom: kbLift }]} onLayout={onRootLayout}>
+      <View style={styles.root} onLayout={onRootLayout}>
         <Pressable style={StyleSheet.absoluteFill} onPress={() => { Keyboard.dismiss(); onClose(); }}>
           <Animated.View style={[styles.backdrop, { opacity: anim }]} />
         </Pressable>
@@ -107,9 +107,14 @@ export default function FormSheet({ visible, title, subtitle, onClose, children 
             },
             {
               transform: [{
+                // Выезд, палец и подъём под клавиатуру складываются в один
+                // сдвиг: все три ведёт JS-драйвер.
                 translateY: Animated.add(
-                  anim.interpolate({ inputRange: [0, 1], outputRange: [SHEET_TRAVEL, 0] }),
-                  drag,
+                  Animated.add(
+                    anim.interpolate({ inputRange: [0, 1], outputRange: [SHEET_TRAVEL, 0] }),
+                    drag,
+                  ),
+                  Animated.multiply(kbLift, -1),
                 ),
               }],
             },
@@ -123,7 +128,7 @@ export default function FormSheet({ visible, title, subtitle, onClose, children 
 
           {children}
         </Animated.View>
-      </Animated.View>
+      </View>
     </Modal>
   );
 }

@@ -85,11 +85,19 @@ export function useModalKeyboardLift() {
   const rootHeight = useRef(0);
   /** Абсолютный Y верха клавиатуры; null — клавиатуры нет. */
   const keyboardTop = useRef<number | null>(null);
+  const keyboardHeight = useRef(0);
 
   const apply = useCallback((duration?: number) => {
+    // Две оценки перекрытия: по координате верха (низ корня минус верх
+    // клавиатуры) и по заявленной высоте события. На части устройств одна из
+    // них завышена на системную полосу — берём меньшую, она не промахивается
+    // вверх, а вниз промахнуться не даёт вторая.
+    const byCoords = keyboardTop.current === null
+      ? 0
+      : Math.max(0, rootHeight.current - keyboardTop.current);
     const target = keyboardTop.current === null
       ? 0
-      : Math.max(0, rootHeight.current - keyboardTop.current) + GAP;
+      : Math.min(byCoords, keyboardHeight.current) + GAP;
     Animated.timing(lift, {
       toValue: target,
       duration: duration && duration > 0 ? duration : 220,
@@ -105,8 +113,16 @@ export function useModalKeyboardLift() {
 
   useEffect(() => {
     const subs = [
-      Keyboard.addListener('keyboardWillShow', (e) => { keyboardTop.current = e.endCoordinates.screenY; apply(e.duration); }),
-      Keyboard.addListener('keyboardDidShow', (e) => { keyboardTop.current = e.endCoordinates.screenY; apply(e.duration); }),
+      Keyboard.addListener('keyboardWillShow', (e) => {
+        keyboardTop.current = e.endCoordinates.screenY;
+        keyboardHeight.current = e.endCoordinates.height;
+        apply(e.duration);
+      }),
+      Keyboard.addListener('keyboardDidShow', (e) => {
+        keyboardTop.current = e.endCoordinates.screenY;
+        keyboardHeight.current = e.endCoordinates.height;
+        apply(e.duration);
+      }),
       Keyboard.addListener('keyboardWillHide', (e) => { keyboardTop.current = null; apply(e.duration); }),
       Keyboard.addListener('keyboardDidHide', (e) => { keyboardTop.current = null; apply(e.duration); }),
     ];

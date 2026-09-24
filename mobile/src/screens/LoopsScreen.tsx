@@ -594,13 +594,14 @@ export default function LoopsScreen({ navigation }: Props) {
       </View>
 
       <Modal visible={!!pendingVideo} transparent statusBarTranslucent animationType="slide" onRequestClose={() => !uploading && setPendingVideo(null)}>
-        <Animated.View style={[styles.modalRoot, { paddingBottom: kbLift }]} onLayout={onRootLayout}>
+        <View style={styles.modalRoot} onLayout={onRootLayout}>
           <TouchableOpacity
             style={styles.modalBackdrop}
             activeOpacity={1}
             onPress={() => !uploading && setPendingVideo(null)}
           />
           {pendingVideo ? (
+            <Animated.View style={{ transform: [{ translateY: Animated.multiply(kbLift, -1) }] }}>
             <UploadSheet
               video={pendingVideo}
               caption={uploadCaption}
@@ -609,15 +610,20 @@ export default function LoopsScreen({ navigation }: Props) {
               onPublish={publishPendingVideo}
               uploading={uploading}
             />
+            </Animated.View>
           ) : null}
-        </Animated.View>
+        </View>
       </Modal>
 
       <Modal visible={commentsMounted} transparent statusBarTranslucent animationType="none" onRequestClose={closeComments}>
-        <Animated.View style={[styles.modalRoot, { paddingBottom: kbLift }]} onLayout={onRootLayout}>
+        {/* Поднимается сама шторка, а не корень: отступ корня оставлял под
+            затемнением непрокрашенную полосу — absolute-слои не заходят в
+            padding. */}
+        <View style={styles.modalRoot} onLayout={onRootLayout}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeComments}>
             <Animated.View style={[StyleSheet.absoluteFillObject, styles.backdropFill, { opacity: commentsAnim }]} />
           </TouchableOpacity>
+          <Animated.View style={{ transform: [{ translateY: Animated.multiply(kbLift, -1) }] }}>
           <Animated.View
             style={[
               styles.commentsSheet,
@@ -640,12 +646,6 @@ export default function LoopsScreen({ navigation }: Props) {
                 <Text style={styles.sheetTitle}>Комментарии</Text>
               </View>
             </View>
-
-            {commentsLoading ? (
-              <View style={styles.commentsLoading}>
-                <ActivityIndicator size="small" color={colors.textMuted} />
-              </View>
-            ) : null}
 
             <FlatList
               data={displayLoop?.comments || displayLoop?.commentsPreview || []}
@@ -700,7 +700,8 @@ export default function LoopsScreen({ navigation }: Props) {
               </View>
             </View>
           </Animated.View>
-        </Animated.View>
+          </Animated.View>
+        </View>
       </Modal>
     </View>
   );
