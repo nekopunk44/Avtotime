@@ -2,10 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { showToast } from '../store/toastStore';
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Image,
-  KeyboardAvoidingView,
   Modal,
+  Pressable,
   Platform,
   RefreshControl,
   StyleSheet,
@@ -18,6 +19,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { useKeyboardLift } from '../hooks/useKeyboardLift';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { RouteProp, useFocusEffect, useIsFocused, useRoute } from '@react-navigation/native';
@@ -26,7 +28,7 @@ import { commentLoop, getLoopById, getLoops, likeLoop, Loop, uploadLoop } from '
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList, AppTabParamList } from '../navigation/AppNavigator';
 import ModeSwitcher from '../components/ModeSwitcher';
-import { colors, radius, space } from '../theme';
+import { colors, font, radius, space } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
 
@@ -49,6 +51,11 @@ type LoopCardProps = {
 
 function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onCommentOpen, onAuthorPress }: LoopCardProps) {
   const [progress, setProgress] = useState(0);
+  // Пауза по тапу в любом месте кадра — привычный жест вертикальных видео.
+  const [paused, setPaused] = useState(false);
+  const insets = useSafeAreaInsets();
+  // Подписи и кнопки не должны прятаться за плавающей панелью вкладок.
+  const overlayBottom = insets.bottom + 88;
   const user = useAuthStore((s) => s.user);
   const liked = !!user?._id && loop.likes?.includes(user._id);
   const commentsCount = typeof loop.commentsCount === 'number'
@@ -66,12 +73,18 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onComment
   }, [muted, player]);
 
   useEffect(() => {
-    if (active) {
+    if (active && !paused) {
       player.play();
     } else {
       player.pause();
     }
-  }, [active, player]);
+  }, [active, paused, player]);
+
+  // Новый ролик в фокусе всегда стартует сам: пауза — решение про конкретное
+  // видео, а не про ленту.
+  useEffect(() => {
+    if (active) setPaused(false);
+  }, [active]);
 
   useEffect(() => {
     const subscription = (player as any).addListener?.('timeUpdate', ({ currentTime }: { currentTime: number }) => {
@@ -88,12 +101,22 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onComment
         player={player}
         style={styles.video}
         nativeControls={false}
-        contentFit="contain"
+        // Кадр заполняет экран, как в вертикальных лентах: contain оставлял
+        // серые поля сверху и снизу.
+        contentFit="cover"
         allowsPictureInPicture={false}
         surfaceType="textureView"
       />
 
-      <View style={styles.actionsRail}>
+      <Pressable style={StyleSheet.absoluteFill} onPress={() => setPaused((prev) => !prev)} />
+
+      {paused ? (
+        <View style={styles.pauseBadge} pointerEvents="none">
+          <Ionicons name="play" size={34} color="#fff" />
+        </View>
+      ) : null}
+
+      <View style={[styles.actionsRail, { bottom: overlayBottom + 76 }]}>
         <TouchableOpacity style={styles.railButton} onPress={() => onLike(loop._id)} activeOpacity={0.85}>
           <Ionicons name={liked ? 'heart' : 'heart-outline'} size={30} color={liked ? colors.danger : '#fff'} />
           <Text style={styles.railText}>{loop.likes?.length || 0}</Text>
@@ -107,7 +130,7 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onComment
         </TouchableOpacity>
       </View>
 
-      <View style={styles.infoOverlay}>
+      <View style={[styles.infoOverlay, { bottom: overlayBottom }]}>
         <TouchableOpacity
           style={styles.authorRow}
           onPress={() => onAuthorPress(loop.author?._id)}
@@ -225,6 +248,9 @@ export default function LoopsScreen({ navigation }: Props) {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const { height } = useWindowDimensions();
+  // Подъём модалок под клавиатуру: KeyboardAvoidingView на edge-to-edge
+  // бездействует, и клавиатура накрывала поле комментария.
+  const { lift: kbLift, onLayout: onRootLayout } = useKeyboardLift();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
@@ -502,10 +528,7 @@ export default function LoopsScreen({ navigation }: Props) {
       </View>
 
       <Modal visible={!!pendingVideo} transparent animationType="slide" onRequestClose={() => !uploading && setPendingVideo(null)}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalRoot}
-        >
+        <Animated.View style={[styles.modalRoot, { paddingBottom: kbLift }]} onLayout={onRootLayout}>
           <TouchableOpacity
             style={styles.modalBackdrop}
             activeOpacity={1}
@@ -521,14 +544,11 @@ export default function LoopsScreen({ navigation }: Props) {
               uploading={uploading}
             />
           ) : null}
-        </KeyboardAvoidingView>
+        </Animated.View>
       </Modal>
 
       <Modal visible={!!activeLoop} transparent animationType="slide" onRequestClose={closeComments}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalRoot}
-        >
+        <Animated.View style={[styles.modalRoot, { paddingBottom: kbLift }]} onLayout={onRootLayout}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeComments} />
           <View style={styles.commentsSheet}>
             <View style={styles.sheetHandle} />
@@ -568,30 +588,37 @@ export default function LoopsScreen({ navigation }: Props) {
               )}
             />
 
-            <View style={styles.commentInputRow}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Напишите комментарий..."
-                placeholderTextColor={colors.textFaint}
-                value={commentText}
-                onChangeText={setCommentText}
-                returnKeyType="send"
-                onSubmitEditing={sendComment}
-              />
-              <TouchableOpacity
-                style={[styles.sendBtn, !commentText.trim() && styles.sendBtnDisabled]}
-                onPress={sendComment}
-                disabled={!commentText.trim() || sendingComment}
-              >
-                {sendingComment ? (
-                  <ActivityIndicator color={colors.onAccent} size="small" />
-                ) : (
-                  <Ionicons name="send" size={18} color={colors.onAccent} />
-                )}
-              </TouchableOpacity>
+            {/* Строка ввода как у комментариев к постам: парящая пилюля
+                вместо полосы с разделителем, круглая кнопка-стрелка. */}
+            <View style={[styles.composerWrap, { paddingBottom: insets.bottom + space.sm }]}>
+              <View style={styles.composer}>
+                <TextInput
+                  style={styles.composerInput}
+                  placeholder="Добавить комментарий"
+                  placeholderTextColor={colors.textFaint}
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  multiline
+                />
+                <TouchableOpacity
+                  style={[styles.composerSend, !commentText.trim() && styles.composerSendOff]}
+                  onPress={sendComment}
+                  disabled={!commentText.trim() || sendingComment}
+                >
+                  {sendingComment ? (
+                    <ActivityIndicator color={colors.onAccent} size="small" />
+                  ) : (
+                    <Ionicons
+                      name="arrow-up"
+                      size={18}
+                      color={commentText.trim() ? colors.onAccent : colors.textFaint}
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </KeyboardAvoidingView>
+        </Animated.View>
       </Modal>
     </View>
   );
@@ -600,7 +627,7 @@ export default function LoopsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   centerDark: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  loopCard: { width: '100%', backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  loopCard: { width: '100%', backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   video: { width: '100%', height: '100%' },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: space.lg, paddingBottom: 10, zIndex: 20 },
   switcherRow: { height: HEADER_CONTENT, alignItems: 'center', justifyContent: 'center' },
@@ -608,10 +635,10 @@ const styles = StyleSheet.create({
   searchBar: { flex: 1, height: 46, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
   searchInput: { flex: 1, color: colors.text, fontSize: 15 },
   addReelBtn: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
-  actionsRail: { position: 'absolute', right: 12, bottom: 120, alignItems: 'center', gap: 20 },
+  actionsRail: { position: 'absolute', right: 12, alignItems: 'center', gap: 20 },
   railButton: { alignItems: 'center', gap: 4 },
   railText: { color: '#fff', fontSize: 12, fontWeight: '900', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
-  infoOverlay: { position: 'absolute', left: 14, right: 76, bottom: 36 },
+  infoOverlay: { position: 'absolute', left: 14, right: 76 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   avatar: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: '#fff', backgroundColor: colors.surfaceHi },
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
@@ -619,6 +646,11 @@ const styles = StyleSheet.create({
   caption: { marginTop: 10, color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
   progressTrack: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.18)' },
   progressFill: { height: '100%', backgroundColor: colors.accent },
+  pauseBadge: {
+    position: 'absolute', alignSelf: 'center', top: '45%',
+    width: 72, height: 72, borderRadius: radius.pill,
+    backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center',
+  },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   emptyTitle: { marginTop: 12, color: '#fff', fontSize: 18, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 8, color: colors.textFaint, fontSize: 14, textAlign: 'center', lineHeight: 20 },
@@ -639,10 +671,22 @@ const styles = StyleSheet.create({
   commentBody: { flex: 1 },
   commentAuthor: { color: colors.text, fontSize: 13, fontWeight: '900' },
   commentMessage: { marginTop: 3, color: colors.textMuted, fontSize: 14, lineHeight: 20 },
-  commentInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-  commentInput: { flex: 1, minHeight: 42, borderRadius: 12, backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, color: colors.text, fontSize: 14 },
-  sendBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  sendBtnDisabled: { opacity: 0.45 },
+  composerWrap: { paddingHorizontal: space.md, paddingTop: space.sm },
+  composer: {
+    flexDirection: 'row', alignItems: 'flex-end', gap: space.xs,
+    borderRadius: radius.xl, backgroundColor: colors.surfaceAlt,
+    paddingHorizontal: 5, paddingVertical: 5,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+  },
+  composerInput: {
+    flex: 1, minHeight: 38, maxHeight: 104, paddingHorizontal: space.sm,
+    paddingTop: 8, paddingBottom: 8, fontSize: font.small, color: colors.text,
+  },
+  composerSend: {
+    width: 38, height: 38, borderRadius: radius.pill, backgroundColor: colors.accent,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  composerSendOff: { backgroundColor: colors.surfaceHi },
   uploadSheet: { backgroundColor: colors.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, paddingHorizontal: space.lg, paddingTop: space.sm },
   uploadTitle: { color: colors.text, fontSize: 21, fontWeight: '900', textAlign: 'center' },
   uploadHint: { marginTop: 3, color: colors.textMuted, fontSize: 13, fontWeight: '600', textAlign: 'center' },
