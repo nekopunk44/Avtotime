@@ -6,6 +6,7 @@ import {
   FlatList,
   Image,
   Modal,
+  PanResponder,
   Pressable,
   Platform,
   RefreshControl,
@@ -19,7 +20,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { useKeyboardLift } from '../hooks/useKeyboardLift';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { RouteProp, useFocusEffect, useIsFocused, useRoute } from '@react-navigation/native';
@@ -248,9 +248,34 @@ export default function LoopsScreen({ navigation }: Props) {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const { height } = useWindowDimensions();
-  // Подъём модалок под клавиатуру: KeyboardAvoidingView на edge-to-edge
-  // бездействует, и клавиатура накрывала поле комментария.
-  const { lift: kbLift, onLayout: onRootLayout } = useKeyboardLift();
+
+  // ── Протяжка шторки комментариев вниз ────────────────────────────────────
+  const sheetDrag = useRef(new Animated.Value(0)).current;
+  const closeCommentsRef = useRef<() => void>(() => {});
+  const sheetPan = useRef(
+    PanResponder.create({
+      // Захват с первого касания: жест живёт на шапке, где нет кнопок.
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) sheetDrag.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        // Либо утянули достаточно далеко, либо бросили резким движением вниз.
+        if (g.dy > 80 || g.vy > 0.9) {
+          sheetDrag.setValue(0);
+          closeCommentsRef.current();
+          return;
+        }
+        Animated.spring(sheetDrag, { toValue: 0, useNativeDriver: true, bounciness: 6, speed: 14 }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(sheetDrag, { toValue: 0, useNativeDriver: true, bounciness: 6, speed: 14 }).start();
+      },
+    }),
+  ).current;
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
@@ -421,6 +446,8 @@ export default function LoopsScreen({ navigation }: Props) {
       .finally(() => setCommentsLoading(false));
   };
 
+  closeCommentsRef.current = () => closeComments();
+
   const closeComments = () => {
     setCommentTarget(null);
     setCommentText('');
@@ -528,7 +555,7 @@ export default function LoopsScreen({ navigation }: Props) {
       </View>
 
       <Modal visible={!!pendingVideo} transparent animationType="slide" onRequestClose={() => !uploading && setPendingVideo(null)}>
-        <Animated.View style={[styles.modalRoot, { paddingBottom: kbLift }]} onLayout={onRootLayout}>
+        <View style={styles.modalRoot}>
           <TouchableOpacity
             style={styles.modalBackdrop}
             activeOpacity={1}
@@ -544,19 +571,21 @@ export default function LoopsScreen({ navigation }: Props) {
               uploading={uploading}
             />
           ) : null}
-        </Animated.View>
+        </View>
       </Modal>
 
       <Modal visible={!!activeLoop} transparent animationType="slide" onRequestClose={closeComments}>
-        <Animated.View style={[styles.modalRoot, { paddingBottom: kbLift }]} onLayout={onRootLayout}>
+        <View style={styles.modalRoot}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeComments} />
-          <View style={styles.commentsSheet}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Комментарии</Text>
-              <TouchableOpacity style={styles.closeBtn} onPress={closeComments}>
-                <Ionicons name="close" size={22} color={colors.text} />
-              </TouchableOpacity>
+          <Animated.View style={[styles.commentsSheet, { transform: [{ translateY: sheetDrag }] }]}>
+            {/* Тянуть можно за всю шапку: в полоску в четыре пикселя пальцем
+                не попасть. Крестик стал не нужен — закрывают протяжка вниз и
+                тап по фону. */}
+            <View {...sheetPan.panHandlers} style={styles.handleZone}>
+              <View style={styles.sheetHandle} />
+              <View style={styles.sheetHeader}>
+                <Text style={styles.sheetTitle}>Комментарии</Text>
+              </View>
             </View>
 
             {commentsLoading ? (
@@ -617,8 +646,8 @@ export default function LoopsScreen({ navigation }: Props) {
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
-        </Animated.View>
+          </Animated.View>
+        </View>
       </Modal>
     </View>
   );
@@ -657,10 +686,10 @@ const styles = StyleSheet.create({
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
   modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
   commentsSheet: { maxHeight: '72%', minHeight: '50%', backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingTop: 8 },
+  handleZone: { paddingBottom: 2 },
   sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: colors.surfaceHi, marginBottom: 8 },
   sheetHeader: { height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   sheetTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
-  closeBtn: { position: 'absolute', right: 12, width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   commentsList: { flex: 1 },
   commentsLoading: { paddingVertical: 8, alignItems: 'center' },
   commentsContent: { padding: 16, gap: 14 },
