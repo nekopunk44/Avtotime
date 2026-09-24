@@ -21,7 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { useKeyboardLift } from '../hooks/useKeyboardLift';
+import { useModalKeyboardLift } from '../hooks/useKeyboardLift';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { RouteProp, useFocusEffect, useIsFocused, useRoute } from '@react-navigation/native';
@@ -250,9 +250,10 @@ export default function LoopsScreen({ navigation }: Props) {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const { height } = useWindowDimensions();
-  // Подъём под клавиатуру: со statusBarTranslucent окно модалки система не
-  // сжимает, и без подъёма клавиатура накрывала строку ввода.
-  const { lift: kbLift, onLayout: onRootLayout } = useKeyboardLift();
+  // Подъём под клавиатуру по абсолютной координате её верха: события говорят
+  // полную высоту клавиатуры, а окно модалки может сжаться на высоту без
+  // системной полосы — разница давала то щель, то перекрытие.
+  const { lift: kbLift, onLayout: onRootLayout } = useModalKeyboardLift();
 
   // ── Шторка комментариев: фон гаснет, панель едет ─────────────────────────
   // Системный slide уводил затемнение вместе с панелью: фон должен гаснуть
@@ -275,8 +276,9 @@ export default function LoopsScreen({ navigation }: Props) {
       },
       onPanResponderRelease: (_, g) => {
         // Либо утянули достаточно далеко, либо бросили резким движением вниз.
+        // Смещение НЕ сбрасываем: выезд стартует с места, где отпустили палец,
+        // иначе шторка на миг подскакивала в исходное положение.
         if (g.dy > 80 || g.vy > 0.9) {
-          sheetDrag.setValue(0);
           closeCommentsRef.current();
           return;
         }
@@ -459,9 +461,14 @@ export default function LoopsScreen({ navigation }: Props) {
 
   closeCommentsRef.current = () => closeComments();
 
+  // Последний открытый ролик: во время выезда commentTarget уже null, а
+  // список должен показывать прежние комментарии, а не пустоту.
+  const lastLoopRef = useRef<Loop | null>(null);
+
   useEffect(() => {
     if (commentTarget) {
       setCommentsMounted(true);
+      setCommentText('');
       commentsAnim.setValue(0);
       sheetDrag.setValue(0);
       Animated.timing(commentsAnim, {
@@ -476,9 +483,13 @@ export default function LoopsScreen({ navigation }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [commentTarget]);
 
+  if (activeLoop) lastLoopRef.current = activeLoop;
+  const displayLoop = activeLoop ?? lastLoopRef.current;
+
   const closeComments = () => {
+    // Текст и содержимое не трогаем: шторка ещё уезжает, и подмена списка на
+    // «Комментариев пока нет» была видна. Черновик очищается при открытии.
     setCommentTarget(null);
-    setCommentText('');
   };
 
   const renderLoop = ({ item, index }: { item: Loop; index: number }) => (
@@ -637,7 +648,7 @@ export default function LoopsScreen({ navigation }: Props) {
             ) : null}
 
             <FlatList
-              data={activeLoop?.comments || activeLoop?.commentsPreview || []}
+              data={displayLoop?.comments || displayLoop?.commentsPreview || []}
               keyExtractor={(item, index) => item._id || `${item.author?._id || 'comment'}-${index}`}
               style={styles.commentsList}
               contentContainerStyle={styles.commentsContent}
