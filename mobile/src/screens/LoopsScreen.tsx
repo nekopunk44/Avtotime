@@ -56,6 +56,7 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onComment
   // Пауза по тапу в любом месте кадра — привычный жест вертикальных видео.
   const [paused, setPaused] = useState(false);
   const insets = useSafeAreaInsets();
+
   // Подписи и кнопки не должны прятаться за плавающей панелью вкладок.
   const overlayBottom = insets.bottom + 88;
   const user = useAuthStore((s) => s.user);
@@ -63,6 +64,51 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onComment
   const commentsCount = typeof loop.commentsCount === 'number'
     ? loop.commentsCount
     : (loop.commentsPreview || loop.comments || []).length;
+
+  // ── Отклик действий: значки не подменяются, а отыгрывают ────────────────
+  // Значок паузы проявляется и растёт, а не вспыхивает готовым.
+  const pauseAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(pauseAnim, { toValue: paused ? 1 : 0, useNativeDriver: true, speed: 26, bounciness: 9 }).start();
+  }, [paused, pauseAnim]);
+
+  // Сердце подпрыгивает на каждое переключение лайка.
+  const likeScale = useRef(new Animated.Value(1)).current;
+  const likeMounted = useRef(false);
+  useEffect(() => {
+    if (!likeMounted.current) {
+      likeMounted.current = true;
+      return;
+    }
+    Animated.sequence([
+      Animated.spring(likeScale, { toValue: 1.35, useNativeDriver: true, speed: 40, bounciness: 14 }),
+      Animated.spring(likeScale, { toValue: 1, useNativeDriver: true, speed: 22, bounciness: 7 }),
+    ]).start();
+  }, [liked, likeScale]);
+
+  // Переключение звука коротко показывает состояние по центру кадра и
+  // подталкивает значок на рейке.
+  const muteFlash = useRef(new Animated.Value(0)).current;
+  const muteScale = useRef(new Animated.Value(1)).current;
+  const muteMounted = useRef(false);
+  useEffect(() => {
+    if (!muteMounted.current) {
+      muteMounted.current = true;
+      return;
+    }
+    if (!active) return;
+    muteFlash.setValue(0);
+    Animated.sequence([
+      Animated.spring(muteFlash, { toValue: 1, useNativeDriver: true, speed: 30, bounciness: 8 }),
+      Animated.delay(420),
+      Animated.timing(muteFlash, { toValue: 0, duration: 200, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+    ]).start();
+    Animated.sequence([
+      Animated.spring(muteScale, { toValue: 1.25, useNativeDriver: true, speed: 40, bounciness: 12 }),
+      Animated.spring(muteScale, { toValue: 1, useNativeDriver: true, speed: 22, bounciness: 7 }),
+    ]).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [muted]);
 
   const player = useVideoPlayer(loop.media, (videoPlayer) => {
     videoPlayer.loop = true;
@@ -112,15 +158,37 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onComment
 
       <Pressable style={StyleSheet.absoluteFill} onPress={() => setPaused((prev) => !prev)} />
 
-      {paused ? (
-        <View style={styles.pauseBadge} pointerEvents="none">
-          <Ionicons name="play" size={34} color="#fff" />
-        </View>
-      ) : null}
+      <Animated.View
+        style={[
+          styles.centerBadge,
+          {
+            opacity: pauseAnim,
+            transform: [{ scale: pauseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <Ionicons name="play" size={34} color="#fff" />
+      </Animated.View>
+
+      <Animated.View
+        style={[
+          styles.centerBadge,
+          {
+            opacity: muteFlash,
+            transform: [{ scale: muteFlash.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={32} color="#fff" />
+      </Animated.View>
 
       <View style={[styles.actionsRail, { bottom: overlayBottom + 76 }]}>
         <TouchableOpacity style={styles.railButton} onPress={() => onLike(loop._id)} activeOpacity={0.85}>
-          <Ionicons name={liked ? 'heart' : 'heart-outline'} size={30} color={liked ? colors.danger : '#fff'} />
+          <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={30} color={liked ? colors.danger : '#fff'} />
+          </Animated.View>
           <Text style={styles.railText}>{loop.likes?.length || 0}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.railButton} onPress={() => onCommentOpen(loop)} activeOpacity={0.85}>
@@ -128,7 +196,9 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onComment
           <Text style={styles.railText}>{commentsCount}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.railButton} onPress={onToggleMute} activeOpacity={0.85}>
-          <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={26} color="#fff" />
+          <Animated.View style={{ transform: [{ scale: muteScale }] }}>
+            <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={26} color="#fff" />
+          </Animated.View>
         </TouchableOpacity>
       </View>
 
@@ -522,6 +592,9 @@ export default function LoopsScreen({ navigation }: Props) {
         renderItem={renderLoop}
         pagingEnabled
         snapToInterval={listHeight}
+        // Один свайп — один ролик: без этого сильный бросок пролистывал
+        // несколько видео, а лента должна магнититься к соседнему.
+        disableIntervalMomentum
         snapToAlignment="start"
         decelerationRate="fast"
         showsVerticalScrollIndicator={false}
@@ -717,7 +790,7 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md },
   searchBar: { flex: 1, height: 46, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
   searchInput: { flex: 1, color: colors.text, fontSize: 15 },
-  addReelBtn: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  addReelBtn: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
   actionsRail: { position: 'absolute', right: 12, alignItems: 'center', gap: 20 },
   railButton: { alignItems: 'center', gap: 4 },
   railText: { color: '#fff', fontSize: 12, fontWeight: '900', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
@@ -729,7 +802,7 @@ const styles = StyleSheet.create({
   caption: { marginTop: 10, color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
   progressTrack: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.18)' },
   progressFill: { height: '100%', backgroundColor: colors.accent },
-  pauseBadge: {
+  centerBadge: {
     position: 'absolute', alignSelf: 'center', top: '45%',
     width: 72, height: 72, borderRadius: radius.pill,
     backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center',
