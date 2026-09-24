@@ -258,9 +258,10 @@ export default function HelpRequestsScreen(_props: Props) {
       setDraft((prev) => ({
         ...prev,
         location: found.label,
-        // Координаты сохраняем только точные: городская точка из IP-подключения
-        // выдавала себя за место на карте, хотя показывает лишь город.
-        coordinates: found.precise && found.lat !== null && found.lng !== null
+        // Координаты сохраняем всегда, какие добыли: маршрут помогающему
+        // важнее идеальной точности. Приблизительную точку выдаёт плашка
+        // «уточните адрес», а правка поля руками сбрасывает координаты.
+        coordinates: found.lat !== null && found.lng !== null
           ? { lat: found.lat, lng: found.lng }
           : null,
       }));
