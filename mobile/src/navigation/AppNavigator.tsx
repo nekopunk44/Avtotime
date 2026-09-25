@@ -281,7 +281,13 @@ export default function AppNavigator() {
       />
       {/* Публикация занимает экран целиком: шапка повторяла бы имя автора,
           которое и так стоит первой строкой, а возврат живёт кружком поверх снимка. */}
-      <Stack.Screen name="PostComments" component={PostCommentsScreen} options={{ headerShown: false }} />
+      {/* Публикация всплывает мягко, как чужой профиль: резкий въезд сбоку
+          спорил с тем, что экран продолжает карточку из ленты. */}
+      <Stack.Screen
+        name="PostComments"
+        component={PostCommentsScreen}
+        options={{ headerShown: false, animation: 'fade_from_bottom', animationDuration: 260 }}
+      />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Редактировать профиль' }} />
       <Stack.Screen
         name="MarketListingDetails"

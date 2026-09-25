@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Easing,
   FlatList,
   Image,
   NativeScrollEvent,
@@ -47,6 +48,38 @@ interface PostCardProps {
 
 // Single post as an elevated card with a fade-in on mount.
 function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSave, onActions }: PostCardProps) {
+  // Лайк и закладка отыгрывают нажатие: значок приседает и выпрыгивает с
+  // отскоком — как на ролике, чтобы жест ощущался одинаково по всему
+  // приложению. Первый рендер пропускается: карточка не должна прыгать
+  // при появлении на экране.
+  const likeScale = useRef(new Animated.Value(1)).current;
+  const likeMounted = useRef(false);
+  useEffect(() => {
+    if (!likeMounted.current) {
+      likeMounted.current = true;
+      return;
+    }
+    Animated.sequence([
+      Animated.timing(likeScale, { toValue: 0.7, duration: 80, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      Animated.spring(likeScale, { toValue: 1.4, useNativeDriver: true, speed: 40, bounciness: 16 }),
+      Animated.spring(likeScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }),
+    ]).start();
+  }, [liked, likeScale]);
+
+  const saveScale = useRef(new Animated.Value(1)).current;
+  const saveMounted = useRef(false);
+  useEffect(() => {
+    if (!saveMounted.current) {
+      saveMounted.current = true;
+      return;
+    }
+    Animated.sequence([
+      Animated.timing(saveScale, { toValue: 0.7, duration: 80, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      Animated.spring(saveScale, { toValue: 1.4, useNativeDriver: true, speed: 40, bounciness: 16 }),
+      Animated.spring(saveScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }),
+    ]).start();
+  }, [saved, saveScale]);
+
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(10)).current;
   useEffect(() => {
@@ -145,7 +178,9 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
 
         <View style={styles.actions}>
           <PressableScale style={styles.actionBtn} onPress={onLike} hitSlop={10}>
-            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={23} color={liked ? colors.danger : colors.textMuted} />
+            <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+              <Ionicons name={liked ? 'heart' : 'heart-outline'} size={23} color={liked ? colors.danger : colors.textMuted} />
+            </Animated.View>
             <Text style={[styles.actionCount, liked && { color: colors.danger }]}>{item.likes.length}</Text>
           </PressableScale>
           <PressableScale style={styles.actionBtn} onPress={onOpen} hitSlop={10}>
@@ -153,7 +188,9 @@ function PostCard({ item, liked, saved, isMine, onProfile, onOpen, onLike, onSav
             <Text style={styles.actionCount}>{item.commentsCount ?? item.comments.length}</Text>
           </PressableScale>
           <PressableScale style={styles.saveActionBtn} onPress={onSave} hitSlop={10}>
-            <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={21} color={saved ? colors.accent : colors.textMuted} />
+            <Animated.View style={{ transform: [{ scale: saveScale }] }}>
+              <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={21} color={saved ? colors.accent : colors.textMuted} />
+            </Animated.View>
           </PressableScale>
         </View>
       </Card>

@@ -3,7 +3,7 @@ import { askConfirm } from '../store/confirmStore';
 import { showToast } from '../store/toastStore';
 import {
   View, Text, FlatList, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Animated, } from 'react-native';
+  StyleSheet, ActivityIndicator, Animated, Easing, } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -42,6 +42,38 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
   const { lift: kbLift, onLayout: onRootLayout } = useKeyboardLift();
 
   const user = useAuthStore((s) => s.user);
+
+  // Отклик лайка и закладки — как в ленте: присед и прыжок с отскоком.
+  const likedNow = !!(post && user && post.likes?.includes(user._id));
+  const savedNow = isPostSaved(user, post?._id || '');
+  const likeScale = useRef(new Animated.Value(1)).current;
+  const likeMounted = useRef(false);
+  useEffect(() => {
+    if (!likeMounted.current) {
+      likeMounted.current = true;
+      return;
+    }
+    Animated.sequence([
+      Animated.timing(likeScale, { toValue: 0.7, duration: 80, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      Animated.spring(likeScale, { toValue: 1.4, useNativeDriver: true, speed: 40, bounciness: 16 }),
+      Animated.spring(likeScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }),
+    ]).start();
+  }, [likedNow, likeScale]);
+
+  const saveScale = useRef(new Animated.Value(1)).current;
+  const saveMounted = useRef(false);
+  useEffect(() => {
+    if (!saveMounted.current) {
+      saveMounted.current = true;
+      return;
+    }
+    Animated.sequence([
+      Animated.timing(saveScale, { toValue: 0.7, duration: 80, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      Animated.spring(saveScale, { toValue: 1.4, useNativeDriver: true, speed: 40, bounciness: 16 }),
+      Animated.spring(saveScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }),
+    ]).start();
+  }, [savedNow, saveScale]);
+
   const setUser = useAuthStore((s) => s.setUser);
 
   const load = useCallback(async () => {
@@ -126,11 +158,15 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
         {post.caption ? <Text style={styles.caption}>{post.caption}</Text> : null}
         <View style={styles.postActions}>
           <TouchableOpacity style={styles.postActionBtn} onPress={handleLike}>
-            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? colors.danger : colors.textFaint} />
+            <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+              <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? colors.danger : colors.textFaint} />
+            </Animated.View>
             <Text style={styles.postActionText}>{post.likes?.length ?? 0}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.postActionBtn} onPress={handleSave}>
-            <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={21} color={colors.textMuted} />
+            <Animated.View style={{ transform: [{ scale: saveScale }] }}>
+              <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={21} color={colors.textMuted} />
+            </Animated.View>
             <Text style={styles.postActionText}>{saved ? 'Сохранено' : 'Сохранить'}</Text>
           </TouchableOpacity>
           {isMine ? (
