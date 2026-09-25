@@ -18,6 +18,8 @@ export interface Loop {
   _id: string;
   author?: LoopAuthor;
   media: string;
+  /** Кадр-заставка для сеток и списков. */
+  poster?: string;
   caption?: string;
   likes: string[];
   comments?: LoopComment[];

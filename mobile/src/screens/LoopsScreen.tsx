@@ -54,7 +54,11 @@ type LoopCardProps = {
 };
 
 function LoopCard({ loop, active, height, muted, onToggleMute, onLike, saved, onSave, onCommentOpen, onAuthorPress }: LoopCardProps) {
-  const [progress, setProgress] = useState(0);
+  // Ползунок скользит между отсчётами плеера: сами отсчёты приходят раз в
+  // четверть секунды, и прямая запись в ширину шагала рывками.
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const lastRatioRef = useRef(0);
+  const [trackW, setTrackW] = useState(0);
   // Пауза по тапу в любом месте кадра — привычный жест вертикальных видео.
   const [paused, setPaused] = useState(false);
   const insets = useSafeAreaInsets();
@@ -74,10 +78,9 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, saved, on
     Animated.spring(pauseAnim, { toValue: paused ? 1 : 0, useNativeDriver: true, speed: 26, bounciness: 9 }).start();
   }, [paused, pauseAnim]);
 
-  // Лайк: сердце приседает и выпрыгивает, а по кадру расходится большое
-  // сердце-вспышка — отклик виден, даже если палец закрывает рейку.
+  // Лайк: сердце приседает и выпрыгивает с отскоком — отклик живёт на самой
+  // кнопке, ничего не заслоняя посреди кадра.
   const likeScale = useRef(new Animated.Value(1)).current;
-  const likeBurst = useRef(new Animated.Value(0)).current;
   const likeMounted = useRef(false);
   useEffect(() => {
     if (!likeMounted.current) {
@@ -89,15 +92,7 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, saved, on
       Animated.spring(likeScale, { toValue: 1.4, useNativeDriver: true, speed: 40, bounciness: 16 }),
       Animated.spring(likeScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }),
     ]).start();
-    if (liked) {
-      likeBurst.setValue(0);
-      Animated.sequence([
-        Animated.spring(likeBurst, { toValue: 1, useNativeDriver: true, speed: 24, bounciness: 10 }),
-        Animated.delay(160),
-        Animated.timing(likeBurst, { toValue: 0, duration: 260, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-      ]).start();
-    }
-  }, [liked, likeScale, likeBurst]);
+  }, [liked, likeScale]);
 
   // Закладка подпрыгивает так же, как сердце.
   const saveScale = useRef(new Animated.Value(1)).current;
@@ -165,11 +160,27 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, saved, on
   useEffect(() => {
     const subscription = (player as any).addListener?.('timeUpdate', ({ currentTime }: { currentTime: number }) => {
       const duration = player.duration || 0;
-      setProgress(duration > 0 ? Math.min(1, currentTime / duration) : 0);
+      const ratio = duration > 0 ? Math.min(1, currentTime / duration) : 0;
+      if (ratio + 0.05 < lastRatioRef.current) {
+        // Новый круг или перемотка назад: ползунок перескакивает, а не ползёт
+        // через весь трек в обратную сторону.
+        progressAnim.setValue(ratio);
+      } else {
+        // Цель — положение СЛЕДУЮЩЕГО отсчёта: скольжение к уже прошедшей
+        // точке держало ползунок на шаг позади видео.
+        const step = duration > 0 ? 0.25 / duration : 0;
+        Animated.timing(progressAnim, {
+          toValue: Math.min(1, ratio + step),
+          duration: 260,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }).start();
+      }
+      lastRatioRef.current = ratio;
     });
 
     return () => subscription?.remove?.();
-  }, [player]);
+  }, [player, progressAnim]);
 
   return (
     <View style={[styles.loopCard, { height }]}>
@@ -197,21 +208,6 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, saved, on
         pointerEvents="none"
       >
         <Ionicons name="play" size={34} color="#fff" />
-      </Animated.View>
-
-      <Animated.View
-        style={[
-          styles.likeBurst,
-          {
-            opacity: likeBurst,
-            transform: [{
-              scale: likeBurst.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }),
-            }],
-          },
-        ]}
-        pointerEvents="none"
-      >
-        <Ionicons name="heart" size={96} color={colors.danger} />
       </Animated.View>
 
       <Animated.View
@@ -270,8 +266,26 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, saved, on
         ) : null}
       </View>
 
-      <View style={[styles.progressTrack, { bottom: insets.bottom + 76 }]}>
-        <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+      <View
+        style={[styles.progressTrack, { bottom: insets.bottom + 76 }]}
+        onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}
+      >
+        {trackW > 0 ? (
+          <Animated.View
+            style={[
+              styles.progressFill,
+              {
+                width: trackW,
+                transform: [{
+                  translateX: progressAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-trackW, 0],
+                  }),
+                }],
+              },
+            ]}
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -717,7 +731,6 @@ const styles = StyleSheet.create({
   caption: { marginTop: 10, color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
   progressTrack: { position: 'absolute', left: 14, right: 14, height: 3, borderRadius: radius.pill, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.18)' },
   progressFill: { height: '100%', backgroundColor: colors.accent },
-  likeBurst: { position: 'absolute', alignSelf: 'center', top: '40%' },
   centerBadge: {
     position: 'absolute', alignSelf: 'center', top: '45%',
     width: 72, height: 72, borderRadius: radius.pill,

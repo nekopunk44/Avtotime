@@ -144,6 +144,7 @@ export async function toggleSavePost(postId: string): Promise<User> {
 export interface SavedLoopTile {
   _id: string;
   media: string;
+  poster?: string;
   caption?: string;
   /** Метка для сетки профиля: плитка ведёт в ленту роликов, а не в пост. */
   isLoop: true;
@@ -162,7 +163,7 @@ export async function getSavedItems(): Promise<SavedItem[]> {
   const posts = (user.saved ?? []).filter((item): item is Post => typeof item !== 'string' && !!item?._id);
   const loops: SavedLoopTile[] = (user.savedLoops ?? [])
     .filter((item): item is Exclude<typeof item, string> => typeof item !== 'string' && !!item?._id)
-    .map((item) => ({ _id: item._id, media: item.media, caption: item.caption, isLoop: true }));
+    .map((item) => ({ _id: item._id, media: item.media, poster: item.poster, caption: item.caption, isLoop: true }));
   return [...loops, ...posts];
 }
 

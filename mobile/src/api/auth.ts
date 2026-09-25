@@ -35,7 +35,7 @@ export interface User {
   following: UserRef[];
   saved?: SavedPostRef[];
   /** Сохранённые ролики; в профиле владельца приходят целиком. */
-  savedLoops?: Array<string | { _id: string; media: string; caption?: string; author?: { _id: string; userName?: string } }>;
+  savedLoops?: Array<string | { _id: string; media: string; poster?: string; caption?: string; author?: { _id: string; userName?: string } }>;
 }
 
 export async function signIn(identifier: string, password: string): Promise<User> {

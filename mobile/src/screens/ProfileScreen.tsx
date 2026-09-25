@@ -260,7 +260,7 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
       Promise.all([getLikedPosts(), getLikedLoops().catch(() => [])])
         .then(([posts, loops]) => {
           const tiles: SavedLoopTile[] = loops.map((loop) => ({
-            _id: loop._id, media: loop.media, caption: loop.caption, isLoop: true,
+            _id: loop._id, media: loop.media, poster: loop.poster, caption: loop.caption, isLoop: true,
           }));
           setLiked([...tiles, ...posts]);
         })
@@ -511,12 +511,21 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
           scaleTo={0.95}
           onPress={() => (navigation as { navigate: (screen: string, params?: object) => void }).navigate('Loops', { loopId: item._id })}
         >
-          <View style={[styles.gridImage, styles.gridLoop]}>
-            <Ionicons name="play-circle" size={26} color={colors.text} />
-            {item.caption ? (
-              <Text style={styles.textPost} numberOfLines={2}>{item.caption}</Text>
-            ) : null}
-          </View>
+          {item.poster ? (
+            <View>
+              <Image source={{ uri: item.poster }} style={styles.gridImage} />
+              <View style={styles.gridVideoBadge}>
+                <Ionicons name="play" size={13} color={colors.white} />
+              </View>
+            </View>
+          ) : (
+            <View style={[styles.gridImage, styles.gridLoop]}>
+              <Ionicons name="play-circle" size={26} color={colors.text} />
+              {item.caption ? (
+                <Text style={styles.textPost} numberOfLines={2}>{item.caption}</Text>
+              ) : null}
+            </View>
+          )}
         </PressableScale>
       );
     }
