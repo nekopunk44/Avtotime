@@ -167,3 +167,41 @@ export const gettAllLoops = async(req, res) => {
         return res.status(500).json({message: `get all loop error ${error}`})
     }
 }
+
+// Закладка на ролик. Зеркало сохранения поста: отметка живёт у пользователя,
+// повторный вызов снимает её.
+export const saveLoop = async (req, res) => {
+    try {
+        const loopId = req.params.loopId
+        const user = await User.findById(req.userId).select('-password')
+
+        const alreadySaved = user.savedLoops.some(id => id.toString() === loopId.toString())
+
+        if (alreadySaved) {
+            user.savedLoops = user.savedLoops.filter(id => id.toString() !== loopId.toString())
+        } else {
+            user.savedLoops.push(loopId)
+        }
+
+        await user.save()
+
+        return res.status(200).json(user)
+    } catch (error) {
+        return res.status(500).json({ message: `Ошибка сохранения ролика ${error}` })
+    }
+}
+
+// Ролики, которым пользователь поставил лайк. Отметка живёт в самом ролике
+// (likes), поэтому спрашиваем ролики, а не пользователя.
+export const getLikedLoops = async (req, res) => {
+    try {
+        const loops = await Loop.find({ likes: req.userId })
+            .populate('author', 'name userName profileImage')
+            .sort({ createdAt: -1 })
+            .limit(90)
+            .lean()
+        return res.status(200).json(loops)
+    } catch (error) {
+        return res.status(500).json({ message: `Ошибка получения понравившихся ${error}` })
+    }
+}

@@ -80,7 +80,7 @@ const PUBLIC_PROFILE_EXTRA_FIELDS = 'website instagram telegram preferredContact
 // Everything the owner is allowed to see about their own account. Secrets
 // (password, OTP hashes, verification tokens, push tokens, Stripe id,
 // tokenVersion) are `select: false` in the schema and stay out on purpose.
-const OWNER_PROFILE_FIELDS = `${PUBLIC_USER_FIELDS} ${PUBLIC_PROFILE_EXTRA_FIELDS} email phone address region gender saved loops story plan planActivatedAt planExpiresAt isEmailVerified isAdmin isBanned banReason notificationPreferences lastSeenAt blockedUsers updatedAt`
+const OWNER_PROFILE_FIELDS = `${PUBLIC_USER_FIELDS} ${PUBLIC_PROFILE_EXTRA_FIELDS} email phone address region gender saved savedLoops loops story plan planActivatedAt planExpiresAt isEmailVerified isAdmin isBanned banReason notificationPreferences lastSeenAt blockedUsers updatedAt`
 const AUTHOR_FIELDS = 'name userName profileImage'
 
 export const getCurrentUser = async (req, res) => {
@@ -97,6 +97,7 @@ export const getCurrentUser = async (req, res) => {
             // в мобилке.
             .populate([
                 { path: 'saved', populate: { path: 'author', select: AUTHOR_FIELDS } },
+                { path: 'savedLoops', populate: { path: 'author', select: AUTHOR_FIELDS } },
                 { path: 'story' },
             ])
         if (!user) {

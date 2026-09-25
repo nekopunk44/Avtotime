@@ -86,6 +86,12 @@ const usersSchema = new mongoose.Schema({
             ref: 'Post',
         }
     ],
+    // Сохранённые ролики: закладка живёт у пользователя, как и у постов.
+    savedLoops: [
+        {type:mongoose.Schema.Types.ObjectId,
+            ref: 'Loop',
+        }
+    ],
     loops: [
         {type:mongoose.Schema.Types.ObjectId,
             ref: 'Loop',
