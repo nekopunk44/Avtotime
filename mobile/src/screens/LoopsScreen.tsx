@@ -352,6 +352,8 @@ export default function LoopsScreen({ navigation }: Props) {
   const route = useRoute<RouteProp<AppTabParamList, 'Loops'>>();
   const [loops, setLoops] = useState<Loop[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const activeIndexRef = useRef(0);
+  activeIndexRef.current = activeIndex;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
@@ -378,6 +380,17 @@ export default function LoopsScreen({ navigation }: Props) {
   // соседнего кадра. Формула остаётся стартовым значением до первого замера.
   const [viewportH, setViewportH] = useState(0);
   const listHeight = viewportH > 0 ? viewportH : Math.max(320, height - tabBarHeight);
+
+  // Замер приходит после первого рендера, и все смещения, посчитанные по
+  // стартовой формуле, устаревают: сверху выглядывал низ соседнего ролика.
+  // При смене высоты лента доснапливается к активному кадру заново.
+  useEffect(() => {
+    if (viewportH <= 0) return;
+    requestAnimationFrame(() => listRef.current?.scrollToOffset({
+      offset: activeIndexRef.current * viewportH,
+      animated: false,
+    }));
+  }, [viewportH]);
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 70 }).current;
   const listRef = useRef<FlatList<Loop>>(null);
