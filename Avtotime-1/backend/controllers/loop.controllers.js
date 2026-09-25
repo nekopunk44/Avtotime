@@ -37,8 +37,15 @@ export const uploadLoop = async(req, res) => {
             return res.status(422).json({ message: "Публикация отклонена: контент не прошёл проверку." })
         }
 
+        // Cloudinary отдаёт кадр видео по той же ссылке с расширением
+        // картинки — постер достаётся бесплатно. Для прочих хранилищ поле
+        // остаётся пустым, и клиент покажет плитку с плёнкой.
+        const poster = String(media).includes('res.cloudinary.com')
+            ? String(media).replace(/\.[a-z0-9]+$/i, '.jpg')
+            : ''
+
         const loop = await Loop.create({
-            caption, media, author: req.userId
+            caption, media, poster, author: req.userId
         })
 
         const user = await User.findById(req.userId)

@@ -10,6 +10,11 @@ const loopSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    // Кадр-заставка: сетки и списки показывают картинку, а не чёрную плитку.
+    poster: {
+        type: String,
+        default: '',
+    },
     caption: {
         type: String,
     },
