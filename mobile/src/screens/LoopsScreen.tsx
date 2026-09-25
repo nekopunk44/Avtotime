@@ -21,7 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { useModalKeyboardLift } from '../hooks/useKeyboardLift';
+import { useKeyboardLift } from '../hooks/useKeyboardLift';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { RouteProp, useFocusEffect, useIsFocused, useRoute } from '@react-navigation/native';
@@ -320,10 +320,9 @@ export default function LoopsScreen({ navigation }: Props) {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const { height } = useWindowDimensions();
-  // Подъём под клавиатуру по абсолютной координате её верха: события говорят
-  // полную высоту клавиатуры, а окно модалки может сжаться на высоту без
-  // системной полосы — разница давала то щель, то перекрытие.
-  const { lift: kbLift, onLayout: onRootLayout } = useModalKeyboardLift();
+  // Подъём под клавиатуру — экранный: шторка живёт в окне приложения, а не
+  // в окне диалога, и здесь механика уже выверена чатом.
+  const { lift: kbLift, onLayout: onRootLayout } = useKeyboardLift();
 
   // ── Шторка комментариев: фон гаснет, панель едет ─────────────────────────
   // Системный slide уводил затемнение вместе с панелью: фон должен гаснуть
@@ -535,6 +534,13 @@ export default function LoopsScreen({ navigation }: Props) {
   // список должен показывать прежние комментарии, а не пустоту.
   const lastLoopRef = useRef<Loop | null>(null);
 
+  // Шторка занимает экран целиком — панель вкладок на это время прячется.
+  useEffect(() => {
+    // Экран объявлен стековым типом, но живёт во вкладках — опция табов
+    // мимо его типизации.
+    (navigation as { setOptions: (o: object) => void }).setOptions({ tabBarStyle: commentsMounted ? { display: 'none' } : undefined });
+  }, [commentsMounted, navigation]);
+
   useEffect(() => {
     if (commentTarget) {
       setCommentsMounted(true);
@@ -688,11 +694,8 @@ export default function LoopsScreen({ navigation }: Props) {
         </View>
       </Modal>
 
-      <Modal visible={commentsMounted} transparent statusBarTranslucent navigationBarTranslucent animationType="none" onRequestClose={closeComments}>
-        {/* Поднимается сама шторка, а не корень: отступ корня оставлял под
-            затемнением непрокрашенную полосу — absolute-слои не заходят в
-            padding. */}
-        <View style={styles.modalRoot} onLayout={onRootLayout}>
+      {commentsMounted ? (
+        <View style={styles.sheetLayer} onLayout={onRootLayout}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeComments}>
             <Animated.View style={[StyleSheet.absoluteFillObject, styles.backdropFill, { opacity: commentsAnim }]} />
           </TouchableOpacity>
@@ -775,7 +778,7 @@ export default function LoopsScreen({ navigation }: Props) {
           </Animated.View>
           </Animated.View>
         </View>
-      </Modal>
+      ) : null}
     </View>
   );
 }
@@ -811,6 +814,11 @@ const styles = StyleSheet.create({
   emptyTitle: { marginTop: 12, color: '#fff', fontSize: 18, fontWeight: '900', textAlign: 'center' },
   emptyText: { marginTop: 8, color: colors.textFaint, fontSize: 14, textAlign: 'center', lineHeight: 20 },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
+  // Слой шторки: поверх всего экрана, вместе со спрятанной панелью вкладок.
+  sheetLayer: {
+    ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end',
+    zIndex: 60, elevation: 60,
+  },
   modalBackdrop: { ...StyleSheet.absoluteFillObject },
   backdropFill: { backgroundColor: 'rgba(0,0,0,0.45)' },
   commentsSheet: { maxHeight: '72%', minHeight: '50%', backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingTop: 8 },

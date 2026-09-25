@@ -123,6 +123,10 @@ function TabButton({
 export default function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const [barW, setBarW] = useState(0);
+  // Экран может попросить спрятать панель (шторка комментариев в Loops
+  // занимает весь экран, и панель поверх неё была бы мусором).
+  const focusedOptions = descriptors[state.routes[state.index].key]?.options;
+  const hidden = (focusedOptions?.tabBarStyle as { display?: string } | undefined)?.display === 'none';
   // Один индикатор на всю панель: он физически скользит к выбранной
   // вкладке, а не рождается заново под каждой.
   const slideX = useRef(new Animated.Value(0)).current;
@@ -151,6 +155,8 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
       ]),
     ]).start();
   }, [targetX, barW, slideX, stretch]);
+
+  if (hidden) return null;
 
   return (
     <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 8) + 6 }]}>
