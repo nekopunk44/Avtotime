@@ -270,7 +270,7 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, saved, on
         ) : null}
       </View>
 
-      <View style={styles.progressTrack}>
+      <View style={[styles.progressTrack, { bottom: insets.bottom + 76 }]}>
         <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
       </View>
     </View>
@@ -373,7 +373,11 @@ export default function LoopsScreen({ navigation }: Props) {
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
-  const listHeight = Math.max(320, height - tabBarHeight);
+  // Высота кадра — фактическая высота самой ленты, а не формула из экрана и
+  // панели: только замер гарантирует «один ролик = один экран» без полосы
+  // соседнего кадра. Формула остаётся стартовым значением до первого замера.
+  const [viewportH, setViewportH] = useState(0);
+  const listHeight = viewportH > 0 ? viewportH : Math.max(320, height - tabBarHeight);
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 70 }).current;
   const listRef = useRef<FlatList<Loop>>(null);
@@ -568,6 +572,8 @@ export default function LoopsScreen({ navigation }: Props) {
     <View style={styles.container}>
       <FlatList
         ref={listRef}
+        onLayout={(e) => setViewportH(e.nativeEvent.layout.height)}
+        style={styles.fullBleed}
         data={filteredLoops}
         keyExtractor={(item) => item._id}
         renderItem={renderLoop}
@@ -675,7 +681,9 @@ export default function LoopsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+  container: { flex: 1, backgroundColor: colors.ink },
+  // Кадр занимает весь экран: панель вкладок плавает поверх видео.
+  fullBleed: { flex: 1 },
   centerDark: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   loopCard: { width: '100%', backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   video: { width: '100%', height: '100%' },
@@ -694,7 +702,7 @@ const styles = StyleSheet.create({
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
   authorName: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '900', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
   caption: { marginTop: 10, color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
-  progressTrack: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.18)' },
+  progressTrack: { position: 'absolute', left: 14, right: 14, height: 3, borderRadius: radius.pill, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.18)' },
   progressFill: { height: '100%', backgroundColor: colors.accent },
   likeBurst: { position: 'absolute', alignSelf: 'center', top: '40%' },
   centerBadge: {
