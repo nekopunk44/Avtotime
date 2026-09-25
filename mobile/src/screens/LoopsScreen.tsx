@@ -7,7 +7,6 @@ import {
   FlatList,
   Image,
   Modal,
-  PanResponder,
   Pressable,
   Platform,
   RefreshControl,
@@ -22,11 +21,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useKeyboardLift } from '../hooks/useKeyboardLift';
+import { useLoopCommentsStore } from '../store/loopCommentsStore';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { RouteProp, useFocusEffect, useIsFocused, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { commentLoop, getLoopById, getLoops, likeLoop, Loop, uploadLoop } from '../api/loops';
+import { getLoops, likeLoop, Loop, uploadLoop } from '../api/loops';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList, AppTabParamList } from '../navigation/AppNavigator';
 import ModeSwitcher from '../components/ModeSwitcher';
@@ -250,7 +250,7 @@ function UploadSheet({ video, caption, onChangeCaption, onCancel, onPublish, upl
 
   return (
     <View style={[styles.uploadSheet, { paddingBottom: insets.bottom + space.lg }]}>
-      <View style={styles.sheetHandle} />
+      <View style={styles.uploadHandle} />
       <Text style={styles.uploadTitle}>Новое видео</Text>
       <Text style={styles.uploadHint}>Проверьте превью и добавьте описание</Text>
 
@@ -310,10 +310,7 @@ export default function LoopsScreen({ navigation }: Props) {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [commentTarget, setCommentTarget] = useState<Loop | null>(null);
-  const [commentsLoading, setCommentsLoading] = useState(false);
-  const [commentText, setCommentText] = useState('');
-  const [sendingComment, setSendingComment] = useState(false);
+
   const [pendingVideo, setPendingVideo] = useState<{ uri: string; mimeType?: string } | null>(null);
   const [muted, setMuted] = useState(true);
   const [uploadCaption, setUploadCaption] = useState('');
@@ -324,40 +321,7 @@ export default function LoopsScreen({ navigation }: Props) {
   // в окне диалога, и здесь механика уже выверена чатом.
   const { lift: kbLift, onLayout: onRootLayout } = useKeyboardLift();
 
-  // ── Шторка комментариев: фон гаснет, панель едет ─────────────────────────
-  // Системный slide уводил затемнение вместе с панелью: фон должен гаснуть
-  // на месте, а ехать — только шторка.
-  const [commentsMounted, setCommentsMounted] = useState(false);
-  const commentsAnim = useRef(new Animated.Value(0)).current;
 
-  // ── Протяжка шторки комментариев вниз ────────────────────────────────────
-  const sheetDrag = useRef(new Animated.Value(0)).current;
-  const closeCommentsRef = useRef<() => void>(() => {});
-  const sheetPan = useRef(
-    PanResponder.create({
-      // Захват с первого касания: жест живёт на шапке, где нет кнопок.
-      onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
-      onPanResponderMove: (_, g) => {
-        if (g.dy > 0) sheetDrag.setValue(g.dy);
-      },
-      onPanResponderRelease: (_, g) => {
-        // Либо утянули достаточно далеко, либо бросили резким движением вниз.
-        // Смещение НЕ сбрасываем: выезд стартует с места, где отпустили палец,
-        // иначе шторка на миг подскакивала в исходное положение.
-        if (g.dy > 80 || g.vy > 0.9) {
-          closeCommentsRef.current();
-          return;
-        }
-        Animated.spring(sheetDrag, { toValue: 0, useNativeDriver: true, bounciness: 6, speed: 14 }).start();
-      },
-      onPanResponderTerminate: () => {
-        Animated.spring(sheetDrag, { toValue: 0, useNativeDriver: true, bounciness: 6, speed: 14 }).start();
-      },
-    }),
-  ).current;
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
@@ -371,10 +335,7 @@ export default function LoopsScreen({ navigation }: Props) {
     if (typeof first?.index === 'number') setActiveIndex(first.index);
   }).current;
 
-  const activeLoop = useMemo(
-    () => commentTarget ? loops.find((loop) => loop._id === commentTarget._id) || commentTarget : null,
-    [commentTarget, loops],
-  );
+
 
   const filteredLoops = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -497,76 +458,24 @@ export default function LoopsScreen({ navigation }: Props) {
     }
   };
 
-  const sendComment = async () => {
-    if (sendingComment) return;
-    if (!activeLoop || !commentText.trim()) return;
+;
 
-    setSendingComment(true);
-    try {
-      const updated = await commentLoop(activeLoop._id, commentText.trim());
-      updateLoop(updated);
-      setCommentText('');
-    } catch (e: any) {
-      showToast(e.response?.data?.message || 'Не удалось отправить комментарий', 'error');
-    } finally {
-      setSendingComment(false);
-    }
-  };
-
-  // The feed carries only a comments preview — fetch the full loop when the
-  // sheet opens so every comment is visible.
-  const openComments = (loop: Loop) => {
-    setCommentTarget(loop);
-    setCommentsLoading(true);
-    getLoopById(loop._id)
-      .then((full) => {
-        setLoops((prev) => prev.map((item) => (item._id === full._id ? full : item)));
-      })
-      .catch(() => {
-        // keep the preview comments
-      })
-      .finally(() => setCommentsLoading(false));
-  };
-
-  closeCommentsRef.current = () => closeComments();
-
-  // Последний открытый ролик: во время выезда commentTarget уже null, а
-  // список должен показывать прежние комментарии, а не пустоту.
-  const lastLoopRef = useRef<Loop | null>(null);
-
-  // Шторка занимает экран целиком — панель вкладок на это время прячется.
-  useEffect(() => {
-    // Экран объявлен стековым типом, но живёт во вкладках — опция табов
-    // мимо его типизации.
-    (navigation as { setOptions: (o: object) => void }).setOptions({ tabBarStyle: commentsMounted ? { display: 'none' } : undefined });
-  }, [commentsMounted, navigation]);
+  // Шторка комментариев живёт в корне приложения: слой внутри сцены не
+  // дотягивается до низа экрана, а окно Modal ведёт себя по-разному на
+  // разных устройствах. Экран лишь открывает её и подхватывает обновления.
+  const openComments = useLoopCommentsStore((s) => s.open);
+  const sheetLoop = useLoopCommentsStore((s) => s.loop);
 
   useEffect(() => {
-    if (commentTarget) {
-      setCommentsMounted(true);
-      setCommentText('');
-      commentsAnim.setValue(0);
-      sheetDrag.setValue(0);
-      Animated.timing(commentsAnim, {
-        toValue: 1, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: true,
-      }).start();
-      return;
-    }
-    Animated.timing(commentsAnim, {
-      toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: true,
-    }).start(({ finished }) => { if (finished) setCommentsMounted(false); });
-    // Модалка живёт до конца анимации ухода — иначе шторка исчезает рывком.
+    if (sheetLoop) updateLoop(sheetLoop);
+    // updateLoop стабилен по смыслу: обновляет список по _id.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [commentTarget]);
+  }, [sheetLoop]);;
 
-  if (activeLoop) lastLoopRef.current = activeLoop;
-  const displayLoop = activeLoop ?? lastLoopRef.current;
 
-  const closeComments = () => {
-    // Текст и содержимое не трогаем: шторка ещё уезжает, и подмена списка на
-    // «Комментариев пока нет» была видна. Черновик очищается при открытии.
-    setCommentTarget(null);
-  };
+
+
+
 
   const renderLoop = ({ item, index }: { item: Loop; index: number }) => (
     <LoopCard
@@ -675,7 +584,7 @@ export default function LoopsScreen({ navigation }: Props) {
       <Modal visible={!!pendingVideo} transparent statusBarTranslucent navigationBarTranslucent animationType="slide" onRequestClose={() => !uploading && setPendingVideo(null)}>
         <View style={styles.modalRoot} onLayout={onRootLayout}>
           <TouchableOpacity
-            style={styles.modalBackdrop}
+            style={[styles.modalBackdrop, styles.backdropFill]}
             activeOpacity={1}
             onPress={() => !uploading && setPendingVideo(null)}
           />
@@ -694,91 +603,7 @@ export default function LoopsScreen({ navigation }: Props) {
         </View>
       </Modal>
 
-      {commentsMounted ? (
-        <View style={styles.sheetLayer} onLayout={onRootLayout}>
-          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={closeComments}>
-            <Animated.View style={[StyleSheet.absoluteFillObject, styles.backdropFill, { opacity: commentsAnim }]} />
-          </TouchableOpacity>
-          <Animated.View style={{ transform: [{ translateY: Animated.multiply(kbLift, -1) }] }}>
-          <Animated.View
-            style={[
-              styles.commentsSheet,
-              {
-                transform: [{
-                  translateY: Animated.add(
-                    commentsAnim.interpolate({ inputRange: [0, 1], outputRange: [height, 0] }),
-                    sheetDrag,
-                  ),
-                }],
-              },
-            ]}
-          >
-            {/* Тянуть можно за всю шапку: в полоску в четыре пикселя пальцем
-                не попасть. Крестик стал не нужен — закрывают протяжка вниз и
-                тап по фону. */}
-            <View {...sheetPan.panHandlers} style={styles.handleZone}>
-              <View style={styles.sheetHandle} />
-              <View style={styles.sheetHeader}>
-                <Text style={styles.sheetTitle}>Комментарии</Text>
-              </View>
-            </View>
 
-            <FlatList
-              data={displayLoop?.comments || displayLoop?.commentsPreview || []}
-              keyExtractor={(item, index) => item._id || `${item.author?._id || 'comment'}-${index}`}
-              style={styles.commentsList}
-              contentContainerStyle={styles.commentsContent}
-              ListEmptyComponent={<Text style={styles.noComments}>Комментариев пока нет</Text>}
-              renderItem={({ item }) => (
-                <View style={styles.commentRow}>
-                  {item.author?.profileImage ? (
-                    <Image source={{ uri: item.author.profileImage }} style={styles.commentAvatar} />
-                  ) : (
-                    <View style={[styles.commentAvatar, styles.commentAvatarFallback]}>
-                      <Ionicons name="person-outline" size={16} color={colors.textMuted} />
-                    </View>
-                  )}
-                  <View style={styles.commentBody}>
-                    <Text style={styles.commentAuthor}>@{item.author?.userName || 'user'}</Text>
-                    <Text style={styles.commentMessage}>{item.message}</Text>
-                  </View>
-                </View>
-              )}
-            />
-
-            {/* Строка ввода как у комментариев к постам: парящая пилюля
-                вместо полосы с разделителем, круглая кнопка-стрелка. */}
-            <View style={[styles.composerWrap, { paddingBottom: insets.bottom + space.sm }]}>
-              <View style={styles.composer}>
-                <TextInput
-                  style={styles.composerInput}
-                  placeholder="Добавить комментарий"
-                  placeholderTextColor={colors.textFaint}
-                  value={commentText}
-                  onChangeText={setCommentText}
-                  multiline
-                />
-                <TouchableOpacity
-                  style={[styles.composerSend, !commentText.trim() && styles.composerSendOff]}
-                  onPress={sendComment}
-                  disabled={!commentText.trim() || sendingComment}
-                >
-                  {sendingComment ? (
-                    <ActivityIndicator color={colors.onAccent} size="small" />
-                  ) : (
-                    <Ionicons
-                      name="arrow-up"
-                      size={18}
-                      color={commentText.trim() ? colors.onAccent : colors.textFaint}
-                    />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Animated.View>
-          </Animated.View>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -815,43 +640,13 @@ const styles = StyleSheet.create({
   emptyText: { marginTop: 8, color: colors.textFaint, fontSize: 14, textAlign: 'center', lineHeight: 20 },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
   // Слой шторки: поверх всего экрана, вместе со спрятанной панелью вкладок.
-  sheetLayer: {
-    ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end',
-    zIndex: 60, elevation: 60,
-  },
   modalBackdrop: { ...StyleSheet.absoluteFillObject },
   backdropFill: { backgroundColor: 'rgba(0,0,0,0.45)' },
-  commentsSheet: { maxHeight: '72%', minHeight: '50%', backgroundColor: colors.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingTop: 8 },
-  handleZone: { paddingBottom: 2 },
-  sheetHandle: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: colors.surfaceHi, marginBottom: 8 },
-  sheetHeader: { height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  sheetTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
-  commentsList: { flex: 1 },
-  commentsLoading: { paddingVertical: 8, alignItems: 'center' },
-  commentsContent: { padding: 16, gap: 14 },
   noComments: { marginTop: 36, textAlign: 'center', color: colors.textMuted, fontSize: 15, fontWeight: '700' },
-  commentRow: { flexDirection: 'row', gap: 10 },
-  commentAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceAlt },
-  commentAvatarFallback: { alignItems: 'center', justifyContent: 'center' },
-  commentBody: { flex: 1 },
-  commentAuthor: { color: colors.text, fontSize: 13, fontWeight: '900' },
-  commentMessage: { marginTop: 3, color: colors.textMuted, fontSize: 14, lineHeight: 20 },
-  composerWrap: { paddingHorizontal: space.md, paddingTop: space.sm },
-  composer: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: space.xs,
-    borderRadius: radius.xl, backgroundColor: colors.surfaceAlt,
-    paddingHorizontal: 5, paddingVertical: 5,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+  uploadHandle: {
+    alignSelf: 'center', width: 42, height: 4, borderRadius: radius.pill,
+    backgroundColor: colors.surfaceHi, marginBottom: space.sm,
   },
-  composerInput: {
-    flex: 1, minHeight: 38, maxHeight: 104, paddingHorizontal: space.sm,
-    paddingTop: 8, paddingBottom: 8, fontSize: font.small, color: colors.text,
-  },
-  composerSend: {
-    width: 38, height: 38, borderRadius: radius.pill, backgroundColor: colors.accent,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  composerSendOff: { backgroundColor: colors.surfaceHi },
   uploadSheet: { backgroundColor: colors.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, paddingHorizontal: space.lg, paddingTop: space.sm },
   uploadTitle: { color: colors.text, fontSize: 21, fontWeight: '900', textAlign: 'center' },
   uploadHint: { marginTop: 3, color: colors.textMuted, fontSize: 13, fontWeight: '600', textAlign: 'center' },

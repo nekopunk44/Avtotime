@@ -6,6 +6,7 @@ import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-c
 import ModeTransition from './src/components/ModeTransition';
 import ToastHost from './src/components/ui/ToastHost';
 import ConfirmHost from './src/components/ui/ConfirmHost';
+import LoopCommentsSheet from './src/components/LoopCommentsSheet';
 import * as SplashScreen from 'expo-splash-screen';
 import RootNavigator from './src/navigation/RootNavigator';
 import { navigationRef } from './src/navigation/navigationRef';
@@ -47,6 +48,8 @@ export default function App() {
         <ToastHost />
         {/* Вопросы «точно?» — одна шторка на всё приложение. */}
         <ConfirmHost />
+        {/* Комментарии к ролику: шторка накрывает всё, включая панель вкладок. */}
+        <LoopCommentsSheet />
       </NavigationContainer>
     </SafeAreaProvider>
   );
