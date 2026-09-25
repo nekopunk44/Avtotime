@@ -26,7 +26,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { RouteProp, useFocusEffect, useIsFocused, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getLoops, likeLoop, Loop, uploadLoop } from '../api/loops';
+import { getLoops, likeLoop, Loop, saveLoop, uploadLoop } from '../api/loops';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList, AppTabParamList } from '../navigation/AppNavigator';
 import ModeSwitcher from '../components/ModeSwitcher';
@@ -47,11 +47,13 @@ type LoopCardProps = {
   muted: boolean;
   onToggleMute: () => void;
   onLike: (loopId: string) => void;
+  saved: boolean;
+  onSave: (loopId: string) => void;
   onCommentOpen: (loop: Loop) => void;
   onAuthorPress: (userId?: string) => void;
 };
 
-function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onCommentOpen, onAuthorPress }: LoopCardProps) {
+function LoopCard({ loop, active, height, muted, onToggleMute, onLike, saved, onSave, onCommentOpen, onAuthorPress }: LoopCardProps) {
   const [progress, setProgress] = useState(0);
   // Пауза по тапу в любом месте кадра — привычный жест вертикальных видео.
   const [paused, setPaused] = useState(false);
@@ -72,8 +74,10 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onComment
     Animated.spring(pauseAnim, { toValue: paused ? 1 : 0, useNativeDriver: true, speed: 26, bounciness: 9 }).start();
   }, [paused, pauseAnim]);
 
-  // Сердце подпрыгивает на каждое переключение лайка.
+  // Лайк: сердце приседает и выпрыгивает, а по кадру расходится большое
+  // сердце-вспышка — отклик виден, даже если палец закрывает рейку.
   const likeScale = useRef(new Animated.Value(1)).current;
+  const likeBurst = useRef(new Animated.Value(0)).current;
   const likeMounted = useRef(false);
   useEffect(() => {
     if (!likeMounted.current) {
@@ -81,10 +85,34 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onComment
       return;
     }
     Animated.sequence([
-      Animated.spring(likeScale, { toValue: 1.35, useNativeDriver: true, speed: 40, bounciness: 14 }),
-      Animated.spring(likeScale, { toValue: 1, useNativeDriver: true, speed: 22, bounciness: 7 }),
+      Animated.timing(likeScale, { toValue: 0.7, duration: 80, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      Animated.spring(likeScale, { toValue: 1.4, useNativeDriver: true, speed: 40, bounciness: 16 }),
+      Animated.spring(likeScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }),
     ]).start();
-  }, [liked, likeScale]);
+    if (liked) {
+      likeBurst.setValue(0);
+      Animated.sequence([
+        Animated.spring(likeBurst, { toValue: 1, useNativeDriver: true, speed: 24, bounciness: 10 }),
+        Animated.delay(160),
+        Animated.timing(likeBurst, { toValue: 0, duration: 260, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      ]).start();
+    }
+  }, [liked, likeScale, likeBurst]);
+
+  // Закладка подпрыгивает так же, как сердце.
+  const saveScale = useRef(new Animated.Value(1)).current;
+  const saveMounted = useRef(false);
+  useEffect(() => {
+    if (!saveMounted.current) {
+      saveMounted.current = true;
+      return;
+    }
+    Animated.sequence([
+      Animated.timing(saveScale, { toValue: 0.75, duration: 70, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      Animated.spring(saveScale, { toValue: 1.3, useNativeDriver: true, speed: 40, bounciness: 14 }),
+      Animated.spring(saveScale, { toValue: 1, useNativeDriver: true, speed: 22, bounciness: 7 }),
+    ]).start();
+  }, [saved, saveScale]);
 
   // Переключение звука коротко показывает состояние по центру кадра и
   // подталкивает значок на рейке.
@@ -173,6 +201,21 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onComment
 
       <Animated.View
         style={[
+          styles.likeBurst,
+          {
+            opacity: likeBurst,
+            transform: [{
+              scale: likeBurst.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }),
+            }],
+          },
+        ]}
+        pointerEvents="none"
+      >
+        <Ionicons name="heart" size={96} color={colors.danger} />
+      </Animated.View>
+
+      <Animated.View
+        style={[
           styles.centerBadge,
           {
             opacity: muteFlash,
@@ -194,6 +237,11 @@ function LoopCard({ loop, active, height, muted, onToggleMute, onLike, onComment
         <TouchableOpacity style={styles.railButton} onPress={() => onCommentOpen(loop)} activeOpacity={0.85}>
           <Ionicons name="chatbubble-outline" size={28} color="#fff" />
           <Text style={styles.railText}>{commentsCount}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.railButton} onPress={() => onSave(loop._id)} activeOpacity={0.85}>
+          <Animated.View style={{ transform: [{ scale: saveScale }] }}>
+            <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={26} color={saved ? colors.accent : '#fff'} />
+          </Animated.View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.railButton} onPress={onToggleMute} activeOpacity={0.85}>
           <Animated.View style={{ transform: [{ scale: muteScale }] }}>
@@ -404,6 +452,22 @@ export default function LoopsScreen({ navigation }: Props) {
     setLoops((prev) => prev.map((loop) => loop._id === updated._id ? updated : loop));
   };
 
+  const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+  const savedLoopIds = useMemo(
+    () => new Set((user?.savedLoops ?? []).map((item) => (typeof item === 'string' ? item : item._id))),
+    [user?.savedLoops],
+  );
+
+  const handleSave = async (loopId: string) => {
+    try {
+      const fresh = await saveLoop(loopId);
+      setUser(fresh);
+    } catch (e: any) {
+      showToast(e.response?.data?.message || 'Не удалось сохранить ролик', 'error');
+    }
+  };
+
   const handleLike = async (loopId: string) => {
     try {
       const updated = await likeLoop(loopId);
@@ -485,6 +549,8 @@ export default function LoopsScreen({ navigation }: Props) {
       muted={muted}
       onToggleMute={() => setMuted((prev) => !prev)}
       onLike={handleLike}
+      saved={savedLoopIds.has(item._id)}
+      onSave={handleSave}
       onCommentOpen={openComments}
       onAuthorPress={openAuthor}
     />
@@ -630,6 +696,7 @@ const styles = StyleSheet.create({
   caption: { marginTop: 10, color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 },
   progressTrack: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.18)' },
   progressFill: { height: '100%', backgroundColor: colors.accent },
+  likeBurst: { position: 'absolute', alignSelf: 'center', top: '40%' },
   centerBadge: {
     position: 'absolute', alignSelf: 'center', top: '45%',
     width: 72, height: 72, borderRadius: radius.pill,

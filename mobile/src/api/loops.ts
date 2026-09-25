@@ -1,4 +1,5 @@
 import client from './client';
+import { User } from './auth';
 
 export interface LoopAuthor {
   _id: string;
@@ -69,4 +70,16 @@ export async function uploadLoop(uri: string, caption: string, mimeType?: string
   });
 
   return data;
+}
+
+/** Закладка на ролик: тот же вызов ставит и снимает. Возвращает пользователя. */
+export async function saveLoop(loopId: string): Promise<User> {
+  const { data } = await client.get(`/loop/save/${loopId}`);
+  return data;
+}
+
+/** Ролики, которым пользователь поставил лайк. */
+export async function getLikedLoops(): Promise<Loop[]> {
+  const { data } = await client.get('/loop/liked');
+  return Array.isArray(data) ? data : [];
 }

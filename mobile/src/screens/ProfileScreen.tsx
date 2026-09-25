@@ -15,7 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { getMe } from '../api/auth';
-import { getLikedPosts, getPostThumb, getSavedPosts, getUserPosts, Post } from '../api/posts';
+import { getLikedPosts, getPostThumb, getSavedItems, getUserPosts, isSavedLoop, Post, SavedItem, SavedLoopTile } from '../api/posts';
+import { getLikedLoops } from '../api/loops';
 import { getReviews, getUserRatingStats, ReviewItem, ReviewStats } from '../api/reviews';
 import { getListingImage, getListingPrice, getListingTitle, loadMyMarketListings, MyMarketListing } from '../api/market';
 import { DrivingTestResult, getDrivingResults } from '../api/driving';
@@ -224,8 +225,8 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
   const [refreshing, setRefreshing] = useState(false);
 
   const [tab, setTab] = useState<ProfileTab>(isMarket ? 'listings' : 'posts');
-  const [saved, setSaved] = useState<Post[]>([]);
-  const [liked, setLiked] = useState<Post[]>([]);
+  const [saved, setSaved] = useState<SavedItem[]>([]);
+  const [liked, setLiked] = useState<SavedItem[]>([]);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [driving, setDriving] = useState<DrivingTestResult[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
@@ -249,13 +250,22 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
     if (next === 'saved') {
       savedLoaded.current = true;
       if (!silent) setSavedLoading(true);
-      getSavedPosts().then(setSaved).catch(() => {}).finally(() => setSavedLoading(false));
+      getSavedItems().then(setSaved).catch(() => {}).finally(() => setSavedLoading(false));
       return;
     }
     if (next === 'liked') {
       likedLoaded.current = true;
       if (!silent) setLikedLoading(true);
-      getLikedPosts().then(setLiked).catch(() => {}).finally(() => setLikedLoading(false));
+      // Понравившееся — и посты, и ролики: лайк на видео жил только в ленте.
+      Promise.all([getLikedPosts(), getLikedLoops().catch(() => [])])
+        .then(([posts, loops]) => {
+          const tiles: SavedLoopTile[] = loops.map((loop) => ({
+            _id: loop._id, media: loop.media, caption: loop.caption, isLoop: true,
+          }));
+          setLiked([...tiles, ...posts]);
+        })
+        .catch(() => {})
+        .finally(() => setLikedLoading(false));
       return;
     }
     if (next === 'reviews' && user?._id) {
@@ -278,7 +288,10 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
         : next === 'reviews' ? reviewsLoaded.current
           : next === 'driving' ? drivingLoaded.current
             : true;
-    if (!alreadyLoaded) loadTabData(next);
+    // Раздел перечитывается на каждое открытие: лайк или закладка ставятся в
+    // ленте, и профиль об этом сам не узнает. Уже виденные данные остаются на
+    // экране, обновление идёт молча.
+    if (next !== 'posts' && next !== 'listings') loadTabData(next, alreadyLoaded);
   }, [loadTabData]);
 
   const load = useCallback(async (silent = false) => {
@@ -489,7 +502,26 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
     </View>
   );
 
-  const renderPost = ({ item }: { item: Post }) => (
+  const renderPost = ({ item }: { item: SavedItem }) => {
+    // Сохранённый ролик: плитка с плёнкой ведёт в ленту роликов на него.
+    if (isSavedLoop(item)) {
+      return (
+        <PressableScale
+          style={styles.gridItem}
+          scaleTo={0.95}
+          onPress={() => (navigation as { navigate: (screen: string, params?: object) => void }).navigate('Loops', { loopId: item._id })}
+        >
+          <View style={[styles.gridImage, styles.gridLoop]}>
+            <Ionicons name="play-circle" size={26} color={colors.text} />
+            {item.caption ? (
+              <Text style={styles.textPost} numberOfLines={2}>{item.caption}</Text>
+            ) : null}
+          </View>
+        </PressableScale>
+      );
+    }
+
+    return (
     <PressableScale
       style={styles.gridItem}
       scaleTo={0.95}
@@ -511,7 +543,8 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
         </View>
       )}
     </PressableScale>
-  );
+    );
+  };
 
   const renderListing = ({ item }: { item: MyMarketListing }) => (
     <PressableScale
@@ -707,6 +740,7 @@ const styles = StyleSheet.create({
   gridItem: { width: '33.333%', aspectRatio: 1, padding: 2 },
   gridImage: { width: '100%', height: '100%', borderRadius: radius.sm, backgroundColor: colors.surfaceAlt },
   gridNoImage: { alignItems: 'center', justifyContent: 'center', padding: 7, backgroundColor: colors.surface },
+  gridLoop: { alignItems: 'center', justifyContent: 'center', gap: 4, padding: 7, backgroundColor: colors.ink },
   gridVideoBadge: { position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
   gridPrice: { position: 'absolute', left: 6, bottom: 6, maxWidth: '85%', borderRadius: radius.pill, backgroundColor: 'rgba(8,8,10,0.72)', paddingHorizontal: 8, paddingVertical: 3 },
   gridPriceText: { color: colors.white, fontSize: 10, fontWeight: '900' },

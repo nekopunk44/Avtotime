@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getPostThumb, getSavedPosts, Post, toggleLike, toggleSavePost } from '../api/posts';
+import { getPostThumb, getSavedItems, isSavedLoop, Post, toggleLike, toggleSavePost } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
@@ -41,7 +41,8 @@ export default function SavedPostsScreen({ navigation }: Props) {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const data = await getSavedPosts();
+      // Этот экран — только посты; плитки роликов живут в профиле.
+      const data = (await getSavedItems()).filter((item): item is Post => !isSavedLoop(item));
       setPosts(data);
     } catch (e: any) {
       showToast(e.response?.data?.message || 'Не удалось загрузить сохранённые публикации', 'error');

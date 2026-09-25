@@ -141,11 +141,29 @@ export async function toggleSavePost(postId: string): Promise<User> {
   return data;
 }
 
-export async function getSavedPosts(): Promise<Post[]> {
+export interface SavedLoopTile {
+  _id: string;
+  media: string;
+  caption?: string;
+  /** Метка для сетки профиля: плитка ведёт в ленту роликов, а не в пост. */
+  isLoop: true;
+}
+
+export type SavedItem = Post | SavedLoopTile;
+
+export const isSavedLoop = (item: SavedItem): item is SavedLoopTile =>
+  (item as SavedLoopTile).isLoop === true;
+
+/** Сохранённое целиком: посты и ролики одной загрузкой профиля. */
+export async function getSavedItems(): Promise<SavedItem[]> {
   const user = await getMe();
   // Достаточно того, что запись пришла объектом с идентификатором: пост без
   // подписи — обычное дело, а раньше он выпадал из списка.
-  return (user.saved ?? []).filter((item): item is Post => typeof item !== 'string' && !!item?._id);
+  const posts = (user.saved ?? []).filter((item): item is Post => typeof item !== 'string' && !!item?._id);
+  const loops: SavedLoopTile[] = (user.savedLoops ?? [])
+    .filter((item): item is Exclude<typeof item, string> => typeof item !== 'string' && !!item?._id)
+    .map((item) => ({ _id: item._id, media: item.media, caption: item.caption, isLoop: true }));
+  return [...loops, ...posts];
 }
 
 export async function createPost(payload: CreatePostPayload): Promise<Post> {
