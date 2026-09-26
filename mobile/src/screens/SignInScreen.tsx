@@ -5,8 +5,7 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, } from 'react-native';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
-import SpeedLines from '../components/SpeedLines';
-import LottieLogo, { lottieAvailable } from '../components/LottieLogo';
+import AnimatedEmblem from '../components/AnimatedEmblem';
 import { colors, font, radius, shadow, space } from '../theme';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { signIn, signInWithGoogleCredential } from '../api/auth';
@@ -106,8 +105,7 @@ export default function SignInScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.hero}>
-        {!lottieAvailable ? <SpeedLines style={styles.heroSpeed} /> : null}
-        <LottieLogo style={styles.heroCar} />
+        <AnimatedEmblem size={240} />
       </View>
 
       <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetY }] }]}>
@@ -200,8 +198,6 @@ export default function SignInScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.ink },
   hero: { height: 300, alignItems: 'center', justifyContent: 'center', paddingTop: 24 },
-  heroSpeed: {},
-  heroCar: { width: 270, height: 210 },
   brand: { color: colors.white, fontSize: font.h2, fontWeight: '900', letterSpacing: 4, marginTop: space.sm },
   sheet: { flex: 1, backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -24, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
   flex: { flex: 1 },
