@@ -15,8 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { getMe } from '../api/auth';
-import { getLikedPosts, getPostThumb, getSavedItems, getUserPosts, isSavedLoop, Post, SavedItem, SavedLoopTile } from '../api/posts';
-import { getLikedLoops } from '../api/loops';
+import { getPostThumb, getUserPosts, isSavedLoop, Post, SavedItem } from '../api/posts';
+import { useProfileLibraryStore } from '../store/profileLibraryStore';
 import { getReviews, getUserRatingStats, ReviewItem, ReviewStats } from '../api/reviews';
 import { getListingImage, getListingPrice, getListingTitle, loadMyMarketListings, MyMarketListing } from '../api/market';
 import { DrivingTestResult, getDrivingResults } from '../api/driving';
@@ -31,6 +31,9 @@ type Props = {
   /** Профиль в соцсети и в маркете — разные экраны одной личности. */
   mode?: 'social' | 'market';
 };
+
+// Стабильная пустышка: новый [] на каждый рендер дёргал бы зависимые мемо.
+const EMPTY_ITEMS: SavedItem[] = [];
 
 const planLabel = (plan?: string) => {
   if (plan === 'business') return 'Business';
@@ -225,16 +228,19 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
   const [refreshing, setRefreshing] = useState(false);
 
   const [tab, setTab] = useState<ProfileTab>(isMarket ? 'listings' : 'posts');
-  const [saved, setSaved] = useState<SavedItem[]>([]);
-  const [liked, setLiked] = useState<SavedItem[]>([]);
+  // Сохранённое и понравившееся живут в сторе: лайк из ленты или ролика
+  // обновляет их в фоне, и к открытию профиля список уже свежий — без
+  // подмены старых плиток на новые на глазах.
+  const savedStore = useProfileLibraryStore((s) => s.saved);
+  const likedStore = useProfileLibraryStore((s) => s.liked);
+  const refreshSaved = useProfileLibraryStore((s) => s.refreshSaved);
+  const refreshLiked = useProfileLibraryStore((s) => s.refreshLiked);
+  const saved = savedStore ?? EMPTY_ITEMS;
+  const liked = likedStore ?? EMPTY_ITEMS;
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [driving, setDriving] = useState<DrivingTestResult[]>([]);
-  const [savedLoading, setSavedLoading] = useState(false);
-  const [likedLoading, setLikedLoading] = useState(false);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [drivingLoading, setDrivingLoading] = useState(false);
-  const savedLoaded = useRef(false);
-  const likedLoaded = useRef(false);
   const reviewsLoaded = useRef(false);
   const drivingLoaded = useRef(false);
   // Живут в экране, чтобы пережить пересоздание списка при смене раздела.
@@ -248,24 +254,12 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
    */
   const loadTabData = useCallback((next: ProfileTab, silent = false) => {
     if (next === 'saved') {
-      savedLoaded.current = true;
-      if (!silent) setSavedLoading(true);
-      getSavedItems().then(setSaved).catch(() => {}).finally(() => setSavedLoading(false));
+      // Обновление всегда молчаливое: загрузка видна, лишь пока стор пуст.
+      refreshSaved();
       return;
     }
     if (next === 'liked') {
-      likedLoaded.current = true;
-      if (!silent) setLikedLoading(true);
-      // Понравившееся — и посты, и ролики: лайк на видео жил только в ленте.
-      Promise.all([getLikedPosts(), getLikedLoops().catch(() => [])])
-        .then(([posts, loops]) => {
-          const tiles: SavedLoopTile[] = loops.map((loop) => ({
-            _id: loop._id, media: loop.media, poster: loop.poster, caption: loop.caption, isLoop: true,
-          }));
-          setLiked([...tiles, ...posts]);
-        })
-        .catch(() => {})
-        .finally(() => setLikedLoading(false));
+      refreshLiked();
       return;
     }
     if (next === 'reviews' && user?._id) {
@@ -279,15 +273,13 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
       if (!silent) setDrivingLoading(true);
       getDrivingResults({ limit: 30 }).then(setDriving).catch(() => {}).finally(() => setDrivingLoading(false));
     }
-  }, [user?._id]);
+  }, [user?._id, refreshSaved, refreshLiked]);
 
   const selectTab = useCallback((next: ProfileTab) => {
     setTab(next);
-    const alreadyLoaded = next === 'saved' ? savedLoaded.current
-      : next === 'liked' ? likedLoaded.current
-        : next === 'reviews' ? reviewsLoaded.current
-          : next === 'driving' ? drivingLoaded.current
-            : true;
+    const alreadyLoaded = next === 'reviews' ? reviewsLoaded.current
+      : next === 'driving' ? drivingLoaded.current
+        : true;
     // Раздел перечитывается на каждое открытие: лайк или закладка ставятся в
     // ленте, и профиль об этом сам не узнает. Уже виденные данные остаются на
     // экране, обновление идёт молча.
@@ -358,8 +350,8 @@ export default function ProfileScreen({ navigation, mode = 'social' }: Props) {
   const tabs = isMarket ? MARKET_TABS : SOCIAL_TABS;
   const activeTab = tabs.find((t) => t.key === tab) || tabs[0];
   const tabLoading =
-    tab === 'saved' ? savedLoading
-      : tab === 'liked' ? likedLoading
+    tab === 'saved' ? savedStore === null
+      : tab === 'liked' ? likedStore === null
         : tab === 'reviews' ? reviewsLoading
           : tab === 'driving' ? drivingLoading
             : loading;

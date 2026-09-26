@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { getMe, signOut, User } from '../api/auth';
 import { disconnectSocket } from '../hooks/useSocket';
 import { unregisterPushNotifications } from '../notifications/push';
+import { useProfileLibraryStore } from './profileLibraryStore';
 
 interface AuthState {
   user: User | null;
@@ -23,6 +24,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     await unregisterPushNotifications();
     await signOut();
     disconnectSocket();
+    // Личные списки профиля не должны дожить до следующего аккаунта.
+    useProfileLibraryStore.getState().reset();
     set({ user: null });
   },
 

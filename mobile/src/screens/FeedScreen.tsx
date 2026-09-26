@@ -25,6 +25,7 @@ import { deletePost, FEED_PAGE_SIZE, getFeed, getVideoPoster, isPostSaved, toggl
 import { getStories, getStoryByUserName, Story, uploadStory } from '../api/stories';
 import { useAuthStore } from '../store/authStore';
 import { usePostUpdatesStore } from '../store/postUpdatesStore';
+import { useProfileLibraryStore } from '../store/profileLibraryStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 import { colors, font, radius, space, shadow } from '../theme';
@@ -330,6 +331,8 @@ export default function FeedScreen({ navigation }: Props) {
     try {
       const updated = await toggleLike(postId);
       setPosts((prev) => prev.map((p) => p._id === postId ? { ...p, ...updated } : p));
+      // Профиль перечитывает «Понравившиеся» в фоне — к открытию уже свежие.
+      refreshLikedLibrary();
     } catch {
       setPosts((prev) => prev.map(flip));
     }
@@ -340,6 +343,7 @@ export default function FeedScreen({ navigation }: Props) {
     try {
       const nextUser = await toggleSavePost(postId);
       setUser({ ...user, saved: nextUser.saved ?? [] });
+      refreshSavedLibrary();
     } catch (e: any) {
       showToast(e.response?.data?.message || 'Не удалось сохранить публикацию', 'error');
     }
@@ -367,6 +371,8 @@ export default function FeedScreen({ navigation }: Props) {
   // Изменения, сделанные внутри публикации (лайк, комментарий), вливаются в
   // ленту: без этого снятый там лайк продолжал гореть на главном экране.
   const postUpdate = usePostUpdatesStore((s) => s.updated);
+  const refreshLikedLibrary = useProfileLibraryStore((s) => s.refreshLiked);
+  const refreshSavedLibrary = useProfileLibraryStore((s) => s.refreshSaved);
   useEffect(() => {
     if (!postUpdate) return;
     setPosts((prev) => prev.map((item) => (

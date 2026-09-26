@@ -12,6 +12,7 @@ import { useKeyboardLift } from '../hooks/useKeyboardLift';
 import { addComment, deletePost, getPostById, isPostSaved, Post, PostComment, toggleLike, toggleSavePost } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
 import { usePostUpdatesStore } from '../store/postUpdatesStore';
+import { useProfileLibraryStore } from '../store/profileLibraryStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import PostMediaCarousel from '../components/PostMediaCarousel';
 import { Avatar } from '../components/ui';
@@ -44,6 +45,8 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
 
   const user = useAuthStore((s) => s.user);
   const publishPostUpdate = usePostUpdatesStore((s) => s.publish);
+  const refreshLikedLibrary = useProfileLibraryStore((s) => s.refreshLiked);
+  const refreshSavedLibrary = useProfileLibraryStore((s) => s.refreshSaved);
 
   // Отклик лайка и закладки — как в ленте: присед и прыжок с отскоком.
   const likedNow = !!(post && user && post.likes?.includes(user._id));
@@ -118,6 +121,8 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
         publishPostUpdate(next);
         return next;
       });
+      // Профиль перечитывает «Понравившиеся» в фоне — к открытию уже свежие.
+      refreshLikedLibrary();
     } catch (e: any) {
       showToast(e.response?.data?.message || 'Не удалось обновить лайк', 'error');
     }
@@ -128,6 +133,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
     try {
       const nextUser = await toggleSavePost(post._id);
       setUser({ ...user, saved: nextUser.saved ?? [] });
+      refreshSavedLibrary();
     } catch (e: any) {
       showToast(e.response?.data?.message || 'Не удалось сохранить публикацию', 'error');
     }

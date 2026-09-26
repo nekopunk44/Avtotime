@@ -15,6 +15,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getPostThumb, getSavedItems, isSavedLoop, Post, toggleLike, toggleSavePost } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
+import { useProfileLibraryStore } from '../store/profileLibraryStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
 import { Avatar, Skeleton } from '../components/ui';
@@ -33,6 +34,8 @@ const plural = (n: number, forms: [string, string, string]) => {
 export default function SavedPostsScreen({ navigation }: Props) {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
+  const refreshLikedLibrary = useProfileLibraryStore((s) => s.refreshLiked);
+  const refreshSavedLibrary = useProfileLibraryStore((s) => s.refreshSaved);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -65,6 +68,8 @@ export default function SavedPostsScreen({ navigation }: Props) {
     try {
       const updated = await toggleLike(postId);
       setPosts((prev) => prev.map((post) => (post._id === postId ? { ...post, ...updated } : post)));
+      // Профиль перечитывает «Понравившиеся» в фоне — к открытию уже свежие.
+      refreshLikedLibrary();
     } catch {}
   };
 
@@ -74,6 +79,7 @@ export default function SavedPostsScreen({ navigation }: Props) {
       const nextUser = await toggleSavePost(postId);
       if (user) setUser({ ...user, saved: nextUser.saved ?? [] });
       setPosts((prev) => prev.filter((post) => post._id !== postId));
+      refreshSavedLibrary();
     } catch (e: any) {
       showToast(e.response?.data?.message || 'Не удалось убрать публикацию', 'error');
     } finally {

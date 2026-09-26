@@ -22,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useKeyboardLift } from '../hooks/useKeyboardLift';
 import { useLoopCommentsStore } from '../store/loopCommentsStore';
+import { useProfileLibraryStore } from '../store/profileLibraryStore';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { RouteProp, useFocusEffect, useIsFocused, useRoute } from '@react-navigation/native';
@@ -494,6 +495,8 @@ export default function LoopsScreen({ navigation }: Props) {
     try {
       const fresh = await saveLoop(loopId);
       setUser(fresh);
+      // Профиль перечитывает «Сохранённые» в фоне — к открытию уже свежие.
+      refreshSavedLibrary();
     } catch (e: any) {
       showToast(e.response?.data?.message || 'Не удалось сохранить ролик', 'error');
     }
@@ -503,6 +506,7 @@ export default function LoopsScreen({ navigation }: Props) {
     try {
       const updated = await likeLoop(loopId);
       updateLoop(updated);
+      refreshLikedLibrary();
     } catch (e: any) {
       showToast(e.response?.data?.message || 'Не удалось поставить лайк', 'error');
     }
@@ -559,6 +563,8 @@ export default function LoopsScreen({ navigation }: Props) {
   // дотягивается до низа экрана, а окно Modal ведёт себя по-разному на
   // разных устройствах. Экран лишь открывает её и подхватывает обновления.
   const openComments = useLoopCommentsStore((s) => s.open);
+  const refreshLikedLibrary = useProfileLibraryStore((s) => s.refreshLiked);
+  const refreshSavedLibrary = useProfileLibraryStore((s) => s.refreshSaved);
   const sheetLoop = useLoopCommentsStore((s) => s.loop);
 
   useEffect(() => {

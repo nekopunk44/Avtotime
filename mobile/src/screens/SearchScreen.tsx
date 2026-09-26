@@ -18,6 +18,7 @@ import { getSuggestedUsers, searchUsers } from '../api/users';
 import { User } from '../api/auth';
 import { getFeed, Post, searchPosts, toggleLike } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
+import { useProfileLibraryStore } from '../store/profileLibraryStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 import { colors } from '../theme';
@@ -44,6 +45,7 @@ export default function SearchScreen({ navigation }: Props) {
   // Increments per request; stale responses are ignored so a slow discover/search
   // cannot overwrite the results of a newer one.
   const requestIdRef = useRef(0);
+  const refreshLikedLibrary = useProfileLibraryStore((s) => s.refreshLiked);
 
   const trimmedQuery = query.trim();
   const hasQuery = trimmedQuery.length >= 2;
@@ -136,6 +138,8 @@ export default function SearchScreen({ navigation }: Props) {
       const updated = await toggleLike(postId);
       setSuggestedPosts((prev) => prev.map((post) => (post._id === postId ? { ...post, ...updated } : post)));
       setPostResults((prev) => prev.map((post) => (post._id === postId ? { ...post, ...updated } : post)));
+      // Профиль перечитывает «Понравившиеся» в фоне — к открытию уже свежие.
+      refreshLikedLibrary();
     } catch (e: any) {
       showToast(e.response?.data?.message || 'Не удалось обновить лайк', 'error');
     }
