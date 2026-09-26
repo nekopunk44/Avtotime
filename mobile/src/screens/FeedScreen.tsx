@@ -24,6 +24,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { deletePost, FEED_PAGE_SIZE, getFeed, getVideoPoster, isPostSaved, toggleLike, Post, toggleSavePost } from '../api/posts';
 import { getStories, getStoryByUserName, Story, uploadStory } from '../api/stories';
 import { useAuthStore } from '../store/authStore';
+import { usePostUpdatesStore } from '../store/postUpdatesStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 import { colors, font, radius, space, shadow } from '../theme';
@@ -362,6 +363,16 @@ export default function FeedScreen({ navigation }: Props) {
   };
 
   const [reportPostId, setReportPostId] = useState<string | null>(null);
+
+  // Изменения, сделанные внутри публикации (лайк, комментарий), вливаются в
+  // ленту: без этого снятый там лайк продолжал гореть на главном экране.
+  const postUpdate = usePostUpdatesStore((s) => s.updated);
+  useEffect(() => {
+    if (!postUpdate) return;
+    setPosts((prev) => prev.map((item) => (
+      item._id === postUpdate.post._id ? { ...item, ...postUpdate.post } : item
+    )));
+  }, [postUpdate]);
   // Выбор снизу вместо системных списков: чем публиковать и что делать с постом.
   const [storyPrompt, setStoryPrompt] = useState(false);
   const [postActions, setPostActions] = useState<Post | null>(null);

@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKeyboardLift } from '../hooks/useKeyboardLift';
 import { addComment, deletePost, getPostById, isPostSaved, Post, PostComment, toggleLike, toggleSavePost } from '../api/posts';
 import { useAuthStore } from '../store/authStore';
+import { usePostUpdatesStore } from '../store/postUpdatesStore';
 import { AppStackParamList } from '../navigation/AppNavigator';
 import PostMediaCarousel from '../components/PostMediaCarousel';
 import { Avatar } from '../components/ui';
@@ -42,6 +43,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
   const { lift: kbLift, onLayout: onRootLayout } = useKeyboardLift();
 
   const user = useAuthStore((s) => s.user);
+  const publishPostUpdate = usePostUpdatesStore((s) => s.publish);
 
   // Отклик лайка и закладки — как в ленте: присед и прыжок с отскоком.
   const likedNow = !!(post && user && post.likes?.includes(user._id));
@@ -97,6 +99,7 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
     try {
       const updated = await addComment(postId, message);
       setPost(updated);
+      publishPostUpdate(updated);
       setText('');
     } catch (e: any) {
       showToast(e.response?.data?.message || 'Не удалось добавить комментарий', 'error');
@@ -109,7 +112,12 @@ export default function PostCommentsScreen({ route, navigation }: Props) {
     if (!post) return;
     try {
       const updated = await toggleLike(post._id);
-      setPost((prev) => (prev ? { ...prev, ...updated } : updated));
+      setPost((prev) => {
+        const next = prev ? { ...prev, ...updated } : updated;
+        // Лента должна узнать о снятом лайке — иначе на главном он горит.
+        publishPostUpdate(next);
+        return next;
+      });
     } catch (e: any) {
       showToast(e.response?.data?.message || 'Не удалось обновить лайк', 'error');
     }
