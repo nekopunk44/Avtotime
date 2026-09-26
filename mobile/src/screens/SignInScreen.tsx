@@ -6,6 +6,7 @@ import {
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedEmblem from '../components/AnimatedEmblem';
+import BrandWordmark from '../components/BrandWordmark';
 import { colors, font, radius, shadow, space } from '../theme';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { signIn, signInWithGoogleCredential } from '../api/auth';
@@ -105,7 +106,8 @@ export default function SignInScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.hero}>
-        <AnimatedEmblem size={240} />
+        <AnimatedEmblem size={230} />
+        <BrandWordmark size={26} />
       </View>
 
       <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetY }] }]}>

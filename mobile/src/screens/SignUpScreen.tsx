@@ -9,6 +9,7 @@ import { signUp } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 import AnimatedEmblem from '../components/AnimatedEmblem';
+import BrandWordmark from '../components/BrandWordmark';
 import { colors, font, radius, shadow, space } from '../theme';
 
 type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'SignUp'> };
@@ -57,7 +58,8 @@ export default function SignUpScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.hero}>
-        <AnimatedEmblem size={200} />
+        <AnimatedEmblem size={180} />
+        <BrandWordmark size={24} />
       </View>
 
       <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetY }] }]}>
