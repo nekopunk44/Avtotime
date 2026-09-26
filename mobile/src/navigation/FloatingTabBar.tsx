@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import SpeedSurface from '../components/SpeedSurface';
 import { colors, radius, shadow } from '../theme';
 
 const ICONS: Record<string, { on: keyof typeof Ionicons.glyphMap; off: keyof typeof Ionicons.glyphMap }> = {
@@ -167,6 +168,7 @@ export default function FloatingTabBar({ state, descriptors, navigation }: Botto
         <View style={styles.glowOuter} pointerEvents="none" />
         <View style={styles.glowInner} pointerEvents="none" />
       <View style={styles.bar} onLayout={(e) => setBarW(e.nativeEvent.layout.width)}>
+        <SpeedSurface subtle />
         <Animated.View
           style={[
             styles.slider,
@@ -220,6 +222,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill, paddingHorizontal: BAR_PAD, height: BAR_HEIGHT,
     // Кромка светлее обычной: волосяная граница цвета border тонула в контенте.
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.surfaceHi,
+    // Подложка со штрихами скорости не должна выглядывать за скругление.
+    overflow: 'hidden',
     ...shadow.float,
   },
   item: { flex: 1, alignItems: 'center', justifyContent: 'center' },

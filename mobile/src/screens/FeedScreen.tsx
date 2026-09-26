@@ -31,6 +31,7 @@ import { TAB_BAR_SPACE } from '../navigation/FloatingTabBar';
 import { colors, font, radius, space, shadow } from '../theme';
 import { Avatar, Card, EmptyState, PressableScale, Skeleton } from '../components/ui';
 import ReportSheet from '../components/ReportSheet';
+import SpeedSurface from '../components/SpeedSurface';
 import { ChoiceSheet, PagerDots } from '../components/ui';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList> };
@@ -411,6 +412,7 @@ export default function FeedScreen({ navigation }: Props) {
 
   const renderStories = () => (
     <View style={styles.storiesWrap}>
+      <SpeedSurface />
       <FlatList
         data={stories}
         horizontal
@@ -543,7 +545,7 @@ const styles = StyleSheet.create({
   content: { paddingBottom: TAB_BAR_SPACE },
   footer: { paddingVertical: space.xl },
 
-  storiesWrap: { backgroundColor: colors.surface, marginBottom: space.md, ...shadow.card },
+  storiesWrap: { backgroundColor: colors.surface, marginBottom: space.md, overflow: 'hidden', ...shadow.card },
   storiesList: { paddingHorizontal: space.md, paddingVertical: space.md, gap: 14 },
   storyItem: { width: 68, alignItems: 'center' },
   storyRing: { width: 64, height: 64, borderRadius: 32, borderWidth: 2.5, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
