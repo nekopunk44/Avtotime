@@ -6,10 +6,10 @@ import {
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedEmblem from '../components/AnimatedEmblem';
-import BrandWordmark from '../components/BrandWordmark';
 import { colors, font, radius, shadow, space } from '../theme';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { signIn, signInWithGoogleCredential } from '../api/auth';
+import { googleSheetAvailable, signInWithGoogleSheet } from '../../modules/google-credential';
 import { useAuthStore } from '../store/authStore';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 
@@ -78,11 +78,26 @@ export default function SignInScreen({ navigation }: Props) {
       showToast('Google Client ID не настроен в app.json', 'error');
       return;
     }
-    if (!GoogleSignInModule) return;
-    const { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } = GoogleSignInModule;
 
     setGoogleLoading(true);
     try {
+      // Современный путь — системная шторка Credential Manager: аккаунты
+      // выезжают снизу, без полноэкранного окна.
+      if (googleSheetAvailable) {
+        try {
+          const { idToken } = await signInWithGoogleSheet(googleWebClientId);
+          setUser(await signInWithGoogleCredential(idToken));
+          return;
+        } catch (e: any) {
+          if (e?.code === 'ERR_CANCELLED') return;
+          if (e?.code !== 'ERR_NO_CREDENTIAL') throw e;
+          // Аккаунтов Google на устройстве нет — старый диалог ниже умеет
+          // добавить аккаунт, шторка этого не умеет.
+        }
+      }
+
+      if (!GoogleSignInModule) return;
+      const { GoogleSignin, isSuccessResponse } = GoogleSignInModule;
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       const response = await GoogleSignin.signIn();
       if (isSuccessResponse(response)) {
@@ -91,12 +106,14 @@ export default function SignInScreen({ navigation }: Props) {
           showToast('Google не вернул токен. Попробуйте ещё раз.', 'error');
           return;
         }
-        const user = await signInWithGoogleCredential(idToken);
-        setUser(user);
+        setUser(await signInWithGoogleCredential(idToken));
       }
       // response.type === 'cancelled' — пользователь закрыл окно, ничего не делаем
     } catch (e: any) {
-      if (isErrorWithCode(e) && (e.code === statusCodes.IN_PROGRESS || e.code === statusCodes.SIGN_IN_CANCELLED)) return;
+      if (GoogleSignInModule) {
+        const { isErrorWithCode, statusCodes } = GoogleSignInModule;
+        if (isErrorWithCode(e) && (e.code === statusCodes.IN_PROGRESS || e.code === statusCodes.SIGN_IN_CANCELLED)) return;
+      }
       showToast(e?.response?.data?.message || e?.message || 'Google вход не удался', 'error');
     } finally {
       setGoogleLoading(false);
@@ -107,7 +124,6 @@ export default function SignInScreen({ navigation }: Props) {
     <View style={styles.container}>
       <View style={styles.hero}>
         <AnimatedEmblem size={230} />
-        <BrandWordmark size={26} />
       </View>
 
       <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetY }] }]}>

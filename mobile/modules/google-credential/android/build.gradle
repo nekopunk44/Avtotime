@@ -1,0 +1,19 @@
+apply plugin: 'expo-module-gradle-plugin'
+
+group = 'org.avtotime.googlecredential'
+version = '1.0.0'
+
+android {
+  namespace "org.avtotime.googlecredential"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}
+
+dependencies {
+  // Credential Manager — системная шторка входа Google (One Tap-наследник).
+  implementation "androidx.credentials:credentials:1.5.0"
+  implementation "androidx.credentials:credentials-play-services-auth:1.5.0"
+  implementation "com.google.android.libraries.identity.googleid:googleid:1.1.1"
+}
